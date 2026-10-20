@@ -1,0 +1,115 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 25 >>
+stream
+0 0 100 100 re S
+endstream
+endobj
+5 0 obj
+<< /Length 2663 >>
+stream
+q
+0.12 0.22 0.38 rg
+36 742 540 28 re f
+1 1 1 rg
+BT /F2 11 Tf 46 752 Td (SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf) Tj ET
+0 0 0 rg
+BT /F2 12 Tf 46 718 Td (TECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY) Tj ET
+BT /F3 8 Tf 46 702 Td (DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE) Tj ET
+0.75 0.78 0.82 RG 0.8 w 46 694 m 566 694 l S
+BT /F1 9 Tf 46 676 Td (Architecture Specification ARCH-TOPOLOGY-01 \(Multi-Region Cloud Network\):) Tj ET
+BT /F1 9 Tf 46 662 Td (1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF) Tj ET
+BT /F1 9 Tf 46 648 Td (   enforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.) Tj ET
+BT /F1 9 Tf 46 634 Td (2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels \(99.99% SLA\) terminating on) Tj ET
+BT /F1 9 Tf 46 620 Td (   Cloud Router with dynamic BGP ASN 64512 \(On-Premises ASN 65001\) and MED failover.) Tj ET
+BT /F1 9 Tf 46 606 Td (3. Regional Compute: Primary Region us-central1 \(GKE Autopilot + Cloud SQL HA\) with) Tj ET
+BT /F1 9 Tf 46 592 Td (   cross-region replica and automated failover to Secondary Region us-east4.) Tj ET
+BT /F1 9 Tf 46 578 Td (4. Data & AI Plane: Private Service Connect \(PSC\) endpoints in both regions routing) Tj ET
+BT /F1 9 Tf 46 564 Td (   privately to BigQuery and Vertex AI without traversing the public internet.) Tj ET
+q
+0.93 0.96 0.99 rg
+48 210 516 175 re f
+0.18 0.36 0.62 RG
+1.5 w
+48 210 516 175 re S
+BT /F2 10 Tf 60 368 Td (VECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology) Tj ET
+0.98 0.99 1.00 rg
+64 305 145 42 re f
+0.22 0.45 0.72 RG
+1.0 w
+64 305 145 42 re S
+BT /F1 8 Tf 72 323 Td (Cloud Armor WAF + Global LB) Tj ET
+209 326 m 229 326 l S
+0.98 0.99 1.00 rg
+229 305 145 42 re f
+0.22 0.45 0.72 RG
+1.0 w
+229 305 145 42 re S
+BT /F1 8 Tf 237 323 Td (Cloud HA VPN \(BGP ASN 64512\)) Tj ET
+374 326 m 394 326 l S
+0.98 0.99 1.00 rg
+394 305 145 42 re f
+0.22 0.45 0.72 RG
+1.0 w
+394 305 145 42 re S
+BT /F1 8 Tf 402 323 Td (Primary VPC: us-central1) Tj ET
+0.98 0.99 1.00 rg
+64 237 145 42 re f
+0.22 0.45 0.72 RG
+1.0 w
+64 237 145 42 re S
+BT /F1 8 Tf 72 255 Td (Failover VPC: us-east4) Tj ET
+209 258 m 229 258 l S
+0.98 0.99 1.00 rg
+229 237 145 42 re f
+0.22 0.45 0.72 RG
+1.0 w
+229 237 145 42 re S
+BT /F1 8 Tf 237 255 Td (Private Service Connect \(PSC\)) Tj ET
+374 258 m 394 258 l S
+0.98 0.99 1.00 rg
+394 237 145 42 re f
+0.22 0.45 0.72 RG
+1.0 w
+394 237 145 42 re S
+BT /F1 8 Tf 402 255 Td (BigQuery + Vertex AI Endpoints) Tj ET
+Q
+BT /F1 8 Tf 46 32 Td (Page 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record) Tj ET
+Q
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> /XObject << /DiagForm 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+8 0 obj
+<< /Type /Catalog /Pages 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000160 00000 n 
+0000000228 00000 n 
+0000000344 00000 n 
+0000003059 00000 n 
+0000003236 00000 n 
+0000003293 00000 n 
+trailer
+<< /Size 9 /Root 8 0 R >>
+startxref
+3342
+%%EOF

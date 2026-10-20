@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEMO_MODE=${DEMO_MODE:-replay}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
+      - GCP_LOCATION=${GCP_LOCATION:-us-central1}
+      - BQ_DATASET=${BQ_DATASET:-rag_arena}
+      - BQ_TABLE=${BQ_TABLE:-document_chunks}
+      - GEMINI_FAST_MODEL=${GEMINI_FAST_MODEL:-gemini-4-argon}
+      - GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL:-gemini-4-argon}
+      - GEMINI_THINKING_LEVEL=${GEMINI_THINKING_LEVEL:-high}
+      - TEXT_EMBEDDING_MODEL=${TEXT_EMBEDDING_MODEL:-gemini-embedding-2}
+      - MULTIMODAL_EMBEDDING_MODEL=${MULTIMODAL_EMBEDDING_MODEL:-gemini-embedding-2}
+    volumes:
+      - ./data:/workspace/data:ro
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /workspace/frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/workspace/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    depends_on:
+      - backend

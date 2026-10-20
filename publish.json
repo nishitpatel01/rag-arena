@@ -1,0 +1,38 @@
+{
+  "project_name": "rag-arena",
+  "target_path": "customer-work/public/2026/gcp-showcase/rag-arena",
+  "strategy": "mirror_and_scrub",
+  "prune_paths": [
+    ".git",
+    ".venv",
+    ".pytest_cache",
+    ".DS_Store",
+    "data/.DS_Store",
+    "data/sample_docs/.DS_Store",
+    "THE_RAG_ARENA_SPEC.md",
+    "spec.md",
+    "task.md",
+    "docs/superpowers",
+    "reviews",
+    "publish.json",
+    "scripts/publish_mirror_scrub.py",
+    "backend/.venv",
+    "backend/__pycache__",
+    "backend/.pytest_cache",
+    "frontend/node_modules",
+    "frontend/dist",
+    "dist"
+  ],
+  "keyword_replacements": {
+    "cloudtop": "workstation",
+    "Cloudtop": "Workstation"
+  },
+  "keyword_replacements_env": "PUBLISH_SCRUB_TOKENS",
+  "forbidden_patterns": [
+    "google3",
+    "antigravity-cli",
+    "jetski",
+    "corp.goog",
+    "@google.com"
+  ]
+}

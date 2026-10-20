@@ -1,0 +1,217 @@
+{
+  "benchmark_version": "2.0.0",
+  "domain": "Enterprise IT & Cloud Procurement",
+  "corpus_size_documents": 18,
+  "failure_mode_categories": [
+    {
+      "id": "exact_clause_and_clin",
+      "label": "Exact Clause, SKU & CLIN Pinpointing",
+      "description": "Tests lexical + semantic hybrid retrieval on alphanumeric contract line items, BGP ASNs, and KMS rotation clauses where pure dense embeddings blur identifiers."
+    },
+    {
+      "id": "table_matrix_extraction",
+      "label": "Multi-Column Table & SLA Matrix Extraction",
+      "description": "Tests layout-aware table parsing on multi-column CLIN rate cards, P1-P4 incident response matrices, and SOC2/HIPAA compliance checklists."
+    },
+    {
+      "id": "diagram_topology",
+      "label": "Visual Architecture & Network Topology Diagrams",
+      "description": "Tests multimodal diagram extraction on embedded PDF vector schematics (Multi-Region VPC HA VPN, Pub/Sub-Dataflow-BigQuery Medallion, and NIST 800-207 Zero Trust PEP)."
+    },
+    {
+      "id": "multi_hop_amendment_and_math",
+      "label": "Multi-Hop Amendment Supersession & Financial Math",
+      "description": "Tests Google ADK agentic workflows requiring cross-document amendment verification, supersession of base RFP clauses/rates, and deterministic AST-validated pricing math."
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "q_exact_clin_lookup",
+      "question": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+      "failure_mode_category": "exact_clause_and_clin",
+      "target_solicitation": "solicitation_01",
+      "expected_tier_winner": "level2_hybrid",
+      "ground_truth_answer": "Prior to contract amendments, CLIN-0004-AB (Cloud Security Architect Labor) in 04_Pricing_Schedule_CLINs.pdf has a base rate of $210.00/hr for 2,000 hours, totaling $420,000.00 in Year 1. Under 07_Amendment_0002_Vendor_QA.pdf (Q12/A12), all Cloud KMS Customer-Managed Encryption Keys (CMEK) in Cloud HSM must enforce an automated 90-day rotation schedule (and 30-day rotation for Tier-0 identity signing keys).",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+          "section_id": "CLIN-0004-AB",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+          "section_id": "AMD-0002-QA",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_amendment_rate_comparison",
+      "question": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+      "failure_mode_category": "multi_hop_amendment_and_math",
+      "target_solicitation": "cross_solicitation",
+      "expected_tier_winner": "level4_agentic",
+      "ground_truth_answer": "In Solicitation 01, Amendment 0001 (06_Amendment_0001_Scope_Update.pdf) supersedes the $210/hr base rate for CLIN-0004-AB, increasing it to $245.00/hr with a 5% volume discount for orders exceeding 1,500 hours (effective net rate $232.75/hr), resulting in a 2,000-hour net Year 1 cost of $465,500.00. In Solicitation 03, MSA Amendment 0001 (05_Master_Services_Agreement_MSA.pdf) supersedes the $265.00/hr base rate for CLIN-2001, capping the Cloud Security Architect rate at $250.00/hr ($500,000.00 for 2,000 hours). Thus, Solicitation 01 is $34,500.00 less expensive over 2,000 hours after applying both amendments.",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+          "section_id": "AMD-0001",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_03",
+          "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+          "section_id": "MSA-AMD-0001",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_vpc_failover_diagram",
+      "question": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+      "failure_mode_category": "diagram_topology",
+      "target_solicitation": "solicitation_01",
+      "expected_tier_winner": "level3_multimodal",
+      "ground_truth_answer": "In 03_Technical_Exhibit_Architecture.pdf (ARCH-TOPOLOGY-01), the Primary region is us-central1 and the Failover region is us-east4. Hybrid connectivity uses Cloud HA VPN with Cloud Router dynamic BGP ASN 64512 (peered with on-premises ASN 65001), ingress is protected by Cloud Armor WAF, and private access to BigQuery and Vertex AI uses Private Service Connect (PSC) endpoints. Amendment 0001 (06_Amendment_0001_Scope_Update.pdf) supersedes Clause SEC-4.2.1, tightening RTO from 4 hours to 15 minutes and RPO from 1 hour to 0 minutes (synchronous zero-data-loss replication).",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+          "section_id": "ARCH-TOPOLOGY-01",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+          "section_id": "AMD-0001",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_zero_trust_pep_diagram",
+      "question": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+      "failure_mode_category": "diagram_topology",
+      "target_solicitation": "solicitation_03",
+      "expected_tier_winner": "level3_multimodal",
+      "ground_truth_answer": "In 02_Zero_Trust_Architecture_Specs.pdf (ZTA-NIST-800-207), untrusted subject and device requests are intercepted in the Data Plane by the Policy Enforcement Point (PEP), implemented via BeyondCorp Identity-Aware Proxy (IAP) and Envoy mTLS service mesh gateways. In the Control Plane, the Policy Engine (PE) evaluates continuous device posture, context-aware access levels, and Chronicle threat intelligence feeds, then signals the Policy Administrator (PA) to mint short-lived mTLS/OIDC session tokens and instruct the PEP to permit per-request access to the Protected Enterprise Enclave while streaming all telemetry to Google SecOps SIEM.",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_03",
+          "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+          "section_id": "ZTA-NIST-800-207",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_sla_credit_calculation",
+      "question": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+      "failure_mode_category": "multi_hop_amendment_and_math",
+      "target_solicitation": "solicitation_01",
+      "expected_tier_winner": "level4_agentic",
+      "ground_truth_answer": "From 04_Pricing_Schedule_CLINs.pdf, CLIN-0001-AA costs $45,000/month and CLIN-0002-AA costs $1,250/node-month ($25,000/month for 20 nodes). Under 05_SLA_and_QASP_Requirements.pdf (Clause SLA-4.2), 99.40% availability falls below 99.50% (P1 Severe Breach), triggering a 25% service credit on CLIN-0001-AA: $45,000 * 0.25 = $11,250.00. Availability of 99.70% falls between 99.50% and 99.99% (P1 Critical), triggering a 10% credit on CLIN-0002-AA: $25,000 * 0.10 = $2,500.00. The combined SLA service credit owed is $13,750.00.",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+          "section_id": "CLIN-0004-AB",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+          "section_id": "SLA-4.2",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_data_lakehouse_addendum",
+      "question": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+      "failure_mode_category": "multi_hop_amendment_and_math",
+      "target_solicitation": "solicitation_02",
+      "expected_tier_winner": "level4_agentic",
+      "ground_truth_answer": "In 05_Amendments_and_Addenda.pdf (Addendum 0001), Clause DATA-SLA-3.1 is superseded to tighten end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming ingestion latency from 30 seconds down to 5 seconds (p99 <= 5.0s) via BigQuery Storage Write API committed streams. Addendum 0001 also applies a 15% volume discount to CLIN-1004 for storage over 5 Petabytes (5,000 TB), reducing the rate from $20.00/TB/month to $17.00/TB/month and lowering the annual cost for 6,000 TB from $1,440,000 to $1,224,000 (saving $216,000/year). According to 02_Architecture_Requirements.pdf, the three Medallion layers are Bronze (raw CDC), Silver (deduplicated curated entity tables), and Gold (governed semantic marts & Vertex AI Feature Store).",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_02",
+          "doc_name": "02_Architecture_Requirements.pdf",
+          "section_id": "ARCH-MEDALLION-02",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_02",
+          "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+          "section_id": "CLIN-1001",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_02",
+          "doc_name": "05_Amendments_and_Addenda.pdf",
+          "section_id": "DATA-AMD-0001",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_soc_p1_response_matrix",
+      "question": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+      "failure_mode_category": "table_matrix_extraction",
+      "target_solicitation": "solicitation_03",
+      "expected_tier_winner": "level3_multimodal",
+      "ground_truth_answer": "In Solicitation 03 (03_Incident_Response_SLAs.pdf, Clause SLA-SEC-3.1), P1 Critical incidents (Active Ransomware / Root Breach) require initial triage within <= 15 minutes, containment within <= 60 minutes, and carry a 20% monthly fee penalty credit. P2 High incidents (Privileged Account Compromise) require initial triage within <= 30 minutes, containment within <= 4 hours, and carry a 10% monthly fee penalty credit. In Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf), mandatory controls include CTRL-SOC2-CC6.1 (VPC Service Controls for logical access boundary), CTRL-SOC2-CC6.7 (Cloud KMS CMEK + TLS 1.3 encryption), and CTRL-HIPAA-164.312 (Cloud DLP streaming PHI de-identification).",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_03",
+          "doc_name": "03_Incident_Response_SLAs.pdf",
+          "section_id": "SLA-SEC-3.1",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_02",
+          "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+          "section_id": "CTRL-SOC2-MATRIX",
+          "page_number": 1
+        }
+      ]
+    },
+    {
+      "question_id": "q_cross_solicitation_total_cost",
+      "question": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.",
+      "failure_mode_category": "multi_hop_amendment_and_math",
+      "target_solicitation": "cross_solicitation",
+      "expected_tier_winner": "level4_agentic",
+      "ground_truth_answer": "Applying all superseding amendments across the three solicitations: (1) Solicitation 01 CLIN-0004-AB under Amendment 0001 is 2,000 hrs * $245/hr * 0.95 = $465,500.00; (2) Solicitation 02 CLIN-1004 under Addendum 0001 (15% volume discount above 5 PB) is $1,224,000.00/year plus CLIN-1002 BigQuery Autoscaling Reservation at $48,000/mo * 12 = $576,000.00 ($1,800,000.00 subtotal for Solicitation 02); (3) Solicitation 03 CLIN-2001 under MSA Amendment 0001 rate cap is 2,000 hrs * $250/hr = $500,000.00. The combined Year 1 amended spend is $465,500 + $1,800,000 + $500,000 = $2,765,500.00 (compared to $2,966,000.00 unamended base spend).",
+      "required_citations": [
+        {
+          "solicitation_id": "solicitation_01",
+          "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+          "section_id": "AMD-0001",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_02",
+          "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+          "section_id": "CLIN-1001",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_02",
+          "doc_name": "05_Amendments_and_Addenda.pdf",
+          "section_id": "DATA-AMD-0001",
+          "page_number": 1
+        },
+        {
+          "solicitation_id": "solicitation_03",
+          "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+          "section_id": "MSA-AMD-0001",
+          "page_number": 1
+        }
+      ]
+    }
+  ]
+}

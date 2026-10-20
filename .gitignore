@@ -1,0 +1,35 @@
+# macOS / OS artifacts
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+
+# Environment & Secrets
+.env
+.env.local
+*.pem
+*.key
+*credentials*.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Local artifacts
+scratch/
+*.sse.txt
+.env.*.local

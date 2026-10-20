@@ -1,0 +1,65 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 25 >>
+stream
+0 0 100 100 re S
+endstream
+endobj
+5 0 obj
+<< /Length 1379 >>
+stream
+q
+0.12 0.22 0.38 rg
+36 742 540 28 re f
+1 1 1 rg
+BT /F2 11 Tf 46 752 Td (SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf) Tj ET
+0 0 0 rg
+BT /F2 12 Tf 46 718 Td (SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS \(CLIN-1001 TO 1006\)) Tj ET
+BT /F3 8 Tf 46 702 Td (DOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE) Tj ET
+0.75 0.78 0.82 RG 0.8 w 46 694 m 566 694 l S
+BT /F3 8 Tf 46 676 Td (| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |) Tj ET
+BT /F3 8 Tf 46 662 Td (| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |) Tj ET
+BT /F3 8 Tf 46 648 Td (| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |) Tj ET
+BT /F3 8 Tf 46 634 Td (| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |) Tj ET
+BT /F3 8 Tf 46 620 Td (| CLIN-1004 | Active Lakehouse Storage \(Base\) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |) Tj ET
+BT /F3 8 Tf 46 606 Td (| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |) Tj ET
+BT /F3 8 Tf 46 592 Td (| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |) Tj ET
+BT /F1 8 Tf 46 32 Td (Page 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record) Tj ET
+Q
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> /XObject << /DiagForm 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+8 0 obj
+<< /Type /Catalog /Pages 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000160 00000 n 
+0000000228 00000 n 
+0000000344 00000 n 
+0000001775 00000 n 
+0000001952 00000 n 
+0000002009 00000 n 
+trailer
+<< /Size 9 /Root 8 0 R >>
+startxref
+2058
+%%EOF

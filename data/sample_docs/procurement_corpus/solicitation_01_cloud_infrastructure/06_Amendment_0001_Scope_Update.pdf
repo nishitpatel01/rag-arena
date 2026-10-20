@@ -1,0 +1,73 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 25 >>
+stream
+0 0 100 100 re S
+endstream
+endobj
+5 0 obj
+<< /Length 2128 >>
+stream
+q
+0.12 0.22 0.38 rg
+36 742 540 28 re f
+1 1 1 rg
+BT /F2 11 Tf 46 752 Td (SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf) Tj ET
+0 0 0 rg
+BT /F2 12 Tf 46 718 Td (AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION) Tj ET
+BT /F3 8 Tf 46 702 Td (DOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB) Tj ET
+0.75 0.78 0.82 RG 0.8 w 46 694 m 566 694 l S
+BT /F1 9 Tf 46 676 Td ([AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]) Tj ET
+BT /F3 8 Tf 46 662 Td (Solicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15) Tj ET
+BT /F1 9 Tf 46 648 Td (1. SUPERSESSION OF CLAUSE SEC-4.2.1 \(DISASTER RECOVERY RTO/RPO\):) Tj ET
+BT /F1 9 Tf 46 634 Td (   Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.) Tj ET
+BT /F1 9 Tf 46 620 Td (   The required Recovery Time Objective \(RTO\) is tightened from 4 hours to 15 minutes,) Tj ET
+BT /F1 9 Tf 46 606 Td (   and the Recovery Point Objective \(RPO\) is tightened from 1 hour to 0 minutes) Tj ET
+BT /F1 9 Tf 46 592 Td (   \(synchronous zero-data-loss cross-region replication between us-central1 and us-east4\).) Tj ET
+BT /F1 9 Tf 46 578 Td (2. SUPERSESSION OF CLIN-0004-AB \(CLOUD SECURITY ARCHITECT LABOR RATE\):) Tj ET
+BT /F1 9 Tf 46 564 Td (   Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,) Tj ET
+BT /F1 9 Tf 46 550 Td (   the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf) Tj ET
+BT /F1 9 Tf 46 536 Td (   is increased from $210.00/hr to $245.00/hr.) Tj ET
+BT /F1 9 Tf 46 522 Td (3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:) Tj ET
+BT /F1 9 Tf 46 508 Td (   When contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%) Tj ET
+BT /F1 9 Tf 46 494 Td (   volume discount applies to the entire CLIN-0004-AB order:) Tj ET
+BT /F1 9 Tf 46 480 Td (   For 2,000 base hours: 2,000 * $245.00 * \(1 - 0.05\) = $465,500.00 net total.) Tj ET
+BT /F1 8 Tf 46 32 Td (Page 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record) Tj ET
+Q
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> /XObject << /DiagForm 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+8 0 obj
+<< /Type /Catalog /Pages 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000160 00000 n 
+0000000228 00000 n 
+0000000344 00000 n 
+0000002524 00000 n 
+0000002701 00000 n 
+0000002758 00000 n 
+trailer
+<< /Size 9 /Root 8 0 R >>
+startxref
+2807
+%%EOF

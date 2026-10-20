@@ -1,0 +1,65 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 25 >>
+stream
+0 0 100 100 re S
+endstream
+endobj
+5 0 obj
+<< /Length 1285 >>
+stream
+q
+0.12 0.22 0.38 rg
+36 742 540 28 re f
+1 1 1 rg
+BT /F2 11 Tf 46 752 Td (SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf) Tj ET
+0 0 0 rg
+BT /F2 12 Tf 46 718 Td (SOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM) Tj ET
+BT /F3 8 Tf 46 702 Td (DOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE) Tj ET
+0.75 0.78 0.82 RG 0.8 w 46 694 m 566 694 l S
+BT /F3 8 Tf 46 676 Td (Solicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01) Tj ET
+BT /F1 9 Tf 46 662 Td (Clause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal) Tj ET
+BT /F1 9 Tf 46 648 Td (Catalog governance, column-level policy tags, and fine-grained row-level security.) Tj ET
+BT /F1 9 Tf 46 634 Td (Clause DATA-SLA-3.1 \(Base Streaming Ingestion Latency\):) Tj ET
+BT /F1 9 Tf 46 620 Td (In the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through) Tj ET
+BT /F1 9 Tf 46 606 Td (Apache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds \(p99\).) Tj ET
+BT /F1 9 Tf 46 592 Td (\(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA\).) Tj ET
+BT /F1 8 Tf 46 32 Td (Page 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record) Tj ET
+Q
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> /XObject << /DiagForm 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+8 0 obj
+<< /Type /Catalog /Pages 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000160 00000 n 
+0000000228 00000 n 
+0000000344 00000 n 
+0000001681 00000 n 
+0000001858 00000 n 
+0000001915 00000 n 
+trailer
+<< /Size 9 /Root 8 0 R >>
+startxref
+1964
+%%EOF

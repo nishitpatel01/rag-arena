@@ -1,0 +1,94 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 25 >>
+stream
+0 0 100 100 re S
+endstream
+endobj
+5 0 obj
+<< /Length 1714 >>
+stream
+q
+0.12 0.22 0.38 rg
+36 742 540 28 re f
+1 1 1 rg
+BT /F2 11 Tf 46 752 Td (SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf) Tj ET
+0 0 0 rg
+BT /F2 12 Tf 46 718 Td (SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES) Tj ET
+BT /F3 8 Tf 46 702 Td (DOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE) Tj ET
+0.75 0.78 0.82 RG 0.8 w 46 694 m 566 694 l S
+BT /F1 9 Tf 46 676 Td (Solicitation ID: SOL-2026-CLOUD-01 \(Enterprise Cloud Hosting & Migration\)) Tj ET
+BT /F3 8 Tf 46 662 Td (Issuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15) Tj ET
+BT /F1 9 Tf 46 648 Td (Clause SEC-4.2.1 \(Disaster Recovery & Continuity Baseline\):) Tj ET
+BT /F1 9 Tf 46 634 Td (The Contractor shall maintain multi-region cloud infrastructure with an original) Tj ET
+BT /F1 9 Tf 46 620 Td (Recovery Time Objective \(RTO\) of 4 hours \(240 minutes\) and a Recovery Point Objective) Tj ET
+BT /F1 9 Tf 46 606 Td (\(RPO\) of 1 hour \(60 minutes\) across Primary Region us-central1 and Failover us-east4.) Tj ET
+BT /F1 9 Tf 46 592 Td (Clause SEC-4.3.2 \(Key Personnel & Labor Reference\):) Tj ET
+BT /F1 9 Tf 46 578 Td (Lead architecture oversight is billed under CLIN-0004-AB \(Cloud Security Architect\)) Tj ET
+BT /F1 9 Tf 46 564 Td (at the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours) Tj ET
+BT /F1 9 Tf 46 550 Td (\($420,000.00 Year 1 ceiling\), subject to formal contract amendments.) Tj ET
+BT /F1 9 Tf 46 536 Td (All proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.) Tj ET
+BT /F1 8 Tf 46 32 Td (Page 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record) Tj ET
+Q
+endstream
+endobj
+6 0 obj
+<< /Length 981 >>
+stream
+q
+0.12 0.22 0.38 rg
+36 742 540 28 re f
+1 1 1 rg
+BT /F2 11 Tf 46 752 Td (SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf) Tj ET
+0 0 0 rg
+BT /F2 12 Tf 46 718 Td (SECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS) Tj ET
+BT /F3 8 Tf 46 702 Td (DOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE) Tj ET
+0.75 0.78 0.82 RG 0.8 w 46 694 m 566 694 l S
+BT /F1 9 Tf 46 676 Td (Factor 1 \(Technical Architecture - 40%\): Verified via Technical Exhibit 03 diagram.) Tj ET
+BT /F1 9 Tf 46 662 Td (Factor 2 \(Pricing & CLIN Realism - 35%\): Evaluated against Schedule 04 CLIN tables.) Tj ET
+BT /F1 9 Tf 46 648 Td (Factor 3 \(SLA Commitments & QASP - 25%\): Governed by Exhibit 05 penalty matrices.) Tj ET
+BT /F1 9 Tf 46 634 Td (Offerors must acknowledge all formal Amendments \(0001 and 0002\) prior to award.) Tj ET
+BT /F1 8 Tf 46 32 Td (Page 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record) Tj ET
+Q
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> /XObject << /DiagForm 4 0 R >> >> /Contents 5 0 R >>
+endobj
+8 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> /XObject << /DiagForm 4 0 R >> >> /Contents 6 0 R >>
+endobj
+9 0 obj
+<< /Type /Pages /Kids [7 0 R 8 0 R] /Count 2 >>
+endobj
+10 0 obj
+<< /Type /Catalog /Pages 9 0 R >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000160 00000 n 
+0000000228 00000 n 
+0000000344 00000 n 
+0000002110 00000 n 
+0000003142 00000 n 
+0000003319 00000 n 
+0000003496 00000 n 
+0000003559 00000 n 
+trailer
+<< /Size 11 /Root 10 0 R >>
+startxref
+3609
+%%EOF

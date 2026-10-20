@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The RAG Arena | Enterprise RAG Benchmark on Google Cloud</title>
+    <script>
+      // Apply the persisted theme before first paint to avoid a flash (no colours here).
+      (function () {
+        try {
+          var stored = window.localStorage.getItem("rag-arena.theme");
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var dark = stored === "dark" || ((stored === null || stored === "system") && prefersDark);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {
+          /* localStorage unavailable: fall back to light */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

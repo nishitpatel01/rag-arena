@@ -1,0 +1,116 @@
+/*
+ * Design tokens — spec.md §7.1. Earthy, low-chroma. This is the ONLY file in src/
+ * allowed to contain raw hex colours; components use semantic Tailwind classes.
+ */
+
+:root {
+  color-scheme: light;
+
+  --surface-0: #f6f2ea;
+  --surface-1: #efe9dd;
+  --surface-2: #e6decf;
+
+  --ink-1: #2b2520;
+  --ink-2: #5a5148;
+  --ink-3: #8a8075;
+
+  --line: #d9cfbf;
+
+  --accent-moss: #5f7a5a;
+  --accent-clay: #b5653f;
+  --accent-ochre: #c29a3b;
+  --accent-slate: #5f7c8a;
+
+  --status-ok: #4f7d5c;
+  --status-err: #a24a3c;
+
+  --focus-ring: var(--accent-moss);
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --surface-0: #1b1a17;
+  --surface-1: #23211d;
+  --surface-2: #2b2823;
+
+  --ink-1: #ede7dc;
+  --ink-2: #b8afa2;
+  --ink-3: #8a8075;
+
+  --line: #3a362f;
+
+  --accent-moss: #8fa98a;
+  --accent-clay: #d08a66;
+  --accent-ochre: #d9b56a;
+  --accent-slate: #8fa9b5;
+
+  --status-ok: #7fae8c;
+  --status-err: #d07a6a;
+}
+
+html,
+body {
+  background-color: var(--surface-0);
+  color: var(--ink-1);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Active-stage outline pulse: finite per-cycle, only applied while a stage is `active`
+   (state comes from SSE events). Disabled entirely under reduced motion. */
+@keyframes arena-active-outline {
+  0%,
+  100% {
+    outline-offset: 2px;
+    outline-color: var(--accent-moss);
+  }
+  50% {
+    outline-offset: 5px;
+    outline-color: transparent;
+  }
+}
+
+.stage-active-outline {
+  outline: 2px solid var(--accent-moss);
+  outline-offset: 2px;
+  animation: arena-active-outline 1.6s ease-in-out infinite;
+}
+
+@keyframes arena-flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.edge-flowing {
+  stroke-dasharray: 6 6;
+  animation: arena-flow-dash 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stage-active-outline {
+    animation: none;
+    outline-offset: 3px;
+  }
+  .edge-flowing {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

@@ -180,13 +180,13 @@
       "viewport": "1600x4800",
       "theme": "light",
       "capture": "element [data-panel=Stage detail] (Retrieve stage selected)",
-      "source_run": "run_1fc3bc7834fd (q_exact_clin_lookup, replay of recording; synthesis gemini-4-argon, judge claude-opus-5-5)",
+      "source_run": "run_bfe2a2b81899 (q_exact_clin_lookup, replay of recording; synthesis gemini-4-argon, judge claude-opus-5-5)",
       "source": "replay",
-      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid)",
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid; port 8017)",
       "safe_mode": true,
       "guard_passed": true,
-      "captured_at": "2026-10-21T19:42:43Z",
-      "bytes": 235048
+      "captured_at": "2026-10-21T19:49:20Z",
+      "bytes": 257028
     },
     {
       "file": "16-level2-rerank.png",
@@ -194,13 +194,13 @@
       "viewport": "1600x4800",
       "theme": "light",
       "capture": "element [data-panel=Stage detail] (Rerank stage selected)",
-      "source_run": "run_1fc3bc7834fd (q_exact_clin_lookup, replay of recording; synthesis gemini-4-argon, judge claude-opus-5-5)",
+      "source_run": "run_bfe2a2b81899 (q_exact_clin_lookup, replay of recording; synthesis gemini-4-argon, judge claude-opus-5-5)",
       "source": "replay",
-      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid)",
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid; port 8017)",
       "safe_mode": true,
       "guard_passed": true,
-      "captured_at": "2026-10-21T19:42:42Z",
-      "bytes": 494230
+      "captured_at": "2026-10-21T19:49:20Z",
+      "bytes": 498374
     },
     {
       "file": "17-level2-query-prep.png",
@@ -221,14 +221,14 @@
       "path": "/levels/level2_hybrid",
       "viewport": "1600x4800",
       "theme": "light",
-      "capture": "element [data-panel=Architecture] (run complete)",
-      "source_run": "run_1fc3bc7834fd (q_exact_clin_lookup, replay of recording; synthesis gemini-4-argon, judge claude-opus-5-5)",
+      "capture": "element [data-panel=Architecture] (run complete; 6 nodes fit, no horizontal scroll)",
+      "source_run": "run_bfe2a2b81899 (q_exact_clin_lookup, replay of recording; synthesis gemini-4-argon, judge claude-opus-5-5)",
       "source": "replay",
-      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid)",
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid; port 8017)",
       "safe_mode": true,
       "guard_passed": true,
-      "captured_at": "2026-10-21T19:42:44Z",
-      "bytes": 100549
+      "captured_at": "2026-10-21T19:49:20Z",
+      "bytes": 107332
     }
   ]
 }

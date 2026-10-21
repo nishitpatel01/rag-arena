@@ -14,7 +14,7 @@
  */
 
 import type { JsonObject } from "../../types/arena";
-import { formatBytes, summarizePayload } from "../../lib/format";
+import { formatBytes, formatUsd, summarizePayload } from "../../lib/format";
 
 /** Bound on rows parsed from one payload (backend sends ≤ 50 candidates; this is a safety cap). */
 export const MAX_PAYLOAD_ROWS = 500;
@@ -167,7 +167,24 @@ export interface RetrieveCandidate {
   readonly rrfScore: number;
 }
 
+/** BigQuery `indexUsageMode` + unused reasons, kept verbatim (codes and messages are BigQuery's). */
+export interface IndexStats {
+  readonly mode: string | null;
+  readonly reasons: readonly { readonly code: string | null; readonly message: string | null; readonly indexName: string | null }[];
+}
+
+export interface IndexUsage {
+  readonly search: IndexStats | null;
+  readonly vectorSearch: IndexStats | null;
+}
+
 export interface HybridRetrieveView {
+  readonly vectorK: number | null;
+  readonly lexicalK: number | null;
+  /** Server-reported count of candidates with both ranks. */
+  readonly withBothRanks: number | null;
+  /** Null when the payload has no `index_usage` key (older payloads). */
+  readonly indexUsage: IndexUsage | null;
   readonly rowsReturned: number | null;
   readonly candidateK: number | null;
   readonly bytesProcessed: number | null;
@@ -197,6 +214,22 @@ function parseCandidate(item: unknown): RetrieveCandidate | null {
   };
 }
 
+const MAX_INDEX_REASONS = 10;
+
+function parseIndexStats(raw: unknown): IndexStats | null {
+  if (!isObj(raw)) return null;
+  const reasons = Array.isArray(raw.index_unused_reasons) ? raw.index_unused_reasons.slice(0, MAX_INDEX_REASONS) : [];
+  return {
+    mode: str(raw.index_usage_mode),
+    reasons: reasons.filter(isObj).map((r) => ({ code: str(r.code), message: str(r.message), indexName: str(r.indexName) })),
+  };
+}
+
+function parseIndexUsage(raw: unknown): IndexUsage | null {
+  if (!isObj(raw)) return null;
+  return { search: parseIndexStats(raw.search), vectorSearch: parseIndexStats(raw.vector_search) };
+}
+
 /** Null when the payload is not the hybrid shape (no `candidates` array) — e.g. Level 1 retrieve. */
 export function parseHybridRetrieve(payload: JsonObject | null): HybridRetrieveView | null {
   if (!payload || !Array.isArray(payload.candidates)) return null;
@@ -210,6 +243,10 @@ export function parseHybridRetrieve(payload: JsonObject | null): HybridRetrieveV
   });
   parsed.sort((x, y) => y.c.rrfScore - x.c.rrfScore || x.i - y.i);
   return {
+    vectorK: num(payload.vector_k),
+    lexicalK: num(payload.lexical_k),
+    withBothRanks: num(payload.with_both_ranks),
+    indexUsage: parseIndexUsage(payload.index_usage),
     rowsReturned: num(payload.rows_returned),
     candidateK: num(payload.candidate_k),
     bytesProcessed: num(payload.bytes_processed),
@@ -227,6 +264,28 @@ export function categorizeCandidate(c: Pick<RetrieveCandidate, "vectorRank" | "l
   if (c.vectorRank !== null) return "vector";
   if (c.lexicalRank !== null) return "lexical";
   return "unranked";
+}
+
+function indexStatsLine(label: string, stats: IndexStats | null): string {
+  if (!stats) return `${label} index: not reported by BigQuery`;
+  const reasons = stats.reasons
+    .map((r) => [r.code, r.message].filter((x): x is string => Boolean(x)).join(": ") + (r.indexName ? ` [${r.indexName}]` : ""))
+    .filter((x) => x.length > 0);
+  return `${label} index: ${stats.mode ?? "mode not reported"}${reasons.length ? ` — ${reasons.join("; ")}` : ""}`;
+}
+
+/** Verbatim BigQuery index usage for VECTOR_SEARCH and SEARCH(); empty when the payload has no `index_usage`. */
+export function indexUsageLines(view: HybridRetrieveView): string[] {
+  if (!view.indexUsage) return [];
+  return [indexStatsLine("VECTOR_SEARCH", view.indexUsage.vectorSearch), indexStatsLine("SEARCH()", view.indexUsage.search)];
+}
+
+/** "vector_k 50 / lexical_k 50 / with both ranks 17"; a mismatch with the table's own count is shown, never hidden. */
+export function rankCountsLine(view: HybridRetrieveView): string | null {
+  if (view.vectorK === null && view.lexicalK === null && view.withBothRanks === null) return null;
+  const tableBoth = countCategories(view.candidates).both;
+  const mismatch = view.withBothRanks !== null && view.withBothRanks !== tableBoth ? ` (table shows ${tableBoth})` : "";
+  return `vector_k ${dash(view.vectorK)} / lexical_k ${dash(view.lexicalK)} / with both ranks ${dash(view.withBothRanks)}${mismatch}`;
 }
 
 export type CategoryCounts = Readonly<Record<CandidateCategory, number>>;
@@ -252,6 +311,10 @@ export interface RerankResult {
 }
 
 export interface RerankView {
+  readonly attempts: number | null;
+  readonly recordsTruncated: number | null;
+  readonly billedCounts: number | null;
+  readonly costUsd: number | null;
   readonly serviceUsed: string | null;
   readonly model: string | null;
   readonly candidatesIn: number | null;
@@ -285,6 +348,10 @@ export function parseRerank(payload: JsonObject | null): RerankView | null {
   }
   results.sort((x, y) => x.rerankRank - y.rerankRank);
   return {
+    attempts: num(payload.attempts),
+    recordsTruncated: num(payload.records_truncated),
+    billedCounts: num(payload.billed_counts),
+    costUsd: num(payload.cost_usd),
     serviceUsed: str(payload.service_used),
     model: str(payload.model),
     candidatesIn: num(payload.candidates_in),
@@ -345,18 +412,26 @@ export function rerankSummaryLine(view: RerankView): string {
   return `${dash(view.candidatesIn)} → ${dash(view.candidatesOut)} via ${dash(view.serviceUsed)} (${dash(view.model)}) · ${ms}`;
 }
 
+/** "records truncated 18/50 · billed counts 1 · $0.00100" (+ " · N attempts" when retried); null when absent. */
+export function rerankBillingLine(view: RerankView): string | null {
+  if (view.recordsTruncated === null && view.billedCounts === null && view.costUsd === null) return null;
+  const retries = view.attempts !== null && view.attempts > 1 ? ` · ${view.attempts} attempts` : "";
+  return `records truncated ${dash(view.recordsTruncated)}/${dash(view.candidatesIn)} · billed counts ${dash(view.billedCounts)} · ${formatUsd(view.costUsd)}${retries}`;
+}
+
 // ---------------------------------------------------------------------------
 // Diagram node summaries
 // ---------------------------------------------------------------------------
 
-/** "rows=50 · both=12 · 12.4 MB scanned" (+ " · cache hit" when BigQuery served it from cache). */
+/** "rows=50 · both=12 · 12.4 MB scanned" (" (cached)" appended when BigQuery served it from cache). */
 export function retrieveNodeSummary(view: HybridRetrieveView): string {
   const parts: string[] = [];
   const rows = view.rowsReturned ?? view.candidates.length;
   parts.push(`rows=${rows.toLocaleString()}`);
   parts.push(`both=${countCategories(view.candidates).both}`);
-  if (view.bytesProcessed !== null) parts.push(`${formatBytes(view.bytesProcessed)} scanned`);
-  if (view.cacheHit === true) parts.push("cache hit");
+  const cached = view.cacheHit === true ? " (cached)" : "";
+  if (view.bytesProcessed !== null) parts.push(`${formatBytes(view.bytesProcessed)} scanned${cached}`);
+  else if (cached) parts.push("cached");
   return parts.join(" · ");
 }
 

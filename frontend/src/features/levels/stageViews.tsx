@@ -10,12 +10,15 @@ import {
   categorizeCandidate,
   countCategories,
   diffWords,
+  indexUsageLines,
   maxRerankScore,
   movedIntoTop,
   parseHybridRetrieve,
   parseQueryPrep,
   parseRerank,
+  rankCountsLine,
   rankMovement,
+  rerankBillingLine,
   rerankSummaryLine,
   scoreBarFraction,
   topCutoff,
@@ -154,6 +157,19 @@ export const HybridRetrieveDetail: React.FC<{ readonly view: HybridRetrieveView 
           ["job_id", view.jobId ?? "—"],
         ]}
       />
+      {rankCountsLine(view) && (
+        <p className="font-mono text-xs text-ink-1" data-testid="retrieve-rank-counts">{rankCountsLine(view)}</p>
+      )}
+      {indexUsageLines(view).length > 0 && (
+        <div className="rounded-md border border-line bg-surface-0 p-2" data-testid="retrieve-index-usage">
+          <p className="mb-1 text-xs text-ink-3">Index usage (verbatim from BigQuery job statistics)</p>
+          <ul className="flex flex-col gap-0.5">
+            {indexUsageLines(view).map((line) => (
+              <li key={line} className="break-words font-mono text-xs text-ink-1">{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <InvalidRowsNote count={view.invalidRows} what="candidate rows" />
       <div className="max-h-96 overflow-y-auto">
         <DataTable
@@ -226,6 +242,9 @@ export const RerankDetail: React.FC<{ readonly view: RerankView }> = ({ view }) 
     <section aria-label="Rerank before and after" className="flex min-w-0 flex-col gap-2" data-testid="rerank-detail">
       <h4 className={sectionTitle}>Rerank — before (RRF) → after (Ranking API)</h4>
       <p className="break-words font-mono text-xs text-ink-1" data-testid="rerank-summary">{rerankSummaryLine(view)}</p>
+      {rerankBillingLine(view) && (
+        <p className="break-words font-mono text-xs text-ink-2" data-testid="rerank-billing">{rerankBillingLine(view)}</p>
+      )}
       <InvalidRowsNote count={view.invalidRows} what="result rows" />
       <DataTable
         caption="Rerank results: RRF rank before, Ranking API rank after, with movement and score"

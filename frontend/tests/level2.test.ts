@@ -11,11 +11,14 @@ import {
   categorizeCandidate,
   countCategories,
   diffWords,
+  indexUsageLines,
   movedIntoTop,
   parseHybridRetrieve,
   parseQueryPrep,
   parseRerank,
+  rankCountsLine,
   rankMovement,
+  rerankBillingLine,
   rerankNodeSummary,
   rerankSummaryLine,
   retrieveNodeSummary,
@@ -23,7 +26,7 @@ import {
   summarizeStage,
   topCutoff,
 } from "../src/features/levels/stagePayloads";
-import { wrapSummary } from "../src/features/levels/diagramModel";
+import { COL_GAP, MIN_COL_GAP, NODE_W, layoutNodes, wrapSummary } from "../src/features/levels/diagramModel";
 import { baselineFor, teaserMetrics } from "../src/features/levels/compareTeaserModel";
 import { reduceStreamEvents } from "../src/features/levels/model";
 import { maskDeep, MASK_PROJECT_ID, MASK_PROJECT_NUMBER } from "../src/lib/safeMode";
@@ -151,7 +154,7 @@ test("node summaries: retrieve rows/both/bytes, rerank in→out + top score, gen
   const r = parseHybridRetrieve(RETRIEVE);
   assert.ok(r);
   assert.equal(retrieveNodeSummary(r), "rows=4 · both=1 · 12.4 MB scanned");
-  assert.equal(retrieveNodeSummary({ ...r, cacheHit: true, bytesProcessed: 0 }), "rows=4 · both=1 · 0 B scanned · cache hit");
+  assert.equal(retrieveNodeSummary({ ...r, cacheHit: true, bytesProcessed: 0 }), "rows=4 · both=1 · 0 B scanned (cached)");
   const k = parseRerank(RERANK);
   assert.ok(k);
   assert.equal(rerankNodeSummary(k), "50→5 · top score 0.95");
@@ -169,7 +172,7 @@ test("wrapSummary breaks between ' · ' parts, max 2 lines, ellipsis on overflow
   assert.equal(lines.length, 2);
   assert.ok(lines[1].endsWith("…"));
   assert.ok(lines.every((l) => l.length <= 23), JSON.stringify(lines));
-  assert.deepEqual(wrapSummary("a-single-part-that-is-much-too-long-for-one-line"), ["a-single-part-that-is-…"]);
+  assert.deepEqual(wrapSummary("a-single-part-that-is-much-too-long-for-one-line", 23), ["a-single-part-that-is-…"]);
 });
 
 const CATALOG = {
@@ -261,4 +264,77 @@ test("DEV Level 2 fixture conforms to the contract parsers (no invalid rows, lif
       assert.equal(state.complete, true);
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// Additive backend fields: index usage, k values, rerank billing; diagram fit
+// ---------------------------------------------------------------------------
+
+const RETRIEVE_EXTRA: JsonObject = {
+  ...RETRIEVE,
+  vector_k: 50, lexical_k: 40, with_both_ranks: 1,
+  index_usage: {
+    search: { index_usage_mode: "UNUSED", index_unused_reasons: [{ code: "QUERY_CACHE_HIT", message: "Search indexes are not used because the query was cached." }] },
+    vector_search: { index_usage_mode: "FULLY_USED", index_unused_reasons: [] },
+  },
+};
+
+test("index usage lines keep BigQuery's mode, code and message verbatim; missing stats are reported, not guessed", () => {
+  const v = parseHybridRetrieve(RETRIEVE_EXTRA);
+  assert.ok(v);
+  assert.deepEqual(indexUsageLines(v), [
+    "VECTOR_SEARCH index: FULLY_USED",
+    "SEARCH() index: UNUSED — QUERY_CACHE_HIT: Search indexes are not used because the query was cached.",
+  ]);
+  const none = parseHybridRetrieve({ ...RETRIEVE, index_usage: { search: null } });
+  assert.ok(none);
+  assert.deepEqual(indexUsageLines(none), ["VECTOR_SEARCH index: not reported by BigQuery", "SEARCH() index: not reported by BigQuery"]);
+  const absent = parseHybridRetrieve(RETRIEVE);
+  assert.ok(absent);
+  assert.deepEqual(indexUsageLines(absent), [], "no index_usage key → no line (older payloads)");
+});
+
+test("rank-count line: vector_k / lexical_k / with both ranks (server value; client recount shown only on mismatch)", () => {
+  const v = parseHybridRetrieve(RETRIEVE_EXTRA);
+  assert.ok(v);
+  assert.equal(rankCountsLine(v), "vector_k 50 / lexical_k 40 / with both ranks 1");
+  const mismatch = parseHybridRetrieve({ ...RETRIEVE_EXTRA, with_both_ranks: 3 });
+  assert.ok(mismatch);
+  assert.equal(rankCountsLine(mismatch), "vector_k 50 / lexical_k 40 / with both ranks 3 (table shows 1)");
+  const absent = parseHybridRetrieve(RETRIEVE);
+  assert.ok(absent);
+  assert.equal(rankCountsLine(absent), null);
+});
+
+test("rerank billing line: records truncated N/M · billed counts K · $cost (+ retries only when > 1 attempt)", () => {
+  const v = parseRerank({ ...RERANK, attempts: 1, records_truncated: 18, billed_counts: 1, cost_usd: 0.001 });
+  assert.ok(v);
+  assert.equal(rerankBillingLine(v), "records truncated 18/50 · billed counts 1 · $0.00100");
+  const retried = parseRerank({ ...RERANK, attempts: 2, records_truncated: 0, billed_counts: 1, cost_usd: 0.001 });
+  assert.ok(retried);
+  assert.equal(rerankBillingLine(retried), "records truncated 0/50 · billed counts 1 · $0.00100 · 2 attempts");
+  const absent = parseRerank(RERANK);
+  assert.ok(absent);
+  assert.equal(rerankBillingLine(absent), null);
+});
+
+test("retrieve node summary keeps cache hit within two diagram lines", () => {
+  const v = parseHybridRetrieve({ ...RETRIEVE, cache_hit: true, bytes_processed: 0 });
+  assert.ok(v);
+  assert.equal(retrieveNodeSummary(v), "rows=4 · both=1 · 0 B scanned (cached)");
+  assert.deepEqual(wrapSummary(retrieveNodeSummary(v)), ["rows=4 · both=1", "0 B scanned (cached)"]);
+});
+
+test("layoutNodes fits 6 columns into a 1140 px panel without horizontal scroll (gap shrinks, nodes keep size)", () => {
+  const six = Array.from({ length: 6 }, (_, i) => ({ id: `n${i}`, label: "L", service: "s", kind: "model" as const, col: i, row: i === 1 ? 0 : 1, stage_ids: [] }));
+  const fit = layoutNodes(six, 1140);
+  assert.ok(fit.width <= 1140, `width ${fit.width}`);
+  const xs = fit.boxes.map((b) => b.x);
+  const gap = xs[1] - xs[0] - NODE_W;
+  assert.ok(gap >= MIN_COL_GAP, `gap ${gap}`);
+  assert.ok(fit.boxes.every((b) => b.x + NODE_W <= fit.width));
+  const roomy = layoutNodes(six);
+  assert.equal(roomy.boxes[1].x - roomy.boxes[0].x - NODE_W, COL_GAP, "no maxWidth → default gap");
+  const narrow = layoutNodes(six, 600);
+  assert.equal(narrow.boxes[1].x - narrow.boxes[0].x - NODE_W, MIN_COL_GAP, "too narrow → min gap, panel scrolls");
 });

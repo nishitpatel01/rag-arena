@@ -3,11 +3,11 @@
 import type { ArchEdge, ArchNode, EngineTimeline, StageStatus } from "../../types/arena";
 import { IDLE_STAGE } from "./model";
 
-export const NODE_W = 170;
+export const NODE_W = 160;
 /** Label, service, status/timing, then up to SUMMARY_MAX_LINES result-summary lines. */
 export const NODE_H = 92;
-/** Mono 11 px ≈ 6.6 px/char → ~23 chars fit inside NODE_W minus padding. */
-export const SUMMARY_LINE_CHARS = 23;
+/** Mono 11 px ≈ 6.6 px/char → 21 chars fit inside NODE_W minus 10 px padding each side. */
+export const SUMMARY_LINE_CHARS = 21;
 export const SUMMARY_MAX_LINES = 2;
 
 /**
@@ -42,6 +42,8 @@ export function wrapSummary(summary: string, maxChars = SUMMARY_LINE_CHARS, maxL
   return lines;
 }
 export const COL_GAP = 48;
+/** Smallest column gap `layoutNodes` shrinks to when fitting a panel width (arrows stay visible). */
+export const MIN_COL_GAP = 20;
 export const ROW_GAP = 28;
 export const PAD = 16;
 
@@ -63,20 +65,29 @@ function compactIndex(values: readonly number[]): Map<number, number> {
   return new Map(sorted.map((v, i) => [v, i]));
 }
 
-export function layoutNodes(nodes: readonly ArchNode[]): DiagramLayout {
+/**
+ * Grid layout. With `maxWidth` (the panel's inner width) the column gap shrinks from COL_GAP down to
+ * MIN_COL_GAP so the diagram fits without horizontal scroll; node size and font sizes never shrink.
+ */
+export function layoutNodes(nodes: readonly ArchNode[], maxWidth?: number): DiagramLayout {
   if (nodes.length === 0) return { boxes: [], width: PAD * 2, height: PAD * 2 };
   const cols = compactIndex(nodes.map((n) => n.col));
   const rows = compactIndex(nodes.map((n) => n.row));
   const maxCol = cols.size - 1;
   const maxRow = rows.size - 1;
+  let gap = COL_GAP;
+  if (maxWidth !== undefined && Number.isFinite(maxWidth) && maxCol > 0) {
+    const fitGap = Math.floor((maxWidth - PAD * 2 - (maxCol + 1) * NODE_W) / maxCol);
+    gap = Math.max(MIN_COL_GAP, Math.min(COL_GAP, fitGap));
+  }
   const boxes = nodes.map((node) => ({
     node,
-    x: PAD + (cols.get(node.col) ?? 0) * (NODE_W + COL_GAP),
+    x: PAD + (cols.get(node.col) ?? 0) * (NODE_W + gap),
     y: PAD + (rows.get(node.row) ?? 0) * (NODE_H + ROW_GAP),
   }));
   return {
     boxes,
-    width: PAD * 2 + (maxCol + 1) * NODE_W + maxCol * COL_GAP,
+    width: PAD * 2 + (maxCol + 1) * NODE_W + maxCol * gap,
     // Extra bottom room for same-row edge labels drawn under the boxes.
     height: PAD * 2 + (maxRow + 1) * NODE_H + maxRow * ROW_GAP + 16,
   };

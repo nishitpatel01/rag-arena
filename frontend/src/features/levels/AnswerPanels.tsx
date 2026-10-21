@@ -3,6 +3,7 @@ import type { Citation, EngineTimeline } from "../../types/arena";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { KeyValue } from "../../components/ui/KeyValue";
 import { Pill } from "../../components/ui/Pill";
+import { MiniMarkdown } from "../../components/ui/MiniMarkdown";
 import { formatMs, formatPct, formatUsd } from "../../lib/format";
 
 export interface AnswerPanelProps {
@@ -30,7 +31,7 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
   }
   return (
     <div className="flex flex-col gap-3">
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-1">{answer.answer}</p>
+      <MiniMarkdown text={answer.answer} />
       <div className="flex flex-wrap gap-1.5">
         <Pill tone={answer.flags.reranker_used ? "ok" : "neutral"}>reranker {answer.flags.reranker_used ? "used" : "not used"}</Pill>
         <Pill tone={answer.flags.adk_runner_used ? "ok" : "neutral"}>ADK runner {answer.flags.adk_runner_used ? "used" : "not used"}</Pill>

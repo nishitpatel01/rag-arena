@@ -18,10 +18,22 @@ export function formatPct(value: number | null | undefined): string {
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return "—";
+  const trim = (v: number, digits: number): string => String(Number(v.toFixed(digits)));
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  if (bytes < 1024 ** 2) return `${trim(bytes / 1024, 1)} KB`;
+  if (bytes < 1024 ** 3) return `${trim(bytes / 1024 ** 2, 1)} MB`;
+  return `${trim(bytes / 1024 ** 3, 2)} GB`;
+}
+
+/** Tone for an ingestion run / index state string; exact ACTIVE/completed = ok, anything qualified = info/warn. */
+export function statusTone(raw: string): "ok" | "warn" | "err" | "info" | "active" | "neutral" {
+  const v = raw.trim().toLowerCase();
+  if (/^(completed|complete|succeeded|success|active)$/.test(v)) return "ok";
+  if (/(failed|error|cancel)/.test(v)) return "err";
+  if (/(disabled|pending|building|not populated)/.test(v)) return "warn";
+  if (/^(running|started|in_progress)$/.test(v)) return "active";
+  if (/^active\b/.test(v)) return "info";
+  return "neutral";
 }
 
 export function formatTimestamp(iso: string | null | undefined): string {
@@ -44,7 +56,7 @@ export function summarizePayload(payload: Record<string, unknown> | null): strin
   const rows = num("rows_returned");
   if (rows !== null) parts.push(`rows=${rows.toLocaleString()}`);
   const bytes = num("bytes_processed");
-  if (bytes !== null) parts.push(`${formatBytes(bytes)} scanned`);
+  if (bytes !== null) parts.push(payload["cache_hit"] === true ? `cache hit · ${formatBytes(bytes)} scanned` : `${formatBytes(bytes)} scanned`);
   const cin = num("candidates_in");
   const cout = num("candidates_out");
   if (cin !== null && cout !== null) parts.push(`${cin}→${cout} candidates`);

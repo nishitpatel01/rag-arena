@@ -35,16 +35,24 @@ async function requestJson<T>(path: string, init: RequestInit = {}, timeoutMs = 
       throw new ApiError(url, response.status, text.slice(0, 300) || response.statusText);
     }
     return JSON.parse(text) as T;
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new ApiError(url, 0, `timed out after ${Math.round(timeoutMs / 1000)} s`);
+    }
+    throw err;
   } finally {
     window.clearTimeout(timer);
   }
 }
 
+/** BigQuery-backed status (COUNT + INFORMATION_SCHEMA) can take >10 s on a cold cache. */
+const INGEST_STATUS_TIMEOUT_MS = 30_000;
+
 export const api = {
   health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health"),
   levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels"),
   benchmarks: (): Promise<BenchmarksResponse> => requestJson<BenchmarksResponse>("/benchmarks"),
-  ingestStatus: (): Promise<IngestStatusResponse> => requestJson<IngestStatusResponse>("/ingest/status"),
+  ingestStatus: (): Promise<IngestStatusResponse> => requestJson<IngestStatusResponse>("/ingest/status", {}, INGEST_STATUS_TIMEOUT_MS),
   createIngestJob: (level: string): Promise<IngestJobCreated> =>
     requestJson<IngestJobCreated>("/ingest/jobs", {
       method: "POST",

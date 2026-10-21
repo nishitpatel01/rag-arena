@@ -157,3 +157,11 @@ test("sse: parses data frames, ignores event: lines, rejects non-object frames",
   assert.equal(parseSseBlock(": comment only"), null);
   assert.throws(() => parseSseBlock("data: 42"));
 });
+
+test("mini markdown: bullets, bold and inline code parse into blocks (no raw HTML)", async () => {
+  const { parseBlocks } = await import("../src/components/ui/MiniMarkdown");
+  const blocks = parseBlocks("Intro line\n\n* **Primary:** `us-central1`\n* Failover: `us-east4`\n\n1. first\n2. second");
+  assert.deepEqual(blocks.map((b) => b.kind), ["p", "ul", "ol"]);
+  assert.equal((blocks[1] as { items: string[] }).items.length, 2);
+  assert.equal((blocks[2] as { items: string[] }).items[1], "second");
+});

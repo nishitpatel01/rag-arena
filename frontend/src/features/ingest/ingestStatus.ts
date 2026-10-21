@@ -11,14 +11,14 @@ export const TIER_FOR_LEVEL: Record<string, string | null> = {
   managed_vertex: null,
 };
 
-/** Tier row count for a level; `managed_vertex` reads an optional `managed_vertex` key (else treated as ready). */
+/** Tier row count for a level; `managed_vertex` reads an optional `managed_vertex` key (null when absent). */
 export function tierCountFor(levelId: string, status: IngestStatusResponse | null): number | null {
   if (!status) return null;
   const tier = TIER_FOR_LEVEL[levelId];
   const key = tier ?? "managed_vertex";
   const value = status.counts_by_tier[key];
   if (typeof value === "number") return value;
-  return tier === null ? 1 : 0;
+  return tier === null ? null : 0;
 }
 
 export interface RunGate {
@@ -38,6 +38,9 @@ export function runGateFor(levelId: string, status: IngestStatusResponse | null,
     return { blocked: false, note: status.reason || "ingest status not available", tone: "info", count: null };
   }
   const count = tierCountFor(levelId, status);
+  if (TIER_FOR_LEVEL[levelId] === null && count === null) {
+    return { blocked: false, note: "managed service — no BigQuery tier to count", tone: "info", count: null };
+  }
   if (count === 0) return { blocked: true, note: "0 chunks ingested for this tier", tone: "warn", count };
   return { blocked: false, note: null, tone: "ok", count };
 }

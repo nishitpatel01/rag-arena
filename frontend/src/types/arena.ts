@@ -138,9 +138,17 @@ export interface IngestRunSummary {
   readonly run_id: string;
   readonly level: string;
   readonly tier_profile: string;
+  readonly started_at?: string | null;
   readonly finished_at: string | null;
   readonly status: string;
+  readonly docs?: number;
+  readonly pages?: number;
   readonly chunks: number;
+  readonly embedded?: number;
+  readonly loaded?: number;
+  readonly embedding_model?: string;
+  readonly layout_source?: string;
+  readonly git_sha?: string;
 }
 
 export interface IngestStatusResponse {
@@ -152,6 +160,8 @@ export interface IngestStatusResponse {
   readonly reason?: string | null;
   readonly demo_mode?: string;
   readonly last_runs_source?: string;
+  /** Fully-qualified BigQuery table the counts were read from (server-provided; never hardcoded). */
+  readonly table?: string;
 }
 
 export interface IngestJobCreated {

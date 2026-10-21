@@ -6,7 +6,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Panel } from "../../components/ui/Panel";
 import { Pill } from "../../components/ui/Pill";
 import type { Citation, LevelDescriptor } from "../../types/arena";
-import { TIER_FOR_LEVEL, runGateFor, useIngestStatus } from "../ingest/ingestStatus";
+import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
 import { AgentTurnTimeline } from "./AgentTurnTimeline";
 import { AnswerPanel, MetricsPanel } from "./AnswerPanels";
 import { ArchitectureDiagram } from "./ArchitectureDiagram";
@@ -22,9 +22,9 @@ function mergeOrder(declared: readonly string[], seen: readonly string[]): strin
   return out;
 }
 
-const LevelBody: React.FC<{ readonly level: LevelDescriptor }> = ({ level }) => {
+const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestState: IngestStatusState }> = ({ level, ingestState }) => {
   const stream = useBattleStream();
-  const { status: ingest, error: ingestError } = useIngestStatus();
+  const { status: ingest, error: ingestError } = ingestState;
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [userPicked, setUserPicked] = useState(false);
   const [citation, setCitation] = useState<Citation | null>(null);
@@ -88,7 +88,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor }> = ({ level }) => 
           </>
         }
       >
-        <StageRail stageIds={stageIds} stages={timeline?.stages ?? {}} selectedStage={selectedStage} onSelectStage={pickStage} />
+        <div data-run-state={stream.state.complete ? "complete" : stream.isStreaming ? "streaming" : "idle"}>
+          <StageRail stageIds={stageIds} stages={timeline?.stages ?? {}} selectedStage={selectedStage} onSelectStage={pickStage} />
+        </div>
       </Panel>
 
       <Panel title="Document viewer" subtitle="bbox of the selected citation" className="xl:row-span-2" as="aside">
@@ -126,8 +128,8 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor }> = ({ level }) => 
   );
 };
 
-const IngestStatusPill: React.FC<{ readonly levelId: string }> = ({ levelId }) => {
-  const { status, error } = useIngestStatus();
+const IngestStatusPill: React.FC<{ readonly levelId: string; readonly ingestState: IngestStatusState }> = ({ levelId, ingestState }) => {
+  const { status, error } = ingestState;
   const tier = TIER_FOR_LEVEL[levelId];
   const gate = runGateFor(levelId, status, error);
   if (!status && !error) return <Pill tone="neutral">ingest status…</Pill>;
@@ -143,6 +145,8 @@ export const LevelPage: React.FC = () => {
   const { levelId = "" } = useParams();
   const { levels, loading } = useAppData();
   const level = levels.find((l) => l.level_id === levelId);
+  // One request for the whole page (header pill + run gate share it).
+  const ingestState = useIngestStatus();
   const back = <Link to="/" className="text-xs text-moss underline">Back to overview</Link>;
 
   if (loading) return <p className="text-xs text-ink-3">Loading level…</p>;
@@ -158,9 +162,9 @@ export const LevelPage: React.FC = () => {
         <h1 className="text-lg font-semibold text-ink-1">
           {/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
         </h1>
-        <IngestStatusPill levelId={level.level_id} />
+        <IngestStatusPill levelId={level.level_id} ingestState={ingestState} />
       </div>
-      <LevelBody key={level.level_id} level={level} />
+      <LevelBody key={level.level_id} level={level} ingestState={ingestState} />
     </div>
   );
 };

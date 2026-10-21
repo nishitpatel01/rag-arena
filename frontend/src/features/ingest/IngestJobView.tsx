@@ -23,14 +23,31 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
   const timeline = job.state.timelines[level.level_id];
   const progress = deriveIngestProgress(job.state.events);
   const stageIds = timeline?.stageOrder.length ? [...new Set([...INGEST_STAGE_IDS, ...timeline.stageOrder])] : [...INGEST_STAGE_IDS];
+  // tier_profile the backend reports for this job (job_started), e.g. "hybrid" for Level 2.
+  const startedEvent = job.state.events.find((e) => e.event === "job_started");
+  const jobTier = startedEvent && startedEvent.event === "job_started" ? startedEvent.tier_profile : null;
   const embedPct = progress.embed && progress.embed.total > 0 ? Math.round((progress.embed.done / progress.embed.total) * 100) : null;
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]" data-testid="ingest-job-view">
       <Panel
         title={`Ingestion job · ${level.label}`}
-        subtitle={job.jobId ? `job ${job.jobId}` : "creating job…"}
-        actions={job.state.complete ? <Pill tone="ok">job_complete</Pill> : job.isStreaming ? <Pill tone="active">streaming</Pill> : job.transportError ? <Pill tone="err">stream error</Pill> : null}
+        subtitle={job.jobId ? `job ${job.jobId}${jobTier ? ` · tier_profile=${jobTier}` : ""}` : "creating job…"}
+        actions={
+          job.state.complete ? (
+            <Pill tone="ok">job_complete</Pill>
+          ) : timeline?.error ? (
+            <Pill tone="err" mono title={timeline.error.message}>job_failed · {timeline.error.type}</Pill>
+          ) : job.state.interrupted ? (
+            <Pill tone="err" title="The job stream ended without job_complete / job_failed; running stages were marked failed.">
+              stream interrupted · {job.state.interrupted.reason}
+            </Pill>
+          ) : job.isStreaming ? (
+            <Pill tone="active">streaming</Pill>
+          ) : job.transportError ? (
+            <Pill tone="err">stream error</Pill>
+          ) : null
+        }
         className="xl:col-span-2"
       >
         <StageRail label="Ingestion stages" stageIds={stageIds} stages={timeline?.stages ?? {}} selectedStage={selectedStage} onSelectStage={onSelectStage} />

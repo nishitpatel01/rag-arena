@@ -3,10 +3,11 @@ import type { ArchNode, EngineTimeline } from "../../types/arena";
 import { CodeBlock } from "../../components/ui/CodeBlock";
 import { KeyValue } from "../../components/ui/KeyValue";
 import { Pill } from "../../components/ui/Pill";
-import { formatMs, summarizePayload } from "../../lib/format";
+import { formatMs } from "../../lib/format";
 import { IDLE_STAGE } from "./model";
 import { SERVICE_SOURCE_LABEL, type NodeServiceView } from "./diagramModel";
 import { splitPayload } from "./StageDetail";
+import { summarizeStage } from "./stagePayloads";
 import { STAGE_LABELS, STATUS_META } from "./StageRail";
 
 export interface NodeDetailsProps {
@@ -47,7 +48,7 @@ export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline, servic
         const st = timeline?.stages[stageId] ?? IDLE_STAGE;
         const meta = STATUS_META[st.status];
         const req = splitPayload(st.request);
-        const summary = summarizePayload(st.payload);
+        const summary = summarizeStage(stageId, st.payload);
         const turns = stageId === "agent_turn" ? timeline?.agentTurns ?? [] : [];
         const lastTurn = turns[turns.length - 1];
         return (

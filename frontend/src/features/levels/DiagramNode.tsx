@@ -2,7 +2,7 @@ import React from "react";
 import { AlertTriangle, Check, Circle, CircleDashed, Loader } from "lucide-react";
 import type { ArchNode, StageStatus } from "../../types/arena";
 import { formatMs, summarizePayload } from "../../lib/format";
-import { NODE_H, NODE_W, SERVICE_SOURCE_LABEL, type NodeServiceView, type NodeView } from "./diagramModel";
+import { NODE_H, NODE_W, SERVICE_SOURCE_LABEL, wrapSummary, type NodeServiceView, type NodeView } from "./diagramModel";
 import { useElapsedMs } from "./useElapsedMs";
 
 const KIND_GLYPH: Record<ArchNode["kind"], string> = {
@@ -46,7 +46,8 @@ export const DiagramNode: React.FC<DiagramNodeProps> = ({ node, x, y, view, serv
   const elapsed = useElapsedMs(view.startedAt, view.status === "active");
   const timing =
     view.status === "active" ? `${formatMs(elapsed)} …` : view.durationMs !== null ? formatMs(view.durationMs) : "";
-  const third = summary || timing ? `${timing}${timing && summary ? " · " : ""}${summary}` : style.text;
+  const third = timing ? `${style.text} · ${timing}` : style.text;
+  const summaryLines = wrapSummary(summary);
 
   return (
     <g
@@ -76,14 +77,19 @@ export const DiagramNode: React.FC<DiagramNodeProps> = ({ node, x, y, view, serv
       />
       <text x={10} y={21} fontSize={13} fontWeight={600} fill="var(--ink-1)">
         <tspan fill={style.stroke}>{KIND_GLYPH[node.kind]} </tspan>
-        {node.label.length > 19 ? `${node.label.slice(0, 18)}…` : node.label}
+        {node.label.length > 17 ? `${node.label.slice(0, 16)}…` : node.label}
       </text>
       <text x={10} y={37} fontSize={11.5} fill="var(--ink-3)" fontStyle={service.source === "stage" ? undefined : "italic"} data-service-source={service.source}>
-        {serviceLine.length > 26 ? `${serviceLine.slice(0, 25)}…` : serviceLine}
+        {serviceLine.length > 24 ? `${serviceLine.slice(0, 23)}…` : serviceLine}
       </text>
       <text x={10} y={53} fontSize={11.5} fontFamily="ui-monospace, monospace" fill={style.stroke}>
-        {third.length > 26 ? `${third.slice(0, 25)}…` : third}
+        {third.length > 21 ? `${third.slice(0, 20)}…` : third}
       </text>
+      {summaryLines.map((line, i) => (
+        <text key={i} x={10} y={69 + i * 14} fontSize={11} fontFamily="ui-monospace, monospace" fill="var(--ink-2)" data-testid="node-summary">
+          {line}
+        </text>
+      ))}
       <title>{`${node.label} — ${service.text}${sourceLabel ? ` ${sourceLabel}` : ""}\n${style.text}${timing ? ` · ${timing}` : ""}${summary ? `\n${summary}` : ""}`}</title>
     </g>
   );

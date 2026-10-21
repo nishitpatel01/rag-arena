@@ -265,8 +265,8 @@ def test_live_bigquery_hybrid_rrf_sql_handles_hyphens_and_token_fallback() -> No
     assert "?" not in sanitized
 
     sql = build_hybrid_rrf_sql("example-project", "rag_arena", "document_chunks")
-    assert "SEARCH(content, REGEXP_REPLACE(@query_text, r'[^a-zA-Z0-9 ]', ' '))" in sql
-    assert "UNNEST(SPLIT(LOWER(REGEXP_REPLACE(@query_text" in sql
-    assert "COUNTIF(" in sql
+    assert "SEARCH(content, REGEXP_REPLACE(@lexical_query, r'[^a-zA-Z0-9 ]', ' '))" in sql
+    assert "FROM UNNEST(@lexical_terms) AS term" in sql
+    assert "STRPOS(LOWER(content), term) > 0" in sql
 
 

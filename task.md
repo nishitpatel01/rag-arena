@@ -53,11 +53,19 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - D6 tests: `PYTHONPATH=backend .venv/bin/pytest backend/tests -q` → `111 passed`; frontend `npm run build` clean.
   - D7 owner sign-off: ✅ 2026-10-21 (owner reviewed live UI: "look good"; chose fast-forward of `main`)
 
-## Phase 2 — Level 2: BigQuery Hybrid + Reranker (`level2_hybrid`)
-- [ ] Ingestion job `hybrid` tier (contextual lineage headers) + `SEARCH INDEX` build verified via `INFORMATION_SCHEMA.SEARCH_INDEXES`.
-- [ ] Stages: `query_prep` (expansions listed), `embed_query`, `retrieve` (RRF SQL, vector/lexical ranks per row), `rerank` (Discovery Engine `rank()`; on failure → `stage_failed` + `engine_error`, never heuristic fallback; `scores_before/after`), `synthesize`, `evaluate`.
-- [ ] UI: rerank node shows before/after score deltas table.
-- [ ] Record + replay; gate D1–D7 evidence: `…`
+## Phase 2 — Level 2: BigQuery Hybrid + Reranker (`level2_hybrid`) — branch `phase-2/level2-hybrid`
+- [x] Ingestion job `hybrid` tier (contextual lineage headers) + `SEARCH INDEX` build verified via `INFORMATION_SCHEMA.SEARCH_INDEXES`. (`d5a5b7c`)
+- [x] Stages: `query_prep` (expansions listed), `embed_query`, `retrieve` (RRF SQL, vector/lexical ranks per row), `rerank` (Discovery Engine Ranking API via REST; on failure → `stage_failed` + `engine_error`, v2 heuristic fallback deleted; rrf_rank → rerank_rank per candidate), `synthesize`, `evaluate`. (`c3745cc`, `2b80d43`)
+- [x] UI: rerank before/after table, hybrid candidate categories, expansion diff, index-usage + rerank billing lines, Level 1 compare teaser; stream-interruption fail-loud. (`d1d530b`, `5f5e665`, `349f90c`)
+- [x] Record + replay (`bfca20e`); README Level 2 section + screenshots 15–18 (`d946e32`, `25e8553`, `349f90c`).
+- [x] Gate evidence D1–D7:
+  - D1 ingestion (live, 2026-10-21): job `ing_fb0791872628` → `job_complete`; discover 3 ms · parse 1139 ms (45 docs, 526 pages, pymupdf, `empty_docs []`) · chunk 27 ms (526 lineage chunks: narrative_text 519, table 7) · embed 18171 ms (526 × 3072-d, 17 batches) · load_bigquery 16142 ms (staged, tier-scoped transaction) · build_indexes 57874 ms · verify_counts 665 ms; `counts_by_tier {"hybrid": 526, "naive": 5067}`. Index states (BigQuery-reported): vector `ACTIVE (coverage 0%)`; search `TEMPORARILY DISABLED`; per-query stats: search `UNUSED` ("The search index cannot be used when a vector search index is used."), vector `PARTIALLY_USED`.
+  - D2 stage emission: `query_prep`, `embed_query`, `retrieve`, `rerank`, `synthesize`, `evaluate` emitted by the engine with measured `duration_ms`; judge and synthesis see exactly the reranked top-5 the citations come from (test `test_judge_and_synthesis_see_exactly_the_reranked_top_n_that_citations_come_from`).
+  - D3 live runs (Argon + Opus): `run_0013e3475743` q_exact_clin_lookup 0.95 / 1.00 / 0.80; `run_f2decd8b86f9` q_amendment_rate_comparison 1.00 / 0.90 / 0.90 (L1 0.90 / 0.50 / 0.65); `run_bcd3f5e5903e` q_sla_credit_calculation 0.95 / 0.45 / 0.30. Cold retrieve 50 rows, 18.2 MB scanned; rerank 0.29–0.71 s.
+  - D4 UI: replay screenshots (light + dark) of query prep, retrieve candidates (17 vector+lexical / 17 vector / 16 lexical), rerank 50 → 5 with movement, architecture done (six nodes fit at 1600 px), compare teaser; README 15–18 guard-verified.
+  - D5 recordings: 2 pairs × 8 golden questions in `data/recordings/level2_hybrid/`. Averages G / QA / CP · latency · run cost: Argon+Opus 0.971 / 0.838 / 0.644 · 28.6 s · $0.0471 (L1 0.956 / 0.693 / 0.715 · 24.6 s · $0.0354); Flash+Opus 0.984 / 0.855 / 0.637 · 13.8 s · $0.0309 (L1 0.934 / 0.672 / 0.715 · 14.9 s · $0.0229). Known weakness: rerank promotes CUAD agreements on zero_trust / soc_p1 / sla_credit (CP 0.35–0.50). Two Argon recordings hit QUERY_TIMEOUT_SECONDS (transient Vertex latency) → failed loud, re-recorded.
+  - D6 tests: backend `182 passed`; frontend `npm test` 63/63, `npm run build` clean.
+  - D7 owner sign-off: ✅ 2026-10-21 (owner: "level 2 signed off"); Level 2 enabled by default (`DEFAULT_ENABLED_LEVELS`, `.env.example`).
 
 ## Phase 3 — Level 3: Layout-Aware Multimodal RAG (`level3_multimodal`)
 - [ ] Provision Document AI Layout Parser processor (`bootstrap_gcp.sh`, `infra/main.tf`); `ingestion/layout_documentai.py` (tables → Markdown, blocks → bbox, `layout_source='documentai_layout'`).

@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pin, PinOff } from "lucide-react";
 import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
-import { summarizePayload } from "../../lib/format";
 import { DiagramNode } from "./DiagramNode";
 import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
 import { NodeDetails } from "./NodeDetails";
+import { summarizeStage } from "./stagePayloads";
 
 export const DIAGRAM_MIN_HEIGHT = 280;
+/** Horizontal padding of the <figure> (Tailwind p-2 = 8 px each side). */
+const FIGURE_PADDING_X = 16;
 
 export interface ArchitectureDiagramProps {
   readonly title: string;
@@ -32,9 +34,8 @@ function useContainerWidth(): [React.RefObject<HTMLDivElement>, number] {
     const el = ref.current;
     if (!el) return undefined;
     setWidth(el.clientWidth);
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) setWidth(Math.floor(entry.contentRect.width));
-    });
+    // clientWidth (incl. padding) for both the initial read and resizes, so the value is consistent.
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -61,7 +62,9 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const [manualId, setManualId] = useState<string | null>(null);
   const [containerRef, containerWidth] = useContainerWidth();
 
-  const layout = useMemo(() => layoutNodes(nodes), [nodes]);
+  // Inner width of the figure (minus its p-2 padding); the layout shrinks column gaps to fit it.
+  const innerWidth = containerWidth > 0 ? containerWidth - FIGURE_PADDING_X : undefined;
+  const layout = useMemo(() => layoutNodes(nodes, innerWidth), [nodes, innerWidth]);
   const views = useMemo<Record<string, NodeView>>(
     () => Object.fromEntries(nodes.map((n) => [n.id, deriveNodeView(n, timeline)])),
     [nodes, timeline]
@@ -99,7 +102,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const togglePin = (): void => setPinnedId((cur) => (cur ? null : shownId));
 
   // Scale ≥ 1 so labels never shrink below their font size; grow to fill the available width.
-  const scale = containerWidth > 0 ? Math.max(1, containerWidth / layout.width) : 1;
+  const scale = innerWidth !== undefined ? Math.max(1, innerWidth / layout.width) : 1;
   const svgWidth = Math.round(layout.width * scale);
   const svgHeight = Math.max(DIAGRAM_MIN_HEIGHT, Math.round(layout.height * scale));
 
@@ -144,7 +147,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
                 view={view}
                 service={services[node.id]}
                 selected={shownId === node.id}
-                summary={view.status === "done" ? summarizePayload(st?.payload ?? null) : ""}
+                summary={view.status === "done" ? summarizeStage(view.stageId, st?.payload ?? null) : ""}
                 onSelect={select}
               />
             );

@@ -55,14 +55,18 @@ def test_diagnostics_only_mention_measured_facts() -> None:
     assert used[0].startswith("Reranker ran") and used[1].startswith("Google ADK runner")
 
 
-def test_leaderboard_from_recordings_carries_provenance_and_skips_dev_fixtures_by_default() -> None:
+def test_leaderboard_from_recordings_carries_provenance_and_never_aggregates_dev_fixtures() -> None:
     root = _PROJECT_ROOT / "data" / "recordings"
     strict = leaderboard_from_recordings(RecordingStore(root, allow_dev_fixtures=False))
     assert strict["source"] == "recordings"
-    assert all(not p["synthetic_dev_fixture"] for row in strict["engines"] for p in row["provenance"])
     permissive = leaderboard_from_recordings(RecordingStore(root, allow_dev_fixtures=True))
+    for board in (strict, permissive):
+        assert all(not p["synthetic_dev_fixture"] for row in board["engines"] for p in row["provenance"])
+        assert all(p["question_id"] != "dev_q01" for row in board["engines"] for p in row["provenance"])
+    assert permissive["engines"] == strict["engines"]  # allowing fixtures to replay never changes the leaderboard
     l1 = next(row for row in permissive["engines"] if row["engine"] == "level1_naive")
     assert l1["runs"] >= 1 and 0.0 <= l1["avg_battle_score"] <= 100.0
     prov = l1["provenance"][0]
     assert {"question_id", "recorded_at", "git_sha", "model_ids", "synthetic_dev_fixture"} <= set(prov)
-    assert any(p["synthetic_dev_fixture"] for p in l1["provenance"])
+    store = RecordingStore(root, allow_dev_fixtures=True)
+    assert any(r.is_dev_fixture for r in store.list_recordings(include_dev=True))  # the fixture exists, just excluded

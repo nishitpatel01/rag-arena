@@ -3,7 +3,7 @@ import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { openSseStream, type SseFrame, type StreamHandle } from "../../lib/sse";
 import type { IngestEvent } from "../../types/arena";
-import { INITIAL_STREAM_STATE, reduceStreamEvent, type StreamState } from "../levels/model";
+import { INITIAL_STREAM_STATE, reduceStreamEvent, streamEndReason, streamInterruptedEvent, type StreamState } from "../levels/model";
 
 const INGEST_STREAM_TIMEOUT_MS = 30 * 60_000;
 
@@ -26,15 +26,31 @@ export function useIngestJobStream(): IngestJobStream {
   const [transportError, setTransportError] = useState<string | null>(null);
   const handleRef = useRef<StreamHandle | null>(null);
 
-  const abort = useCallback((): void => {
+  // Each job follow gets a generation; transport callbacks of a superseded stream are ignored.
+  const genRef = useRef(0);
+
+  const interrupt = useCallback((reason: string): void => {
+    setState((prev) => reduceStreamEvent(prev, streamInterruptedEvent(prev.runId, reason)));
+  }, []);
+
+  const stop = useCallback((): void => {
+    genRef.current += 1;
     handleRef.current?.abort();
     handleRef.current = null;
     setIsStreaming(false);
   }, []);
 
+  /** User abort: stops following the stream and fails still-running stages loudly. */
+  const abort = useCallback((): void => {
+    stop();
+    interrupt(streamEndReason({ userAborted: true, error: null }));
+  }, [stop, interrupt]);
+
   const start = useCallback(
     async (nextLevel: string): Promise<void> => {
-      abort();
+      stop();
+      const gen = genRef.current;
+      let lastError: string | null = null;
       setState(INITIAL_STREAM_STATE);
       setTransportError(null);
       setLevel(nextLevel);
@@ -43,24 +59,36 @@ export function useIngestJobStream(): IngestJobStream {
       try {
         created = await api.createIngestJob(nextLevel);
       } catch (err) {
+        if (gen !== genRef.current) return;
         setTransportError(err instanceof Error ? err.message : String(err));
         setIsStreaming(false);
         return;
       }
+      if (gen !== genRef.current) return;
       setJobId(created.job_id);
       handleRef.current = openSseStream({
         url: api.ingestJobStreamUrl(created.job_id),
         method: "GET",
         timeoutMs: INGEST_STREAM_TIMEOUT_MS,
-        onFrame: (frame: SseFrame) => setState((prev) => reduceStreamEvent(prev, frame as unknown as IngestEvent)),
-        onError: (err) => setTransportError(err.message),
-        onEnd: () => setIsStreaming(false),
+        onFrame: (frame: SseFrame) => {
+          if (gen === genRef.current) setState((prev) => reduceStreamEvent(prev, frame as unknown as IngestEvent));
+        },
+        onError: (err) => {
+          if (gen !== genRef.current) return;
+          lastError = err.message;
+          setTransportError(err.message);
+        },
+        onEnd: () => {
+          if (gen !== genRef.current) return;
+          setIsStreaming(false);
+          interrupt(streamEndReason({ userAborted: false, error: lastError }));
+        },
       });
     },
-    [abort]
+    [stop, interrupt]
   );
 
-  useEffect(() => () => abort(), [abort]);
+  useEffect(() => () => stop(), [stop]);
 
   // Screen-share safe mode: consumers only ever see the masked view of server data.
   const { mask, maskValue } = useSafeMode();

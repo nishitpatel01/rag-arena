@@ -53,9 +53,16 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive",)
+DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid")
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
+# Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
+DEFAULT_HYBRID_CANDIDATE_K: int = 50
+DEFAULT_RERANK_TOP_N: int = 5
+DEFAULT_RANKING_TIMEOUT_SECONDS: int = 30
+_HYBRID_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
+_RERANK_TOP_N_RANGE: tuple[int, int] = (1, 20)
+_RANKING_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -130,6 +137,9 @@ class ArenaSettings:
     model_verification_file: str = ""
     # ``MODEL_LOCATION_<ID>`` overrides as (env suffix, location) pairs, e.g. ("CLAUDE_OPUS_5_5", "global").
     model_locations: tuple[tuple[str, str], ...] = ()
+    hybrid_candidate_k: int = DEFAULT_HYBRID_CANDIDATE_K
+    rerank_top_n: int = DEFAULT_RERANK_TOP_N
+    ranking_timeout_seconds: int = DEFAULT_RANKING_TIMEOUT_SECONDS
 
     @property
     def model_verification_path(self) -> Path:
@@ -180,6 +190,19 @@ class ArenaSettings:
         self._validate_v3_gates()
         self._validate_judge()
         self._validate_synthesis()
+        self._validate_hybrid()
+
+    def _validate_hybrid(self) -> None:
+        """Bounds for Level 2 RRF candidates, reranked context size and the Ranking API wall-clock budget."""
+        for name, value, (low, high) in (
+            ("HYBRID_CANDIDATE_K", self.hybrid_candidate_k, _HYBRID_CANDIDATE_K_RANGE),
+            ("RERANK_TOP_N", self.rerank_top_n, _RERANK_TOP_N_RANGE),
+            ("RANKING_TIMEOUT_SECONDS", self.ranking_timeout_seconds, _RANKING_TIMEOUT_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if self.rerank_top_n > self.hybrid_candidate_k:
+            raise ValueError("RERANK_TOP_N must not exceed HYBRID_CANDIDATE_K")
 
     def _validate_synthesis(self) -> None:
         """Bounds for selectable-model synthesis and the MODEL_LOCATION_<ID> overrides."""
@@ -348,6 +371,11 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         allow_dev_fixtures=_parse_bool(source.get("ALLOW_DEV_FIXTURES", "0")),
         recordings_dir=source.get("RECORDINGS_DIR", "").strip(),
         app_version=source.get("APP_VERSION", "3.0.0").strip() or "3.0.0",
+        hybrid_candidate_k=_parse_int(source.get("HYBRID_CANDIDATE_K", str(DEFAULT_HYBRID_CANDIDATE_K)), "HYBRID_CANDIDATE_K"),
+        rerank_top_n=_parse_int(source.get("RERANK_TOP_N", str(DEFAULT_RERANK_TOP_N)), "RERANK_TOP_N"),
+        ranking_timeout_seconds=_parse_int(
+            source.get("RANKING_TIMEOUT_SECONDS", str(DEFAULT_RANKING_TIMEOUT_SECONDS)), "RANKING_TIMEOUT_SECONDS"
+        ),
         **_judge_kwargs(source),
         **_synthesis_kwargs(source),
     )

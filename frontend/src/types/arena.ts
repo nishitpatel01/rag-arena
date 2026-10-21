@@ -86,6 +86,8 @@ export interface LevelDescriptor {
   readonly enabled: boolean;
   readonly stages: readonly string[];
   readonly architecture: ArchitectureDescriptor;
+  /** Client-side only (DEV `?mock=1`): unlocked to play a fixture; the backend has it disabled. */
+  readonly dev_fixture?: boolean;
 }
 
 export interface LevelsResponse {
@@ -483,8 +485,29 @@ export interface JobCompleteEvent extends BaseJobEvent {
   readonly index_states: Record<string, string>;
 }
 
+/** Terminal failure of an ingestion job (backend `ingestion/jobs.py`). */
+export interface JobFailedEvent extends BaseJobEvent {
+  readonly event: "job_failed";
+  readonly engine?: string;
+  readonly error_type: string;
+  readonly error: string;
+  readonly failed_stage: string | null;
+}
+
+/**
+ * Client-only synthetic event (never sent by the server): the SSE stream ended — reader done,
+ * network error, or abort — before its terminal event. Fails every `active` stage loudly.
+ */
+export interface StreamInterruptedEvent {
+  readonly event: "stream_interrupted";
+  readonly run_id: string | null;
+  readonly reason: string;
+  readonly ts: string;
+}
+
 export type IngestEvent =
   | JobStartedEvent
+  | JobFailedEvent
   | JobStageStartedEvent
   | JobStageCompletedEvent
   | JobStageFailedEvent

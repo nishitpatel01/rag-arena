@@ -243,7 +243,7 @@ def test_sanitize_search_query_and_prefiltered_hybrid_rrf_sql():
         dataset_id="rag_arena",
         include_solicitation_filter=False,
     )
-    assert "(SELECT * FROM `demo-proj.rag_arena.document_chunks` WHERE tier_profile = @tier_profile)" in sql_unfiltered
+    assert "(SELECT chunk_id, embedding FROM `demo-proj.rag_arena.document_chunks` WHERE tier_profile = 'hybrid')" in sql_unfiltered
 
     sql_filtered = build_hybrid_rrf_sql(
         project_id="demo-proj",
@@ -251,7 +251,7 @@ def test_sanitize_search_query_and_prefiltered_hybrid_rrf_sql():
         include_solicitation_filter=True,
     )
     assert (
-        "(SELECT * FROM `demo-proj.rag_arena.document_chunks` WHERE tier_profile = @tier_profile AND solicitation_id = @solicitation_id)"
+        "(SELECT chunk_id, embedding FROM `demo-proj.rag_arena.document_chunks` WHERE tier_profile = 'hybrid' AND solicitation_id = @solicitation_id)"
         in sql_filtered
     )
     assert "AND solicitation_id = @solicitation_id" in sql_filtered

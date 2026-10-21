@@ -3,7 +3,7 @@ import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { openSseStream, type SseFrame, type StreamHandle } from "../../lib/sse";
 import type { BattleEvent } from "../../types/arena";
-import { INITIAL_STREAM_STATE, reduceStreamEvent, type StreamState } from "./model";
+import { INITIAL_STREAM_STATE, reduceStreamEvent, streamEndReason, streamInterruptedEvent, type StreamState } from "./model";
 
 export interface BattleRunParams {
   readonly query: string;
@@ -50,27 +50,45 @@ export function useBattleStream(): BattleStream {
     mockTimersRef.current = [];
   };
 
-  const abort = useCallback((): void => {
+  // Each run gets a generation; transport callbacks of a superseded run are ignored.
+  const genRef = useRef(0);
+
+  /** Fail-loud end: if no terminal event arrived, active stages become `failed` (reducer no-ops otherwise). */
+  const interrupt = useCallback((reason: string): void => {
+    setState((prev) => reduceStreamEvent(prev, streamInterruptedEvent(prev.runId, reason)));
+  }, []);
+
+  /** Stop the transport and invalidate its callbacks (no state change). */
+  const stop = useCallback((): void => {
+    genRef.current += 1;
     handleRef.current?.abort();
     handleRef.current = null;
     clearMockTimers();
     setIsStreaming(false);
   }, []);
 
+  /** User "Stop": also marks still-running stages as interrupted. */
+  const abort = useCallback((): void => {
+    stop();
+    interrupt(streamEndReason({ userAborted: true, error: null }));
+  }, [stop, interrupt]);
+
   const reset = useCallback((): void => {
-    abort();
+    stop();
     setState(INITIAL_STREAM_STATE);
     setTransportError(null);
-  }, [abort]);
+  }, [stop]);
 
-  const runMock = useCallback(async (): Promise<void> => {
-    // Dev-only fixture replay. The whole branch (including the dynamic import) is eliminated from
+  const runMock = useCallback(async (engines: readonly string[]): Promise<void> => {
+    // Dev-only fixture replay. The whole branch (including the dynamic imports) is eliminated from
     // the production bundle because `import.meta.env.DEV` is statically `false` there.
     if (import.meta.env.DEV) {
-      const { LEVEL1_DEV_FIXTURE } = await import("../../dev/fixtures/level1_run");
+      const fixture = engines.includes("level2_hybrid")
+        ? (await import("../../dev/fixtures/level2_run")).level2DevFixture(window.location.search.includes("mock_fail=rerank"))
+        : (await import("../../dev/fixtures/level1_run")).LEVEL1_DEV_FIXTURE;
       let offset = 0;
-      const total = LEVEL1_DEV_FIXTURE.length;
-      LEVEL1_DEV_FIXTURE.forEach((item, index) => {
+      const total = fixture.length;
+      fixture.forEach((item, index) => {
         offset += item.t_rel;
         const id = window.setTimeout(() => {
           // Stamp `ts` at dispatch so the elapsed counter behaves as with a live stream.
@@ -84,13 +102,15 @@ export function useBattleStream(): BattleStream {
 
   const run = useCallback(
     (params: BattleRunParams): void => {
-      abort();
+      stop();
+      const gen = genRef.current;
+      let lastError: string | null = null;
       setState(INITIAL_STREAM_STATE);
       setTransportError(null);
       setIsStreaming(true);
 
       if (import.meta.env.DEV && isMock) {
-        void runMock();
+        void runMock(params.engines);
         return;
       }
 
@@ -105,15 +125,25 @@ export function useBattleStream(): BattleStream {
           ...(params.synthesisModel ? { synthesis_model: params.synthesisModel } : {}),
           ...(params.judgeModel ? { judge_model: params.judgeModel } : {}),
         },
-        onFrame: append,
-        onError: (err) => setTransportError(err.message),
-        onEnd: () => setIsStreaming(false),
+        onFrame: (frame) => {
+          if (gen === genRef.current) append(frame);
+        },
+        onError: (err) => {
+          if (gen !== genRef.current) return;
+          lastError = err.message;
+          setTransportError(err.message);
+        },
+        onEnd: () => {
+          if (gen !== genRef.current) return;
+          setIsStreaming(false);
+          interrupt(streamEndReason({ userAborted: false, error: lastError }));
+        },
       });
     },
-    [abort, append, isMock, runMock]
+    [stop, append, interrupt, isMock, runMock]
   );
 
-  useEffect(() => () => abort(), [abort]);
+  useEffect(() => () => stop(), [stop]);
 
   // Screen-share safe mode: consumers only ever see the masked view of server data.
   const { mask, maskValue } = useSafeMode();

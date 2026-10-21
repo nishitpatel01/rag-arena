@@ -136,13 +136,14 @@ def leaderboard_from_recordings(store: RecordingStore) -> dict[str, Any]:
     """Aggregate recorded (live-measured) runs per (engine, synthesis_model, judge_model); never across pairs.
 
     Every row carries its provenance (spec §7.4). Two pairs on the same engine are two rows: their judges differ,
-    so averaging them would mix incomparable scales.
+    so averaging them would mix incomparable scales. Synthetic dev fixtures (header ``synthetic_dev_fixture: true``)
+    are never aggregated, in any mode — they may still be replayed when ``ALLOW_DEV_FIXTURES=1``.
     """
     if not isinstance(store, RecordingStore):
         raise TypeError("store must be a RecordingStore")
     rows: dict[tuple[str, str, str], dict[str, Any]] = {}
     for rec in store.list_recordings(include_dev=store.allow_dev_fixtures):
-        if rec.evaluation is None:
+        if rec.evaluation is None or rec.is_dev_fixture:
             continue
         outcome = eval_outcome_from_dict(rec.evaluation)
         latency = int(rec.result.get("latency_ms", 0))

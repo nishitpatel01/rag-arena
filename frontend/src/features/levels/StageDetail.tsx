@@ -6,6 +6,7 @@ import { KeyValue, formatValue } from "../../components/ui/KeyValue";
 import { Pill, type PillTone } from "../../components/ui/Pill";
 import { formatMs } from "../../lib/format";
 import { STAGE_LABELS, STATUS_META } from "./StageRail";
+import { DEDICATED_KEYS, dedicatedStageView } from "./stageViews";
 
 const CODE_KEYS = new Set(["sql", "api_request", "prompt", "answer"]);
 
@@ -18,7 +19,7 @@ const TONE: Record<StageState["status"], PillTone> = {
 };
 
 /** Splits an object into scalar key/values (for KeyValue) and code-ish keys (for CodeBlock). */
-export function splitPayload(obj: JsonObject | null): {
+export function splitPayload(obj: JsonObject | null, omitKeys: readonly string[] = []): {
   readonly scalars: ReadonlyArray<readonly [string, string]>;
   readonly code: ReadonlyArray<readonly [string, string]>;
 } {
@@ -26,6 +27,7 @@ export function splitPayload(obj: JsonObject | null): {
   const scalars: Array<readonly [string, string]> = [];
   const code: Array<readonly [string, string]> = [];
   for (const [k, v] of Object.entries(obj)) {
+    if (omitKeys.includes(k)) continue;
     if (CODE_KEYS.has(k) && typeof v === "string") code.push([k, v]);
     else if (v !== null && typeof v === "object") code.push([k, stringifyJson(v)]);
     else scalars.push([k, formatValue(v)]);
@@ -44,7 +46,10 @@ export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state }) => {
   }
   const meta = STATUS_META[state.status];
   const req = splitPayload(state.request);
-  const res = splitPayload(state.payload);
+  // Dedicated renderers (query_prep / hybrid retrieve / rerank) show their tables above; the same
+  // keys are left out of the generic code blocks but remain in the raw payload JSON below.
+  const dedicated = dedicatedStageView(stageId, state.payload);
+  const res = splitPayload(state.payload, dedicated ? DEDICATED_KEYS[stageId] ?? [] : []);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -67,6 +72,8 @@ export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state }) => {
         </div>
       )}
 
+      {dedicated}
+
       <div className="grid gap-3 xl:grid-cols-2">
         <section aria-label="Request sent" className="flex min-w-0 flex-col gap-2">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-3">Request sent</h4>
@@ -83,6 +90,14 @@ export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state }) => {
           {res.code.map(([k, v]) => (
             <CodeBlock key={k} label={k} language={k === "sql" ? "sql" : "json"} code={v} />
           ))}
+          {dedicated && state.payload && (
+            <details className="rounded-md border border-line bg-surface-0 p-2 text-xs">
+              <summary className="cursor-pointer font-medium text-ink-2">Raw payload JSON (exact stage_completed.payload)</summary>
+              <div className="mt-2">
+                <CodeBlock label="payload" language="json" code={stringifyJson(state.payload)} />
+              </div>
+            </details>
+          )}
         </section>
       </div>
     </div>

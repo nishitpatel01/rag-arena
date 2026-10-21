@@ -11,11 +11,7 @@ from app.core.config import ALL_LEVEL_IDS, ArenaSettings, get_settings
 from app.core.models_catalog import RunModels
 from app.engines.base import BaseRAGEngine
 from app.engines.level1_naive import Level1NaiveEngine, build_vector_search_sql
-from app.engines.level2_hybrid import (
-    Level2HybridEngine,
-    expand_procurement_acronyms,
-    rerank_chunks_heuristic_or_api,
-)
+from app.engines.level2_hybrid import Level2HybridEngine, expand_procurement_acronyms, prepare_query
 from app.engines.level3_multimodal import (
     Level3MultimodalEngine,
     format_chunk_with_authority_header,
@@ -54,8 +50,8 @@ def _resolve(settings: ArenaSettings | None) -> ArenaSettings:
 def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | None = None) -> BaseRAGEngine:
     """Instantiate the engine for ``level_id`` for one run: live class in live/record, a replay player in replay.
 
-    ``models`` is the run's (synthesis, judge) selection. Level 1 synthesizes with ``models.synthesis``; replay
-    plays the recording of exactly that pair. Legacy levels (2–5) cannot switch models yet and reject any
+    ``models`` is the run's (synthesis, judge) selection. Levels 1 and 2 synthesize with ``models.synthesis``; replay
+    plays the recording of exactly that pair. Legacy levels (3–5) cannot switch models yet and reject any
     synthesis model other than ``GEMINI_FAST_MODEL`` (fail loud, never a silent substitution).
     """
     if level_id not in _ENGINE_CLASS_BY_ID:
@@ -72,8 +68,8 @@ def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | Non
             settings=settings,
             models=models,
         )
-    if cls is Level1NaiveEngine:
-        return Level1NaiveEngine(settings=settings, synthesis_model=models.synthesis if models else None)
+    if cls in (Level1NaiveEngine, Level2HybridEngine):
+        return cls(settings=settings, synthesis_model=models.synthesis if models else None)
     if models is not None and models.synthesis.id != settings.gemini_fast_model:
         raise ValueError(
             f"{level_id} does not support synthesis model selection yet (uses GEMINI_FAST_MODEL="
@@ -130,7 +126,7 @@ __all__ = [
     "format_chunk_with_authority_header",
     "get_engine_registry",
     "list_levels",
-    "rerank_chunks_heuristic_or_api",
+    "prepare_query",
     "search_procurement_corpus",
     "verify_citations",
 ]

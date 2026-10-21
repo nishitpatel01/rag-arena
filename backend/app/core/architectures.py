@@ -178,14 +178,14 @@ _JUDGE = ArchNode(
 )
 
 
-def _bq_ingest(parser_label: str, parser_service: str, embed_col: str, extra_index: str) -> tuple[
-    tuple[ArchNode, ...], tuple[ArchEdge, ...]
-]:
+def _bq_ingest(
+    parser_label: str, parser_service: str, embed_col: str, extra_index: str, chunker_label: str = "Chunker"
+) -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
     """Shared BigQuery ingestion sub-diagram: corpus → parser → chunker → embedder → BigQuery → indexes."""
     nodes = (
         ArchNode("corpus", "Procurement corpus (local)", "Local corpus · data/sample_docs", "store", 0, 0, ("discover_docs",)),
         ArchNode("parser", parser_label, parser_service, "process", 1, 0, ("parse",)),
-        ArchNode("chunker", "Chunker", "Ingestion job", "process", 2, 0, ("chunk",)),
+        ArchNode("chunker", chunker_label, "Ingestion job", "process", 2, 0, ("chunk",)),
         ArchNode("embedder", "Chunk embeddings", "Vertex AI · gemini-embedding-2", "model", 3, 0, ("embed",)),
         ArchNode("bq_load", "document_chunks", "BigQuery", "store", 4, 0, ("load_bigquery", "verify_counts")),
         ArchNode("index", "Vector" + extra_index + " index", "BigQuery", "store", 5, 0, ("build_indexes",)),
@@ -224,19 +224,36 @@ def _level1() -> ArchitectureDescriptor:
     )
 
 
+_L2_REF = "app.engines.level2_hybrid:Level2HybridEngine"
+
+
 def _level2() -> ArchitectureDescriptor:
-    ingest_nodes, ingest_edges = _bq_ingest("PDF text parser", "PyMuPDF", "embedding", " + search")
-    bq = ArchNode("bq", "document_chunks", "BigQuery VECTOR_SEARCH + SEARCH()", "store", 2, 1, ("retrieve",))
-    rank = ArchNode("rank", "Cross-encoder rerank", "Discovery Engine Ranking API", "api", 3, 1, ("rerank",))
+    ingest_nodes, ingest_edges = _bq_ingest(
+        "PDF text parser", "PyMuPDF", "embedding", " + search", chunker_label="Contextual-lineage chunker (1 per page)"
+    )
+    user = ArchNode(
+        "user", "User question + acronym expansion", "Engine (local)", "actor", 0, 1, ("query_prep",),
+        code_ref=f"{_L2_REF}._query_prep",
+    )
+    embed = replace(_EMBED, code_ref="app.engines.common_stages:embed_query_stage")
+    bq = ArchNode(
+        "bq", "document_chunks (tier hybrid)", "BigQuery VECTOR_SEARCH + SEARCH() → RRF (k=60)", "store", 2, 1,
+        ("retrieve",), region=_BQ_REGION, code_ref=f"{_L2_REF}._retrieve",
+    )
+    rank = ArchNode(
+        "rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 3, 1, ("rerank",),
+        region="global", code_ref=f"{_L2_REF}._rerank",
+    )
+    llm = replace(_LLM, code_ref=f"{_L2_REF}._synthesize")
     return ArchitectureDescriptor(
         level_id="level2_hybrid",
-        nodes=(_USER, _EMBED, bq, rank, _LLM, _JUDGE),
+        nodes=(user, embed, bq, rank, llm, _JUDGE),
         edges=(
-            ArchEdge("user", "embed", "text"),
+            ArchEdge("user", "embed", "prepared query"),
             ArchEdge("embed", "bq", "3072-d vector"),
-            ArchEdge("user", "bq", "lexical query"),
-            ArchEdge("bq", "rank", "RRF candidates"),
-            ArchEdge("rank", "llm", "reranked chunks"),
+            ArchEdge("user", "bq", "lexical terms"),
+            ArchEdge("bq", "rank", "RRF candidates (≤ 50)"),
+            ArchEdge("rank", "llm", "top-5 reranked chunks"),
             ArchEdge("llm", "judge", "answer + context"),
         ),
         ingest_nodes=ingest_nodes,

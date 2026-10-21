@@ -44,7 +44,7 @@ hardcoded evaluation scores. v3 rebuilds the product around six rules:
 
 Levels 3–5 still contain their v2 bodies in `backend/app/engines/` but are **not enabled**: they run under one
 measured `legacy` stage and emit `stage_skipped` for the canonical stages until their phase rebuilds them.
-`ENABLED_LEVELS` defaults to `level1_naive`; set `ENABLED_LEVELS=level1_naive,level2_hybrid` to enable Level 2.
+`ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid` (the signed-off levels); later levels are enabled the same way after their sign-off.
 Vertex AI Vector Search 2.0 and AlloyDB ScaNN engines are parked in `backend/app/engines/parked/` (excluded
 from the registry).
 
@@ -381,7 +381,7 @@ DEMO_MODE=replay .venv/bin/python -m uvicorn app.main:app --app-dir backend --po
 cd frontend && npm install && npm run dev
 ```
 
-To include Level 2, start the API with `ENABLED_LEVELS=level1_naive,level2_hybrid` as well.
+Level 2 is enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid`).
 
 Open `http://localhost:5173`, go to Level 1 or Level 2, pick a golden question and a recorded model pair
 (`gemini-4-argon` or `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run. Stage events replay with
@@ -429,8 +429,7 @@ their recorded timing (`REPLAY_SPEED`, default 1.0). Ad-hoc questions return
 5. **Run** the backend (`DEMO_MODE` from `.env`) and the UI as in (a), open `/ingest`, and run the Level 1
    ingestion job. On the reference run it parsed 526 pages into 5,067 chunks (3072-d) in ≈5.6 minutes, most of
    it embedding; the job is bounded by `INGEST_JOB_TIMEOUT_SECONDS` (default 1800). Then query Level 1 — the
-   Run button stays disabled while the tier has 0 rows. For Level 2, set
-   `ENABLED_LEVELS=level1_naive,level2_hybrid` and run the Level 2 ingestion job (`hybrid` tier, one
+   Run button stays disabled while the tier has 0 rows. For Level 2 (enabled by default), run the Level 2 ingestion job (`hybrid` tier, one
    lineage-header chunk per page); the Ranking API also needs `discoveryengine.googleapis.com` enabled
    (bootstrap does this).
 

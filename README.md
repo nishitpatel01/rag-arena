@@ -6,9 +6,10 @@ matrices, architecture exhibits, superseding amendments). You pick a level, ask 
 pipeline execute: every stage lights up when the backend actually enters it, shows the exact SQL or API
 request it sent, what came back, and the measured duration, cost and LLM-judge scores.
 
-**Status: Level 1 live · Levels 2–5 in progress.** Level 1 has run end-to-end on a live GCP project (ingestion,
-queries, recordings). Compare, the remaining levels and the Cloud Run deployment are planned and are marked
-as such everywhere below.
+**Status: Levels 1–2 live · Levels 3–5 in progress.** Level 1 (naive vector RAG) and Level 2 (BigQuery hybrid
+RRF + Discovery Engine Ranking API) have each run end-to-end on a live GCP project (ingestion, queries,
+recordings). Compare, Levels 3–5 and the Cloud Run deployment are planned and are marked as such everywhere
+below.
 
 ![Level 1 page while a run is in progress: stage rail, live architecture diagram and details pane](docs/screenshots/03-level1-running.png)
 
@@ -36,13 +37,14 @@ hardcoded evaluation scores. v3 rebuilds the product around six rules:
 | Level | Engine id | Retrieval & synthesis | What it proves | Status |
 | :-- | :-- | :-- | :-- | :-- |
 | 1 | `level1_naive` | BigQuery `VECTOR_SEARCH` (COSINE, top-5) over 360-char windows, `gemini-embedding-2`, selectable synthesis model | The baseline — and its failure modes: identifiers blurred, tables scrambled, no amendment awareness | ✅ live |
-| 2 | `level2_hybrid` | `VECTOR_SEARCH` + `SEARCH()` → RRF (k=60) → Discovery Engine Ranking API | Exact identifier recall; reranker precision | 🔒 planned |
+| 2 | `level2_hybrid` | Acronym expansion; BigQuery `VECTOR_SEARCH` ⨝ `SEARCH()` lexical over one-chunk-per-page lineage chunks → RRF (k=60) top-50 → Discovery Engine Ranking API (`semantic-ranker-default@latest`) → top-5 | Exact identifier recall; reranker precision | ✅ live |
 | 3 | `level3_multimodal` | Document AI Layout Parser + Gemini vision transcription of diagram pages, multimodal embeddings, authority headers | Tables and diagrams answered correctly | 🔒 planned |
 | 4 | `level4_agentic` | Real Google ADK `Runner` with retrieval, amendment lookup, pricing math and citation-check tools | Multi-hop supersession, deterministic math, self-verification | 🔒 planned |
 | 5 | `managed_vertex` | Vertex AI Search data store (extractive segments + summary) | Build vs. buy baseline | 🔒 planned |
 
-Levels 2–5 still contain their v2 bodies in `backend/app/engines/` but are **not enabled**: they run under one
+Levels 3–5 still contain their v2 bodies in `backend/app/engines/` but are **not enabled**: they run under one
 measured `legacy` stage and emit `stage_skipped` for the canonical stages until their phase rebuilds them.
+`ENABLED_LEVELS` defaults to `level1_naive`; set `ENABLED_LEVELS=level1_naive,level2_hybrid` to enable Level 2.
 Vertex AI Vector Search 2.0 and AlloyDB ScaNN engines are parked in `backend/app/engines/parked/` (excluded
 from the registry).
 
@@ -78,6 +80,49 @@ The UI draws the same graph live from `GET /api/v1/levels` (design metadata only
 references); all state on it comes from SSE events.
 
 ![Level 1 architecture diagram after a completed run, each node showing its measured duration](docs/screenshots/09-architecture-done.png)
+
+---
+
+## Level 2 architecture
+
+**Query path** (`backend/app/engines/level2_hybrid.py`, `backend/app/ingestion/bq_indexer.py`,
+`backend/app/core/ranking.py`):
+
+```mermaid
+flowchart LR
+    U["User question"] --> QP["query_prep<br/>acronym expansion (16-term map)"]
+    QP --> EQ["embed_query<br/>gemini-embedding-2 · 3072-d"]
+    QP --> LX["lexical terms<br/>stopwords dropped, ids kept whole"]
+    EQ --> VS["VECTOR_SEARCH<br/>tier hybrid · COSINE · top-50"]
+    LX --> SR["SEARCH() + weighted STRPOS<br/>tier hybrid · top-50"]
+    VS --> RRF["RRF k=60<br/>FULL OUTER JOIN · top-50 candidates"]
+    SR --> RRF
+    RRF --> RK["rerank<br/>Discovery Engine Ranking API<br/>semantic-ranker-default@latest"]
+    RK --> SY["synthesize (top-5)<br/>selectable model"]
+    SY --> EV["evaluate<br/>LLM judge (selectable, must differ<br/>from the synthesis model)"]
+```
+
+Both retrieval legs and the fusion run as **one parameterized BigQuery statement**: the vector leg ranks by
+cosine distance, the lexical leg ranks by `SEARCH()` all-terms match then a weighted `STRPOS` term score
+(identifier terms containing digits count ×3), and fusion scores each chunk
+`1/(60 + vector_rank) + 1/(60 + lexical_rank)` (a missing leg contributes 0).
+
+**Ingestion path** (`hybrid` tier, same job runner as Level 1):
+
+```mermaid
+flowchart LR
+    C["discover_docs<br/>local corpus (45 PDFs)"] --> P["parse<br/>PyMuPDF pages"]
+    P --> K["chunk<br/>one chunk per page, prefixed with a<br/>Contextual Lineage header (solicitation ·<br/>document · doc type · section)"]
+    K --> E["embed<br/>gemini-embedding-2 · RETRIEVAL_DOCUMENT"]
+    E --> L["load_bigquery<br/>staging table → transactional replace of tier hybrid"]
+    L --> I["build_indexes<br/>VECTOR INDEX (IVF, COSINE) + SEARCH INDEX on content"]
+    I --> V["verify_counts"]
+```
+
+CUAD agreements are labelled `doc_type = COMMERCIAL_AGREEMENT` at parse time (never as an RFP or amendment),
+so the lineage header tells both the ranker and the synthesis model what kind of document a page comes from.
+
+![Level 2 architecture diagram after a completed run](docs/screenshots/18-level2-architecture-done.png)
 
 ---
 
@@ -141,6 +186,38 @@ Every value below is read from the stage event payloads emitted by the engine (a
 
 ---
 
+## Level 2 walkthrough
+
+Level 2 adds a visible `rerank` stage and richer payloads for `query_prep` and `retrieve`; `embed_query`,
+`synthesize` and `evaluate` work as in Level 1 (shared stage bodies in `engines/common_stages.py`), with
+synthesis context labelled `[doc | Sec: … | p.N]` and up to 6,000 characters per chunk.
+
+### `query_prep` — acronym expansion
+![Level 2 query_prep showing the expanded query diff](docs/screenshots/17-level2-query-prep.png)
+- A deterministic 16-entry map (CLIN, SLA, RTO, RPO, QASP, PEP, SOW, RFP, MSA, ZTA, VPC, VPN, BGP, ASN, KMS,
+  GKE) expands upper-case acronyms as whole tokens (`CLIN-0004-AB` counts as CLIN).
+- The payload lists every applied expansion; the prepared query is the original plus a glossary suffix, and
+  the UI shows the word-level diff. The embedding uses the prepared query; lexical terms use the original.
+
+### `retrieve` — hybrid RRF candidates
+![Level 2 retrieve stage: 50 RRF candidates with vector and lexical ranks](docs/screenshots/15-level2-retrieve-candidates.png)
+- The exact hybrid SQL and parameters (`@query_embedding` preview, `@lexical_query`, `@lexical_terms`).
+- Up to 50 candidates, each with `vector_rank`, `lexical_rank` (null when that leg missed it),
+  `vector_distance` and `rrf_score`; `with_both_ranks` counts chunks found by both legs.
+- BigQuery job facts: `job_id`, `bytes_processed`, `slot_millis`, `cache_hit`, and `index_usage` — BigQuery's own
+  `indexUsageMode` and unused-index reasons for the search and vector indexes, verbatim.
+
+### `rerank` — Discovery Engine Ranking API
+![Level 2 rerank stage: before/after ranks and scores](docs/screenshots/16-level2-rerank.png)
+- All RRF candidates are sent in one `rankingConfigs.rank` call (title = document + section, content truncated
+  to 3,600 characters to stay under the model's per-record token limit; `records_truncated` says how many).
+- Every candidate gets a rerank score; the UI shows RRF rank → rerank rank movement, and the top
+  `RERANK_TOP_N` (5) go to synthesis, citations and the judge.
+- Measured `rank_api_ms`, `attempts`, `billed_counts` and `cost_usd`. A Ranking API error fails the stage —
+  there is no heuristic or lexical fallback ranker.
+
+---
+
 ## Model catalog
 
 The catalog is defined in `backend/app/core/models_catalog.py`; prices come from `backend/app/core/pricing.py`
@@ -170,9 +247,17 @@ The catalog is defined in `backend/app/core/models_catalog.py`; prices come from
   then `verify_models.py` records the 403 and the catalog marks Fable unavailable with that reason.
 - `data/model_verification.json` in the repo reflects the author's project. Re-run `verify_models.py` on yours.
 
+**Ranking API (Level 2).** `semantic-ranker-default@latest` via
+`POST https://discoveryengine.googleapis.com/v1/projects/<project>/locations/global/rankingConfigs/default_ranking_config:rank`
+(REST, ADC bearer token, `x-goog-user-project` header; ≤ 3 attempts, retries only on 429 / 500 / 503 /
+timeouts; `RANKING_TIMEOUT_SECONDS`, default 30). Price from `pricing.py`: **$1.00 per 1,000 counts**, where one
+count is one rank query of up to 100 documents (each further started block of 100 is another count); source
+`https://cloud.google.com/generative-ai-app-builder/pricing`, `price_as_of` 2026-10-21. A Level 2 query
+sends 50 records = 1 count = $0.001, included in the engine cost.
+
 ---
 
-## Results so far (Level 1)
+## Results so far (Levels 1–2)
 
 Computed from the 16 committed recordings in
 [`data/recordings/level1_naive/`](data/recordings/level1_naive/): two (synthesis, judge) pairs × the 8 golden
@@ -216,6 +301,66 @@ How to read this honestly:
 - Reproduce the tables from the files: each recording's `evaluation.metrics`, `result.latency_ms`,
   `result.cost_usd` and `evaluation.judge_cost_usd`.
 
+### Level 1 vs Level 2
+
+Computed the same way from the 16 Level 2 recordings in
+[`data/recordings/level2_hybrid/`](data/recordings/level2_hybrid/) (same two pairs, same 8 questions,
+recorded live on 2026-10-21; git `d1d530b` / `5f5e665`). Level 2 engine cost includes the $0.001 rank call.
+
+**Argon** (synthesis `gemini-4-argon`, judge `claude-opus-5-5`):
+
+| Question | L1 G / QA / CP | L2 G / QA / CP | L1 latency | L2 latency | L1 run cost | L2 run cost |
+| :-- | :-: | :-: | --: | --: | --: | --: |
+| `q_exact_clin_lookup` | 1.00 / 1.00 / 0.80 | 1.00 / 1.00 / 0.85 | 16.5 s | 21.2 s | $0.0203 | $0.0380 |
+| `q_vpc_failover_diagram` | 0.97 / 0.92 / 0.80 | 1.00 / 1.00 / 0.75 | 18.0 s | 17.9 s | $0.0287 | $0.0350 |
+| `q_zero_trust_pep_diagram` | 0.98 / 0.97 / 0.82 | 0.92 / 0.92 / 0.35 | 17.0 s | 20.3 s | $0.0272 | $0.0441 |
+| `q_soc_p1_response_matrix` | 1.00 / 0.80 / 0.70 | 1.00 / 1.00 / 0.50 | 20.0 s | 27.9 s | $0.0312 | $0.0487 |
+| `q_data_lakehouse_addendum` | 1.00 / 0.65 / 0.85 | 1.00 / 1.00 / 0.85 | 20.7 s | 31.3 s | $0.0298 | $0.0431 |
+| `q_amendment_rate_comparison` | 0.90 / 0.50 / 0.65 | 1.00 / 0.88 / 0.85 | 32.8 s | 25.9 s | $0.0447 | $0.0499 |
+| `q_sla_credit_calculation` | 0.95 / 0.40 / 0.55 | 0.95 / 0.50 / 0.35 | 28.0 s | 51.7 s | $0.0411 | $0.0609 |
+| `q_cross_solicitation_total_cost` | 0.85 / 0.30 / 0.55 | 0.90 / 0.40 / 0.65 | 43.4 s | 33.2 s | $0.0600 | $0.0574 |
+| **Average (8)** | **0.956 / 0.693 / 0.715** | **0.971 / 0.838 / 0.644** | **24.6 s** | **28.6 s** | **$0.0354** | **$0.0471** |
+
+**Flash** (synthesis `gemini-3.8-flash`, judge `claude-opus-5-5`):
+
+| Question | L1 G / QA / CP | L2 G / QA / CP | L1 latency | L2 latency | L1 run cost | L2 run cost |
+| :-- | :-: | :-: | --: | --: | --: | --: |
+| `q_exact_clin_lookup` | 1.00 / 1.00 / 0.85 | 1.00 / 1.00 / 0.75 | 8.7 s | 7.7 s | $0.0140 | $0.0255 |
+| `q_vpc_failover_diagram` | 0.90 / 0.90 / 0.80 | 1.00 / 1.00 / 0.70 | 8.2 s | 7.8 s | $0.0203 | $0.0276 |
+| `q_zero_trust_pep_diagram` | 0.97 / 0.88 / 0.82 | 1.00 / 0.95 / 0.40 | 7.4 s | 9.5 s | $0.0177 | $0.0258 |
+| `q_soc_p1_response_matrix` | 1.00 / 0.80 / 0.65 | 0.97 / 1.00 / 0.45 | 16.1 s | 8.5 s | $0.0236 | $0.0331 |
+| `q_data_lakehouse_addendum` | 1.00 / 0.65 / 0.80 | 1.00 / 0.97 / 0.80 | 19.0 s | 10.2 s | $0.0219 | $0.0295 |
+| `q_amendment_rate_comparison` | 0.85 / 0.40 / 0.70 | 1.00 / 0.97 / 0.90 | 25.8 s | 11.3 s | $0.0288 | $0.0313 |
+| `q_sla_credit_calculation` | 0.95 / 0.50 / 0.55 | 1.00 / 0.60 / 0.40 | 22.7 s | 42.5 s | $0.0308 | $0.0377 |
+| `q_cross_solicitation_total_cost` | 0.80 / 0.25 / 0.55 | 0.90 / 0.35 / 0.70 | 11.3 s | 12.8 s | $0.0260 | $0.0363 |
+| **Average (8)** | **0.934 / 0.672 / 0.715** | **0.984 / 0.855 / 0.637** | **14.9 s** | **13.8 s** | **$0.0229** | **$0.0309** |
+
+Level 2 averages broken down:
+
+| Pair | Engine cost | Judge cost | Run cost | Total, 8 runs | Synthesize | Retrieve | Rerank | Embed | Judge |
+| :-- | --: | --: | --: | --: | --: | --: | --: | --: | --: |
+| Argon | $0.0231 | $0.0241 | $0.0471 | $0.3770 | 26.6 s | 1.3 s | 0.30 s | 0.28 s | 4.3 s |
+| Flash | $0.0085 | $0.0223 | $0.0309 | $0.2468 | 12.2 s | 1.1 s | 0.28 s | 0.21 s | 3.6 s |
+
+What changed, honestly:
+- **QA relevance rose** from 0.693 → 0.838 (Argon) and 0.672 → 0.855 (Flash). The biggest gains are
+  `q_amendment_rate_comparison` (0.50 → 0.88, 0.40 → 0.97), `q_data_lakehouse_addendum` (0.65 → 1.00 / 0.97) and
+  `q_soc_p1_response_matrix` (0.80 → 1.00). `q_sla_credit_calculation` and `q_cross_solicitation_total_cost`
+  stay at 0.35–0.60: they need multi-step math across documents, which is Level 4's job.
+- **Context precision fell** (0.715 → 0.644 / 0.637). On three questions the reranker promoted CUAD commercial
+  agreements into the top 5 — identically in both pairs: `q_zero_trust_pep_diagram` (an outsourcing agreement
+  from RRF #33 to rerank #3; CP 0.35 / 0.40), `q_soc_p1_response_matrix` (RRF #43 → #4 and #49 → #5; CP 0.50 /
+  0.45) and `q_sla_credit_calculation` (#5 → #2 and #33 → #4; CP 0.35 / 0.40).
+- **BigQuery did not use the search index.** On every uncached recorded retrieve it reports
+  `indexUsageMode=UNUSED` for the search index with "The search index cannot be used when a vector search index
+  is used." (vector index `PARTIALLY_USED`); the lexical leg still runs, just without the index.
+- **13 of 16 Level 2 retrieves were BigQuery result-cache hits** (0 bytes processed, reason
+  `QUERY_CACHE_HIT`); the 3 uncached ones processed 18,213,995 bytes. Recorded retrieve times are therefore
+  mostly cache-hit times.
+- **Cost and latency** rise mainly because whole-page chunks make prompts larger: average synthesis prompt
+  ≈ 2,660 tokens vs ≈ 750 at Level 1, and judge input ≈ 4,000–4,200 vs ≈ 1,950–2,120 tokens. The rerank call
+  itself costs $0.001 and took 0.23–0.36 s.
+
 ---
 
 ## Quickstart
@@ -236,7 +381,9 @@ DEMO_MODE=replay .venv/bin/python -m uvicorn app.main:app --app-dir backend --po
 cd frontend && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`, go to Level 1, pick a golden question and a recorded model pair
+To include Level 2, start the API with `ENABLED_LEVELS=level1_naive,level2_hybrid` as well.
+
+Open `http://localhost:5173`, go to Level 1 or Level 2, pick a golden question and a recorded model pair
 (`gemini-4-argon` or `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run. Stage events replay with
 their recorded timing (`REPLAY_SPEED`, default 1.0). Ad-hoc questions return
 `engine_error: No recording for this question in replay mode`.
@@ -282,7 +429,10 @@ their recorded timing (`REPLAY_SPEED`, default 1.0). Ad-hoc questions return
 5. **Run** the backend (`DEMO_MODE` from `.env`) and the UI as in (a), open `/ingest`, and run the Level 1
    ingestion job. On the reference run it parsed 526 pages into 5,067 chunks (3072-d) in ≈5.6 minutes, most of
    it embedding; the job is bounded by `INGEST_JOB_TIMEOUT_SECONDS` (default 1800). Then query Level 1 — the
-   Run button stays disabled while the tier has 0 rows.
+   Run button stays disabled while the tier has 0 rows. For Level 2, set
+   `ENABLED_LEVELS=level1_naive,level2_hybrid` and run the Level 2 ingestion job (`hybrid` tier, one
+   lineage-header chunk per page); the Ranking API also needs `discoveryengine.googleapis.com` enabled
+   (bootstrap does this).
 
 IAM for the principal running the backend (the same least-privilege set planned for the Cloud Run runtime
 service account): `roles/aiplatform.user`, `roles/bigquery.jobUser`, `roles/bigquery.dataEditor` on the
@@ -304,7 +454,7 @@ and datasets. Live and record modes write one `query_runs` row per run and one `
 | `POST /api/v1/ingest/jobs` · `GET /api/v1/ingest/jobs/{id}` · `GET /api/v1/ingest/jobs/{id}/stream` | Start / inspect / stream an ingestion job (`{level}`) |
 | `GET /api/v1/ingest/status` | Live `COUNT(*)` by tier, index states, recent `ingest_runs` |
 | `GET /api/v1/documents/page` · `GET /api/v1/documents/highlights` | Rendered PDF page (PNG) and excerpt highlight rectangles |
-| `POST /api/v1/ingest/upload` | Guarded PDF upload (uploaded sessions are not indexed for Level 1 yet) |
+| `POST /api/v1/ingest/upload` | Guarded PDF upload (uploaded sessions are not indexed for Levels 1–2 yet) |
 
 Run stream frames are `data: {json}\n\n`, bounded by `MAX_SSE_FRAMES` (600):
 
@@ -319,6 +469,17 @@ Run stream frames are `data: {json}\n\n`, bounded by `MAX_SSE_FRAMES` (600):
 | `engine_error` | `error_type`, `error`, `failed_stage` |
 | `stream_warning` · `battle_complete` | `message` · `engines_completed[]`, `engines_failed[]` |
 
+Level 2 stage payloads (in `stage_completed.payload`):
+
+| Stage | Payload fields |
+| :-- | :-- |
+| `query_prep` | `original_query`, `prepared_query`, `expansions[]` (`term`, `expansion`) |
+| `retrieve` | `rows_returned`, `candidate_k`, `rrf_k`, `vector_k`, `lexical_k`, `with_both_ranks`, `candidates[]` (`chunk_id`, `doc_name`, `page_number`, `section_id`, `vector_rank`, `lexical_rank`, `vector_distance`, `rrf_score`), `job_id`, `bytes_processed`, `slot_millis`, `cache_hit`, `index_usage` (`search` / `vector_search`: `index_usage_mode`, `index_unused_reasons[]`) |
+| `rerank` | `service_used`, `model`, `candidates_in`, `candidates_out`, `results[]` (`chunk_id`, `doc_name`, `page_number`, `rrf_rank`, `rrf_score`, `rerank_rank`, `rerank_score`), `rank_api_ms`, `attempts`, `records_truncated`, `billed_counts`, `cost_usd` |
+
+The `rerank` request records `service`, `model`, `top_n`, `records_sent`, `query`, `method`
+(`rankingConfigs.rank`), `ranking_config`, `record_content_max_chars` and `context_k`.
+
 Ingestion streams emit `job_started`, `stage_started|completed|failed`, `doc_progress`, `embed_progress` and
 `job_complete` (counts read back from BigQuery).
 
@@ -332,14 +493,14 @@ rag-arena/
 │   ├── app/
 │   │   ├── main.py                    # Starlette app; settings validated at startup
 │   │   ├── api/                       # routes.py (SSE forwarder + REST), documents.py, query_runs.py
-│   │   ├── core/                      # config, telemetry (StageEmitter), models_catalog, pricing,
+│   │   ├── core/                      # config, telemetry (StageEmitter), models_catalog, pricing, ranking,
 │   │   │                              # architectures, anthropic_vertex, embeddings, gcp_clients, models
-│   │   ├── engines/                   # base, level1_naive, synthesis, replay_engine, _legacy,
-│   │   │                              # level2_hybrid … managed_vertex (not enabled), parked/
+│   │   ├── engines/                   # base, common_stages, level1_naive, level2_hybrid, synthesis,
+│   │   │                              # replay_engine, _legacy, level3…managed_vertex (not enabled), parked/
 │   │   ├── evaluation/                # judges, evaluator, scoring
 │   │   ├── ingestion/                 # jobs, live_backends, parsers, pipeline, bq_indexer, upload_guard, session_store
 │   │   └── recording/                 # recorder, store, codec, redaction
-│   ├── tests/                         # 24 offline test modules
+│   ├── tests/                         # 23 offline test modules + shared fakes
 │   ├── Dockerfile · requirements.txt · pyproject.toml
 ├── frontend/
 │   ├── src/{app,pages,features/{levels,ingest},components,lib,theme,styles,types,dev}/
@@ -348,7 +509,7 @@ rag-arena/
 ├── data/
 │   ├── sample_docs/procurement_corpus/   # 3 solicitations, 45 PDFs
 │   ├── golden_benchmarks/             # procurement_benchmark.json; precomputed_runs.json (v2, scheduled for removal)
-│   ├── recordings/level1_naive/<synthesis>__<judge>/<question_id>.json
+│   ├── recordings/{level1_naive,level2_hybrid}/<synthesis>__<judge>/<question_id>.json
 │   └── model_verification.json
 ├── docs/                              # ARCHITECTURE.md, SETUP_GUIDE.md, audits/, screenshots/
 ├── scripts/                           # bootstrap_gcp.sh, verify_models.py, build_procurement_corpus.py,
@@ -363,7 +524,7 @@ rag-arena/
 ## Testing
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 169 passed (2026-10-21)
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 182 passed (2026-10-21)
 cd frontend && npm test                                 # node test runner suites
 cd frontend && npm run build                            # tsc + vite build
 ```
@@ -391,8 +552,8 @@ redaction, model selection (judge ≠ synthesis), ingestion API, and the public-
 | Phase | Scope | Status |
 | :-- | :-- | :-- |
 | 1 | Level 1 Naive Vector RAG | ✅ live |
-| 2 | Level 2 BigQuery Hybrid + Ranking API (rerank before/after scores) | 🔒 planned |
-| 3 | Level 3 Document AI Layout Parser + Gemini vision, multimodal embeddings | 🔒 planned |
+| 2 | Level 2 BigQuery Hybrid RRF + Discovery Engine Ranking API (rerank before/after scores) | ✅ live |
+| 3 | Level 3 Document AI Layout Parser + Gemini vision, multimodal embeddings — **next** | 🔒 planned |
 | 4 | Level 4 real Google ADK runner with tools over real data | 🔒 planned |
 | 5 | Managed Vertex AI Search baseline | 🔒 planned |
 | 6 | Compare page, leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |

@@ -3,12 +3,14 @@
 Two ways to run it:
 
 1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1
-   runs. No Google Cloud account, no credentials, no network calls to GCP.
+   and Level 2 runs. No Google Cloud account, no credentials, no network calls to GCP.
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-Only **Level 1** is enabled (`ENABLED_LEVELS=level1_naive`). Levels 2–5, the Compare page and the Cloud Run
-deployment are planned; see the [README roadmap](../README.md#roadmap).
+**Levels 1 and 2** are live. `ENABLED_LEVELS` defaults to `level1_naive`; set
+`ENABLED_LEVELS=level1_naive,level2_hybrid` (in `.env` or the environment, for replay and live) to enable
+Level 2. Levels 3–5, the Compare page and the Cloud Run deployment are planned; see the
+[README roadmap](../README.md#roadmap).
 
 ---
 
@@ -158,8 +160,13 @@ cd frontend && npm run dev
    row. The Level 1 Run button stays disabled while the `naive` tier has 0 rows.
 3. Open Level 1, pick a synthesis and a judge model (different models), ask a golden or custom question.
    Each run writes a `query_runs` row.
-4. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
-   `data/recordings/level1_naive/<synthesis>__<judge>/<question_id>.json` with identity values redacted.
+4. **Level 2**: with `ENABLED_LEVELS=level1_naive,level2_hybrid`, run the Level 2 ingestion job from `/ingest`
+   (`hybrid` tier: one chunk per page with a contextual-lineage header, plus vector and search indexes), then
+   open Level 2. Its `rerank` stage calls the Discovery Engine Ranking API (`discoveryengine.googleapis.com`,
+   enabled by the bootstrap script; `RERANKER_MODEL`, `RANKING_TIMEOUT_SECONDS`, `HYBRID_CANDIDATE_K` = 50,
+   `RERANK_TOP_N` = 5). A Ranking API error fails the stage — there is no fallback ranker.
+5. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
+   `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted.
 
 ---
 
@@ -186,4 +193,6 @@ and `.env.example` for internal terms and for the identity values in your local 
 | HTTP 400 `judge_model must differ from synthesis_model` | Pick two different models; a model never grades its own answers. |
 | Vector index `ACTIVE (coverage 0%)` | BigQuery is still building the IVF index; `VECTOR_SEARCH` brute-forces meanwhile (≈130 MB scanned per query on the 5,067-row tier). |
 | Search index `TEMPORARILY DISABLED` | BigQuery reports this for tables below 10 GB; Level 1 does not use the search index. |
+| Level 2 `retrieve` shows search index `UNUSED` | BigQuery reports "The search index cannot be used when a vector search index is used." for the combined VECTOR_SEARCH + SEARCH() statement; the lexical leg still runs without the index. |
+| Recorded `retrieve` shows 0 bytes processed | BigQuery result-cache hit (`cache_hit: true`); ask a question not run recently to see a real scan. |
 | `/api/v1/ingest/status` is slow on first load | It runs live BigQuery `COUNT(*)` and `INFORMATION_SCHEMA` queries. |

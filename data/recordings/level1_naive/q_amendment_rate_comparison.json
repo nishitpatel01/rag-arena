@@ -1,0 +1,537 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-21T13:54:13.341Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "gemini-4-argon"
+    },
+    "git_sha": "b63953c951a80c99688cffcf9dff2894f7d4efa2",
+    "app_version": "3.0.0",
+    "engine": "level1_naive",
+    "question_id": "q_amendment_rate_comparison",
+    "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+    "run_id": "run_85f7d77e0dea"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "query_prep",
+      "label": "Query preparation",
+      "service": "Engine (local)",
+      "request": {
+        "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?"
+      },
+      "ts": "2026-10-21T13:52:27.814Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "expansions": []
+      },
+      "ts": "2026-10-21T13:52:27.814Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-10-21T13:52:27.814Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "embed_query",
+      "duration_ms": 326,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 68,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-10-21T13:52:28.141Z",
+      "t_rel_ms": 327
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "retrieve",
+      "label": "BigQuery VECTOR_SEARCH",
+      "service": "BigQuery",
+      "request": {
+        "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
+        "params": {
+          "query_embedding": {
+            "dimensions": 3072,
+            "preview": [
+              0.014672569,
+              0.02745121,
+              -0.0026186875,
+              -0.007886145
+            ]
+          }
+        },
+        "top_k": 5
+      },
+      "ts": "2026-10-21T13:52:28.141Z",
+      "t_rel_ms": 327
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "retrieve",
+      "duration_ms": 1143,
+      "payload": {
+        "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
+        "params": {
+          "query_embedding": {
+            "dimensions": 3072,
+            "preview": [
+              0.014672569,
+              0.02745121,
+              -0.0026186875,
+              -0.007886145
+            ]
+          }
+        },
+        "rows_returned": 5,
+        "top_k": 5,
+        "scores": [
+          0.8015,
+          0.7754,
+          0.7508,
+          0.7485,
+          0.7471
+        ],
+        "chunk_ids": [
+          "solicitation_03_05_master_services_agreement_msa_p1_w3_naive",
+          "solicitation_01_01_rfp_base_solicitation_p1_w3_naive",
+          "solicitation_03_04_pricing_labor_categories_p1_w1_naive",
+          "solicitation_01_04_pricing_schedule_clins_p1_w1_naive",
+          "solicitation_01_06_amendment_0001_scope_update_p1_w3_naive"
+        ],
+        "job_id": "a2098308-8a73-424d-977b-a747ae69af5b",
+        "bytes_processed": 0,
+        "slot_millis": 0,
+        "cache_hit": true
+      },
+      "ts": "2026-10-21T13:52:29.284Z",
+      "t_rel_ms": 1471
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 gemini-4-argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[05_Master_Services_Agreement_MSA.pdf p.1]: 04_Pricing_Labor_Categories.pdf, MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\n\n[01_RFP_Base_Solicitation.pdf p.1]: (Key Personnel & Labor Reference): Lead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect) at the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours ($420,000.00 Year 1 ceiling), subject to formal contract amendments. All proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\n[04_Pricing_Labor_Categories.pdf p.1]: SOL-2026-SEC-03 04_Pricing_Labor_Categories.pdf SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE) Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap): CLIN Labor Category Clearance Annual Hours Base Hourly Rate Extended Total CLIN-2001 Cloud Security Architect Top Secret / SCI 2,000 $265.00/hr $530,000 CLIN-2002 SOC Incident Co\n\n[04_Pricing_Schedule_CLINs.pdf p.1]: SOL-2026-CLOUD-01 04_Pricing_Schedule_CLINs.pdf SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX Base Solicitation Rate Card (Prior to Amendment 0001 Adjustments): CLIN Description Unit Qty Base Rate Year 1 Total CLIN-0001-AA Shared VPC & Landing Zone Core Monthly 12 $45,000/mo $540,000 CLIN-0002-AA GKE Enterprise Managed Cluster Node-Mo 240 $1,25\n\n[06_Amendment_0001_Scope_Update.pdf p.1]: cross-region replication between us-central1 and us-east4). 2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE): Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope, the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf is increased from $210.00/hr to $245.00/hr. 3. VOLUME DISCOUN\n\nQuestion: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "context_chunks": 5
+      },
+      "ts": "2026-10-21T13:52:29.285Z",
+      "t_rel_ms": 1471
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "synthesize",
+      "duration_ms": 29324,
+      "payload": {
+        "model": "gemini-4-argon",
+        "thinking_level": "HIGH",
+        "prompt_tokens": 736,
+        "output_tokens": 538,
+        "thinking_tokens": 1827,
+        "answer": "Based on the provided context, here is the comparison between the two solicitations for the Cloud Security Architect role:\n\n**Solicitation 01 (SOL-2026-CLOUD-01 / CLIN-0004-AB)**\n* **Amended Hourly Rate:** **$245.00/hr** (increased from the base solicitation rate of $210.00/hr due to added FedRAMP High Rev 5 cryptographic verification scope).\n* **2,000-Hour Net Year 1 Cost:** **Not explicitly stated in the context.** The base solicitation lists an estimated 2,000 base hours (originally a $420,000.00 Year 1 ceiling at $210/hr). While 2,000 hours at the amended $245.00/hr rate equals **$490,000.00**, the provided context for `06_Amendment_0001_Scope_Update.pdf` cuts off immediately at *\"3. VOLUME DISCOUN\"*, leaving any potential net discount unstated.\n\n**Solicitation 03 (SOL-2026-SEC-03 / CLIN-2001)**\n* **Amended Rate Cap:** **$250.00/hr** (reduced from the base hourly rate of $265.00/hr via MSA Amendment 0001, which establishes a binding enterprise rate ceiling).\n* **2,000-Hour Amended Cost:** **$500,000.00** (reduced from the base extended total of $530,000.00, saving $15.00/hr or $30,000.00 annually). \n\n**Summary Comparison:**\nThe amended hourly rate for CLIN-0004-AB (**$245.00/hr**) is **$5.00/hr lower** than the amended rate cap for CLIN-2001 (**$250.00/hr**). Before accounting for any truncated volume discount information in Solicitation 01, 2,000 hours under CLIN-0004-AB ($490,000.00) is **$10,000.00 less** than the amended 2,000-hour total for CLIN-2001 ($500,000.00)."
+      },
+      "ts": "2026-10-21T13:52:58.609Z",
+      "t_rel_ms": 30796
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 gemini-4-argon",
+      "request": {
+        "judge_model": "gemini-4-argon",
+        "thinking_level": "LOW",
+        "temperature": 0.0,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-21T13:52:58.610Z",
+      "t_rel_ms": 30796
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_85f7d77e0dea",
+      "engine": "level1_naive",
+      "stage": "evaluate",
+      "duration_ms": 74731,
+      "payload": {
+        "judge_model": "gemini-4-argon",
+        "groundedness": 0.95,
+        "qa_relevance": 0.7,
+        "context_precision": 0.7,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-21T13:54:13.341Z",
+      "t_rel_ms": 105528
+    }
+  ],
+  "result": {
+    "engine_id": "level1_naive",
+    "engine_label": "Level 1: Naive Vector RAG",
+    "answer": "Based on the provided context, here is the comparison between the two solicitations for the Cloud Security Architect role:\n\n**Solicitation 01 (SOL-2026-CLOUD-01 / CLIN-0004-AB)**\n* **Amended Hourly Rate:** **$245.00/hr** (increased from the base solicitation rate of $210.00/hr due to added FedRAMP High Rev 5 cryptographic verification scope).\n* **2,000-Hour Net Year 1 Cost:** **Not explicitly stated in the context.** The base solicitation lists an estimated 2,000 base hours (originally a $420,000.00 Year 1 ceiling at $210/hr). While 2,000 hours at the amended $245.00/hr rate equals **$490,000.00**, the provided context for `06_Amendment_0001_Scope_Update.pdf` cuts off immediately at *\"3. VOLUME DISCOUN\"*, leaving any potential net discount unstated.\n\n**Solicitation 03 (SOL-2026-SEC-03 / CLIN-2001)**\n* **Amended Rate Cap:** **$250.00/hr** (reduced from the base hourly rate of $265.00/hr via MSA Amendment 0001, which establishes a binding enterprise rate ceiling).\n* **2,000-Hour Amended Cost:** **$500,000.00** (reduced from the base extended total of $530,000.00, saving $15.00/hr or $30,000.00 annually). \n\n**Summary Comparison:**\nThe amended hourly rate for CLIN-0004-AB (**$245.00/hr**) is **$5.00/hr lower** than the amended rate cap for CLIN-2001 (**$250.00/hr**). Before accounting for any truncated volume discount information in Solicitation 01, 2,000 hours under CLIN-0004-AB ($490,000.00) is **$10,000.00 less** than the amended 2,000-hour total for CLIN-2001 ($500,000.00).",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_w3_naive",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "MSA-AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.5867,
+          "x1": 0.94,
+          "y1": 0.87
+        },
+        "excerpt": "04_Pricing_Labor_Categories.pdf, MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended CLIN-2001 total is $500,000.00 (saving $15.00/hr o"
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_w3_naive",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SEC-4.2.1",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.5867,
+          "x1": 0.94,
+          "y1": 0.87
+        },
+        "excerpt": "(Key Personnel & Labor Reference): Lead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect) at the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours ($420,000.00 Year 1 ceiling), subject t"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_w1_naive",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "CLIN-2001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.12,
+          "x1": 0.94,
+          "y1": 0.4033
+        },
+        "excerpt": "SOL-2026-SEC-03 04_Pricing_Labor_Categories.pdf SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE) Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap): CLIN Labor Category Clearance Annual Hours Base Hourly Rat"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_w1_naive",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.12,
+          "x1": 0.94,
+          "y1": 0.4033
+        },
+        "excerpt": "SOL-2026-CLOUD-01 04_Pricing_Schedule_CLINs.pdf SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX Base Solicitation Rate Card (Prior to Amendment 0001 Adjustments): CLIN Description Unit Qty Base Rate Year 1 Total CLIN-0001-AA Sha"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_w3_naive",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.47,
+          "x1": 0.94,
+          "y1": 0.695
+        },
+        "excerpt": "cross-region replication between us-central1 and us-east4). 2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE): Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope, the CLIN-0004-AB Cloud Secur"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_w3_naive",
+        "tier_profile": "naive",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "MSA",
+        "element_type": "narrative_text",
+        "section_id": "MSA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-25",
+        "amends_section": "CLIN-2001",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.5867,
+          "x1": 0.94,
+          "y1": 0.87
+        },
+        "content": "04_Pricing_Labor_Categories.pdf, MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).",
+        "score": 0.8015
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_w3_naive",
+        "tier_profile": "naive",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-4.2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.5867,
+          "x1": 0.94,
+          "y1": 0.87
+        },
+        "content": "(Key Personnel & Labor Reference): Lead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect) at the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours ($420,000.00 Year 1 ceiling), subject to formal contract amendments. All proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.",
+        "score": 0.7754
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_w1_naive",
+        "tier_profile": "naive",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "narrative_text",
+        "section_id": "CLIN-2001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.12,
+          "x1": 0.94,
+          "y1": 0.4033
+        },
+        "content": "SOL-2026-SEC-03 04_Pricing_Labor_Categories.pdf SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE) Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap): CLIN Labor Category Clearance Annual Hours Base Hourly Rate Extended Total CLIN-2001 Cloud Security Architect Top Secret / SCI 2,000 $265.00/hr $530,000 CLIN-2002 SOC Incident Co",
+        "score": 0.7508
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_w1_naive",
+        "tier_profile": "naive",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "narrative_text",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.12,
+          "x1": 0.94,
+          "y1": 0.4033
+        },
+        "content": "SOL-2026-CLOUD-01 04_Pricing_Schedule_CLINs.pdf SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX Base Solicitation Rate Card (Prior to Amendment 0001 Adjustments): CLIN Description Unit Qty Base Rate Year 1 Total CLIN-0001-AA Shared VPC & Landing Zone Core Monthly 12 $45,000/mo $540,000 CLIN-0002-AA GKE Enterprise Managed Cluster Node-Mo 240 $1,25",
+        "score": 0.7485
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_w3_naive",
+        "tier_profile": "naive",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.47,
+          "x1": 0.94,
+          "y1": 0.695
+        },
+        "content": "cross-region replication between us-central1 and us-east4). 2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE): Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope, the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf is increased from $210.00/hr to $245.00/hr. 3. VOLUME DISCOUN",
+        "score": 0.7471
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 30796,
+    "cost_usd": 0.0251356,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-21T13:52:27.814Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+          "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+          "expansions": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-10-21T13:52:27.814Z",
+        "duration_ms": 326,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 68,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "BigQuery VECTOR_SEARCH",
+        "service": "BigQuery",
+        "status": "completed",
+        "started_at": "2026-10-21T13:52:28.141Z",
+        "duration_ms": 1143,
+        "request": {},
+        "payload": {
+          "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
+          "params": {
+            "query_embedding": {
+              "dimensions": 3072,
+              "preview": [
+                0.014672569,
+                0.02745121,
+                -0.0026186875,
+                -0.007886145
+              ]
+            }
+          },
+          "rows_returned": 5,
+          "top_k": 5,
+          "scores": [
+            0.8015,
+            0.7754,
+            0.7508,
+            0.7485,
+            0.7471
+          ],
+          "chunk_ids": [
+            "solicitation_03_05_master_services_agreement_msa_p1_w3_naive",
+            "solicitation_01_01_rfp_base_solicitation_p1_w3_naive",
+            "solicitation_03_04_pricing_labor_categories_p1_w1_naive",
+            "solicitation_01_04_pricing_schedule_clins_p1_w1_naive",
+            "solicitation_01_06_amendment_0001_scope_update_p1_w3_naive"
+          ],
+          "job_id": "a2098308-8a73-424d-977b-a747ae69af5b",
+          "bytes_processed": 0,
+          "slot_millis": 0,
+          "cache_hit": true
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 gemini-4-argon",
+        "status": "completed",
+        "started_at": "2026-10-21T13:52:29.284Z",
+        "duration_ms": 29324,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "thinking_level": "HIGH",
+          "prompt_tokens": 736,
+          "output_tokens": 538,
+          "thinking_tokens": 1827,
+          "answer": "Based on the provided context, here is the comparison between the two solicitations for the Cloud Security Architect role:\n\n**Solicitation 01 (SOL-2026-CLOUD-01 / CLIN-0004-AB)**\n* **Amended Hourly Rate:** **$245.00/hr** (increased from the base solicitation rate of $210.00/hr due to added FedRAMP High Rev 5 cryptographic verification scope).\n* **2,000-Hour Net Year 1 Cost:** **Not explicitly stated in the context.** The base solicitation lists an estimated 2,000 base hours (originally a $420,000.00 Year 1 ceiling at $210/hr). While 2,000 hours at the amended $245.00/hr rate equals **$490,000.00**, the provided context for `06_Amendment_0001_Scope_Update.pdf` cuts off immediately at *\"3. VOLUME DISCOUN\"*, leaving any potential net discount unstated.\n\n**Solicitation 03 (SOL-2026-SEC-03 / CLIN-2001)**\n* **Amended Rate Cap:** **$250.00/hr** (reduced from the base hourly rate of $265.00/hr via MSA Amendment 0001, which establishes a binding enterprise rate ceiling).\n* **2,000-Hour Amended Cost:** **$500,000.00** (reduced from the base extended total of $530,000.00, saving $15.00/hr or $30,000.00 annually). \n\n**Summary Comparison:**\nThe amended hourly rate for CLIN-0004-AB (**$245.00/hr**) is **$5.00/hr lower** than the amended rate cap for CLIN-2001 (**$250.00/hr**). Before accounting for any truncated volume discount information in Solicitation 01, 2,000 hours under CLIN-0004-AB ($490,000.00) is **$10,000.00 less** than the amended 2,000-hour total for CLIN-2001 ($500,000.00)."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 736,
+      "output_tokens": 538,
+      "embedding_tokens": 68,
+      "thinking_tokens": 1827,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": false,
+      "adk_runner_used": false,
+      "layout_source": "pymupdf"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.95,
+      "qa_relevance": 0.7,
+      "context_precision": 0.7
+    },
+    "judge_model": "gemini-4-argon",
+    "reference_answer_used": true,
+    "duration_ms": 74730
+  }
+}

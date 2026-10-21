@@ -341,6 +341,21 @@ rag-arena/
 
 ---
 
+## 8.1 Deployment — Cloud Run (Phase 6)
+
+| Aspect | Decision |
+| :-- | :-- |
+| Target | **Cloud Run** service `rag-arena` in the configured project (`GCP_PROJECT_ID`) and region (`GCP_LOCATION`). |
+| Packaging | One container (multi-stage `Dockerfile` at repo root): stage 1 `npm ci && npm run build` → `frontend/dist`; stage 2 Python slim image runs Uvicorn + Starlette, which serves `/api/v1/*` and the built SPA (static files + `index.html` fallback for client routes). |
+| Identity | Dedicated runtime service account `rag-arena-run@…` with least privilege: `roles/aiplatform.user`, `roles/bigquery.jobUser`, `roles/bigquery.dataEditor` on dataset `rag_arena` only, `roles/discoveryengine.viewer` (Phase 2/5), `roles/storage.objectViewer` on the corpus bucket. **No key files**; `GOOGLE_APPLICATION_CREDENTIALS`/`CLOUDSDK_CONFIG` are unset in Cloud Run (metadata-server ADC). |
+| Configuration | All settings as Cloud Run env vars from `deploy/cloudrun.env` (git-ignored; `deploy/cloudrun.env.example` committed) — same keys as `.env`. No identity values in the image or repo. |
+| Access | **IAP-protected by default** (owner-only, `roles/iap.httpsResourceAccessor` granted to the owner) for `DEMO_MODE=live`; an optional second public service may run `DEMO_MODE=replay` (zero cloud cost beyond Cloud Run, no Vertex/BigQuery calls). |
+| Scaling & bounds | `min-instances=0`, `max-instances=2`, `concurrency=20`, request timeout 300 s (covers live runs + SSE), CPU always-allocated off. Ingestion jobs run in-process and are bounded by `INGEST_JOB_TIMEOUT_SECONDS`; for corpora that exceed the request timeout, ingestion moves to a **Cloud Run Job** reusing the same image (`python -m app.ingestion.cli --level <id>`). |
+| Provisioning | `infra/main.tf` gains `google_cloud_run_v2_service`, the runtime service account + IAM bindings, Artifact Registry repo, and IAP config; `scripts/deploy_cloudrun.sh` builds with Cloud Build and deploys (`gcloud run deploy --source` or image push), reading only env vars. |
+| Gate | Deployed URL serves the signed-off levels in live mode behind IAP; health shows `demo_mode=live`; one live run and one ingestion job succeed from the deployed UI; leak scan of the image filesystem (`docker run … grep`) finds no identity values. |
+
+---
+
 ## 9. Definition of Done — per level (gate to start the next level)
 
 | # | Gate | Evidence required (pasted into `task.md`) |

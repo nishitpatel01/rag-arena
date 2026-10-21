@@ -82,6 +82,7 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 - [ ] `/compare`: concurrent run of enabled levels, stacked stage rails, Battle Score from `query_runs`.
 - [ ] `/leaderboard`: aggregated from `query_runs` (live) or recordings (replay); provenance shown per row; delete hand-typed `precomputed_runs.json` metrics.
 - [ ] README rewrite (v3 claims only), `publish.json` scrub check, `docker compose up` in replay.
+- [ ] **Cloud Run deployment (spec §8.1)**: root multi-stage `Dockerfile` (SPA build + Uvicorn serving `/api` and static SPA with route fallback); runtime service account with least-privilege IAM (no key files); `deploy/cloudrun.env.example` + git-ignored `deploy/cloudrun.env`; `infra/main.tf` Cloud Run v2 service + Artifact Registry + IAP; `scripts/deploy_cloudrun.sh`; optional Cloud Run Job for long ingestion. Gate: IAP-protected URL, live run + ingestion job succeed from the deployed UI, image leak scan clean.
 - [ ] Decide fate of parked `vertex_vector_v2` / `alloydb_scann` (re-enable one at a time under the same gate, or remove).
 
 ---

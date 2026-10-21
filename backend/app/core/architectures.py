@@ -183,7 +183,7 @@ def _bq_ingest(parser_label: str, parser_service: str, embed_col: str, extra_ind
 ]:
     """Shared BigQuery ingestion sub-diagram: corpus → parser → chunker → embedder → BigQuery → indexes."""
     nodes = (
-        ArchNode("gcs", "Procurement corpus", "Cloud Storage", "store", 0, 0, ("discover_docs",)),
+        ArchNode("corpus", "Procurement corpus (local)", "Local corpus · data/sample_docs", "store", 0, 0, ("discover_docs",)),
         ArchNode("parser", parser_label, parser_service, "process", 1, 0, ("parse",)),
         ArchNode("chunker", "Chunker", "Ingestion job", "process", 2, 0, ("chunk",)),
         ArchNode("embedder", "Chunk embeddings", "Vertex AI · gemini-embedding-2", "model", 3, 0, ("embed",)),
@@ -191,7 +191,7 @@ def _bq_ingest(parser_label: str, parser_service: str, embed_col: str, extra_ind
         ArchNode("index", "Vector" + extra_index + " index", "BigQuery", "store", 5, 0, ("build_indexes",)),
     )
     edges = (
-        ArchEdge("gcs", "parser", "PDF bytes"),
+        ArchEdge("corpus", "parser", "PDF bytes"),
         ArchEdge("parser", "chunker", "pages + bbox"),
         ArchEdge("chunker", "embedder", "chunk text"),
         ArchEdge("embedder", "bq_load", embed_col),

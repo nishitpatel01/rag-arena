@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from starlette.applications import Starlette
@@ -60,7 +61,9 @@ def create_app(
         Middleware(
             CORSMiddleware,
             allow_origins=origins,
-            allow_origin_regex=r"https?://.*\.(googlers\.com|localhost)(:\d+)?",
+            allow_origin_regex=os.environ.get(
+                "CORS_ALLOW_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
+            ),
             allow_credentials=True,
             allow_methods=["GET", "POST", "OPTIONS"],
             allow_headers=["*"],

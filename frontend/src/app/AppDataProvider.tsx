@@ -3,17 +3,28 @@ import { api } from "../lib/api";
 import { isMockRequested } from "../features/levels/useBattleStream";
 import { LEVEL_IDS, QUERY_STAGE_IDS, type ArchitectureDescriptor, type HealthResponse, type LevelDescriptor } from "../types/arena";
 
-/** DEV fixture descriptors: Level 1 enabled with the fixture architecture; the rest locked. */
-function devFixtureLevels(arch: ArchitectureDescriptor): LevelDescriptor[] {
+/** Levels that have a DEV `?mock=1` battle fixture. */
+const DEV_FIXTURE_LEVELS: readonly string[] = ["level1_naive", "level2_hybrid"];
+
+/** DEV fixture descriptors: Levels 1–2 enabled with the fixture architectures; the rest locked. */
+function devFixtureLevels(arch1: ArchitectureDescriptor, arch2: ArchitectureDescriptor): LevelDescriptor[] {
   const empty: ArchitectureDescriptor = { level_id: "level1_naive", nodes: [], edges: [], ingest_nodes: [], ingest_edges: [] };
+  const labels: Record<string, string> = { level1_naive: "Naive Vector RAG (dev fixture)", level2_hybrid: "BigQuery Hybrid + Reranker (dev fixture)" };
   return LEVEL_IDS.map((id, i) => ({
     level_id: id,
-    label: id === "level1_naive" ? "Naive Vector RAG (dev fixture)" : id,
+    label: labels[id] ?? id,
     order: i + 1,
-    enabled: id === "level1_naive",
-    stages: QUERY_STAGE_IDS.filter((s) => s !== "rerank" && s !== "agent_turn"),
-    architecture: id === "level1_naive" ? arch : { ...empty, level_id: id },
+    enabled: DEV_FIXTURE_LEVELS.includes(id),
+    dev_fixture: DEV_FIXTURE_LEVELS.includes(id),
+    stages: QUERY_STAGE_IDS.filter((s) => s !== "agent_turn" && (s !== "rerank" || id === "level2_hybrid")),
+    architecture: id === "level1_naive" ? arch1 : id === "level2_hybrid" ? arch2 : { ...empty, level_id: id },
   }));
+}
+
+/** DEV `?mock=1` with a reachable backend: a disabled level that has a fixture is unlocked and flagged. */
+function unlockForDevFixture(level: LevelDescriptor): LevelDescriptor {
+  if (level.enabled || !DEV_FIXTURE_LEVELS.includes(level.level_id)) return level;
+  return { ...level, enabled: true, dev_fixture: true, label: `${level.label} (dev fixture)` };
 }
 
 export interface AppData {
@@ -51,10 +62,15 @@ export const AppDataProvider: React.FC<{ readonly children: React.ReactNode }> =
       // level page can be exercised. Eliminated from production bundles (import.meta.env.DEV is false).
       if (import.meta.env.DEV && isMockRequested() && l.status === "rejected") {
         const { LEVEL1_DEV_ARCHITECTURE } = await import("../dev/fixtures/level1_run");
+        const { LEVEL2_DEV_ARCHITECTURE } = await import("../dev/fixtures/level2_run");
         if (cancelled) return;
-        setLevels(devFixtureLevels(LEVEL1_DEV_ARCHITECTURE));
+        setLevels(devFixtureLevels(LEVEL1_DEV_ARCHITECTURE, LEVEL2_DEV_ARCHITECTURE));
         setHealth((prev) => prev ?? { status: "dev_fixture", demo_mode: "dev_fixture", project_id: null, gcs_bucket: null });
         problems.length = 0;
+      } else if (import.meta.env.DEV && isMockRequested() && l.status === "fulfilled") {
+        // Backend reachable but Level 2 still disabled there: unlock it client-side with `dev_fixture`
+        // set, so the page can play the Level 2 fixture. Ingestion stays disabled for such levels.
+        setLevels([...l.value.levels].map(unlockForDevFixture).sort(BY_ORDER));
       }
       setError(problems.length ? problems.join(" · ") : null);
       setLoading(false);

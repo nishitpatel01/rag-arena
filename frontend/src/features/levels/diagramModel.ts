@@ -4,7 +4,43 @@ import type { ArchEdge, ArchNode, EngineTimeline, StageStatus } from "../../type
 import { IDLE_STAGE } from "./model";
 
 export const NODE_W = 170;
-export const NODE_H = 64;
+/** Label, service, status/timing, then up to SUMMARY_MAX_LINES result-summary lines. */
+export const NODE_H = 92;
+/** Mono 11 px ≈ 6.6 px/char → ~23 chars fit inside NODE_W minus padding. */
+export const SUMMARY_LINE_CHARS = 23;
+export const SUMMARY_MAX_LINES = 2;
+
+/**
+ * Wraps a " · "-separated summary onto at most `maxLines` lines of ≤ `maxChars` characters,
+ * breaking only between parts; a part longer than a line, or overflow past the last line, is cut with "…".
+ */
+export function wrapSummary(summary: string, maxChars = SUMMARY_LINE_CHARS, maxLines = SUMMARY_MAX_LINES): string[] {
+  if (!summary || maxChars < 2 || maxLines < 1) return [];
+  const cut = (s: string): string => (s.length > maxChars ? `${s.slice(0, maxChars - 1)}…` : s);
+  const parts = summary.split(" · ").slice(0, 32);
+  const lines: string[] = [];
+  let current = "";
+  let overflow = false;
+  for (const part of parts) {
+    const candidate = current ? `${current} · ${part}` : part;
+    if (candidate.length <= maxChars || !current) {
+      current = candidate;
+      continue;
+    }
+    lines.push(cut(current));
+    current = part;
+    if (lines.length === maxLines) {
+      overflow = true;
+      break;
+    }
+  }
+  if (!overflow && current) lines.push(cut(current));
+  if (overflow) {
+    const last = lines[maxLines - 1];
+    lines[maxLines - 1] = last.endsWith("…") ? last : `${last.length >= maxChars ? last.slice(0, maxChars - 1) : last}…`;
+  }
+  return lines;
+}
 export const COL_GAP = 48;
 export const ROW_GAP = 28;
 export const PAD = 16;

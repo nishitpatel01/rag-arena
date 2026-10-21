@@ -26,6 +26,8 @@ export interface StreamState {
   /** Catalog ids from `run_started` — the models this run actually executed (not the dropdown state). */
   readonly synthesisModel: string | null;
   readonly judgeModel: string | null;
+  /** `run_started.question_id` (golden question key; null for ad-hoc questions). */
+  readonly questionId: string | null;
   /** True once any frame carried `replayed: true`. */
   readonly replayed: boolean;
   readonly events: readonly TimelineEvent[];
@@ -53,6 +55,7 @@ export const INITIAL_STREAM_STATE: StreamState = {
   demoMode: null,
   synthesisModel: null,
   judgeModel: null,
+  questionId: null,
   replayed: false,
   events: [],
   timelines: {},
@@ -102,6 +105,7 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
         demoMode: ev.demo_mode,
         synthesisModel: typeof ev.synthesis_model === "string" ? ev.synthesis_model : null,
         judgeModel: typeof ev.judge_model === "string" ? ev.judge_model : null,
+        questionId: typeof ev.question_id === "string" && ev.question_id.length > 0 ? ev.question_id : null,
         timelines: Object.fromEntries(ev.engines.map((e) => [e, state.timelines[e] ?? emptyTimeline(e)])),
       };
     case "job_started":

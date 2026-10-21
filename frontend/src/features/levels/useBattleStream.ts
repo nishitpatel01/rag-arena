@@ -63,14 +63,16 @@ export function useBattleStream(): BattleStream {
     setTransportError(null);
   }, [abort]);
 
-  const runMock = useCallback(async (): Promise<void> => {
-    // Dev-only fixture replay. The whole branch (including the dynamic import) is eliminated from
+  const runMock = useCallback(async (engines: readonly string[]): Promise<void> => {
+    // Dev-only fixture replay. The whole branch (including the dynamic imports) is eliminated from
     // the production bundle because `import.meta.env.DEV` is statically `false` there.
     if (import.meta.env.DEV) {
-      const { LEVEL1_DEV_FIXTURE } = await import("../../dev/fixtures/level1_run");
+      const fixture = engines.includes("level2_hybrid")
+        ? (await import("../../dev/fixtures/level2_run")).level2DevFixture(window.location.search.includes("mock_fail=rerank"))
+        : (await import("../../dev/fixtures/level1_run")).LEVEL1_DEV_FIXTURE;
       let offset = 0;
-      const total = LEVEL1_DEV_FIXTURE.length;
-      LEVEL1_DEV_FIXTURE.forEach((item, index) => {
+      const total = fixture.length;
+      fixture.forEach((item, index) => {
         offset += item.t_rel;
         const id = window.setTimeout(() => {
           // Stamp `ts` at dispatch so the elapsed counter behaves as with a live stream.
@@ -90,7 +92,7 @@ export function useBattleStream(): BattleStream {
       setIsStreaming(true);
 
       if (import.meta.env.DEV && isMock) {
-        void runMock();
+        void runMock(params.engines);
         return;
       }
 

@@ -86,6 +86,8 @@ export interface LevelDescriptor {
   readonly enabled: boolean;
   readonly stages: readonly string[];
   readonly architecture: ArchitectureDescriptor;
+  /** Client-side only (DEV `?mock=1`): unlocked to play a fixture; the backend has it disabled. */
+  readonly dev_fixture?: boolean;
 }
 
 export interface LevelsResponse {

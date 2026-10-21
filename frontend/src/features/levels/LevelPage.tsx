@@ -10,6 +10,8 @@ import type { Citation, LevelDescriptor } from "../../types/arena";
 import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
 import { AgentTurnTimeline } from "./AgentTurnTimeline";
 import { AnswerPanel, MetricsPanel } from "./AnswerPanels";
+import { CompareTeaser } from "./CompareTeaser";
+import { BASELINE_ENGINE } from "./compareTeaserModel";
 import { ArchitectureDiagram } from "./ArchitectureDiagram";
 import { QuestionPicker } from "./QuestionPicker";
 import { StageDetail } from "./StageDetail";
@@ -83,6 +85,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     [level.stages, timeline?.stageOrder]
   );
   const isAgentic = level.stages.includes("agent_turn");
+  // Teaser only after a finished run with judge metrics on a level other than the Level 1 baseline.
+  const showTeaser = level.level_id !== BASELINE_ENGINE && stream.state.complete && Boolean(timeline?.evaluation);
+  const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(17rem,21rem)]">
@@ -158,8 +163,20 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
         <AnswerPanel timeline={timeline} running={stream.isStreaming} selectedCitation={citation} onSelectCitation={openCitation} />
       </Panel>
       <Panel title="Metrics" subtitle="LLM judge · cost · latency">
-        <MetricsPanel timeline={timeline} running={stream.isStreaming} runSynthesisModel={stream.state.synthesisModel} labelFor={(id) => modelLabel(models.catalog, id)} />
+        <MetricsPanel timeline={timeline} running={stream.isStreaming} runSynthesisModel={stream.state.synthesisModel} labelFor={labelFor} />
       </Panel>
+      {showTeaser && (
+        <Panel title="Same question on Level 1" subtitle="Read-only teaser · full Compare page in Phase 6" className="xl:col-start-3">
+          <CompareTeaser
+            timeline={timeline}
+            catalog={models.catalog}
+            synthesisModel={stream.state.synthesisModel}
+            judgeModel={stream.state.judgeModel}
+            questionId={stream.state.questionId}
+            labelFor={labelFor}
+          />
+        </Panel>
+      )}
       <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} />
     </div>
   );

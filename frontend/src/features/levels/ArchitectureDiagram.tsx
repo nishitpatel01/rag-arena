@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pin, PinOff } from "lucide-react";
 import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
-import { summarizePayload } from "../../lib/format";
 import { DiagramNode } from "./DiagramNode";
 import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
 import { NodeDetails } from "./NodeDetails";
+import { summarizeStage } from "./stagePayloads";
 
 export const DIAGRAM_MIN_HEIGHT = 280;
 
@@ -144,7 +144,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
                 view={view}
                 service={services[node.id]}
                 selected={shownId === node.id}
-                summary={view.status === "done" ? summarizePayload(st?.payload ?? null) : ""}
+                summary={view.status === "done" ? summarizeStage(view.stageId, st?.payload ?? null) : ""}
                 onSelect={select}
               />
             );

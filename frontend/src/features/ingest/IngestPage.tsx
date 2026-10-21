@@ -26,7 +26,7 @@ const LevelIngestCard: React.FC<{
     <Panel
       title={/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
       subtitle={tier ? `tier_profile = ${tier}` : "managed service — no BigQuery tier"}
-      actions={level.enabled ? <Pill tone="ok">enabled</Pill> : <Pill tone="locked">locked</Pill>}
+      actions={level.dev_fixture ? <Pill tone="warn">dev fixture</Pill> : level.enabled ? <Pill tone="ok">enabled</Pill> : <Pill tone="locked">locked</Pill>}
       bodyClassName="flex flex-col gap-3"
     >
       <KeyValue items={[["chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]]} />
@@ -50,13 +50,24 @@ const LevelIngestCard: React.FC<{
         <Button
           variant="primary"
           size="sm"
-          disabled={busy || !level.enabled || tier === null || unavailableReason !== null}
+          disabled={busy || !level.enabled || level.dev_fixture === true || tier === null || unavailableReason !== null}
           onClick={onRun}
           leadingIcon={<Play className="h-3.5 w-3.5" aria-hidden />}
-          title={tier === null ? "Managed Vertex AI Search indexes from GCS; no ingestion job" : unavailableReason ?? undefined}
+          title={
+            tier === null
+              ? "Managed Vertex AI Search indexes from GCS; no ingestion job"
+              : level.dev_fixture
+                ? "Unlocked only by the DEV ?mock=1 fixture — the backend has this level disabled"
+                : unavailableReason ?? undefined
+          }
         >
           Run ingestion
         </Button>
+        {level.dev_fixture && (
+          <p className="mt-1 text-xs text-clay" role="status">
+            DEV fixture: this level is enabled only client-side; ingestion runs against the real backend and is disabled here.
+          </p>
+        )}
       </div>
     </Panel>
   );

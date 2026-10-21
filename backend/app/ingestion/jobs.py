@@ -268,7 +268,7 @@ class IngestJobRunner:
         async with tracker.scope(emitter, "parse", "Parse PDF pages", backend, {"docs": len(docs), "parser": backend}) as sc:
             if self.settings.is_live and backend != "pymupdf":
                 raise ParserUnavailableError(
-                    f"Level 1 ingestion requires PyMuPDF (pymupdf) in DEMO_MODE={self.settings.demo_mode}; "
+                    f"{job.level} ingestion requires PyMuPDF (pymupdf) in DEMO_MODE={self.settings.demo_mode}; "
                     f"active parser is '{backend}'. Install the declared dependency 'pymupdf>=1.24.0'."
                 )
             for doc in docs:

@@ -169,6 +169,42 @@ def build_bigquery_ddl(
     return f"{tables}\n-- 2. Vector Indexes (gemini-embedding-2 text + multimodal) and 3. Inverted Text Search Index\n{indexes}"
 
 
+# --------------------------------------------------------------------------- hybrid (VECTOR_SEARCH + SEARCH) RRF
+
+HYBRID_TIERS: tuple[str, ...] = ("hybrid", "multimodal")
+MAX_LEXICAL_TERMS = 32
+# Function words dropped from the lexical leg (data-driven; listed in the retrieve payload via ``lexical_terms``).
+LEXICAL_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "the", "and", "for", "are", "was", "were", "with", "from", "that", "this", "what", "when", "where", "which",
+        "who", "whom", "whose", "how", "does", "did", "under", "between", "compare", "calculate", "into", "onto",
+        "per", "any", "all", "its", "our", "their", "there", "than", "then", "also", "about", "after", "before",
+        "should", "would", "could", "will", "shall", "can", "may", "must", "has", "have", "had", "been", "being",
+        "is", "of", "to", "in", "on", "at", "by", "an", "or", "as", "be", "it", "if", "do", "a",
+    }
+)
+_IDENTIFIER_DIGIT_RE = re.compile(r"[0-9]")
+
+
+def build_lexical_terms(query: str) -> tuple[str, ...]:
+    """Lower-cased, de-duplicated lexical terms for the SEARCH() leg (hyphen/dot-joined ids kept whole).
+
+    ``CLIN-0004-AB`` stays one term (exact identifier match via STRPOS) while SEARCH() itself splits it with the
+    same analyzer used at index time. Terms shorter than 3 characters are dropped unless they contain a digit.
+    """
+    tokens = sanitize_search_query(query).lower().split()
+    terms: list[str] = []
+    for tok in tokens:
+        keep = len(tok) >= 3 or bool(_IDENTIFIER_DIGIT_RE.search(tok))
+        if keep and tok not in LEXICAL_STOPWORDS and tok not in terms:
+            terms.append(tok)
+        if len(terms) >= MAX_LEXICAL_TERMS:
+            break
+    if not terms:
+        raise ValueError("query has no lexical terms after stopword removal")
+    return tuple(terms)
+
+
 def build_hybrid_rrf_sql(
     project_id: str,
     dataset_id: str,
@@ -177,104 +213,103 @@ def build_hybrid_rrf_sql(
     top_k: int = 50,
     include_solicitation_filter: bool = False,
     embedding_column: str = "embedding",
+    *,
+    tier_profile: str = "hybrid",
+    vector_k: int = 50,
+    lexical_k: int = 50,
 ) -> str:
-    """Build parameterized BigQuery Hybrid Search SQL combining pre-filtered VECTOR_SEARCH and SEARCH() via RRF."""
-    proj = _validate_identifier(project_id, "project_id")
-    dataset = _validate_identifier(dataset_id, "dataset_id")
-    table = _validate_identifier(table_id, "table_id")
-    if not isinstance(rrf_k, int) or rrf_k < 1 or rrf_k > 1000:
-        raise ValueError("rrf_k must be an integer between 1 and 1000")
-    if not isinstance(top_k, int) or top_k < 1 or top_k > 500:
-        raise ValueError("top_k must be an integer between 1 and 500")
+    """One parameterized statement: VECTOR_SEARCH (top ``vector_k``) FULL OUTER JOIN a SEARCH() lexical CTE (top
+    ``lexical_k``), fused by RRF ``1/(rrf_k + vector_rank) + 1/(rrf_k + lexical_rank)``, top ``top_k`` by rrf_score.
+
+    User input only enters through parameters: ``@query_embedding`` (ARRAY<FLOAT64>), ``@lexical_query`` (STRING,
+    re-sanitized to ``[a-zA-Z0-9 ]`` in SQL before SEARCH()), ``@lexical_terms`` (ARRAY<STRING>) and optionally
+    ``@solicitation_id``. Identifiers are validated; ``tier_profile`` is checked against ``HYBRID_TIERS``.
+    """
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    for name, value, hi in (("rrf_k", rrf_k, 1000), ("top_k", top_k, 500), ("vector_k", vector_k, 500), ("lexical_k", lexical_k, 500)):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1 or value > hi:
+            raise ValueError(f"{name} must be an integer between 1 and {hi}")
     if embedding_column not in _VALID_EMBEDDING_COLUMNS:
-        raise ValueError(
-            f"embedding_column must be one of {_VALID_EMBEDDING_COLUMNS}, got '{embedding_column}'"
-        )
-
+        raise ValueError(f"embedding_column must be one of {_VALID_EMBEDDING_COLUMNS}, got '{embedding_column}'")
+    if tier_profile not in HYBRID_TIERS:
+        raise ValueError(f"tier_profile must be one of {HYBRID_TIERS}, got '{tier_profile}'")
     fqn = f"{proj}.{dataset}.{table}"
-    sol_predicate = " AND solicitation_id = @solicitation_id" if include_solicitation_filter else ""
-    base_subquery = f"(SELECT * FROM `{fqn}` WHERE tier_profile = @tier_profile{sol_predicate})"
+    where = f"tier_profile = '{tier_profile}'" + (" AND solicitation_id = @solicitation_id" if include_solicitation_filter else "")
+    return _HYBRID_SQL_TEMPLATE.format(
+        fqn=fqn, where=where, tier=tier_profile, col=embedding_column, rrf_k=rrf_k, top_k=top_k, vector_k=vector_k, lexical_k=lexical_k
+    )
 
-    return f"""WITH vector_results AS (
+
+_HYBRID_SQL_TEMPLATE = """WITH vector_results AS (
   SELECT
     base.chunk_id,
-    base.solicitation_id,
-    base.doc_name,
-    base.doc_type,
-    base.element_type,
-    base.section_id,
-    base.amendment_number,
-    base.effective_date,
-    base.amends_section,
-    base.page_number,
-    base.bbox,
-    base.content,
-    distance,
-    ROW_NUMBER() OVER (ORDER BY distance ASC) AS vector_rank
+    distance AS vector_distance,
+    ROW_NUMBER() OVER (ORDER BY distance ASC, base.chunk_id) AS vector_rank
   FROM VECTOR_SEARCH(
-    {base_subquery},
-    '{embedding_column}',
-    (SELECT @query_embedding AS {embedding_column}),
-    top_k => {top_k},
+    (SELECT chunk_id, {col} FROM `{fqn}` WHERE {where}),
+    '{col}',
+    (SELECT @query_embedding AS {col}),
+    top_k => {vector_k},
     distance_type => 'COSINE'
   )
 ),
-lexical_results AS (
+lexical_scored AS (
   SELECT
     chunk_id,
-    solicitation_id,
-    doc_name,
-    doc_type,
-    element_type,
-    section_id,
-    amendment_number,
-    effective_date,
-    amends_section,
-    page_number,
-    bbox,
-    content,
-    ROW_NUMBER() OVER (
-      ORDER BY (
-        SELECT COUNTIF(LENGTH(tok) >= 3 AND STRPOS(LOWER(content), tok) > 0)
-        FROM UNNEST(SPLIT(LOWER(REGEXP_REPLACE(@query_text, r'[^a-zA-Z0-9 ]', ' ')), ' ')) AS tok
-      ) DESC,
-      amendment_number DESC,
-      page_number ASC
-    ) AS lexical_rank
+    SEARCH(content, REGEXP_REPLACE(@lexical_query, r'[^a-zA-Z0-9 ]', ' ')) AS all_terms_match,
+    (
+      SELECT SUM(IF(STRPOS(LOWER(content), term) > 0, IF(REGEXP_CONTAINS(term, r'[0-9]'), 3, 1), 0))
+      FROM UNNEST(@lexical_terms) AS term
+    ) AS lexical_score
   FROM `{fqn}`
-  WHERE tier_profile = @tier_profile{sol_predicate}
-    AND (
-      SEARCH(content, REGEXP_REPLACE(@query_text, r'[^a-zA-Z0-9 ]', ' '))
-      OR EXISTS (
-        SELECT 1
-        FROM UNNEST(SPLIT(LOWER(REGEXP_REPLACE(@query_text, r'[^a-zA-Z0-9 ]', ' ')), ' ')) AS tok
-        WHERE LENGTH(tok) >= 4
-          AND tok NOT IN ('what', 'when', 'where', 'which', 'with', 'from', 'that', 'this', 'does', 'under', 'between', 'compare', 'calculate')
-          AND STRPOS(LOWER(content), tok) > 0
-      )
-    )
-  LIMIT {top_k}
+  WHERE {where}
+),
+lexical_results AS (
+  SELECT chunk_id, lexical_score, lexical_rank
+  FROM (
+    SELECT
+      chunk_id,
+      lexical_score,
+      ROW_NUMBER() OVER (ORDER BY all_terms_match DESC, lexical_score DESC, chunk_id) AS lexical_rank
+    FROM lexical_scored
+    WHERE all_terms_match OR lexical_score > 0
+  )
+  WHERE lexical_rank <= {lexical_k}
+),
+fused AS (
+  SELECT
+    COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,
+    v.vector_rank,
+    v.vector_distance,
+    l.lexical_rank,
+    l.lexical_score,
+    COALESCE(1.0 / ({rrf_k} + v.vector_rank), 0.0) + COALESCE(1.0 / ({rrf_k} + l.lexical_rank), 0.0) AS rrf_score
+  FROM vector_results v
+  FULL OUTER JOIN lexical_results l
+    ON v.chunk_id = l.chunk_id
 )
 SELECT
-  COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,
-  COALESCE(v.solicitation_id, l.solicitation_id) AS solicitation_id,
-  COALESCE(v.doc_name, l.doc_name) AS doc_name,
-  COALESCE(v.doc_type, l.doc_type) AS doc_type,
-  COALESCE(v.element_type, l.element_type) AS element_type,
-  COALESCE(v.section_id, l.section_id) AS section_id,
-  COALESCE(v.amendment_number, l.amendment_number) AS amendment_number,
-  COALESCE(v.effective_date, l.effective_date) AS effective_date,
-  COALESCE(v.amends_section, l.amends_section) AS amends_section,
-  COALESCE(v.page_number, l.page_number) AS page_number,
-  COALESCE(v.bbox, l.bbox) AS bbox,
-  COALESCE(v.content, l.content) AS content,
-  (
-    COALESCE(1.0 / ({rrf_k} + v.vector_rank), 0.0) +
-    COALESCE(1.0 / ({rrf_k} + l.lexical_rank), 0.0)
-  ) AS rrf_score
-FROM vector_results v
-FULL OUTER JOIN lexical_results l
-  ON v.chunk_id = l.chunk_id
-ORDER BY rrf_score DESC
+  f.chunk_id,
+  c.solicitation_id,
+  c.doc_name,
+  c.doc_type,
+  c.element_type,
+  c.section_id,
+  c.amendment_number,
+  c.effective_date,
+  c.amends_section,
+  c.page_number,
+  c.bbox,
+  c.content,
+  f.vector_rank,
+  f.vector_distance,
+  f.lexical_rank,
+  f.lexical_score,
+  f.rrf_score
+FROM fused f
+JOIN `{fqn}` c
+  ON c.chunk_id = f.chunk_id
+WHERE c.tier_profile = '{tier}'
+ORDER BY f.rrf_score DESC, f.chunk_id
 LIMIT {top_k};
 """

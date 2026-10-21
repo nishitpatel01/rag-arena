@@ -26,10 +26,19 @@ def _unescape_pdf_string(raw: str) -> str:
     return raw.replace(r"\(", "(").replace(r"\)", ")").replace(r"\\", "\\")
 
 
+_GENERATED_DOC_PREFIX = re.compile(r"^\d{2}_")
+
+
 def _infer_doc_type_from_filename(filename: str) -> tuple[str, int]:
-    """Infer procurement document type and amendment number from filename."""
+    """Infer document type and amendment number from filename (page metadata banners override this).
+
+    Only the generated solicitation documents carry the ``NN_`` prefix; every other corpus PDF is a third-party
+    commercial agreement (CUAD) and is labelled ``COMMERCIAL_AGREEMENT`` — never as an RFP or an amendment.
+    """
     lower = filename.lower()
-    if "amendment_0002" in lower or "0002" in lower:
+    if not _GENERATED_DOC_PREFIX.match(filename):
+        return "COMMERCIAL_AGREEMENT", 0
+    if "amendment_0002" in lower:
         return "AMENDMENT", 2
     if "amendment" in lower or "addenda" in lower:
         return "AMENDMENT", 1

@@ -1,9 +1,11 @@
 """RAG Triad evaluation (spec §6.5): the LLM judge is the ONLY source of metrics.
 
-* ``live``/``record``: structured-output judge (``gemini-4-argon``, ``thinking_level=LOW``, ``temperature=0``).
+* ``live``/``record``: the configured judge (``JUDGE_PROVIDER``; default Claude Opus 5.5 on Vertex AI, which must
+  differ from every synthesis model) scores the answer; see ``app.evaluation.judges``.
 * ``replay``: the recorded judge outcome is replayed (``replay_evaluation``); nothing is re-scored locally.
 
-There is no token-overlap or heuristic scorer anymore (audit §A.2).
+There is no token-overlap or heuristic scorer, and no fallback judge: a judge failure fails the ``evaluate``
+stage (``stage_failed`` → ``engine_error``).
 """
 
 from __future__ import annotations
@@ -13,13 +15,19 @@ from functools import lru_cache
 import json
 from pathlib import Path
 import time
-from typing import Any
 
 from app.core.config import ArenaSettings, get_settings
-from app.core.gcp_clients import get_genai_client
-from app.core.models import EngineResult, EvalMetrics, EvalOutcome
+from app.core.models import EngineResult, EvalOutcome
+from app.core.pricing import judge_cost_usd
 from app.core.telemetry import StageEmitter
 from app.engines.replay_engine import recording_store_for, replay_evaluation
+from app.evaluation.judges import (
+    MAX_RATIONALE_CHARS,
+    Judge,
+    JudgeResponseError,
+    build_judge,
+    judge_service_label,
+)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
@@ -27,23 +35,6 @@ _MAX_QUERY_CHARS = 4000
 _MAX_CONTEXT_CHUNKS = 6
 _MAX_CHUNK_CHARS = 2400
 _MAX_BENCHMARK_QUESTIONS = 200
-_METRIC_KEYS: tuple[str, ...] = ("groundedness", "qa_relevance", "context_precision")
-_JUDGE_SCHEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {k: {"type": "number"} for k in _METRIC_KEYS},
-    "required": list(_METRIC_KEYS),
-}
-
-
-class JudgeResponseError(ValueError):
-    """Raised when the judge model returns something that is not a complete metric triplet."""
-
-
-def _clamp_score(value: float) -> float:
-    """Clamp an evaluation metric score to [0.0, 1.0] rounded to 3 decimal places."""
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
-        raise JudgeResponseError(f"Metric value must be numeric, got {value!r}")
-    return round(min(1.0, max(0.0, float(value))), 3)
 
 
 @lru_cache(maxsize=4)
@@ -73,44 +64,34 @@ def lookup_reference_answer(question_id: str | None, benchmark_path: Path = DEFA
     return _load_reference_answers(str(benchmark_path)).get(question_id.strip())
 
 
-def _build_judge_prompt(query: str, result: EngineResult, reference_answer: str | None) -> str:
-    chunk_texts = [c.content[:_MAX_CHUNK_CHARS] for c in result.retrieved_chunks[:_MAX_CONTEXT_CHUNKS]]
-    agent_texts = [f"[ADK Tool {s.tool_name}]: {s.result_summary}" for s in result.agent_steps[:8]]
-    context_summary = "\n---\n".join([*chunk_texts, *agent_texts])
+def build_judge_system_prompt(has_reference: bool) -> str:
+    """The judge rubric (system prompt): three metrics in [0, 1] and a strict single-JSON-object reply."""
     return (
         "You are an enterprise RAG evaluation judge. Score the response on three metrics in [0.0, 1.0]:\n"
         "1. groundedness: Are all claims supported by the retrieved context without hallucination?\n"
         "2. qa_relevance: Does the answer directly and completely address the user query"
-        + (" and agree with the reference answer?" if reference_answer else "?")
+        + (" and agree with the reference answer?" if has_reference else "?")
         + "\n3. context_precision: Are the retrieved chunks focused and relevant to the query?\n"
+        "Reply with ONLY one JSON object and nothing else:\n"
+        '{"groundedness": float, "qa_relevance": float, "context_precision": float, '
+        '"rationale": "<= 3 sentences explaining the scores"}'
+    )
+
+
+def build_judge_user_prompt(query: str, result: EngineResult, reference_answer: str | None) -> str:
+    """The case under evaluation (user message): query, reference, retrieved context and candidate answer."""
+    chunk_texts = [c.content[:_MAX_CHUNK_CHARS] for c in result.retrieved_chunks[:_MAX_CONTEXT_CHUNKS]]
+    agent_texts = [f"[ADK Tool {s.tool_name}]: {s.result_summary}" for s in result.agent_steps[:8]]
+    context_summary = "\n---\n".join([*chunk_texts, *agent_texts])
+    return (
         f"Query: {query}\n"
         f"Reference Answer: {reference_answer or 'N/A'}\n"
         f"Retrieved Context:\n{context_summary}\n"
         f"Candidate Answer:\n{result.answer}\n"
-        'Return strict JSON: {"groundedness": float, "qa_relevance": float, "context_precision": float}'
     )
 
 
-def _parse_judge_response(raw_text: str) -> EvalMetrics:
-    try:
-        parsed = json.loads(raw_text)
-    except ValueError as exc:
-        raise JudgeResponseError(f"Judge returned non-JSON output: {raw_text[:200]!r}") from exc
-    if not isinstance(parsed, dict):
-        raise JudgeResponseError("Judge JSON must be an object")
-    missing = [k for k in _METRIC_KEYS if k not in parsed]
-    if missing:
-        raise JudgeResponseError(f"Judge JSON is missing metrics {missing}")
-    return EvalMetrics(**{k: _clamp_score(parsed[k]) for k in _METRIC_KEYS})
-
-
-def evaluate_engine_result(
-    query: str,
-    result: EngineResult,
-    reference_answer: str | None = None,
-    settings: ArenaSettings | None = None,
-) -> EvalOutcome:
-    """Judge an EngineResult with Gemini (live/record only). Returns ``(metrics, judge_model, reference_answer_used, duration_ms)``."""
+def _validate_evaluate_inputs(query: str, result: EngineResult, reference_answer: str | None) -> None:
     if not isinstance(query, str) or not query.strip():
         raise ValueError("query must be a non-empty string")
     if len(query.strip()) > _MAX_QUERY_CHARS:
@@ -119,32 +100,71 @@ def evaluate_engine_result(
         raise TypeError("result must be an EngineResult instance")
     if reference_answer is not None and not isinstance(reference_answer, str):
         raise TypeError("reference_answer must be a string or None")
+
+
+def evaluate_engine_result(
+    query: str,
+    result: EngineResult,
+    reference_answer: str | None = None,
+    settings: ArenaSettings | None = None,
+    judge: Judge | None = None,
+) -> EvalOutcome:
+    """Judge an EngineResult with the configured judge (live/record only); returns metrics + judge provenance."""
+    _validate_evaluate_inputs(query, result, reference_answer)
     resolved = get_settings() if settings is None else settings
     if not isinstance(resolved, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance or None")
     if not resolved.is_live:
         raise RuntimeError("evaluate_engine_result judges live runs only; replay uses the recorded evaluation")
-
-    client = get_genai_client(resolved)
-    judge_model = resolved.gemini_fast_model
+    active = build_judge(resolved) if judge is None else judge
+    has_reference = bool(reference_answer and reference_answer.strip())
     t0 = time.perf_counter()
-    response = client.models.generate_content(
-        model=judge_model,
-        contents=_build_judge_prompt(query.strip(), result, reference_answer),
-        config={
-            "temperature": 0.0,
-            "response_mime_type": "application/json",
-            "response_schema": _JUDGE_SCHEMA,
-            "thinking_config": {"thinking_level": "LOW"},
-        },
+    verdict = active.score(
+        build_judge_system_prompt(has_reference), build_judge_user_prompt(query.strip(), result, reference_answer)
     )
-    metrics = _parse_judge_response(str(getattr(response, "text", "") or "").strip())
     return EvalOutcome(
-        metrics=metrics,
-        judge_model=judge_model,
-        reference_answer_used=bool(reference_answer and reference_answer.strip()),
+        metrics=verdict.metrics,
+        judge_model=active.model,
+        reference_answer_used=has_reference,
         duration_ms=max(1, int((time.perf_counter() - t0) * 1000)),
+        judge_provider=active.provider,
+        judge_location=active.location,
+        input_tokens=verdict.input_tokens,
+        output_tokens=verdict.output_tokens,
+        judge_cost_usd=judge_cost_usd(active.model, input_tokens=verdict.input_tokens, output_tokens=verdict.output_tokens),
+        rationale=verdict.rationale[:MAX_RATIONALE_CHARS],
+        judge_response_id=verdict.response_id,
     )
+
+
+def _evaluate_request(settings: ArenaSettings, has_reference: bool) -> dict[str, object]:
+    """The judge request summary exactly as sent (Claude: no temperature; Gemini: temperature 0, thinking LOW)."""
+    is_claude = settings.judge_provider == "anthropic_vertex"
+    request: dict[str, object] = {
+        "judge_provider": settings.judge_provider,
+        "judge_model": settings.judge_model,
+        "judge_location": settings.judge_location if is_claude else settings.vertex_genai_location,
+        "max_tokens": settings.judge_max_tokens,
+        "reference_answer_used": has_reference,
+    }
+    if not is_claude:
+        request.update({"temperature": 0.0, "thinking_level": "LOW"})
+    return request
+
+
+def _evaluate_payload(outcome: EvalOutcome) -> dict[str, object]:
+    return {
+        "judge_provider": outcome.judge_provider,
+        "judge_model": outcome.judge_model,
+        "judge_location": outcome.judge_location,
+        **outcome.metrics.to_dict(),
+        "reference_answer_used": outcome.reference_answer_used,
+        "input_tokens": outcome.input_tokens,
+        "output_tokens": outcome.output_tokens,
+        "judge_cost_usd": outcome.judge_cost_usd,
+        "rationale": outcome.rationale[:MAX_RATIONALE_CHARS],
+        "judge_response_id": outcome.judge_response_id,
+    }
 
 
 async def run_evaluation(
@@ -167,22 +187,18 @@ async def run_evaluation(
             replay_speed=settings.replay_speed,
         )
     reference = lookup_reference_answer(question_id)
-    judge_model = settings.gemini_fast_model
     handle = await emitter.started(
         "evaluate",
         label="LLM-as-a-judge",
-        service=f"Vertex AI · {judge_model}",
-        request={"judge_model": judge_model, "thinking_level": "LOW", "temperature": 0.0, "reference_answer_used": bool(reference)},
+        service=judge_service_label(settings),
+        request=_evaluate_request(settings, bool(reference)),
     )
     try:
         outcome = await asyncio.to_thread(evaluate_engine_result, query, result, reference, settings)
     except BaseException as exc:
         await emitter.failed(handle, error=exc)
         raise
-    await emitter.completed(
-        handle,
-        payload={"judge_model": outcome.judge_model, **outcome.metrics.to_dict(), "reference_answer_used": outcome.reference_answer_used},
-    )
+    await emitter.completed(handle, payload=_evaluate_payload(outcome))
     return outcome
 
 

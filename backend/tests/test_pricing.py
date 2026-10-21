@@ -50,3 +50,18 @@ def test_unknown_model_raises_and_no_tier_multipliers_exist() -> None:
 
     assert not hasattr(base_module.BaseRAGEngine, "estimate_cost_usd")
     assert "tier_multiplier" not in open(base_module.__file__, encoding="utf-8").read()
+
+
+def test_claude_opus_judge_price_is_published_with_source_and_date() -> None:
+    from app.core.pricing import judge_cost_usd
+
+    price = price_for_model("claude-opus-5-5")
+    assert price.input_usd_per_1m == 4.00 and price.output_usd_per_1m == 20.00
+    assert price.source == "https://cloud.google.com/vertex-ai/generative-ai/pricing"
+    assert price.price_as_of == "2026-10-21" and "global" in price.note.lower()
+    assert judge_cost_usd("claude-opus-5-5", input_tokens=1_000_000, output_tokens=0) == pytest.approx(4.0)
+    assert judge_cost_usd("claude-opus-5-5", input_tokens=2000, output_tokens=100) == pytest.approx(0.01)
+    with pytest.raises(PricingError):
+        judge_cost_usd("claude-unknown", input_tokens=1, output_tokens=1)
+    with pytest.raises(ValueError):
+        judge_cost_usd("claude-opus-5-5", input_tokens=-1, output_tokens=0)

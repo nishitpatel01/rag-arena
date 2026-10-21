@@ -137,7 +137,7 @@ def leaderboard_from_recordings(store: RecordingStore) -> dict[str, Any]:
             continue
         outcome = eval_outcome_from_dict(rec.evaluation)
         latency = int(rec.result.get("latency_ms", 0))
-        cost = float(rec.result.get("cost_usd", 0.0))
+        cost = float(rec.result.get("cost_usd", 0.0)) + outcome.judge_cost_usd  # run cost includes the judge
         breakdown = battle_score(outcome.metrics, latency, cost)
         row = per_engine.setdefault(
             rec.engine,

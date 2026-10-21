@@ -11,6 +11,7 @@ _SCAN_TARGETS = [
     *sorted((_BACKEND_APP / "engines").rglob("*.py")),
     _BACKEND_APP / "api" / "routes.py",
     _BACKEND_APP / "evaluation" / "evaluator.py",
+    _BACKEND_APP / "evaluation" / "judges.py",
     _BACKEND_APP / "ingestion" / "jobs.py",
 ]
 

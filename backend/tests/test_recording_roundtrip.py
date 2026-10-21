@@ -58,15 +58,20 @@ def _mocked_live_run(question_id: str) -> tuple[EngineResult, EvalOutcome, Recor
 
 
 def _shape(doc: dict) -> dict:
-    """Run-independent structure of a recording (no timestamps, durations, run ids or git sha)."""
-    volatile = {"recorded_at", "git_sha", "run_id"}
+    """Run-independent structure of a recording (no timestamps, durations, run ids, git sha or judge provenance).
+
+    Judge provenance (``header.model_ids`` and the judge id/usage keys in ``evaluation``) is excluded: the committed
+    synthetic fixture predates the Claude judge and is intentionally left untouched; the generator's judge
+    provenance is asserted directly in ``test_generate_dev_fixture_from_mocked_live_run``.
+    """
+    volatile = {"recorded_at", "git_sha", "run_id", "model_ids"}
     return {
         "header": {k: v for k, v in doc["header"].items() if k not in volatile},
         "events": [(e["event"], e.get("stage")) for e in doc["events"]],
         "result_keys": sorted(doc["result"]),
         "answer": doc["result"]["answer"],
         "citations": [c["chunk_id"] for c in doc["result"]["citations"]],
-        "evaluation": {k: v for k, v in doc["evaluation"].items() if k != "duration_ms"},
+        "evaluation": {k: doc["evaluation"][k] for k in ("metrics", "reference_answer_used")},
     }
 
 
@@ -89,7 +94,8 @@ def test_generate_dev_fixture_from_mocked_live_run() -> None:
     assert doc["events"][-1]["event"] == "stage_completed" and doc["events"][-1]["stage"] == "evaluate"
     assert all(isinstance(e["t_rel_ms"], int) for e in doc["events"])
     assert "eval_metrics" not in doc["result"]
-    assert doc["evaluation"]["judge_model"] == "gemini-4-argon"
+    assert doc["evaluation"]["judge_model"] == settings.judge_model == doc["header"]["model_ids"]["judge"]
+    assert doc["evaluation"]["judge_provider"] == "anthropic_vertex" and doc["evaluation"]["input_tokens"] > 0
     assert doc["evaluation"]["reference_answer_used"] is False
     committed = json.loads(DEV_FIXTURE.read_text(encoding="utf-8"))
     assert _shape(committed) == _shape(doc), "committed dev fixture is stale; rerun with REGENERATE_DEV_FIXTURES=1"

@@ -51,7 +51,9 @@ def test_live_run_writes_one_query_runs_row_with_full_provenance() -> None:
     evaluation = next(e for e in events if e["event"] == "eval_complete")
     assert row["run_id"] == events[0]["run_id"] and row["engine"] == "level1_naive" and row["question_id"] == _QID
     assert row["query"] == _QUERY and row["answer"] == answer["answer"] and row["demo_mode"] == "live"
-    assert row["latency_ms"] == answer["latency_ms"] and row["cost_usd"] == answer["cost_usd"]
+    assert row["latency_ms"] == answer["latency_ms"]
+    assert row["cost_usd"] == evaluation["run_cost_usd"]  # run cost = engine cost + judge cost
+    assert abs(row["cost_usd"] - (answer["cost_usd"] + evaluation["judge_cost_usd"])) < 1e-9 and evaluation["judge_cost_usd"] > 0
     assert row["groundedness"] == evaluation["metrics"]["groundedness"]
     assert row["qa_relevance"] == evaluation["metrics"]["qa_relevance"]
     assert row["context_precision"] == evaluation["metrics"]["context_precision"]

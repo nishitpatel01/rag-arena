@@ -20,7 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
-from app.api.query_runs import QueryRunWriter, build_query_run_row, write_query_run_or_warn
+from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
@@ -111,8 +111,16 @@ def _answer_complete_event(run_id: str, result: EngineResult) -> dict[str, Any]:
     }
 
 
-def _eval_complete_event(run_id: str, engine_id: str, outcome: EvalOutcome) -> dict[str, Any]:
-    return {"event": "eval_complete", "run_id": run_id, "engine": engine_id, **eval_outcome_to_dict(outcome), "ts": utc_now_iso()}
+def _eval_complete_event(run_id: str, result: EngineResult, outcome: EvalOutcome) -> dict[str, Any]:
+    """``eval_complete`` with the judge outcome; ``run_cost_usd`` = engine cost + judge cost (both measured)."""
+    return {
+        "event": "eval_complete",
+        "run_id": run_id,
+        "engine": result.engine_id,
+        **eval_outcome_to_dict(outcome),
+        "run_cost_usd": run_cost_usd(result, outcome),
+        "ts": utc_now_iso(),
+    }
 
 
 def _engine_error_event(run_id: str, engine_id: str, exc: BaseException, failed_stage: str | None) -> dict[str, Any]:
@@ -186,7 +194,7 @@ async def _run_single_engine_worker(
             run_evaluation(query, result, question_id=question_id, settings=settings, emitter=emitter),
             timeout=timeout,
         )
-        await queue.put(_eval_complete_event(run_id, engine_id, outcome))
+        await queue.put(_eval_complete_event(run_id, result, outcome))
         await _maybe_record(
             settings, run_id=run_id, engine_id=engine_id, question_id=question_id, query=query,
             emitter=emitter, result=result, outcome=outcome, queue=queue,
@@ -277,6 +285,9 @@ async def health_endpoint(request: Request) -> JSONResponse:
             "gemini_pro_model": settings.gemini_pro_model,
             "gemini_thinking_level": settings.gemini_thinking_level,
             "text_embedding_model": settings.text_embedding_model,
+            "judge_provider": settings.judge_provider,
+            "judge_model": settings.judge_model,
+            "judge_location": settings.judge_location,
         }
     )
 

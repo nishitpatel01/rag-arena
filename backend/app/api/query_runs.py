@@ -20,6 +20,13 @@ class QueryRunWriter(Protocol):
     def write_query_run(self, row: dict[str, Any]) -> None: ...
 
 
+def run_cost_usd(result: EngineResult, outcome: EvalOutcome) -> float:
+    """A run's total cost: the engine's measured cost plus the LLM judge's measured cost."""
+    if not isinstance(result, EngineResult) or not isinstance(outcome, EvalOutcome):
+        raise TypeError("result must be an EngineResult and outcome an EvalOutcome")
+    return round(float(result.cost_usd) + float(outcome.judge_cost_usd), 8)
+
+
 def build_query_run_row(
     *,
     settings: ArenaSettings,
@@ -43,7 +50,7 @@ def build_query_run_row(
         "query": query,
         "started_at": started_at,
         "latency_ms": int(result.latency_ms),
-        "cost_usd": float(result.cost_usd),
+        "cost_usd": run_cost_usd(result, outcome),
         "groundedness": outcome.metrics.groundedness,
         "qa_relevance": outcome.metrics.qa_relevance,
         "context_precision": outcome.metrics.context_precision,
@@ -75,4 +82,10 @@ async def write_query_run_or_warn(
     return True
 
 
-__all__ = ["QUERY_RUN_WRITE_TIMEOUT_SECONDS", "QueryRunWriter", "build_query_run_row", "write_query_run_or_warn"]
+__all__ = [
+    "QUERY_RUN_WRITE_TIMEOUT_SECONDS",
+    "QueryRunWriter",
+    "build_query_run_row",
+    "run_cost_usd",
+    "write_query_run_or_warn",
+]

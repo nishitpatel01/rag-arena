@@ -37,6 +37,8 @@ MAX_EMBED_WORKERS = 8
 INDEX_POLL_MAX_SECONDS = 60.0
 INDEX_POLL_INTERVAL_SECONDS = 5.0
 LOAD_TIMEOUT_SECONDS = 300.0
+LOAD_BATCH_ROWS = 1000  # ~60 MB of NDJSON per load job at 3072-d embeddings
+MAX_ROWS_PER_JOB = 200_000
 QUERY_TIMEOUT_SECONDS = 120.0
 STAGING_TTL = timedelta(hours=2)
 VECTOR_INDEX_MIN_BYTES = 10 * 1024 * 1024
@@ -236,16 +238,23 @@ class BigQueryLiveLoader:
     def load_rows(self, rows: list[dict[str, Any]]) -> int:
         """Load job → ``_staging_<job_id>`` → transactional tier-scoped replace → drop that staging table."""
         tier, job_id = _validate_chunk_rows(rows)
+        self._check_row_cap(len(rows))
         staging_fqn = self._fq(staging_table_name(job_id))
         self._create_staging(staging_fqn)
         try:
-            self._load_json(rows, staging_fqn, _CHUNK_SCHEMA)
+            for start in range(0, len(rows), LOAD_BATCH_ROWS):
+                self._load_json(rows[start : start + LOAD_BATCH_ROWS], staging_fqn, _CHUNK_SCHEMA)
             inserted = self._replace_tier_from_staging(staging_fqn, tier)
         finally:
             self._client.delete_table(staging_fqn, not_found_ok=False)
         if inserted != len(rows):
             raise RuntimeError(f"transaction inserted {inserted} rows into {self.table_fqn} for {len(rows)} staged")
         return inserted
+
+    @staticmethod
+    def _check_row_cap(n_rows: int) -> None:
+        if n_rows > MAX_ROWS_PER_JOB:
+            raise ValueError(f"load_rows accepts at most {MAX_ROWS_PER_JOB} rows per ingestion job, got {n_rows}")
 
     def _create_staging(self, staging_fqn: str) -> None:
         from google.cloud import bigquery

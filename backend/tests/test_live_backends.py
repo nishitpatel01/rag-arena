@@ -382,3 +382,14 @@ def test_ivf_minimum_rows_rejection_is_reported_honestly_and_search_index_still_
     with pytest.raises(BadRequest, match="Access Denied"):
         lb.BigQueryLiveLoader(_settings(), client=_OtherBadRequestBQ(index_rows=rows), sleep=lambda s: None, monotonic=lambda: next(clock)).build_indexes()
     assert lb.describe_index_state("vector", None, None, table_bytes=900_000, table_rows=52).startswith("NOT CREATED (table has 52 rows")
+
+
+def test_large_batches_are_loaded_into_staging_with_bounded_multiple_load_jobs() -> None:
+    bq = _FakeBQ(inserted=2500)
+    rows = [_row(f"c{i}") for i in range(2500)]
+    assert lb.BigQueryLiveLoader(_settings(), client=bq).load_rows(rows) == 2500
+    assert [len(r) for r, _, _ in bq.loads] == [1000, 1000, 500]
+    assert {d for _, d, _ in bq.loads} == {"test-project.rag_arena._staging_ing_abc123def456"}
+    assert sum(1 for s, _ in bq.queries if "BEGIN TRANSACTION" in s) == 1 and len(bq.deleted) == 1
+    with pytest.raises(ValueError, match="at most"):
+        lb.BigQueryLiveLoader(_settings(), client=_FakeBQ())._check_row_cap(lb.MAX_ROWS_PER_JOB + 1)

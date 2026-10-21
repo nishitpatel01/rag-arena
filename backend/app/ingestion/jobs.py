@@ -18,7 +18,7 @@ import uuid
 
 from app.core.config import ALL_LEVEL_IDS, ArenaSettings
 from app.core.telemetry import BaseStageEmitter, stage_scope, utc_now_iso
-from app.ingestion.parsers import chunk_pages, extract_pdf_pages, parser_backend_name
+from app.ingestion.parsers import chunk_pages, extract_pdf_pages, is_genuinely_blank_pdf, parser_backend_name
 from app.ingestion.pipeline import chunk_to_bigquery_row
 from app.recording.recorder import read_git_sha
 
@@ -51,6 +51,14 @@ _STREAM_POLL_SECONDS = 1.0
 
 class IngestBackendUnavailable(RuntimeError):
     """Raised when no live embedder/loader is wired for the current mode."""
+
+
+class ParserUnavailableError(RuntimeError):
+    """Live/record ingestion requires PyMuPDF (Level 1 spec); the regex fallback is for offline tests only."""
+
+
+class EmptyDocumentsError(ValueError):
+    """One or more non-blank PDFs yielded zero text pages (parse defect; never silently skipped)."""
 
 
 class Embedder(Protocol):
@@ -258,11 +266,22 @@ class IngestJobRunner:
         pages_by_doc: dict[str, list[list[str]]] = {}
         backend = parser_backend_name()
         async with tracker.scope(emitter, "parse", "Parse PDF pages", backend, {"docs": len(docs), "parser": backend}) as sc:
+            if self.settings.is_live and backend != "pymupdf":
+                raise ParserUnavailableError(
+                    f"Level 1 ingestion requires PyMuPDF (pymupdf) in DEMO_MODE={self.settings.demo_mode}; "
+                    f"active parser is '{backend}'. Install the declared dependency 'pymupdf>=1.24.0'."
+                )
             for doc in docs:
                 pages = await asyncio.to_thread(extract_pdf_pages, doc.path)
                 pages_by_doc[doc.path.name] = pages
                 await self._put(job, {"event": "doc_progress", "stage": "parse", "doc_name": doc.path.name, "pages": len(pages), "chunks": 0})
-            sc.payload = {"docs": len(docs), "pages": sum(len(p) for p in pages_by_doc.values()), "parser": backend}
+            empty_docs, blank_docs = await asyncio.to_thread(_classify_empty_docs, docs, pages_by_doc, backend)
+            if empty_docs:
+                raise EmptyDocumentsError(f"{len(empty_docs)} non-blank document(s) yielded 0 text pages; empty_docs={empty_docs}")
+            sc.payload = {
+                "docs": len(docs), "pages": sum(len(p) for p in pages_by_doc.values()), "parser": backend,
+                "empty_docs": empty_docs, "blank_docs": blank_docs,
+            }
         return pages_by_doc
 
     async def _chunk(self, job: IngestJob, emitter: "_JobEmitter", tracker: "_StageTracker", docs: list[_DiscoveredDoc], pages_by_doc: dict[str, list[list[str]]]) -> list[Any]:
@@ -353,6 +372,22 @@ class IngestJobRunner:
             for j in list(self._jobs.values())[-20:]
         ]
         return {"last_runs": runs, "last_runs_source": f"in-memory jobs (DEMO_MODE={self.settings.demo_mode})"}
+
+
+def _classify_empty_docs(
+    docs: list[_DiscoveredDoc], pages_by_doc: dict[str, list[list[str]]], backend: str
+) -> tuple[list[str], list[str]]:
+    """Split zero-page docs into (empty = parse defect, blank = genuinely blank PDF; PyMuPDF decides blankness)."""
+    empty: list[str] = []
+    blank: list[str] = []
+    for doc in docs:
+        if pages_by_doc.get(doc.path.name):
+            continue
+        if backend == "pymupdf" and is_genuinely_blank_pdf(doc.path):
+            blank.append(doc.path.name)
+        else:
+            empty.append(doc.path.name)
+    return empty, blank
 
 
 def _check_batch_vectors(batch_vectors: list[list[float]], texts: list[str], expected_dims: int | None) -> None:

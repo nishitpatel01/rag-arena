@@ -183,3 +183,66 @@ def test_status_reports_missing_v3_table_as_unavailable_not_crash() -> None:
 
     status = asyncio.run(runner.status())
     assert status["available"] is False and "does not exist yet" in status["reason"] and status["counts_by_tier"] == {}
+
+
+def _run_job(settings: ArenaSettings, corpus: Path) -> tuple[list[dict[str, Any]], FakeLoader]:
+    loader = FakeLoader()
+    app = create_app(settings=settings, ingest_backend_factory=lambda s: IngestBackends(FakeEmbedder(), loader))
+    app.state.ingest_runner = IngestJobRunner(settings, backend_factory=lambda s: IngestBackends(FakeEmbedder(), loader), corpus_dir=corpus)
+    with TestClient(app) as client:
+        job_id = client.post("/api/v1/ingest/jobs", json={"level": "level1_naive"}).json()["job_id"]
+        return _parse_sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream").text), loader
+
+
+def _add_pdf(corpus: Path, name: str, *, image_only: bool) -> None:
+    import pymupdf
+
+    doc = pymupdf.open()
+    page = doc.new_page()
+    if image_only:  # a scanned page: pixels but no text layer
+        pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 8, 8), False)
+        pix.clear_with(128)
+        page.insert_image(pymupdf.Rect(50, 50, 200, 200), pixmap=pix)
+    dest = next(corpus.iterdir()) / name
+    dest.write_bytes(doc.tobytes())
+    doc.close()
+
+
+_LIVE = ArenaSettings(demo_mode="live", gcp_project_id="test-project", ingest_job_timeout_seconds=120)
+
+
+def test_parse_stage_fails_loud_in_live_mode_without_pymupdf() -> None:
+    from unittest.mock import patch
+
+    with patch("app.ingestion.jobs.parser_backend_name", lambda: "pdf_stream_regex"):
+        events, loader = _run_job(_LIVE, _small_corpus())
+    failed = [e for e in events if e["event"] == "stage_failed"]
+    assert len(failed) == 1 and failed[0]["stage"] == "parse" and "PyMuPDF" in failed[0]["error"]
+    assert failed[0]["error_type"] == "ParserUnavailableError"
+    assert events[-1]["event"] == "job_failed" and events[-1]["failed_stage"] == "parse" and loader.rows == []
+
+
+def test_parse_stage_fails_when_a_document_yields_no_text_pages() -> None:
+    corpus = _small_corpus()
+    _add_pdf(corpus, "99_Scanned_Exhibit.pdf", image_only=True)
+    events, loader = _run_job(_LIVE, corpus)
+    failed = [e for e in events if e["event"] == "stage_failed"]
+    assert len(failed) == 1 and failed[0]["stage"] == "parse" and failed[0]["error_type"] == "EmptyDocumentsError"
+    assert "99_Scanned_Exhibit.pdf" in failed[0]["error"] and "empty_docs" in failed[0]["error"]
+    assert events[-1]["failed_stage"] == "parse" and loader.rows == []
+
+
+def test_genuinely_blank_documents_are_reported_but_do_not_fail_parse() -> None:
+    corpus = _small_corpus()
+    _add_pdf(corpus, "98_Blank_Page.pdf", image_only=False)
+    events, _ = _run_job(_LIVE, corpus)
+    parse = next(e for e in events if e["event"] == "stage_completed" and e["stage"] == "parse")
+    assert parse["payload"]["empty_docs"] == [] and parse["payload"]["blank_docs"] == ["98_Blank_Page.pdf"]
+    assert parse["payload"]["parser"] == "pymupdf" and events[-1]["event"] == "job_complete"
+
+
+def test_pdf_code_imports_pymupdf_not_deprecated_fitz() -> None:
+    root = _PROJECT_ROOT / "backend" / "app" / "ingestion"
+    for name in ("parsers.py", "pipeline.py", "upload_guard.py"):
+        src = (root / name).read_text(encoding="utf-8")
+        assert "import fitz" not in src and "import pymupdf" in src, name

@@ -151,13 +151,13 @@ def extract_single_page_pdf_bytes(pdf_path: Path, page_number: int = 1) -> bytes
 
     raw_bytes = pdf_path.read_bytes()[:_MAX_EMBED_PDF_BYTES]
     try:
-        import fitz  # type: ignore[import-not-found]
+        import pymupdf  # type: ignore[import-not-found]
 
-        with fitz.open(stream=raw_bytes, filetype="pdf") as src_doc:
+        with pymupdf.open(stream=raw_bytes, filetype="pdf") as src_doc:
             if len(src_doc) <= 1:
                 return raw_bytes
             target_idx = min(page_number - 1, len(src_doc) - 1)
-            out_doc = fitz.open()
+            out_doc = pymupdf.open()
             out_doc.insert_pdf(src_doc, from_page=target_idx, to_page=target_idx)
             sliced = out_doc.tobytes()
             out_doc.close()

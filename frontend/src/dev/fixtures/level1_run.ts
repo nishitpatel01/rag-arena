@@ -36,7 +36,7 @@ const F = true as const;
 export const LEVEL1_DEV_FIXTURE: readonly TimedFixtureEvent[] = [
   {
     t_rel: 0,
-    event: { event: "run_started", run_id: RUN_ID, engines: [ENGINE], demo_mode: "dev_fixture", question_id: "q_exact_clin_lookup", ts: ts(0), synthetic_dev_fixture: F },
+    event: { event: "run_started", run_id: RUN_ID, engines: [ENGINE], demo_mode: "dev_fixture", question_id: "q_exact_clin_lookup", synthesis_model: "gemini-3.8-flash", judge_model: "claude-opus-5-5", ts: ts(0), synthetic_dev_fixture: F },
   },
   {
     t_rel: 150,
@@ -64,11 +64,11 @@ export const LEVEL1_DEV_FIXTURE: readonly TimedFixtureEvent[] = [
   },
   {
     t_rel: 60,
-    event: { event: "stage_started", run_id: RUN_ID, engine: ENGINE, stage: "synthesize", label: "Answer synthesis", service: "Vertex AI · gemini-4-argon", request: { model: "gemini-4-argon", thinking_level: "high", context_chunks: 5 }, ts: ts(5130), synthetic_dev_fixture: F },
+    event: { event: "stage_started", run_id: RUN_ID, engine: ENGINE, stage: "synthesize", label: "Answer synthesis", service: "Vertex AI · Gemini 3.8 Flash (dev fixture)", request: { model: "gemini-3.8-flash", thinking_level: "high", context_chunks: 5 }, ts: ts(5130), synthetic_dev_fixture: F },
   },
   {
     t_rel: 3200,
-    event: { event: "stage_completed", run_id: RUN_ID, engine: ENGINE, stage: "synthesize", duration_ms: 3150, payload: { model: "gemini-4-argon", thinking_level: "high", prompt_tokens: 1842, output_tokens: 96 }, ts: ts(8280), synthetic_dev_fixture: F },
+    event: { event: "stage_completed", run_id: RUN_ID, engine: ENGINE, stage: "synthesize", duration_ms: 3150, payload: { model: "gemini-3.8-flash", thinking_level: "high", prompt_tokens: 1842, output_tokens: 96 }, ts: ts(8280), synthetic_dev_fixture: F },
   },
   {
     t_rel: 50,
@@ -80,22 +80,22 @@ export const LEVEL1_DEV_FIXTURE: readonly TimedFixtureEvent[] = [
         { chunk_id: "devfix-chunk-02", doc_name: "04_Pricing_Schedule_CLINs.pdf", solicitation_id: "solicitation_01", page_number: 1, section_id: "1.2", element_type: "narrative_text", bbox: { page: 1, x0: 0.1, y0: 0.55, x1: 0.9, y1: 0.63 }, excerpt: "Rates are firm-fixed for the base period unless superseded by amendment." },
       ],
       latency_ms: 7480, cost_usd: 0.00231,
-      usage: { prompt_tokens: 1842, output_tokens: 96, embedding_tokens: 14 },
+      usage: { prompt_tokens: 1842, output_tokens: 96, embedding_tokens: 14, model: "gemini-3.8-flash" },
       flags: { reranker_used: false, adk_runner_used: false, layout_source: "pymupdf" },
       ts: ts(8330), synthetic_dev_fixture: F,
     },
   },
   {
     t_rel: 100,
-    event: { event: "stage_started", run_id: RUN_ID, engine: ENGINE, stage: "evaluate", label: "LLM-as-a-judge", service: "Vertex AI · gemini-4-argon", request: { judge_model: "gemini-4-argon", thinking_level: "low", temperature: 0 }, ts: ts(8430), synthetic_dev_fixture: F },
+    event: { event: "stage_started", run_id: RUN_ID, engine: ENGINE, stage: "evaluate", label: "LLM-as-a-judge", service: "Vertex AI · Claude Opus 5.5 (dev fixture)", request: { judge_model: "claude-opus-5-5", max_tokens: 1024 }, ts: ts(8430), synthetic_dev_fixture: F },
   },
   {
     t_rel: 2400,
-    event: { event: "stage_completed", run_id: RUN_ID, engine: ENGINE, stage: "evaluate", duration_ms: 2370, payload: { judge_model: "gemini-4-argon", groundedness: 0.5, qa_relevance: 0.5, context_precision: 0.5, reference_answer_used: true }, ts: ts(10800), synthetic_dev_fixture: F },
+    event: { event: "stage_completed", run_id: RUN_ID, engine: ENGINE, stage: "evaluate", duration_ms: 2370, payload: { judge_model: "claude-opus-5-5", groundedness: 0.5, qa_relevance: 0.5, context_precision: 0.5, reference_answer_used: true }, ts: ts(10800), synthetic_dev_fixture: F },
   },
   {
     t_rel: 20,
-    event: { event: "eval_complete", run_id: RUN_ID, engine: ENGINE, metrics: { groundedness: 0.5, qa_relevance: 0.5, context_precision: 0.5 }, judge_model: "gemini-4-argon", reference_answer_used: true, duration_ms: 2370, ts: ts(10820), synthetic_dev_fixture: F },
+    event: { event: "eval_complete", run_id: RUN_ID, engine: ENGINE, metrics: { groundedness: 0.5, qa_relevance: 0.5, context_precision: 0.5 }, judge_model: "claude-opus-5-5", reference_answer_used: true, duration_ms: 2370, ts: ts(10820), synthetic_dev_fixture: F },
   },
   {
     t_rel: 20,

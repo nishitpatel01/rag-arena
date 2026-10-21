@@ -15,7 +15,9 @@ import { QuestionPicker } from "./QuestionPicker";
 import { StageDetail } from "./StageDetail";
 import { StageRail } from "./StageRail";
 import { activeStageId } from "./model";
+import { modelLabel, type ModelSelection } from "./modelSelection";
 import { useBattleStream } from "./useBattleStream";
+import { useModelCatalog } from "./useModelCatalog";
 
 function mergeOrder(declared: readonly string[], seen: readonly string[]): string[] {
   const out = [...declared];
@@ -25,6 +27,7 @@ function mergeOrder(declared: readonly string[], seen: readonly string[]): strin
 
 const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestState: IngestStatusState }> = ({ level, ingestState }) => {
   const stream = useBattleStream();
+  const models = useModelCatalog();
   const { status: ingest, error: ingestError } = ingestState;
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [userPicked, setUserPicked] = useState(false);
@@ -53,13 +56,27 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     setSelectedStage(id);
   }, []);
 
-  const onRun = (query: string, questionId: string | null): void => {
+  const onRun = (query: string, questionId: string | null, runModels: ModelSelection | null): void => {
     setSelectedStage(null);
     setUserPicked(false);
     setCitation(null);
     setViewerOpen(false);
-    stream.run({ query, questionId, engines: [level.level_id] });
+    stream.run({
+      query,
+      questionId,
+      engines: [level.level_id],
+      synthesisModel: runModels?.synthesis ?? null,
+      judgeModel: runModels?.judge ?? null,
+    });
   };
+
+  // Models of the run actually executed (from run_started), never the dropdown state.
+  const runSynthLabel = modelLabel(models.catalog, stream.state.synthesisModel);
+  const runJudgeLabel = modelLabel(models.catalog, stream.state.judgeModel);
+  const runServiceByStage = useMemo(
+    () => ({ synthesize: runSynthLabel, evaluate: runJudgeLabel }),
+    [runSynthLabel, runJudgeLabel]
+  );
 
   const stageIds = useMemo(
     () => (timeline?.stageOrder.length ? mergeOrder(level.stages, timeline.stageOrder) : level.stages),
@@ -70,13 +87,17 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(17rem,21rem)]">
       <Panel title="Question" subtitle="Golden benchmark or custom" className="xl:row-span-2">
-        <QuestionPicker levelId={level.level_id} gate={gate} isStreaming={stream.isStreaming} onRun={onRun} onAbort={stream.abort} />
+        <QuestionPicker levelId={level.level_id} gate={gate} isStreaming={stream.isStreaming} onRun={onRun} onAbort={stream.abort} models={models} />
         {gate.note && (
           <p className={`mt-2 text-xs ${gate.tone === "err" ? "text-err" : gate.tone === "warn" ? "text-clay" : "text-slate"}`} role="status">
             {gate.tone === "err" ? "Error" : gate.tone === "warn" ? "Blocked" : "Note"}: {gate.note}
           </p>
         )}
-        {stream.transportError && <p className="mt-2 text-xs text-err" role="alert">Stream error: {stream.transportError}</p>}
+        {stream.transportError && (
+          <div className="mt-2 rounded-md border border-err p-2 text-xs text-err" role="alert" data-testid="run-error">
+            <span className="font-semibold">Run rejected / stream error:</span> <span className="break-words">{stream.transportError}</span>
+          </div>
+        )}
         {stream.state.warnings.map((w, i) => (
           <p key={i} className="mt-2 text-xs text-clay" role="status">{w}</p>
         ))}
@@ -90,6 +111,11 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
             {stream.state.demoMode && (
               <Pill tone={stream.state.replayed ? "info" : "ok"} mono title={stream.state.replayed ? "Frames carry replayed:true (recording of a real run)" : "DEMO_MODE of this run"}>
                 {stream.state.replayed ? "replayed recording" : stream.state.demoMode}
+              </Pill>
+            )}
+            {(runSynthLabel || runJudgeLabel) && (
+              <Pill tone="neutral" mono title="Models from run_started (what this run actually executed)">
+                synthesis: {runSynthLabel ?? "—"} · judge: {runJudgeLabel ?? "—"}
               </Pill>
             )}
             {timeline?.error && <Pill tone="err" mono title={timeline.error.message}>engine_error · {timeline.error.type}</Pill>}
@@ -124,6 +150,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
           running={stream.isStreaming}
           selectedStage={selectedStage}
           onStageSelect={pickStage}
+          runServiceByStage={runServiceByStage}
         />
       </Panel>
 
@@ -131,7 +158,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
         <AnswerPanel timeline={timeline} running={stream.isStreaming} selectedCitation={citation} onSelectCitation={openCitation} />
       </Panel>
       <Panel title="Metrics" subtitle="LLM judge · cost · latency">
-        <MetricsPanel timeline={timeline} running={stream.isStreaming} />
+        <MetricsPanel timeline={timeline} running={stream.isStreaming} runSynthesisModel={stream.state.synthesisModel} labelFor={(id) => modelLabel(models.catalog, id)} />
       </Panel>
       <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} />
     </div>

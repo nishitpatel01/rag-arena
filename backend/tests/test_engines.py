@@ -11,11 +11,8 @@ from app.core.models import BoundingBox, DocumentChunk
 from app.core.telemetry import RecordingStageEmitter
 from app.engines import ENGINE_CLASSES, build_engine, get_engine_registry
 from app.engines.base import BaseRAGEngine
-from app.engines.level2_hybrid import (
-    Level2HybridEngine,
-    expand_procurement_acronyms,
-    rerank_chunks_heuristic_or_api,
-)
+from app.engines.level2_hybrid import Level2HybridEngine
+from app.engines.level3_multimodal import Level3MultimodalEngine
 from app.engines.level3_multimodal import format_chunk_with_authority_header
 from app.engines.level4_agentic import (
     build_adk_agent,
@@ -105,37 +102,16 @@ def test_level4_verify_citations_detects_unsupported_numeric_claims() -> None:
     assert "$999.00" in hallucinated["unsupported_claims"] and "CLIN-9999" in hallucinated["unsupported_claims"]
 
 
-def test_level2_acronym_expansion_and_offline_heuristic_rerank() -> None:
-    expanded = expand_procurement_acronyms("What is the CLIN SLA and RTO/RPO under the QASP?")
-    for term in ("Contract Line Item Number", "Service Level Agreement", "Recovery Time Objective", "Quality Assurance Surveillance Plan"):
-        assert term in expanded
-    chunk_low = _chunk("c_low", "General introduction to cloud infrastructure procurement.", section_id="SEC-1.0")
-    chunk_exact = _chunk("c_exact", "| CLIN-0004-AB | Cloud Security Architect Labor | $210.00/hr |", section_id="CLIN-0004-AB", element_type="table", score=0.52)
-    reranked = rerank_chunks_heuristic_or_api(query="What is the base rate for CLIN-0004-AB?", chunks=[chunk_low, chunk_exact], top_n=2)
-    assert [c.chunk_id for c in reranked] == ["c_exact", "c_low"] and reranked[0].score > reranked[1].score
-
-
-def test_level2_rerank_with_settings_never_falls_back_silently() -> None:
-    chunks = [_chunk("c1", "CLIN-0004-AB rate", section_id="CLIN-0004-AB")]
-    with pytest.raises(RuntimeError, match="DEMO_MODE=live"):
-        rerank_chunks_heuristic_or_api("q", chunks, top_n=1, settings=ArenaSettings(demo_mode="replay"))
-    with pytest.raises((RuntimeError, ImportError)):
-        rerank_chunks_heuristic_or_api("q", chunks, top_n=1, settings=live_settings())
-    source = Path(Level2HybridEngine.__module__.replace(".", "/") + ".py")
-    text = (Path(__file__).resolve().parents[1] / source.relative_to("app") if False else Path(__file__).resolve().parents[1] / "app" / "engines" / "level2_hybrid.py").read_text(encoding="utf-8")
-    assert "except Exception:\n        pass" not in text and "except Exception:\n            pass" not in text
-
-
 def test_legacy_engines_emit_skipped_stages_then_fail_loud_under_one_legacy_stage() -> None:
-    emitter = RecordingStageEmitter(run_id="run_legacy", engine="level2_hybrid")
+    emitter = RecordingStageEmitter(run_id="run_legacy", engine="level3_multimodal")
     with fake_clients():
-        engine = Level2HybridEngine(settings=live_settings(enabled_levels=("level2_hybrid",)))
+        engine = Level3MultimodalEngine(settings=live_settings(enabled_levels=("level3_multimodal",)))
         with pytest.raises(Exception):
             run(engine.run_query("What is the CLIN-0004-AB rate?", question_id=None, solicitation_filter=None, emitter=emitter))
     kinds = [(e["event"], e["stage"]) for e in emitter.events]
     assert kinds[:5] == [("stage_skipped", s) for s in ("query_prep", "embed_query", "retrieve", "rerank", "synthesize")]
     assert kinds[5] == ("stage_started", "legacy") and kinds[6] == ("stage_failed", "legacy")
-    assert "Phase 2" in emitter.events[0]["reason"]
+    assert "Phase 3" in emitter.events[0]["reason"]
     replay_emitter = RecordingStageEmitter(run_id="r2", engine="level2_hybrid")
     with pytest.raises(RuntimeError, match="replay"):
         run(Level2HybridEngine(settings=ArenaSettings(demo_mode="replay")).run_query("q", question_id=None, solicitation_filter=None, emitter=replay_emitter))

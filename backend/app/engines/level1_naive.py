@@ -12,14 +12,13 @@ import time
 from typing import Any
 
 from app.core.config import ArenaSettings
-from app.core.embeddings import QUERY_TASK_TYPE, embed_config, format_query_for_embedding, single_vector
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
 from app.core.models_catalog import ModelSpec, spec_for_settings_model
 from app.core.pricing import cost_from_usage
 from app.core.telemetry import StageEmitter
 from app.engines.base import BaseRAGEngine
-from app.engines.synthesis import GeminiSynthesizer, build_prompt, build_synthesizer
+from app.engines.common_stages import embed_query_stage, synthesize_stage
 from app.ingestion.bq_indexer import _validate_identifier
 
 _TOP_K = 5
@@ -130,14 +129,6 @@ def _run_vector_search_job(
     return rows, stats
 
 
-def _embedding_token_count(embed_response: Any) -> int | None:
-    """Read ``embeddings[0].statistics.token_count`` when the SDK returns it (Vertex AI does)."""
-    embeddings = getattr(embed_response, "embeddings", None) or []
-    stats = getattr(embeddings[0], "statistics", None) if embeddings else None
-    count = getattr(stats, "token_count", None) if stats is not None else None
-    return int(count) if isinstance(count, (int, float)) else None
-
-
 class Level1NaiveEngine(BaseRAGEngine):
     """Level 1 Naive Vector RAG Engine: 360-char sliding windows + dense COSINE VECTOR_SEARCH."""
 
@@ -165,22 +156,7 @@ class Level1NaiveEngine(BaseRAGEngine):
 
     async def _embed_query(self, prepared: str, genai_client: Any, emitter: StageEmitter) -> tuple[list[float], int]:
         """Embed the query in the same gemini-embedding-2 space as the ingested documents (RETRIEVAL_QUERY side)."""
-        model = self.settings.text_embedding_model
-        contents = format_query_for_embedding(prepared)
-        async with self.stage(
-            emitter,
-            "embed_query",
-            label="Query embedding",
-            service=f"Vertex AI · {model}",
-            request={"model": model, "contents": contents, "task_type": QUERY_TASK_TYPE, "method": "models.embed_content"},
-        ) as ctx:
-            resp = await self.blocking(
-                genai_client.models.embed_content, model=model, contents=contents, config=embed_config(QUERY_TASK_TYPE)
-            )
-            vector = single_vector(resp)
-            token_count = _embedding_token_count(resp)
-            ctx.payload = {"model": model, "dimensions": len(vector), "token_count": token_count, "task_type": QUERY_TASK_TYPE}
-        return vector, token_count or 0
+        return await embed_query_stage(self, prepared, genai_client, emitter)
 
     async def _retrieve(
         self, vector: list[float], solicitation_filter: str | None, bq_client: Any, emitter: StageEmitter
@@ -223,42 +199,12 @@ class Level1NaiveEngine(BaseRAGEngine):
         self, query: str, chunks: list[DocumentChunk], emitter: StageEmitter, embedding_tokens: int
     ) -> tuple[str, TokenUsage]:
         """Answer with the run's selected synthesis model (Gemini or Claude) through its provider adapter."""
-        spec = self.synthesis_model
-        synthesizer = build_synthesizer(spec, self.settings)
         context_block = "\n\n".join(
             f"[{c.doc_name} p.{c.page_number}]: {c.content[:_MAX_CONTEXT_CHUNK_CHARS]}" for c in chunks
         )
-        prompt = build_prompt(context_block, query)
-        async with self.stage(
-            emitter,
-            "synthesize",
-            label="Answer synthesis",
-            service=f"Vertex AI · {spec.label}",
-            request=synthesizer.request_summary(prompt, len(chunks)),
-        ) as ctx:
-            out = await self.blocking(synthesizer.generate, prompt)
-            usage = TokenUsage(
-                prompt_tokens=out.prompt_tokens,
-                output_tokens=out.output_tokens,
-                thinking_tokens=out.thinking_tokens,
-                embedding_tokens=embedding_tokens,
-                model=spec.id,
-                embedding_model=self.settings.text_embedding_model,
-            )
-            ctx.payload = {
-                "model": spec.id,
-                "provider": spec.provider,
-                "prompt_tokens": usage.prompt_tokens,
-                "output_tokens": usage.output_tokens,
-                "thinking_tokens": usage.thinking_tokens,
-                "stop_reason": out.stop_reason,
-                "response_id": out.response_id,
-                "attempts": out.attempts,
-                "answer": out.answer,
-            }
-            if isinstance(synthesizer, GeminiSynthesizer):
-                ctx.payload["thinking_level"] = synthesizer.thinking_level
-        return out.answer, usage
+        return await synthesize_stage(
+            self, self.synthesis_model, query, context_block, len(chunks), emitter, embedding_tokens
+        )
 
     async def run_query(
         self,

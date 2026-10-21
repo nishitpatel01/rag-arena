@@ -306,10 +306,10 @@ def test_query_runs_schema_gains_model_columns_in_place() -> None:
 
 
 def test_legacy_levels_reject_a_non_default_synthesis_model() -> None:
-    settings = live_settings(enabled_levels=("level1_naive", "level2_hybrid"))
+    settings = live_settings(enabled_levels=("level1_naive", "level3_multimodal"))
     models = load_catalog(settings).select("gemini-3.8-flash", "claude-opus-5-5")
     with pytest.raises(ValueError):
-        build_engine("level2_hybrid", settings, models)
+        build_engine("level3_multimodal", settings, models)
 
 
 # ---------------------------------------------------------------- recordings, replay, leaderboard

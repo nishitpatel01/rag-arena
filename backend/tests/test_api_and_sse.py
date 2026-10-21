@@ -163,7 +163,7 @@ def test_leaderboard_endpoint_aggregates_recordings_with_provenance() -> None:
     body = _client().get("/api/v1/leaderboard").json()
     assert body["source"] == "recordings"
     l1 = next(row for row in body["engines"] if row["engine"] == "level1_naive")
-    assert l1["runs"] >= 1 and l1["provenance"][0]["synthetic_dev_fixture"] is True
+    assert l1["runs"] >= 1 and all(p["synthetic_dev_fixture"] is False for p in l1["provenance"])
 
 
 def test_upload_endpoint_parses_without_claiming_indexing() -> None:

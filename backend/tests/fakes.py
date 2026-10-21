@@ -165,16 +165,25 @@ def fake_clients(
     targets = (
         "app.core.gcp_clients.get_genai_client",
         "app.engines.level1_naive.get_genai_client",
+        "app.engines.level2_hybrid.get_genai_client",
         "app.engines.synthesis.get_genai_client",
         "app.evaluation.judges.get_genai_client",
     )
-    bq_targets = ("app.core.gcp_clients.get_bigquery_client", "app.engines.level1_naive.get_bigquery_client")
+    bq_targets = (
+        "app.core.gcp_clients.get_bigquery_client",
+        "app.engines.level1_naive.get_bigquery_client",
+        "app.engines.level2_hybrid.get_bigquery_client",
+    )
     with ExitStack() as stack:
         for target in targets:
             stack.enter_context(patch(target, lambda settings, location=None, _c=genai_client: _c))
         for target in bq_targets:
             stack.enter_context(patch(target, lambda settings, _c=bq_client: _c))
-        for target in ("app.evaluation.judges.get_access_token", "app.engines.synthesis.get_access_token"):
+        for target in (
+            "app.evaluation.judges.get_access_token",
+            "app.engines.synthesis.get_access_token",
+            "app.engines.level2_hybrid.get_access_token",
+        ):
             stack.enter_context(patch(target, lambda settings: "fake-token"))
         stack.enter_context(patch("app.evaluation.judges.httpx.post", raw_predict))
         yield genai_client, bq_client

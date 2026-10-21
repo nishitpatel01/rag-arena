@@ -17,12 +17,8 @@ from app.core.pricing import cost_from_usage
 from app.core.telemetry import StageEmitter
 from app.engines._legacy import run_legacy_body, usage_from_generate_response
 from app.engines.base import BaseRAGEngine
-from app.engines.level2_hybrid import (
-    _query_bigquery_hybrid_rows,
-    expand_procurement_acronyms,
-    rerank_chunks_heuristic_or_api,
-)
-from app.ingestion.bq_indexer import build_hybrid_rrf_sql, sanitize_search_query
+from app.engines.level2_hybrid import expand_procurement_acronyms, rank_chunks_live, run_hybrid_query_job
+from app.ingestion.bq_indexer import build_hybrid_rrf_sql, build_lexical_terms
 
 
 def format_chunk_with_authority_header(chunk: DocumentChunk) -> str:
@@ -127,25 +123,19 @@ class Level3MultimodalEngine(BaseRAGEngine):
             top_k=50,
             include_solicitation_filter=bool(solicitation_filter),
             embedding_column="embedding_multimodal",
+            tier_profile="multimodal",
         )
-        rows = await self.blocking(
-            _query_bigquery_hybrid_rows,
+        rows, _stats = await self.blocking(
+            run_hybrid_query_job,
             bq_client,
             sql,
             embedding_vec,
-            "multimodal",
-            sanitize_search_query(cleaned_query),
+            build_lexical_terms(cleaned_query),
             solicitation_filter,
             self.settings.query_timeout_seconds,
         )
         candidates = [_multimodal_row_to_chunk(r) for r in rows[:50]]
-        reranked = await self.blocking(
-            rerank_chunks_heuristic_or_api,
-            query=cleaned_query,
-            chunks=candidates,
-            top_n=5,
-            settings=self.settings,
-        )
+        reranked = await self.blocking(rank_chunks_live, cleaned_query, candidates, 5, self.settings)
         context_block = "\n\n".join(format_chunk_with_authority_header(c) for c in reranked)
         prompt = (
             "You are a senior contracts analyst. Use the structured context below. Amendments supersede base "

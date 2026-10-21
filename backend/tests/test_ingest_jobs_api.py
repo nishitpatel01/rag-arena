@@ -19,6 +19,7 @@ _CORPUS = _PROJECT_ROOT / "data" / "sample_docs" / "procurement_corpus"
 
 class FakeEmbedder:
     model = "gemini-embedding-2"
+    task_type = "RETRIEVAL_DOCUMENT"
 
     def __init__(self) -> None:
         self.batches: list[int] = []
@@ -57,6 +58,9 @@ class FakeLoader:
 
     def write_ingest_run(self, row: dict[str, Any]) -> None:
         self.ingest_runs.append(row)
+
+    def recent_ingest_runs(self, limit: int = 20) -> list[dict[str, Any]]:
+        return [{k: v for k, v in r.items() if k != "stage_log"} for r in reversed(self.ingest_runs[-limit:])]
 
 
 def _parse_sse(text: str) -> list[dict[str, Any]]:
@@ -119,10 +123,11 @@ def test_ingest_job_streams_all_seven_stages_with_progress_and_counts() -> None:
     assert snapshot["status"] == "completed" and snapshot["counts_by_tier"] == {"naive": len(loader.rows)}
     assert status["available"] is True and status["counts_by_tier"] == {"naive": len(loader.rows)}
     assert status["index_states"]["document_chunks_search_idx"] == "ACTIVE"
-    assert status["last_runs"][0] == {
-        "run_id": job_id, "level": "level1_naive", "tier_profile": "naive",
-        "finished_at": snapshot["finished_at"], "status": "completed", "chunks": len(loader.rows),
-    }
+    assert status["last_runs_source"] == "bigquery:ingest_runs"
+    assert status["last_runs"][0]["run_id"] == job_id and status["last_runs"][0]["status"] == "completed"
+    assert status["last_runs"][0]["chunks"] == len(loader.rows) and status["last_runs"][0]["embedded"] == len(loader.rows)
+    assert len(loader.ingest_runs[0]["git_sha"]) >= 7
+    assert payloads["embed"]["task_type"] == "RETRIEVAL_DOCUMENT"
 
 
 def test_ingest_job_without_live_backends_fails_loud_at_embed_stage() -> None:
@@ -143,3 +148,38 @@ def test_ingest_job_without_live_backends_fails_loud_at_embed_stage() -> None:
     assert [e["stage"] for e in events if e["event"] == "stage_completed"] == ["discover_docs", "parse", "chunk"]
     assert status["available"] is False and status["counts_by_tier"] == {} and "reason" in status
     assert status["last_runs"][0]["status"] == "failed"
+    assert status["last_runs_source"] == "in-memory jobs (DEMO_MODE=replay)"
+
+
+def test_embed_stage_fails_loud_when_dimensions_drift_between_batches() -> None:
+    class _DriftingEmbedder(FakeEmbedder):
+        def embed_batch(self, texts: list[str]) -> list[list[float]]:
+            first_call = not self.batches
+            self.batches.append(len(texts))
+            return [[0.1] * (3 if first_call and i == 0 else 4) for i, _ in enumerate(texts)]
+
+    loader = FakeLoader()
+    settings = ArenaSettings(demo_mode="live", gcp_project_id="test-project", ingest_job_timeout_seconds=120)
+    app = create_app(settings=settings, ingest_backend_factory=lambda s: IngestBackends(_DriftingEmbedder(), loader))
+    app.state.ingest_runner = IngestJobRunner(settings, backend_factory=lambda s: IngestBackends(_DriftingEmbedder(), loader), corpus_dir=_small_corpus())
+    with TestClient(app) as client:
+        job_id = client.post("/api/v1/ingest/jobs", json={"level": "level1_naive"}).json()["job_id"]
+        events = _parse_sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream").text)
+    failed = [e for e in events if e["event"] == "stage_failed"]
+    assert failed and failed[0]["stage"] == "embed" and "dimension" in failed[0]["error"]
+    assert loader.rows == [] and events[-1]["event"] == "job_failed"
+
+
+def test_status_reports_missing_v3_table_as_unavailable_not_crash() -> None:
+    from app.ingestion.jobs import IngestBackendUnavailable
+
+    class _MissingTableLoader(FakeLoader):
+        def count_by_tier(self) -> dict[str, int]:
+            raise IngestBackendUnavailable("BigQuery table test-project.rag_arena.document_chunks_v3 does not exist yet")
+
+    settings = ArenaSettings(demo_mode="live", gcp_project_id="test-project", ingest_job_timeout_seconds=120)
+    runner = IngestJobRunner(settings, backend_factory=lambda s: IngestBackends(FakeEmbedder(), _MissingTableLoader()))
+    import asyncio
+
+    status = asyncio.run(runner.status())
+    assert status["available"] is False and "does not exist yet" in status["reason"] and status["counts_by_tier"] == {}

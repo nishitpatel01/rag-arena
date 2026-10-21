@@ -10,10 +10,28 @@ import type {
   EngineTimeline,
   IngestEvent,
   StageState,
+  StreamInterruptedEvent,
 } from "../../types/arena";
 import { parseTs } from "../../lib/format";
 
-export type TimelineEvent = BattleEvent | IngestEvent;
+export type TimelineEvent = BattleEvent | IngestEvent | StreamInterruptedEvent;
+
+export const STREAM_INTERRUPTED_ERROR_TYPE = "StreamInterrupted";
+
+export function interruptionMessage(reason: string): string {
+  return `Stream ended before completion (${reason}) — server restarted or connection lost`;
+}
+
+/** Why a stream ended, from what the transport observed (user abort wins over a transport error). */
+export function streamEndReason(end: { readonly userAborted: boolean; readonly error: string | null }): string {
+  if (end.userAborted) return "stopped by user";
+  if (end.error) return `network error: ${end.error}`;
+  return "server closed the stream";
+}
+
+export function streamInterruptedEvent(runId: string | null, reason: string): StreamInterruptedEvent {
+  return { event: "stream_interrupted", run_id: runId, reason, ts: new Date().toISOString() };
+}
 
 export interface TimelineMap {
   readonly [engine: string]: EngineTimeline;
@@ -34,6 +52,10 @@ export interface StreamState {
   readonly timelines: TimelineMap;
   readonly warnings: readonly string[];
   readonly complete: boolean;
+  /** A terminal server event arrived (battle_complete, job_complete, job_failed). */
+  readonly terminated: boolean;
+  /** Set by the client-only `stream_interrupted` event; the reason is shown as an error pill. */
+  readonly interrupted: { readonly reason: string } | null;
   readonly enginesCompleted: readonly string[];
   readonly enginesFailed: readonly string[];
 }
@@ -61,6 +83,8 @@ export const INITIAL_STREAM_STATE: StreamState = {
   timelines: {},
   warnings: [],
   complete: false,
+  terminated: false,
+  interrupted: null,
   enginesCompleted: [],
   enginesFailed: [],
 };
@@ -89,8 +113,32 @@ function idOf(ev: TimelineEvent): string | null {
   return null;
 }
 
+/**
+ * True when the stream reached an end the server announced: a terminal event, or `engine_error`
+ * for every engine of the run. Only then may the transport end without `stream_interrupted`.
+ */
+export function isStreamTerminated(state: StreamState): boolean {
+  if (state.terminated) return true;
+  const tls = Object.values(state.timelines);
+  return tls.length > 0 && tls.every((tl) => tl.error !== null);
+}
+
+/** Fail every `active` stage (never `done`, no invented duration); idle/skipped/done stay as they are. */
+function interruptStream(state: StreamState, ev: StreamInterruptedEvent): StreamState {
+  if (state.events.length === 0 || state.interrupted !== null || isStreamTerminated(state)) return state;
+  const error = { type: STREAM_INTERRUPTED_ERROR_TYPE, message: interruptionMessage(ev.reason) };
+  const timelines: Record<string, EngineTimeline> = {};
+  for (const [engine, tl] of Object.entries(state.timelines)) {
+    const stages: Record<string, StageState> = {};
+    for (const [id, st] of Object.entries(tl.stages)) stages[id] = st.status === "active" ? { ...st, status: "failed", error } : st;
+    timelines[engine] = { ...tl, stages };
+  }
+  return { ...state, events: [...state.events, ev], timelines, interrupted: { reason: ev.reason } };
+}
+
 /** Apply one event. Unknown event types are appended to the log but otherwise ignored. */
 export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): StreamState {
+  if (ev.event === "stream_interrupted") return interruptStream(state, ev);
   const base: StreamState = {
     ...state,
     events: [...state.events, ev],
@@ -206,11 +254,19 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
       return {
         ...base,
         complete: true,
+        terminated: true,
         enginesCompleted: ev.engines_completed ?? [],
         enginesFailed: ev.engines_failed ?? [],
       };
     case "job_complete":
-      return { ...base, complete: true };
+      return { ...base, complete: true, terminated: true };
+    case "job_failed": {
+      const engine = ev.engine ?? Object.keys(base.timelines)[0] ?? null;
+      const failed = { ...base, terminated: true };
+      if (!engine) return failed;
+      const tl = getTimeline(base, engine);
+      return withTimeline(failed, { ...tl, error: { type: ev.error_type, message: ev.error, failedStage: ev.failed_stage } });
+    }
     case "doc_progress":
     case "embed_progress":
       return base;

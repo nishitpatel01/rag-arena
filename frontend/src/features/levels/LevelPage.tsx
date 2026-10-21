@@ -124,11 +124,16 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
               </Pill>
             )}
             {timeline?.error && <Pill tone="err" mono title={timeline.error.message}>engine_error · {timeline.error.type}</Pill>}
+            {stream.state.interrupted && (
+              <Pill tone="err" title="The SSE stream ended without battle_complete / engine_error; running stages were marked failed.">
+                stream interrupted · {stream.state.interrupted.reason}
+              </Pill>
+            )}
             {stream.state.complete ? <Pill tone="ok">battle_complete</Pill> : stream.isStreaming ? <Pill tone="active">streaming</Pill> : null}
           </>
         }
       >
-        <div data-run-state={stream.state.complete ? "complete" : stream.isStreaming ? "streaming" : "idle"}>
+        <div data-run-state={stream.state.complete ? "complete" : stream.state.interrupted ? "interrupted" : stream.isStreaming ? "streaming" : "idle"}>
           <StageRail stageIds={stageIds} stages={timeline?.stages ?? {}} selectedStage={selectedStage} onSelectStage={pickStage} />
         </div>
       </Panel>

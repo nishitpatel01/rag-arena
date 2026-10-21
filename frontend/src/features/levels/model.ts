@@ -172,6 +172,13 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
           judgeModel: ev.judge_model,
           referenceAnswerUsed: ev.reference_answer_used,
           durationMs: ev.duration_ms,
+          judgeProvider: ev.judge_provider ?? null,
+          judgeLocation: ev.judge_location ?? null,
+          inputTokens: ev.input_tokens ?? null,
+          outputTokens: ev.output_tokens ?? null,
+          judgeCostUsd: ev.judge_cost_usd ?? null,
+          runCostUsd: ev.run_cost_usd ?? null,
+          rationale: ev.rationale ?? null,
         },
       });
     }

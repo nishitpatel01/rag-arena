@@ -309,6 +309,13 @@ export interface EvalCompleteEvent extends BaseEvent {
   readonly judge_model: string;
   readonly reference_answer_used: boolean;
   readonly duration_ms: number;
+  readonly judge_provider?: string;
+  readonly judge_location?: string;
+  readonly input_tokens?: number;
+  readonly output_tokens?: number;
+  readonly judge_cost_usd?: number;
+  readonly run_cost_usd?: number;
+  readonly rationale?: string;
 }
 
 export interface EngineErrorEvent extends BaseEvent {
@@ -461,6 +468,13 @@ export interface EngineEvaluation {
   readonly judgeModel: string;
   readonly referenceAnswerUsed: boolean;
   readonly durationMs: number;
+  readonly judgeProvider?: string | null;
+  readonly judgeLocation?: string | null;
+  readonly inputTokens?: number | null;
+  readonly outputTokens?: number | null;
+  readonly judgeCostUsd?: number | null;
+  readonly runCostUsd?: number | null;
+  readonly rationale?: string | null;
 }
 
 export interface EngineTimeline {

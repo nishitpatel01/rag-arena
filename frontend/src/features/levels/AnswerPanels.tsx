@@ -92,12 +92,28 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({ timeline, running })
             ]}
           />
           <div className="flex flex-wrap gap-1.5">
-            <Pill tone="info" mono>judge: {ev.judgeModel}</Pill>
+            <Pill tone="info" mono>judge: {ev.judgeModel}{ev.judgeLocation ? ` · ${ev.judgeLocation}` : ""}</Pill>
             <Pill tone={ev.referenceAnswerUsed ? "ok" : "neutral"}>
               reference answer {ev.referenceAnswerUsed ? "used" : "not used"}
             </Pill>
             <Pill tone="neutral" mono>{formatMs(ev.durationMs)}</Pill>
           </div>
+          {ev.rationale ? (
+            <blockquote className="border-l-2 border-slate pl-3 text-xs leading-relaxed text-ink-2">
+              <span className="font-semibold text-ink-1">Judge rationale: </span>
+              {ev.rationale}
+            </blockquote>
+          ) : null}
+          {ev.inputTokens != null || ev.judgeCostUsd != null ? (
+            <KeyValue
+              label="Judge usage"
+              items={[
+                ["judge input tokens", ev.inputTokens != null ? ev.inputTokens.toLocaleString() : "—"],
+                ["judge output tokens", ev.outputTokens != null ? ev.outputTokens.toLocaleString() : "—"],
+                ["judge cost", ev.judgeCostUsd != null ? formatUsd(ev.judgeCostUsd) : "—"],
+              ]}
+            />
+          ) : null}
         </>
       ) : (
         <p className="text-xs text-ink-3">{running ? "Waiting for eval_complete…" : "No evaluation received."}</p>
@@ -107,7 +123,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({ timeline, running })
           label="Cost and latency"
           items={[
             ["latency", formatMs(answer.latencyMs)],
-            ["cost", formatUsd(answer.costUsd)],
+            ["engine cost", formatUsd(answer.costUsd)],
+            ["run cost (engine + judge)", ev?.runCostUsd != null ? formatUsd(ev.runCostUsd) : "pending judge"],
             ["prompt tokens", answer.usage.prompt_tokens.toLocaleString()],
             ["output tokens", answer.usage.output_tokens.toLocaleString()],
             ["embedding tokens", answer.usage.embedding_tokens.toLocaleString()],

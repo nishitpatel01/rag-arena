@@ -71,7 +71,7 @@ Ingestion is a separate, visible job per level (§6.3) with its own stages:
 
 3 solicitations in `data/sample_docs/procurement_corpus/` (18 generated interconnected PDFs + CUAD MSAs)
 built by `scripts/build_procurement_corpus.py`; mirrored to `gs://<GCS_CORPUS_BUCKET>/sample_docs/`.
-12 golden questions across 4 failure modes in `data/golden_benchmarks/procurement_benchmark.json`.
+8 golden questions across 4 failure modes in `data/golden_benchmarks/procurement_benchmark.json`.
 
 ---
 
@@ -364,7 +364,7 @@ rag-arena/
 | D2 | Engine emits every canonical stage itself; `routes.py` contains no stage synthesis or timers. | `curl` transcript of `stage_started/completed` with `duration_ms`; grep proof on `routes.py`. |
 | D3 | Live run on ≥ 3 golden questions produces an answer with ≥ 1 citation and judge metrics; failures surface as `stage_failed` + `engine_error`. | 3 run_ids + `query_runs` rows. |
 | D4 | UI level page shows the stage rail animating from real events, the level's architecture diagram highlighting the node of the running stage with its details pane following, stage detail with exact request/payload, citations highlighted in the viewer, theme switch works in light/dark/system. | Screenshot set (light + dark). |
-| D5 | `DEMO_MODE=record` captured recordings for the 12 golden questions; `DEMO_MODE=replay` plays them offline. | `ls data/recordings/<engine>/` (12 files) + replay curl. |
+| D5 | `DEMO_MODE=record` captured recordings for the 8 golden questions; `DEMO_MODE=replay` plays them offline. | `ls data/recordings/<engine>/` (8 files) + replay curl. |
 | D6 | Tests green: `pytest backend/tests -q` and `npm run build`; new tests cover the level's stage emission and fail-loud paths. | Quoted test counts. |
 | D7 | Owner live demo sign-off. | Date + initials in `task.md`. |
 

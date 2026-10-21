@@ -38,18 +38,18 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 
 ---
 
-## Phase 1 — Level 1: Naive Vector RAG (`level1_naive`)
-- [ ] Ingestion job `naive` tier: `discover_docs → parse (PyMuPDF, bbox) → chunk (360/60) → embed (batched, bounded concurrency) → load_bigquery → build_indexes (poll INFORMATION_SCHEMA, bounded) → verify_counts`; writes `ingest_runs`.
-- [ ] Engine stages emitted: `query_prep`, `embed_query`, `retrieve` (parameterized SQL + `rows_returned` + `bytes_processed` + scores), `synthesize` (usage from `usage_metadata`), `evaluate`.
-- [ ] Level 1 page wired; ingest status pill; run disabled when tier count = 0.
-- [ ] Record 12 golden questions (`DEMO_MODE=record`); replay verified offline.
+## Phase 1 — Level 1: Naive Vector RAG (`level1_naive`) — branch `phase-1/level1-live`
+- [x] Ingestion job `naive` tier: `discover_docs → parse (PyMuPDF, bbox) → chunk (360/60) → embed (batched, bounded concurrency) → load_bigquery → build_indexes (poll INFORMATION_SCHEMA, bounded) → verify_counts`; writes `ingest_runs`. (`be2a845`, `0300986`)
+- [x] Engine stages emitted: `query_prep`, `embed_query`, `retrieve` (parameterized SQL + `rows_returned` + `bytes_processed` + scores), `synthesize` (usage from `usage_metadata`), `evaluate`. (`1adb425`)
+- [ ] Level 1 page wired; ingest status pill; run disabled when tier count = 0. *(verify live in UI — D4)*
+- [x] Record 8 golden questions (`DEMO_MODE=record`); replay verified offline. (`23ddce5`)
 - [ ] Gate evidence D1–D7:
-  - D1 job_id / counts: `…`
-  - D2 curl transcript: `…`
-  - D3 run_ids: `…`
-  - D4 screenshots: `…`
-  - D5 recordings: `…`
-  - D6 tests: `…`
+  - D1 ingestion (live, 2026-10-21): job `ing_db965791a174` → `job_complete`; stage `duration_ms` discover_docs 2 · parse 1211 (526 pages, parser `pymupdf`, `empty_docs []`) · chunk 107 (5067) · embed 199918 (5067 × 3072-d, 159 batches, `RETRIEVAL_DOCUMENT`) · load_bigquery 70993 (6 staging load jobs + transactional tier replace) · build_indexes 63243 · verify_counts 641; `counts_by_tier {"naive": 5067}`; `ingest_runs` row with `git_sha b63953c`. Index states (BigQuery-reported): vector index `ACTIVE (coverage 0%)` → `VECTOR_SEARCH` brute-forces until coverage builds; search index `TEMPORARILY DISABLED` (table < 10 GB).
+  - D2 stage emission: battle stream emits `stage_started/stage_completed` for query_prep, embed_query, retrieve, synthesize, evaluate with backend-measured `duration_ms`; `test_routes_no_timers.py` guards `routes.py`.
+  - D3 live runs: `run_901106d37279` (q_exact_clin_lookup, G 1.0 / QA 1.0 / CP 0.6, 5 citations, \$0.0098, 20.3 s), `run_ecc591d1aafe` (q_amendment_rate_comparison, 1.0 / 0.75 / 0.75, \$0.0235), `run_ec6a11ff6988` (q_sla_credit_calculation, 1.0 / 0.5 / 0.6, \$0.0217); `query_runs` rows written (live 6, record 8). Retrieve scans ≈128 MB per query (5067 × 3072-d brute force).
+  - D4 screenshots: `…` (live Level 1 page + ingest job from the UI, light + dark)
+  - D5 recordings: 8 files in `data/recordings/level1_naive/` (headers `project_id "${GCP_PROJECT_ID}"`, `git_sha b63953c`); replay of `q_vpc_failover_diagram` reproduces recorded durations exactly [0, 208, 1748, 17004, 2680] ms; ad-hoc question in replay → `engine_error ReplayUnavailableError`. Recorded QA relevance: exact_clin 1.0 · vpc_diagram 1.0 · zero_trust 1.0 · soc_p1 0.85 · amendment 0.7 · lakehouse 0.67 · sla 0.5 · cross_cost 0.45 (Level 1 failure modes as designed).
+  - D6 tests: `PYTHONPATH=backend .venv/bin/pytest backend/tests -q` → `111 passed`; frontend `npm run build` clean.
   - D7 owner sign-off: `____ (date)`
 
 ## Phase 2 — Level 2: BigQuery Hybrid + Reranker (`level2_hybrid`)

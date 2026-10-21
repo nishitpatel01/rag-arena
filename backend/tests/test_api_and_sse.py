@@ -85,7 +85,7 @@ def test_replay_battle_stream_forwards_recorded_stage_events_in_v3_envelope() ->
     assert len(answer["citations"]) == 2 and "bbox" in answer["citations"][0]
     evaluated = next(e for e in events if e["event"] == "eval_complete")
     assert set(evaluated["metrics"]) == {"groundedness", "qa_relevance", "context_precision"}
-    assert evaluated["judge_model"] == "gemini-4-argon" and evaluated["reference_answer_used"] is False
+    assert evaluated["judge_model"] == "claude-opus-5-5" and evaluated["reference_answer_used"] is False
     assert isinstance(evaluated["duration_ms"], int)
     assert kinds.index("answer_complete") < kinds.index("eval_complete") < kinds.index("battle_complete")
     assert events[-1] == {"event": "battle_complete", "run_id": run_id, "engines_completed": ["level1_naive"], "engines_failed": [], "ts": events[-1]["ts"]}

@@ -21,6 +21,13 @@ DEFAULT_JUDGE_MAX_TOKENS: int = 1024
 DEFAULT_JUDGE_TIMEOUT_SECONDS: int = 60
 _JUDGE_MAX_TOKENS_RANGE: tuple[int, int] = (64, 8192)
 _JUDGE_TIMEOUT_RANGE: tuple[int, int] = (5, 120)
+# Synthesis via a selectable catalog model (app.core.models_catalog); Claude rawPredict needs an explicit max_tokens.
+DEFAULT_SYNTHESIS_MAX_TOKENS: int = 4096
+DEFAULT_SYNTHESIS_TIMEOUT_SECONDS: int = 90
+_SYNTHESIS_MAX_TOKENS_RANGE: tuple[int, int] = (256, 32768)
+_SYNTHESIS_TIMEOUT_RANGE: tuple[int, int] = (5, 120)
+MODEL_LOCATION_ENV_PREFIX: str = "MODEL_LOCATION_"
+_MAX_MODEL_LOCATION_OVERRIDES: int = 32
 _JUDGE_MODEL_PREFIX: dict[str, str] = {"anthropic_vertex": "claude-", "gemini": "gemini-"}
 # Publisher model ids: lowercase letters, digits, dots, dashes, underscores, optional @version (≤ 128 chars).
 _MODEL_ID_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,110}(?:@[a-z0-9._-]{1,16})?")
@@ -118,7 +125,18 @@ class ArenaSettings:
     judge_location: str = DEFAULT_JUDGE_LOCATION
     judge_max_tokens: int = DEFAULT_JUDGE_MAX_TOKENS
     judge_timeout_seconds: int = DEFAULT_JUDGE_TIMEOUT_SECONDS
+    synthesis_max_tokens: int = DEFAULT_SYNTHESIS_MAX_TOKENS
+    synthesis_timeout_seconds: int = DEFAULT_SYNTHESIS_TIMEOUT_SECONDS
+    model_verification_file: str = ""
+    # ``MODEL_LOCATION_<ID>`` overrides as (env suffix, location) pairs, e.g. ("CLAUDE_OPUS_5_5", "global").
+    model_locations: tuple[tuple[str, str], ...] = ()
 
+    @property
+    def model_verification_path(self) -> Path:
+        """``data/model_verification.json`` written by ``scripts/verify_models.py`` (override: MODEL_VERIFICATION_FILE)."""
+        if self.model_verification_file.strip():
+            return Path(self.model_verification_file.strip())
+        return _PROJECT_ROOT / "data" / "model_verification.json"
     @property
     def gemini_reasoning_model(self) -> str:
         """Alias for the complex reasoning / agentic model (gemini_pro_model)."""
@@ -161,7 +179,23 @@ class ArenaSettings:
         self._validate_gcp_identity()
         self._validate_v3_gates()
         self._validate_judge()
+        self._validate_synthesis()
 
+    def _validate_synthesis(self) -> None:
+        """Bounds for selectable-model synthesis and the MODEL_LOCATION_<ID> overrides."""
+        for name, value, (low, high) in (
+            ("SYNTHESIS_MAX_TOKENS", self.synthesis_max_tokens, _SYNTHESIS_MAX_TOKENS_RANGE),
+            ("SYNTHESIS_TIMEOUT_SECONDS", self.synthesis_timeout_seconds, _SYNTHESIS_TIMEOUT_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if not isinstance(self.model_locations, tuple) or len(self.model_locations) > _MAX_MODEL_LOCATION_OVERRIDES:
+            raise ValueError(f"model_locations must be a tuple of at most {_MAX_MODEL_LOCATION_OVERRIDES} pairs")
+        for pair in self.model_locations:
+            if not (isinstance(pair, tuple) and len(pair) == 2 and all(isinstance(p, str) for p in pair)):
+                raise TypeError(f"model_locations entries must be (suffix, location) string pairs, got {pair!r}")
+            if not re.fullmatch(r"[A-Z0-9_]{1,80}", pair[0]) or not _GCP_IDENTIFIER_RE.fullmatch(pair[1]):
+                raise ValueError(f"invalid {MODEL_LOCATION_ENV_PREFIX}{pair[0]}={pair[1]!r}")
     @property
     def synthesis_models(self) -> tuple[str, ...]:
         """Every model that can write an answer (generation + reasoning/agentic); the judge must be none of them."""
@@ -315,7 +349,27 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         recordings_dir=source.get("RECORDINGS_DIR", "").strip(),
         app_version=source.get("APP_VERSION", "3.0.0").strip() or "3.0.0",
         **_judge_kwargs(source),
+        **_synthesis_kwargs(source),
     )
+
+
+def _synthesis_kwargs(source: Mapping[str, str]) -> dict[str, object]:
+    """SYNTHESIS_* / MODEL_VERIFICATION_FILE / MODEL_LOCATION_<ID> keys → ArenaSettings fields (validated there)."""
+    overrides = sorted(
+        (key[len(MODEL_LOCATION_ENV_PREFIX):].strip(), str(value).strip())
+        for key, value in source.items()
+        if isinstance(key, str) and key.startswith(MODEL_LOCATION_ENV_PREFIX) and str(value).strip()
+    )
+    return {
+        "synthesis_max_tokens": _parse_int(
+            source.get("SYNTHESIS_MAX_TOKENS", str(DEFAULT_SYNTHESIS_MAX_TOKENS)), "SYNTHESIS_MAX_TOKENS"
+        ),
+        "synthesis_timeout_seconds": _parse_int(
+            source.get("SYNTHESIS_TIMEOUT_SECONDS", str(DEFAULT_SYNTHESIS_TIMEOUT_SECONDS)), "SYNTHESIS_TIMEOUT_SECONDS"
+        ),
+        "model_verification_file": source.get("MODEL_VERIFICATION_FILE", "").strip(),
+        "model_locations": tuple(overrides[: _MAX_MODEL_LOCATION_OVERRIDES + 1]),
+    }
 
 
 def _judge_kwargs(source: Mapping[str, str]) -> dict[str, object]:

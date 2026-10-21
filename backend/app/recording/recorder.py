@@ -9,6 +9,7 @@ from typing import Any
 
 from app.core.config import ArenaSettings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.models_catalog import RunModels
 from app.core.telemetry import utc_now_iso
 from app.recording.codec import eval_outcome_to_dict
 from app.recording.redaction import assert_redacted, redact_value, redaction_tokens
@@ -61,6 +62,19 @@ def read_git_sha(repo_root: Path = _PROJECT_ROOT) -> str:
     return "unknown"
 
 
+def _recorded_pair(
+    settings: ArenaSettings, result: EngineResult, evaluation: EvalOutcome | None, models: RunModels | None
+) -> tuple[str, str, str]:
+    """(synthesis, judge, judge_provider) for the header; a selection that contradicts measured usage raises."""
+    if models is None:
+        return settings.gemini_fast_model, settings.judge_model, settings.judge_provider
+    if result.usage.model and result.usage.model != models.synthesis.id:
+        raise ValueError(f"result was synthesized by {result.usage.model}, not the selected {models.synthesis.id}")
+    if evaluation is not None and evaluation.judge_model != models.judge.id:
+        raise ValueError(f"evaluation was judged by {evaluation.judge_model}, not the selected {models.judge.id}")
+    return models.synthesis.id, models.judge.id, models.judge.provider
+
+
 def build_recording(
     *,
     settings: ArenaSettings,
@@ -72,25 +86,33 @@ def build_recording(
     result: EngineResult,
     evaluation: EvalOutcome | None,
     synthetic_dev_fixture: bool = False,
+    models: RunModels | None = None,
 ) -> Recording:
-    """Assemble a Recording with the spec P3 provenance header, redacted of every identity value (spec §10)."""
+    """Assemble a Recording with the spec P3 provenance header, redacted of every identity value (spec §10).
+
+    The header names the (synthesis, judge) pair that actually ran — the selected ``models`` when given (cross-checked
+    against the measured ``result.usage.model`` / ``evaluation.judge_model``), else the settings defaults.
+    """
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
     if not isinstance(result, EngineResult):
         raise TypeError("result must be an EngineResult")
     if not isinstance(events, tuple) or not all(isinstance(e, dict) and "t_rel_ms" in e for e in events):
         raise ValueError("events must be a tuple of emitter event dicts carrying t_rel_ms")
+    synthesis, judge, judge_provider = _recorded_pair(settings, result, evaluation, models)
     header: dict[str, Any] = {
         "format_version": RECORDING_FORMAT_VERSION,
         "recorded_at": utc_now_iso(),
         "project_id": "${GCP_PROJECT_ID}",
         "demo_mode": settings.demo_mode,
+        "synthesis_model": synthesis,
+        "judge_model": judge,
         "model_ids": {
-            "generation": settings.gemini_fast_model,
+            "generation": synthesis,
             "reasoning": settings.gemini_pro_model,
             "embedding": settings.text_embedding_model,
-            "judge": settings.judge_model,
-            "judge_provider": settings.judge_provider,
+            "judge": judge,
+            "judge_provider": judge_provider,
         },
         "git_sha": read_git_sha(),
         "app_version": settings.app_version,

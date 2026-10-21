@@ -80,10 +80,12 @@ def get_access_token(settings: ArenaSettings) -> str:
     return token
 
 
-def get_genai_client(settings: ArenaSettings) -> Any:
-    """Return a cached google.genai Client configured for Vertex AI."""
+def get_genai_client(settings: ArenaSettings, location: str | None = None) -> Any:
+    """Return a cached google.genai Client configured for Vertex AI (``location`` overrides VERTEX_GENAI_LOCATION)."""
     _ensure_live_settings(settings)
-    genai_location = settings.vertex_genai_location.strip() or "global"
+    if location is not None and (not isinstance(location, str) or not location.strip()):
+        raise ValueError("location must be a non-empty string when provided")
+    genai_location = (location or settings.vertex_genai_location).strip() or "global"
     key = (settings.gcp_project_id.strip(), genai_location)
     if key in _GENAI_CLIENTS:
         return _GENAI_CLIENTS[key]

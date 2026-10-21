@@ -67,6 +67,25 @@ PRICE_TABLE: dict[str, ModelPrice] = {
             "regional/multi-region endpoints are priced separately."
         ),
     ),
+    "gemini-3.8-flash": ModelPrice(
+        model="gemini-3.8-flash",
+        input_usd_per_1m=0.75,
+        output_usd_per_1m=3.75,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-10-21",
+        note=(
+            "Introductory global-endpoint rate through 2026-12-31 (standard $1.50 / $7.50 from 2027-01-01); "
+            "output rate includes reasoning tokens."
+        ),
+    ),
+    "claude-fable-5-1": ModelPrice(
+        model="claude-fable-5-1",
+        input_usd_per_1m=10.00,
+        output_usd_per_1m=50.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-10-21",
+        note="Anthropic Claude Fable 5.1 partner model, Global endpoint; regional/multi-region endpoints are $11 / $55.",
+    ),
     "discovery-engine-rank": ModelPrice(
         model="discovery-engine-rank",
         usd_per_1k_requests=1.00,

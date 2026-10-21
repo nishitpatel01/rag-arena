@@ -1,7 +1,7 @@
 """Record → replay round trip (spec §6.4): recordings carry provenance; replay streams them with timing.
 
 ``test_generate_dev_fixture`` builds ``dev_q01`` from a mocked live run into a temp store and checks that the
-committed ``data/recordings/_dev/level1_naive/dev_q01.json`` has the same shape (so it matches what
+committed ``data/recordings/_dev/level1_naive/<synthesis>__<judge>/dev_q01.json`` has the same shape (so it matches what
 ``DEMO_MODE=record`` writes) without rewriting it. Set ``REGENERATE_DEV_FIXTURES=1`` to deliberately refresh the
 committed fixture. It is clearly labelled synthetic.
 """
@@ -38,7 +38,9 @@ from app.recording.store import (
 from fakes import fake_clients, live_settings, run
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEV_FIXTURE = _PROJECT_ROOT / "data" / "recordings" / "_dev" / "level1_naive" / "dev_q01.json"
+PAIR = ("gemini-4-argon", "claude-opus-5-5")
+DEV_FIXTURE = _PROJECT_ROOT / "data" / "recordings" / "_dev" / "level1_naive" / "gemini-4-argon__claude-opus-5-5" / "dev_q01.json"
+_RECORDINGS_ROOT = DEV_FIXTURE.parents[3]
 _DEV_QUERY = "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?"
 
 
@@ -82,9 +84,9 @@ def test_generate_dev_fixture_from_mocked_live_run() -> None:
         events=emitter.events, result=result, evaluation=outcome, synthetic_dev_fixture=True,
     )
     regenerate = os.environ.get("REGENERATE_DEV_FIXTURES", "").strip() == "1"
-    root = DEV_FIXTURE.parents[2] if regenerate else Path(tempfile.mkdtemp(prefix="rag_arena_devfix_"))
+    root = _RECORDINGS_ROOT if regenerate else Path(tempfile.mkdtemp(prefix="rag_arena_devfix_"))
     path = record_run(RecordingStore(root, allow_dev_fixtures=True), recording)
-    assert path == root / "_dev" / "level1_naive" / "dev_q01.json" and path.is_file()
+    assert path == root / "_dev" / "level1_naive" / "gemini-4-argon__claude-opus-5-5" / "dev_q01.json" and path.is_file()
     doc = json.loads(path.read_text(encoding="utf-8"))
     assert doc["header"]["synthetic_dev_fixture"] is True
     for key in ("recorded_at", "project_id", "demo_mode", "model_ids", "git_sha", "app_version"):
@@ -110,7 +112,7 @@ def test_recording_roundtrip_to_tmp_store_and_replay_with_timing() -> None:
         events=emitter.events, result=result, evaluation=outcome,
     )
     record_run(store, recording)
-    loaded = store.load("level1_naive", "q_roundtrip")
+    loaded = store.load("level1_naive", "q_roundtrip", pair=PAIR)
     assert loaded.header["git_sha"] == read_git_sha()
     engine_events, eval_events = split_engine_and_eval_events(loaded.events)
     assert {e["stage"] for e in eval_events} == {"evaluate"} and len(engine_events) == 8
@@ -135,31 +137,37 @@ def test_recording_roundtrip_to_tmp_store_and_replay_with_timing() -> None:
     assert [s.stage for s in replayed.stage_log] == ["query_prep", "embed_query", "retrieve", "synthesize"]
 
     eval_outcome = run(
-        replay_evaluation(store, engine_id="level1_naive", question_id="q_roundtrip", emitter=replay_emitter, replay_speed=50.0)
+        replay_evaluation(
+            store, engine_id="level1_naive", question_id="q_roundtrip", emitter=replay_emitter, replay_speed=50.0, pair=PAIR
+        )
     )
     assert eval_outcome.metrics == outcome.metrics and eval_outcome.judge_model == outcome.judge_model
     assert replay_emitter.events[-1]["stage"] == "evaluate"
 
 
 def test_replay_refuses_unknown_questions_and_dev_fixtures_without_opt_in() -> None:
-    root = DEV_FIXTURE.parents[2]
+    root = _RECORDINGS_ROOT
     strict = RecordingStore(root, allow_dev_fixtures=False)
     with pytest.raises(RecordingRefused):
-        strict.load("level1_naive", "dev_q01")
+        strict.load("level1_naive", "dev_q01", pair=PAIR)
     with pytest.raises(RecordingNotFound):
-        strict.load("level1_naive", "q_does_not_exist")
+        strict.load("level1_naive", "q_does_not_exist", pair=PAIR)
     engine = ReplayRAGEngine(
         engine_id="level1_naive", engine_label="L1", stages=Level1NaiveEngine.stages, tier_profile="naive",
         settings=ArenaSettings(demo_mode="replay", recordings_dir=str(root)),
     )
     emitter = RecordingStageEmitter(run_id="r", engine="level1_naive")
-    with pytest.raises(ReplayUnavailableError, match="No recording for this question in replay mode"):
+    try:
         run(engine.run_query("adhoc question", question_id="q_missing", solicitation_filter=None, emitter=emitter))
+    except ReplayUnavailableError as exc:
+        assert str(exc) == "No recording for question q_missing with synthesis=gemini-4-argon, judge=claude-opus-5-5 in replay mode"
+    else:
+        raise AssertionError("DID NOT RAISE ReplayUnavailableError")
     with pytest.raises(ReplayUnavailableError, match="question_id missing"):
         run(engine.run_query("adhoc question", question_id=None, solicitation_filter=None, emitter=emitter))
     assert emitter.events == ()
     permissive = RecordingStore(root, allow_dev_fixtures=True)
-    assert permissive.load("level1_naive", "dev_q01").is_dev_fixture is True
+    assert permissive.load("level1_naive", "dev_q01", pair=PAIR).is_dev_fixture is True
 
 
 def test_recording_documents_are_validated() -> None:
@@ -171,7 +179,9 @@ def test_recording_documents_are_validated() -> None:
              "events": [{"event": "stage_started", "t_rel_ms": 5}, {"event": "stage_completed", "t_rel_ms": 1}], "result": {}}
         )
     with pytest.raises(ValueError):
-        RecordingStore(Path("/tmp")).path_for("../etc", "q")
+        RecordingStore(Path("/tmp")).path_for("../etc", "q", pair=PAIR)
+    with pytest.raises(ValueError):
+        RecordingStore(Path("/tmp")).path_for("level1_naive", "q", pair=("../x", "claude-opus-5-5"))
 
 
 def test_pytest_run_leaves_the_committed_dev_fixture_untouched() -> None:

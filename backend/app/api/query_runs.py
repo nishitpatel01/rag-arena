@@ -59,6 +59,9 @@ def build_query_run_row(
         "citations": [c.to_dict() for c in result.citations[:_MAX_CITATIONS]],
         "demo_mode": settings.demo_mode,
         "git_sha": read_git_sha(),
+        # The pair that actually ran (measured provenance, not the request): synthesis from usage, judge from outcome.
+        "synthesis_model": result.usage.model or None,
+        "judge_model": outcome.judge_model or None,
     }
 
 

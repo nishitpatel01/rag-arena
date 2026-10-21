@@ -3,6 +3,12 @@
 Descriptors describe which GCP services exist in a level and how they connect. They are pure design
 metadata: no timings, scores, or results. All dynamic state on the diagram comes from SSE stage events
 keyed by the canonical ``stage_ids`` below.
+
+Model selection: the ``llm`` (synthesis) and ``judge`` node ``service`` labels are the settings-resolved
+DEFAULTS (``GEMINI_FAST_MODEL`` / ``JUDGE_MODEL``). Users may pick other catalog models per run
+(``app.core.models_catalog``), so the per-run truth is the ``service`` (``"Vertex AI · <label>"``) and
+``request.model``/``request.provider`` carried by that run's ``synthesize`` / ``evaluate`` ``stage_started``
+events — the frontend prefers those over the descriptor label once a run is in progress.
 """
 
 from __future__ import annotations

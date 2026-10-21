@@ -1,4 +1,5 @@
-"""Level 1: Naive Vector RAG — BigQuery VECTOR_SEARCH (COSINE, top-5) over 360-char windows + gemini-4-argon.
+"""Level 1: Naive Vector RAG — BigQuery VECTOR_SEARCH (COSINE, top-5) over 360-char windows + the run's selected
+synthesis model (catalog: Gemini via google-genai or Claude via Vertex rawPredict; default GEMINI_FAST_MODEL).
 
 Every stage (``query_prep → embed_query → retrieve → synthesize``) is emitted from inside this engine
 at the moment it starts/ends (spec P1). Replay is served by ``ReplayRAGEngine``; this class runs only
@@ -14,9 +15,11 @@ from app.core.config import ArenaSettings
 from app.core.embeddings import QUERY_TASK_TYPE, embed_config, format_query_for_embedding, single_vector
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
+from app.core.models_catalog import ModelSpec, spec_for_settings_model
 from app.core.pricing import cost_from_usage
 from app.core.telemetry import StageEmitter
 from app.engines.base import BaseRAGEngine
+from app.engines.synthesis import GeminiSynthesizer, build_prompt, build_synthesizer
 from app.ingestion.bq_indexer import _validate_identifier
 
 _TOP_K = 5
@@ -135,21 +138,6 @@ def _embedding_token_count(embed_response: Any) -> int | None:
     return int(count) if isinstance(count, (int, float)) else None
 
 
-def _usage_from_response(gen_resp: Any, model: str, embedding_tokens: int, embedding_model: str) -> TokenUsage:
-    """Build TokenUsage strictly from ``response.usage_metadata`` (fail loud when absent)."""
-    meta = getattr(gen_resp, "usage_metadata", None)
-    if meta is None:
-        raise ValueError("generate_content response carries no usage_metadata; cannot compute measured cost")
-    return TokenUsage(
-        prompt_tokens=int(getattr(meta, "prompt_token_count", 0) or 0),
-        output_tokens=int(getattr(meta, "candidates_token_count", 0) or 0),
-        thinking_tokens=int(getattr(meta, "thoughts_token_count", 0) or 0),
-        embedding_tokens=embedding_tokens,
-        model=model,
-        embedding_model=embedding_model,
-    )
-
-
 class Level1NaiveEngine(BaseRAGEngine):
     """Level 1 Naive Vector RAG Engine: 360-char sliding windows + dense COSINE VECTOR_SEARCH."""
 
@@ -158,8 +146,14 @@ class Level1NaiveEngine(BaseRAGEngine):
     tier_profile: str = "naive"
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "synthesize", "evaluate")
 
-    def __init__(self, settings: ArenaSettings | None = None) -> None:
+    def __init__(self, settings: ArenaSettings | None = None, *, synthesis_model: ModelSpec | None = None) -> None:
+        """``synthesis_model`` is the run's selected catalog model; omitted → the catalog entry for GEMINI_FAST_MODEL."""
         super().__init__(settings=settings)
+        if synthesis_model is not None and not isinstance(synthesis_model, ModelSpec):
+            raise TypeError("synthesis_model must be a ModelSpec or None")
+        self.synthesis_model: ModelSpec = synthesis_model or spec_for_settings_model(
+            self.settings, self.settings.gemini_fast_model
+        )
 
     async def _query_prep(self, query: str, emitter: StageEmitter) -> str:
         async with self.stage(
@@ -226,43 +220,45 @@ class Level1NaiveEngine(BaseRAGEngine):
         return chunks
 
     async def _synthesize(
-        self, query: str, chunks: list[DocumentChunk], genai_client: Any, emitter: StageEmitter, embedding_tokens: int
+        self, query: str, chunks: list[DocumentChunk], emitter: StageEmitter, embedding_tokens: int
     ) -> tuple[str, TokenUsage]:
-        model = self.settings.gemini_fast_model
-        thinking = self.settings.gemini_thinking_level.upper()
+        """Answer with the run's selected synthesis model (Gemini or Claude) through its provider adapter."""
+        spec = self.synthesis_model
+        synthesizer = build_synthesizer(spec, self.settings)
         context_block = "\n\n".join(
             f"[{c.doc_name} p.{c.page_number}]: {c.content[:_MAX_CONTEXT_CHUNK_CHARS]}" for c in chunks
         )
-        prompt = (
-            "Answer the procurement question using ONLY the retrieved context chunks below.\n\n"
-            f"Context:\n{context_block}\n\nQuestion: {query}"
-        )
+        prompt = build_prompt(context_block, query)
         async with self.stage(
             emitter,
             "synthesize",
             label="Answer synthesis",
-            service=f"Vertex AI · {model}",
-            request={"model": model, "thinking_level": thinking, "prompt": prompt, "context_chunks": len(chunks)},
+            service=f"Vertex AI · {spec.label}",
+            request=synthesizer.request_summary(prompt, len(chunks)),
         ) as ctx:
-            resp = await self.blocking(
-                genai_client.models.generate_content,
-                model=model,
-                contents=prompt,
-                config={"thinking_config": {"thinking_level": thinking}},
+            out = await self.blocking(synthesizer.generate, prompt)
+            usage = TokenUsage(
+                prompt_tokens=out.prompt_tokens,
+                output_tokens=out.output_tokens,
+                thinking_tokens=out.thinking_tokens,
+                embedding_tokens=embedding_tokens,
+                model=spec.id,
+                embedding_model=self.settings.text_embedding_model,
             )
-            answer = str(getattr(resp, "text", "") or "").strip()
-            if not answer:
-                raise ValueError("generate_content returned an empty answer")
-            usage = _usage_from_response(resp, model, embedding_tokens, self.settings.text_embedding_model)
             ctx.payload = {
-                "model": model,
-                "thinking_level": thinking,
+                "model": spec.id,
+                "provider": spec.provider,
                 "prompt_tokens": usage.prompt_tokens,
                 "output_tokens": usage.output_tokens,
                 "thinking_tokens": usage.thinking_tokens,
-                "answer": answer,
+                "stop_reason": out.stop_reason,
+                "response_id": out.response_id,
+                "attempts": out.attempts,
+                "answer": out.answer,
             }
-        return answer, usage
+            if isinstance(synthesizer, GeminiSynthesizer):
+                ctx.payload["thinking_level"] = synthesizer.thinking_level
+        return out.answer, usage
 
     async def run_query(
         self,
@@ -287,7 +283,7 @@ class Level1NaiveEngine(BaseRAGEngine):
         prepared = await self._query_prep(cleaned, emitter)
         vector, embedding_tokens = await self._embed_query(prepared, genai_client, emitter)
         chunks = await self._retrieve(vector, solicitation_filter, bq_client, emitter)
-        answer, usage = await self._synthesize(cleaned, chunks, genai_client, emitter, embedding_tokens)
+        answer, usage = await self._synthesize(cleaned, chunks, emitter, embedding_tokens)
 
         return EngineResult(
             engine_id=self.engine_id,
@@ -297,7 +293,7 @@ class Level1NaiveEngine(BaseRAGEngine):
             retrieved_chunks=chunks,
             agent_steps=[],
             latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
-            cost_usd=cost_from_usage(usage, self.settings.gemini_fast_model),
+            cost_usd=cost_from_usage(usage, self.synthesis_model.id),
             stage_log=self.stage_log_of(emitter),
             usage=usage,
             flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source="pymupdf"),

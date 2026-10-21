@@ -1,4 +1,9 @@
-"""Recording store: ``data/recordings/<engine>/<question_id>.json`` with a provenance header (spec P3/P6).
+"""Recording store: ``data/recordings/<engine>/<synthesis_model>__<judge_model>/<question_id>.json`` (spec P3/P6).
+
+Recordings are keyed by the (synthesis, judge) model pair that produced them: replay can only play a pair that
+was recorded live, and the leaderboard never averages across pairs. The pair is read from the header
+(``synthesis_model``/``judge_model``, falling back to ``model_ids.generation``/``model_ids.judge`` for recordings
+made before model selection existed) and must match the directory it was loaded from.
 
 Layout of one recording document::
 
@@ -33,6 +38,7 @@ _MAX_RECORDING_BYTES = 8 * 1024 * 1024
 _MAX_EVENTS = 2000
 _MAX_LISTED_FILES = 2000
 DEV_FIXTURES_DIRNAME = "_dev"
+PAIR_SEPARATOR = "__"
 RECORDING_FORMAT_VERSION = 1
 
 
@@ -74,6 +80,16 @@ class Recording:
     def is_dev_fixture(self) -> bool:
         return bool(self.header.get("synthetic_dev_fixture", False))
 
+    @property
+    def pair(self) -> tuple[str, str]:
+        """(synthesis_model, judge_model) that produced this recording."""
+        ids = self.header.get("model_ids") if isinstance(self.header.get("model_ids"), dict) else {}
+        synthesis = self.header.get("synthesis_model") or ids.get("generation")
+        judge = self.header.get("judge_model") or ids.get("judge")
+        if not isinstance(synthesis, str) or not synthesis or not isinstance(judge, str) or not judge:
+            raise RecordingInvalid(f"Recording {self.path} header names no synthesis/judge model pair")
+        return synthesis, judge
+
     def to_json_dict(self) -> dict[str, Any]:
         return {"header": self.header, "events": list(self.events), "result": self.result, "evaluation": self.evaluation}
 
@@ -83,6 +99,17 @@ def validate_recording_id(value: str, name: str) -> str:
     if not isinstance(value, str) or not _SAFE_ID_RE.match(value):
         raise ValueError(f"{name} must match {_SAFE_ID_RE.pattern}, got {value!r}")
     return value
+
+
+def pair_dirname(pair: tuple[str, str]) -> str:
+    """``(synthesis, judge)`` → ``<synthesis>__<judge>`` (both validated as safe path components)."""
+    if not isinstance(pair, tuple) or len(pair) != 2:
+        raise ValueError(f"pair must be a (synthesis_model, judge_model) tuple, got {pair!r}")
+    synthesis = validate_recording_id(pair[0], "synthesis_model")
+    judge = validate_recording_id(pair[1], "judge_model")
+    if PAIR_SEPARATOR in synthesis or PAIR_SEPARATOR in judge:
+        raise ValueError(f"model ids must not contain '{PAIR_SEPARATOR}'")
+    return f"{synthesis}{PAIR_SEPARATOR}{judge}"
 
 
 def validate_recording_document(doc: Any, path: str = "") -> Recording:
@@ -125,11 +152,11 @@ class RecordingStore:
         self.root = root
         self.allow_dev_fixtures = allow_dev_fixtures
 
-    def path_for(self, engine: str, question_id: str, *, dev: bool = False) -> Path:
+    def path_for(self, engine: str, question_id: str, *, pair: tuple[str, str], dev: bool = False) -> Path:
         engine_id = validate_recording_id(engine, "engine")
         qid = validate_recording_id(question_id, "question_id")
         base = self.root / DEV_FIXTURES_DIRNAME if dev else self.root
-        return base / engine_id / f"{qid}.json"
+        return base / engine_id / pair_dirname(pair) / f"{qid}.json"
 
     def _read(self, path: Path) -> Recording:
         size = path.stat().st_size
@@ -141,31 +168,39 @@ class RecordingStore:
             raise RecordingInvalid(f"Recording {path} is not valid JSON: {exc}") from exc
         return validate_recording_document(doc, path=str(path))
 
-    def load(self, engine: str, question_id: str) -> Recording:
-        """Load a recording; dev fixtures are only consulted/accepted when ``allow_dev_fixtures`` is True."""
-        primary = self.path_for(engine, question_id)
+    def _read_pair(self, path: Path, pair: tuple[str, str]) -> Recording:
+        rec = self._read(path)
+        if rec.pair != pair:
+            raise RecordingInvalid(f"Recording {path} was produced by {rec.pair}, not the requested pair {pair}")
+        return rec
+
+    def load(self, engine: str, question_id: str, *, pair: tuple[str, str]) -> Recording:
+        """Load the recording for (engine, pair, question); dev fixtures only when ``allow_dev_fixtures`` is True."""
+        primary = self.path_for(engine, question_id, pair=pair)
         if primary.is_file():
-            rec = self._read(primary)
+            rec = self._read_pair(primary, pair)
             if rec.is_dev_fixture and not self.allow_dev_fixtures:
                 raise RecordingRefused(f"{primary} is a synthetic dev fixture; set ALLOW_DEV_FIXTURES=1 to replay it")
             return rec
-        dev_path = self.path_for(engine, question_id, dev=True)
+        dev_path = self.path_for(engine, question_id, pair=pair, dev=True)
         if dev_path.is_file():
             if not self.allow_dev_fixtures:
                 raise RecordingRefused(f"Only a synthetic dev fixture exists for {engine}/{question_id}; set ALLOW_DEV_FIXTURES=1")
-            rec = self._read(dev_path)
+            rec = self._read_pair(dev_path, pair)
             if not rec.is_dev_fixture:
                 raise RecordingInvalid(f"{dev_path} lives under {DEV_FIXTURES_DIRNAME}/ but lacks synthetic_dev_fixture=true")
             return rec
-        raise RecordingNotFound(f"No recording for question '{question_id}' and engine '{engine}' under {self.root}")
+        raise RecordingNotFound(
+            f"No recording for question '{question_id}' with synthesis={pair[0]}, judge={pair[1]} and engine '{engine}'"
+        )
 
     def save(self, recording: Recording, *, dev: bool = False) -> Path:
-        """Atomically write a recording (tmp file + ``os.replace``)."""
+        """Atomically write a recording (tmp file + ``os.replace``) under its own (synthesis, judge) pair."""
         if not isinstance(recording, Recording):
             raise TypeError("recording must be a Recording")
         if dev and not recording.is_dev_fixture:
             raise ValueError("dev recordings must set header.synthetic_dev_fixture = true")
-        target = self.path_for(recording.engine, recording.question_id, dev=dev)
+        target = self.path_for(recording.engine, recording.question_id, pair=recording.pair, dev=dev)
         target.parent.mkdir(parents=True, exist_ok=True)
         tmp = target.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(recording.to_json_dict(), indent=2, sort_keys=False), encoding="utf-8")
@@ -185,9 +220,21 @@ class RecordingStore:
             out.append(self._read(path))
         return out
 
+    def recorded_pairs(self) -> list[dict[str, Any]]:
+        """``[{engine, synthesis_model, judge_model, question_ids}]`` — what replay can play (dev only if allowed)."""
+        grouped: dict[tuple[str, str, str], set[str]] = {}
+        for rec in self.list_recordings(include_dev=self.allow_dev_fixtures):
+            synthesis, judge = rec.pair
+            grouped.setdefault((rec.engine, synthesis, judge), set()).add(rec.question_id)
+        return [
+            {"engine": engine, "synthesis_model": synthesis, "judge_model": judge, "question_ids": sorted(qids)}
+            for (engine, synthesis, judge), qids in sorted(grouped.items())
+        ]
+
 
 __all__ = [
     "DEV_FIXTURES_DIRNAME",
+    "PAIR_SEPARATOR",
     "RECORDING_FORMAT_VERSION",
     "Recording",
     "RecordingError",
@@ -195,6 +242,7 @@ __all__ = [
     "RecordingNotFound",
     "RecordingRefused",
     "RecordingStore",
+    "pair_dirname",
     "validate_recording_document",
     "validate_recording_id",
 ]

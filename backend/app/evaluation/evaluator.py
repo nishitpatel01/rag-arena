@@ -1,8 +1,10 @@
 """RAG Triad evaluation (spec §6.5): the LLM judge is the ONLY source of metrics.
 
-* ``live``/``record``: the configured judge (``JUDGE_PROVIDER``; default Claude Opus 5.5 on Vertex AI, which must
-  differ from every synthesis model) scores the answer; see ``app.evaluation.judges``.
-* ``replay``: the recorded judge outcome is replayed (``replay_evaluation``); nothing is re-scored locally.
+* ``live``/``record``: the run's selected judge model (catalog ``RunModels.judge``; default ``JUDGE_MODEL``, Claude
+  Opus 5.5 on Vertex AI) scores the answer; it always differs from the run's synthesis model. Provider-agnostic:
+  a Gemini judge may grade a Claude answer and vice versa. See ``app.evaluation.judges``.
+* ``replay``: the recorded judge outcome of the selected (synthesis, judge) pair is replayed
+  (``replay_evaluation``); nothing is re-scored locally.
 
 There is no token-overlap or heuristic scorer, and no fallback judge: a judge failure fails the ``evaluate``
 stage (``stage_failed`` → ``engine_error``).
@@ -18,15 +20,18 @@ import time
 
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.models_catalog import ModelSpec, RunModels
 from app.core.pricing import judge_cost_usd
 from app.core.telemetry import StageEmitter
-from app.engines.replay_engine import recording_store_for, replay_evaluation
+from app.engines.replay_engine import recording_store_for, replay_evaluation, replay_pair
 from app.evaluation.judges import (
     MAX_RATIONALE_CHARS,
+    PROVIDER_ANTHROPIC_VERTEX,
     Judge,
     JudgeResponseError,
     build_judge,
     judge_service_label,
+    judge_service_label_for,
 )
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -137,13 +142,15 @@ def evaluate_engine_result(
     )
 
 
-def _evaluate_request(settings: ArenaSettings, has_reference: bool) -> dict[str, object]:
+def _evaluate_request(judge: Judge, settings: ArenaSettings, has_reference: bool) -> dict[str, object]:
     """The judge request summary exactly as sent (Claude: no temperature; Gemini: temperature 0, thinking LOW)."""
-    is_claude = settings.judge_provider == "anthropic_vertex"
+    is_claude = judge.provider == PROVIDER_ANTHROPIC_VERTEX
     request: dict[str, object] = {
-        "judge_provider": settings.judge_provider,
-        "judge_model": settings.judge_model,
-        "judge_location": settings.judge_location if is_claude else settings.vertex_genai_location,
+        "model": judge.model,
+        "provider": judge.provider,
+        "judge_provider": judge.provider,
+        "judge_model": judge.model,
+        "judge_location": judge.location,
         "max_tokens": settings.judge_max_tokens,
         "reference_answer_used": has_reference,
     }
@@ -167,6 +174,13 @@ def _evaluate_payload(outcome: EvalOutcome) -> dict[str, object]:
     }
 
 
+def _judge_for_run(settings: ArenaSettings, judge_spec: ModelSpec | None) -> tuple[Judge, str]:
+    """(judge, evaluate-stage service label) for the run's selected judge model, else the JUDGE_* settings judge."""
+    if judge_spec is None:
+        return build_judge(settings), judge_service_label(settings)
+    return build_judge(settings, judge_spec), judge_service_label_for(judge_spec.label)
+
+
 async def run_evaluation(
     query: str,
     result: EngineResult,
@@ -174,10 +188,13 @@ async def run_evaluation(
     question_id: str | None,
     settings: ArenaSettings,
     emitter: StageEmitter,
+    models: RunModels | None = None,
 ) -> EvalOutcome:
-    """Emit the ``evaluate`` stage around the judge (live/record) or replay the recorded judge (replay)."""
+    """Emit the ``evaluate`` stage around the run's judge (live/record) or replay the recorded pair's judge."""
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
+    if models is not None and not isinstance(models, RunModels):
+        raise TypeError("models must be a RunModels or None")
     if settings.demo_mode == "replay":
         return await replay_evaluation(
             recording_store_for(settings),
@@ -185,16 +202,17 @@ async def run_evaluation(
             question_id=question_id,
             emitter=emitter,
             replay_speed=settings.replay_speed,
+            pair=replay_pair(settings, models),
         )
+    if models is not None and result.usage.model and result.usage.model == models.judge.id:
+        raise ValueError(f"judge model {models.judge.id} also synthesized this answer; an LLM must not grade itself")
+    judge, service = _judge_for_run(settings, models.judge if models else None)
     reference = lookup_reference_answer(question_id)
     handle = await emitter.started(
-        "evaluate",
-        label="LLM-as-a-judge",
-        service=judge_service_label(settings),
-        request=_evaluate_request(settings, bool(reference)),
+        "evaluate", label="LLM-as-a-judge", service=service, request=_evaluate_request(judge, settings, bool(reference))
     )
     try:
-        outcome = await asyncio.to_thread(evaluate_engine_result, query, result, reference, settings)
+        outcome = await asyncio.to_thread(evaluate_engine_result, query, result, reference, settings, judge)
     except BaseException as exc:
         await emitter.failed(handle, error=exc)
         raise

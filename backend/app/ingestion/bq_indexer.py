@@ -107,8 +107,15 @@ CREATE TABLE IF NOT EXISTS `{proj}.{dataset}.query_runs` (
   answer STRING,
   citations JSON,
   demo_mode STRING,
-  git_sha STRING
+  git_sha STRING,
+  synthesis_model STRING,
+  judge_model STRING
 );
+
+-- 1d. Columns added after first deploy (model selection): added in place on the existing table.
+ALTER TABLE `{proj}.{dataset}.query_runs`
+  ADD COLUMN IF NOT EXISTS synthesis_model STRING,
+  ADD COLUMN IF NOT EXISTS judge_model STRING;
 """
 
 

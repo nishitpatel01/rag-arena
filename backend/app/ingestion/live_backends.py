@@ -73,6 +73,7 @@ _QUERY_RUN_SCHEMA: tuple[tuple[str, str, str], ...] = (
     ("cost_usd", "FLOAT64", "NULLABLE"), ("groundedness", "FLOAT64", "NULLABLE"), ("qa_relevance", "FLOAT64", "NULLABLE"),
     ("context_precision", "FLOAT64", "NULLABLE"), ("stage_log", "JSON", "NULLABLE"), ("answer", "STRING", "NULLABLE"),
     ("citations", "JSON", "NULLABLE"), ("demo_mode", "STRING", "NULLABLE"), ("git_sha", "STRING", "NULLABLE"),
+    ("synthesis_model", "STRING", "NULLABLE"), ("judge_model", "STRING", "NULLABLE"),
 )
 
 
@@ -215,7 +216,8 @@ class BigQueryLiveLoader:
             ) from exc
 
     def ensure_schema(self) -> None:
-        """CREATE TABLE IF NOT EXISTS for chunks/ingest_runs/query_runs — never replaces or drops."""
+        """CREATE TABLE IF NOT EXISTS for chunks/ingest_runs/query_runs + ``ALTER TABLE … ADD COLUMN IF NOT EXISTS``
+        for columns added later (query_runs.synthesis_model/judge_model) — never replaces or drops."""
         self._query(build_tables_ddl(self._project, self._dataset, self._table))
 
     def _load_json(self, rows: list[dict[str, Any]], table_fqn: str, schema: tuple[tuple[str, str, str], ...]) -> int:
@@ -451,8 +453,11 @@ class LiveQueryRunWriter:
         return self._loader is not None
 
     def write_query_run(self, row: dict[str, Any]) -> None:
+        """First write runs ``ensure_schema`` once (adds new query_runs columns in place), then appends the row."""
         if self._loader is None:
-            self._loader = BigQueryLiveLoader(self._settings)
+            loader = BigQueryLiveLoader(self._settings)
+            loader.ensure_schema()
+            self._loader = loader
         self._loader.write_query_run(row)
 
 

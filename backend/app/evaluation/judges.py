@@ -20,41 +20,45 @@ import re
 import time
 from typing import Any, Callable, Protocol
 
-import httpx
+import httpx  # noqa: F401 - tests patch ``app.evaluation.judges.httpx.post``; the call lives in core.anthropic_vertex
 
+from app.core.anthropic_vertex import (
+    ANTHROPIC_VERTEX_VERSION,
+    BACKOFF_BASE_SECONDS,
+    MAX_ATTEMPTS,
+    RETRYABLE_STATUS,
+    AnthropicVertexClient,
+    RawPredictHTTPError,
+    message_text,
+    message_usage,
+    redact_project,
+)
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_access_token, get_genai_client
 from app.core.models import EvalMetrics
 
-ANTHROPIC_VERTEX_VERSION = "vertex-2023-10-16"
 METRIC_KEYS: tuple[str, ...] = ("groundedness", "qa_relevance", "context_precision")
 JUDGE_KEYS: tuple[str, ...] = (*METRIC_KEYS, "rationale")
-RETRYABLE_STATUS: frozenset[int] = frozenset({429, 500, 503})
-MAX_ATTEMPTS = 3
-BACKOFF_BASE_SECONDS = 1.0
 MAX_RATIONALE_CHARS = 600
 _MAX_RESPONSE_TEXT_CHARS = 20_000
 _MAX_JSON_CANDIDATES = 50
-_MAX_ERROR_BODY_CHARS = 500
-_MIN_ATTEMPT_SECONDS = 1.0
 _CLAUDE_ID_RE = re.compile(r"claude-([a-z]+)-(\d+)(?:-(\d+))?")
 _GEMINI_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {**{k: {"type": "number"} for k in METRIC_KEYS}, "rationale": {"type": "string"}},
     "required": list(JUDGE_KEYS),
 }
+# Catalog provider ids (app.core.models_catalog); the legacy JUDGE_PROVIDER value "gemini" maps to "vertex_gemini".
+PROVIDER_ANTHROPIC_VERTEX = "anthropic_vertex"
+PROVIDER_VERTEX_GEMINI = "vertex_gemini"
 
 
 class JudgeResponseError(ValueError):
     """Raised when the judge returns something that is not a single valid metric object."""
 
 
-class JudgeHTTPError(RuntimeError):
+class JudgeHTTPError(RawPredictHTTPError):
     """Raised when the judge endpoint answers with a non-2xx status (after bounded retries if retryable)."""
-
-    def __init__(self, status_code: int, message: str) -> None:
-        super().__init__(message)
-        self.status_code = status_code
 
 
 @dataclass(frozen=True)
@@ -142,45 +146,61 @@ def judge_service_label(settings: ArenaSettings) -> str:
     return f"Vertex AI · {judge_display_name(settings.judge_model)} (judge)"
 
 
+def judge_service_label_for(label: str) -> str:
+    """Per-run ``evaluate`` stage service label for a selected catalog model label (e.g. ``Claude Opus 5.5``)."""
+    if not isinstance(label, str) or not label.strip():
+        raise ValueError("label must be a non-empty string")
+    return f"Vertex AI · {label.strip()} (judge)"
+
+
 def _redact(message: str, settings: ArenaSettings) -> str:
-    project = settings.gcp_project_id.strip()
-    return message.replace(project, "${GCP_PROJECT_ID}") if project else message
+    return redact_project(message, settings.gcp_project_id)
 
 
 # ---------------------------------------------------------------- Claude on Vertex AI (rawPredict)
 
 
 class AnthropicVertexJudge:
-    """Claude judge over Vertex AI ``publishers/anthropic/models/<model>:rawPredict`` (google-auth + httpx)."""
+    """Claude judge over Vertex AI ``publishers/anthropic/models/<model>:rawPredict`` (google-auth + httpx).
 
-    provider = "anthropic_vertex"
+    ``model``/``location`` select a catalog model per run; when omitted they come from ``JUDGE_MODEL`` /
+    ``JUDGE_LOCATION`` (and ``JUDGE_PROVIDER`` must then be ``anthropic_vertex``).
+    """
+
+    provider = PROVIDER_ANTHROPIC_VERTEX
 
     def __init__(
         self,
         settings: ArenaSettings,
         *,
+        model: str | None = None,
+        location: str | None = None,
         token_provider: Callable[[], str] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         if not isinstance(settings, ArenaSettings):
             raise TypeError("settings must be an ArenaSettings instance")
-        if settings.judge_provider != self.provider:
+        if model is None and settings.judge_provider != self.provider:
             raise ValueError(f"AnthropicVertexJudge requires JUDGE_PROVIDER={self.provider}")
         self._settings = settings
-        self.model = settings.judge_model
-        self.location = settings.judge_location
-        self._token_provider = token_provider or (lambda: get_access_token(settings))
-        self._sleep = sleep
-        self._clock = clock
+        self.model = model or settings.judge_model
+        self.location = location or settings.judge_location
+        self._client = AnthropicVertexClient(
+            project_id=settings.gcp_project_id,
+            model=self.model,
+            location=self.location,
+            attempt_timeout_seconds=float(settings.judge_timeout_seconds),
+            budget_seconds=float(settings.query_timeout_seconds),
+            token_provider=token_provider or (lambda: get_access_token(settings)),
+            sleep=sleep,
+            clock=clock,
+            error_cls=JudgeHTTPError,
+        )
 
     @property
     def endpoint_url(self) -> str:
-        host = "aiplatform.googleapis.com" if self.location == "global" else f"{self.location}-aiplatform.googleapis.com"
-        return (
-            f"https://{host}/v1/projects/{self._settings.gcp_project_id}/locations/{self.location}"
-            f"/publishers/anthropic/models/{self.model}:rawPredict"
-        )
+        return self._client.endpoint_url
 
     def _body(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         # No ``temperature``: Opus 5.5 on Vertex answers HTTP 400 "`temperature` is deprecated for this model."
@@ -191,54 +211,20 @@ class AnthropicVertexJudge:
             "messages": [{"role": "user", "content": user_prompt}],
         }
 
-    def _post_once(self, body: dict[str, Any], timeout: float) -> httpx.Response:
-        headers = {"Authorization": f"Bearer {self._token_provider()}", "Content-Type": "application/json; charset=utf-8"}
-        return httpx.post(self.endpoint_url, headers=headers, json=body, timeout=httpx.Timeout(timeout))
-
-    def _http_error(self, response: httpx.Response) -> JudgeHTTPError:
-        body = _redact(response.text[:_MAX_ERROR_BODY_CHARS], self._settings)
-        return JudgeHTTPError(response.status_code, f"Vertex AI rawPredict ({self.model}) HTTP {response.status_code}: {body}")
-
-    def _post_with_retry(self, body: dict[str, Any]) -> tuple[dict[str, Any], int]:
-        """POST with ≤ MAX_ATTEMPTS tries; backoff only on 429/500/503/timeouts and only within the run budget."""
-        deadline = self._clock() + float(self._settings.query_timeout_seconds)
-        last_error: Exception | None = None
-        for attempt in range(1, MAX_ATTEMPTS + 1):
-            remaining = deadline - self._clock()
-            if remaining < _MIN_ATTEMPT_SECONDS:
-                break
-            try:
-                response = self._post_once(body, min(float(self._settings.judge_timeout_seconds), remaining))
-            except httpx.TimeoutException as exc:
-                last_error = exc
-            else:
-                if response.status_code == 200:
-                    return response.json(), attempt
-                last_error = self._http_error(response)
-                if response.status_code not in RETRYABLE_STATUS:
-                    raise last_error
-            if attempt < MAX_ATTEMPTS:
-                self._sleep(BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)))
-        if last_error is None:
-            raise TimeoutError(f"Judge budget (QUERY_TIMEOUT_SECONDS={self._settings.query_timeout_seconds}) exhausted")
-        raise last_error
-
     def score(self, system_prompt: str, user_prompt: str) -> JudgeVerdict:
         """Call Claude once (bounded retries), parse the strict JSON verdict and capture ``usage`` + ``id``."""
         if not system_prompt.strip() or not user_prompt.strip():
             raise ValueError("system_prompt and user_prompt must be non-empty")
-        doc, attempts = self._post_with_retry(self._body(system_prompt, user_prompt))
+        doc, attempts = self._client.post_messages(self._body(system_prompt, user_prompt))
         if not isinstance(doc, dict):
             raise JudgeResponseError("rawPredict response must be a JSON object")
-        blocks = doc.get("content") if isinstance(doc.get("content"), list) else []
-        text = "".join(str(b.get("text", "")) for b in blocks[:16] if isinstance(b, dict) and b.get("type") == "text")
-        metrics, rationale = parse_judge_json(text)
-        usage = doc.get("usage") if isinstance(doc.get("usage"), dict) else {}
+        metrics, rationale = parse_judge_json(message_text(doc))
+        input_tokens, output_tokens = message_usage(doc, required=False)
         return JudgeVerdict(
             metrics=metrics,
             rationale=rationale,
-            input_tokens=int(usage.get("input_tokens", 0) or 0),
-            output_tokens=int(usage.get("output_tokens", 0) or 0),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             response_id=str(doc.get("id", "")),
             attempts=attempts,
         )
@@ -248,23 +234,27 @@ class AnthropicVertexJudge:
 
 
 class GeminiJudge:
-    """Structured-output Gemini judge (``temperature=0``, ``thinking_level=LOW``) behind the same interface."""
+    """Structured-output Gemini judge (``temperature=0``, ``thinking_level=LOW``) behind the same interface.
 
-    provider = "gemini"
+    ``model``/``location`` select a catalog model per run; when omitted they come from ``JUDGE_MODEL`` /
+    ``VERTEX_GENAI_LOCATION`` (and ``JUDGE_PROVIDER`` must then be ``gemini``).
+    """
 
-    def __init__(self, settings: ArenaSettings) -> None:
+    provider = PROVIDER_VERTEX_GEMINI
+
+    def __init__(self, settings: ArenaSettings, *, model: str | None = None, location: str | None = None) -> None:
         if not isinstance(settings, ArenaSettings):
             raise TypeError("settings must be an ArenaSettings instance")
-        if settings.judge_provider != self.provider:
-            raise ValueError(f"GeminiJudge requires JUDGE_PROVIDER={self.provider}")
+        if model is None and settings.judge_provider != "gemini":
+            raise ValueError("GeminiJudge requires JUDGE_PROVIDER=gemini")
         self._settings = settings
-        self.model = settings.judge_model
-        self.location = settings.vertex_genai_location
+        self.model = model or settings.judge_model
+        self.location = location or settings.vertex_genai_location
 
     def score(self, system_prompt: str, user_prompt: str) -> JudgeVerdict:
         if not system_prompt.strip() or not user_prompt.strip():
             raise ValueError("system_prompt and user_prompt must be non-empty")
-        response = get_genai_client(self._settings).models.generate_content(
+        response = get_genai_client(self._settings, location=self.location).models.generate_content(
             model=self.model,
             contents=user_prompt,
             config={
@@ -289,13 +279,23 @@ class GeminiJudge:
         )
 
 
-def build_judge(settings: ArenaSettings) -> Judge:
-    """Return the configured judge (``JUDGE_PROVIDER``); unknown providers are rejected by ``ArenaSettings``."""
+def build_judge(settings: ArenaSettings, spec: Any | None = None) -> Judge:
+    """Return the judge for the selected catalog ``spec`` (a ``ModelSpec``), else the ``JUDGE_*`` settings judge.
+
+    Provider-agnostic both ways: a Gemini judge may grade a Claude answer and vice versa. No fallback judge.
+    """
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
+    if spec is not None:
+        provider, model, location = getattr(spec, "provider", ""), getattr(spec, "id", ""), getattr(spec, "location", "")
+        if provider == PROVIDER_ANTHROPIC_VERTEX:
+            return AnthropicVertexJudge(settings, model=model, location=location)
+        if provider == PROVIDER_VERTEX_GEMINI:
+            return GeminiJudge(settings, model=model, location=location)
+        raise ValueError(f"Unsupported judge provider {provider!r} for model {model!r}")
     if settings.judge_provider == AnthropicVertexJudge.provider:
         return AnthropicVertexJudge(settings)
-    if settings.judge_provider == GeminiJudge.provider:
+    if settings.judge_provider == "gemini":
         return GeminiJudge(settings)
     raise ValueError(f"Unsupported JUDGE_PROVIDER {settings.judge_provider!r}")
 
@@ -303,15 +303,19 @@ def build_judge(settings: ArenaSettings) -> Judge:
 __all__ = [
     "ANTHROPIC_VERTEX_VERSION",
     "AnthropicVertexJudge",
+    "BACKOFF_BASE_SECONDS",
     "GeminiJudge",
     "Judge",
     "JudgeHTTPError",
     "JudgeResponseError",
     "JudgeVerdict",
     "MAX_ATTEMPTS",
+    "PROVIDER_ANTHROPIC_VERTEX",
+    "PROVIDER_VERTEX_GEMINI",
     "RETRYABLE_STATUS",
     "build_judge",
     "judge_display_name",
     "judge_service_label",
+    "judge_service_label_for",
     "parse_judge_json",
 ]

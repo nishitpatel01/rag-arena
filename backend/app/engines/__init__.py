@@ -8,6 +8,7 @@ from typing import Any
 
 from app.core.architectures import get_architecture_descriptor
 from app.core.config import ALL_LEVEL_IDS, ArenaSettings, get_settings
+from app.core.models_catalog import RunModels
 from app.engines.base import BaseRAGEngine
 from app.engines.level1_naive import Level1NaiveEngine, build_vector_search_sql
 from app.engines.level2_hybrid import (
@@ -50,10 +51,17 @@ def _resolve(settings: ArenaSettings | None) -> ArenaSettings:
     return resolved
 
 
-def build_engine(level_id: str, settings: ArenaSettings) -> BaseRAGEngine:
-    """Instantiate the engine for ``level_id``: the live class in live/record, a replay player in replay."""
+def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | None = None) -> BaseRAGEngine:
+    """Instantiate the engine for ``level_id`` for one run: live class in live/record, a replay player in replay.
+
+    ``models`` is the run's (synthesis, judge) selection. Level 1 synthesizes with ``models.synthesis``; replay
+    plays the recording of exactly that pair. Legacy levels (2–5) cannot switch models yet and reject any
+    synthesis model other than ``GEMINI_FAST_MODEL`` (fail loud, never a silent substitution).
+    """
     if level_id not in _ENGINE_CLASS_BY_ID:
         raise KeyError(f"Unknown level '{level_id}'")
+    if models is not None and not isinstance(models, RunModels):
+        raise TypeError("models must be a RunModels or None")
     cls = _ENGINE_CLASS_BY_ID[level_id]
     if settings.demo_mode == "replay":
         return ReplayRAGEngine(
@@ -62,15 +70,23 @@ def build_engine(level_id: str, settings: ArenaSettings) -> BaseRAGEngine:
             stages=cls.stages,
             tier_profile=cls.tier_profile,
             settings=settings,
+            models=models,
+        )
+    if cls is Level1NaiveEngine:
+        return Level1NaiveEngine(settings=settings, synthesis_model=models.synthesis if models else None)
+    if models is not None and models.synthesis.id != settings.gemini_fast_model:
+        raise ValueError(
+            f"{level_id} does not support synthesis model selection yet (uses GEMINI_FAST_MODEL="
+            f"{settings.gemini_fast_model}); requested synthesis_model={models.synthesis.id}"
         )
     return cls(settings=settings)
 
 
-def get_engine_registry(settings: ArenaSettings | None = None) -> dict[str, BaseRAGEngine]:
-    """Engines keyed by id, restricted to ``settings.enabled_levels`` in delivery order."""
+def get_engine_registry(settings: ArenaSettings | None = None, models: RunModels | None = None) -> dict[str, BaseRAGEngine]:
+    """Engines keyed by id, restricted to ``settings.enabled_levels`` in delivery order (built for one run)."""
     resolved = _resolve(settings)
     return {
-        level_id: build_engine(level_id, resolved)
+        level_id: build_engine(level_id, resolved, models)
         for level_id in ALL_LEVEL_IDS
         if level_id in resolved.enabled_levels
     }

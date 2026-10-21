@@ -3,6 +3,11 @@
 ``POST /api/v1/battle/stream`` is a pure forwarder: engines emit stage events through a ``QueueStageEmitter``;
 this module forwards them and appends ``run_started``, ``answer_complete``, ``eval_complete``, ``engine_error``,
 ``stream_warning`` and ``battle_complete``. It owns no stage logic and no timers (spec P1).
+
+Model selection: ``GET /api/v1/models`` lists the verified catalog (``app.core.models_catalog``) and the recorded
+(engine, synthesis, judge) pairs; ``POST /api/v1/battle/stream`` accepts optional ``synthesis_model`` /
+``judge_model`` (defaults: ``GEMINI_FAST_MODEL`` / ``JUDGE_MODEL``) validated BEFORE streaming (HTTP 400 for an
+unknown id, an unavailable model, a role that is not allowed, or judge == synthesis).
 """
 
 from __future__ import annotations
@@ -23,6 +28,13 @@ from starlette.routing import Route
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.models_catalog import (
+    ModelSelectionError,
+    RunModels,
+    VerificationFileError,
+    default_selection_ids,
+    load_catalog,
+)
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
 from app.engines import BaseRAGEngine, get_engine_registry, list_levels
 from app.engines.replay_engine import ReplayUnavailableError, recording_store_for
@@ -154,8 +166,9 @@ async def _maybe_record(
     result: EngineResult,
     outcome: EvalOutcome,
     queue: asyncio.Queue,
+    models: RunModels | None = None,
 ) -> None:
-    """DEMO_MODE=record: persist the run under data/recordings/<engine>/<question_id>.json."""
+    """DEMO_MODE=record: persist the run under data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json."""
     if settings.demo_mode != "record":
         return
     if not question_id:
@@ -163,7 +176,7 @@ async def _maybe_record(
         return
     recording = build_recording(
         settings=settings, engine_id=engine_id, question_id=question_id, query=query, run_id=run_id,
-        events=emitter.events, result=result, evaluation=outcome,
+        events=emitter.events, result=result, evaluation=outcome, models=models,
     )
     path = await asyncio.to_thread(record_run, recording_store_for(settings), recording)
     await queue.put({"event": "recording_saved", "run_id": run_id, "engine": engine_id, "path": str(path), "ts": utc_now_iso()})
@@ -178,6 +191,7 @@ async def _run_single_engine_worker(
     settings: ArenaSettings,
     queue: asyncio.Queue,
     query_run_writer: QueryRunWriter | None = None,
+    models: RunModels | None = None,
 ) -> bool:
     """Run one engine + judge with a bounded timeout; forward emitter events; return True on success."""
     engine_id = engine.engine_id
@@ -191,13 +205,13 @@ async def _run_single_engine_worker(
         )
         await queue.put(_answer_complete_event(run_id, result))
         outcome = await asyncio.wait_for(
-            run_evaluation(query, result, question_id=question_id, settings=settings, emitter=emitter),
+            run_evaluation(query, result, question_id=question_id, settings=settings, emitter=emitter, models=models),
             timeout=timeout,
         )
         await queue.put(_eval_complete_event(run_id, result, outcome))
         await _maybe_record(
             settings, run_id=run_id, engine_id=engine_id, question_id=question_id, query=query,
-            emitter=emitter, result=result, outcome=outcome, queue=queue,
+            emitter=emitter, result=result, outcome=outcome, queue=queue, models=models,
         )
     except ReplayUnavailableError as exc:
         await queue.put(_engine_error_event(run_id, engine_id, exc, _last_failed_stage(emitter)))
@@ -222,19 +236,24 @@ async def _stream_battle_events(
     registry: dict[str, BaseRAGEngine],
     settings: ArenaSettings,
     query_run_writer: QueryRunWriter | None = None,
+    models: RunModels | None = None,
 ) -> AsyncIterator[str]:
     """Run selected engines concurrently and forward their events as SSE frames (bounded by MAX_SSE_FRAMES)."""
     if not query.strip() or not selected_engines:
         raise ValueError("query and selected_engines must be non-empty")
     run_id = f"run_{uuid.uuid4().hex[:12]}"
     queue: asyncio.Queue = asyncio.Queue()
+    synthesis_id, judge_id = models.pair if models is not None else default_selection_ids(settings)
     yield _format_sse_event(
-        {"event": "run_started", "run_id": run_id, "engines": list(selected_engines), "demo_mode": settings.demo_mode, "question_id": question_id, "ts": utc_now_iso()}
+        {
+            "event": "run_started", "run_id": run_id, "engines": list(selected_engines), "demo_mode": settings.demo_mode,
+            "question_id": question_id, "synthesis_model": synthesis_id, "judge_model": judge_id, "ts": utc_now_iso(),
+        }
     )
     tasks = [
         asyncio.create_task(
             _run_single_engine_worker(
-                run_id, registry[eng_id], query, question_id, solicitation_filter, settings, queue, query_run_writer
+                run_id, registry[eng_id], query, question_id, solicitation_filter, settings, queue, query_run_writer, models
             )
         )
         for eng_id in selected_engines[:_MAX_ENGINES_PER_BATTLE]
@@ -324,24 +343,57 @@ async def leaderboard_endpoint(request: Request) -> JSONResponse:
     return JSONResponse(summary)
 
 
+async def models_endpoint(request: Request) -> JSONResponse:
+    """GET /api/v1/models: verified model catalog, request defaults, and the (engine, synthesis, judge) pairs that
+    have recordings (replay can only play those)."""
+    settings = _settings_of(request)
+    try:
+        catalog = await asyncio.to_thread(load_catalog, settings)
+        pairs = await asyncio.to_thread(recording_store_for(settings).recorded_pairs)
+    except (VerificationFileError, ValueError, RuntimeError) as exc:
+        return JSONResponse({"error": f"Model catalog unavailable: {exc}"}, status_code=500)
+    synthesis_id, judge_id = default_selection_ids(settings)
+    return JSONResponse(
+        {
+            "models": [m.to_dict() for m in catalog.models],
+            "defaults": {"synthesis_model": synthesis_id, "judge_model": judge_id},
+            "demo_mode": settings.demo_mode,
+            "recorded_pairs": pairs,
+        }
+    )
+
+
+def _resolve_run_models(body: Any, settings: ArenaSettings) -> RunModels:
+    """Validate optional ``synthesis_model`` / ``judge_model`` against the catalog (defaults from settings)."""
+    if not isinstance(body, dict):
+        raise ValueError("Request body must be a JSON object")
+    default_synthesis, default_judge = default_selection_ids(settings)
+    synthesis = body.get("synthesis_model", default_synthesis)
+    judge = body.get("judge_model", default_judge)
+    synthesis = default_synthesis if synthesis is None else synthesis
+    judge = default_judge if judge is None else judge
+    return load_catalog(settings).select(synthesis, judge)
+
+
 async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingResponse:
-    """POST /api/v1/battle/stream: validate the request and stream v3 SSE events."""
+    """POST /api/v1/battle/stream: validate the request (incl. model selection) and stream v3 SSE events."""
     try:
         body = await request.json()
     except ValueError as exc:
         return JSONResponse({"error": f"Invalid JSON request body: {exc}"}, status_code=400)
 
     settings = _settings_of(request)
-    registry = get_engine_registry(settings)
     try:
+        models = _resolve_run_models(body, settings)
+        registry = get_engine_registry(settings, models=models)
         query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, registry)
-    except (ValueError, TypeError) as exc:
+    except (ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 
     event_generator = _stream_battle_events(
         query=query, question_id=q_id, selected_engines=selected_engines,
         solicitation_filter=sol_filter, registry=registry, settings=settings,
-        query_run_writer=getattr(request.app.state, "query_run_writer", None),
+        query_run_writer=getattr(request.app.state, "query_run_writer", None), models=models,
     )
     return StreamingResponse(
         event_generator,
@@ -530,6 +582,7 @@ def get_api_routes() -> list[Route]:
         Route("/api/v1/health", endpoint=health_endpoint, methods=["GET"]),
         Route("/api/v1/benchmarks", endpoint=benchmarks_endpoint, methods=["GET"]),
         Route("/api/v1/levels", endpoint=levels_endpoint, methods=["GET"]),
+        Route("/api/v1/models", endpoint=models_endpoint, methods=["GET"]),
         Route("/api/v1/leaderboard", endpoint=leaderboard_endpoint, methods=["GET"]),
         Route("/api/v1/battle/stream", endpoint=battle_stream_endpoint, methods=["POST"]),
         Route("/api/v1/ingest/jobs", endpoint=ingest_jobs_create_endpoint, methods=["POST"]),
@@ -538,6 +591,6 @@ def get_api_routes() -> list[Route]:
         Route("/api/v1/ingest/status", endpoint=ingest_status_endpoint, methods=["GET"]),
         Route("/api/v1/ingest/upload", endpoint=ingest_upload_endpoint, methods=["POST"]),
     ]
-    if len(routes) < 10:
+    if len(routes) < 11:
         raise RuntimeError("Incomplete route registration")
     return routes

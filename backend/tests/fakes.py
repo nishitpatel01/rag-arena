@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from contextlib import ExitStack, contextmanager
 import json
+from pathlib import Path
+import tempfile
 import time
 from types import SimpleNamespace
 from typing import Any, Iterator
@@ -163,21 +165,49 @@ def fake_clients(
     targets = (
         "app.core.gcp_clients.get_genai_client",
         "app.engines.level1_naive.get_genai_client",
+        "app.engines.synthesis.get_genai_client",
         "app.evaluation.judges.get_genai_client",
     )
     bq_targets = ("app.core.gcp_clients.get_bigquery_client", "app.engines.level1_naive.get_bigquery_client")
     with ExitStack() as stack:
         for target in targets:
-            stack.enter_context(patch(target, lambda settings, _c=genai_client: _c))
+            stack.enter_context(patch(target, lambda settings, location=None, _c=genai_client: _c))
         for target in bq_targets:
             stack.enter_context(patch(target, lambda settings, _c=bq_client: _c))
-        stack.enter_context(patch("app.evaluation.judges.get_access_token", lambda settings: "fake-token"))
+        for target in ("app.evaluation.judges.get_access_token", "app.engines.synthesis.get_access_token"):
+            stack.enter_context(patch(target, lambda settings: "fake-token"))
         stack.enter_context(patch("app.evaluation.judges.httpx.post", raw_predict))
         yield genai_client, bq_client
 
 
+CATALOG_IDS: tuple[str, ...] = ("gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5-1")
+FABLE_403 = (
+    "Access to this model requires data sharing to be enabled for publisher 'anthropic'. "
+    "Please set `PublisherModelConfig.data_sharing_enabled`."
+)
+
+
+def write_verification_file(ok: dict[str, bool] | None = None, root: Path | None = None) -> Path:
+    """Write a model_verification.json into a temp dir (default: every catalog model verified ok)."""
+    flags = {mid: True for mid in CATALOG_IDS} if ok is None else ok
+    entries = [
+        {"id": mid, "ok": flag, "http_status": 200 if flag else 403, "message": "OK" if flag else FABLE_403,
+         "verified_at": "2026-10-21T18:00:00Z"}
+        for mid, flag in flags.items()
+    ]
+    path = (root or Path(tempfile.mkdtemp(prefix="rag_arena_verify_"))) / "model_verification.json"
+    path.write_text(json.dumps({"format_version": 1, "models": entries}), encoding="utf-8")
+    return path
+
+
+_ALL_VERIFIED_FILE = write_verification_file()
+
+
 def live_settings(**overrides: Any) -> ArenaSettings:
-    base: dict[str, Any] = {"demo_mode": "live", "gcp_project_id": "test-project", "enabled_levels": ("level1_naive",)}
+    base: dict[str, Any] = {
+        "demo_mode": "live", "gcp_project_id": "test-project", "enabled_levels": ("level1_naive",),
+        "model_verification_file": str(_ALL_VERIFIED_FILE),
+    }
     base.update(overrides)
     return ArenaSettings(**base)
 

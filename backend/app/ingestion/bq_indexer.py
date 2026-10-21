@@ -39,17 +39,17 @@ def _validate_identifier(value: str, name: str) -> str:
     return cleaned
 
 
-def build_bigquery_ddl(
-    project_id: str,
-    dataset_id: str,
-    table_id: str = "document_chunks",
-) -> str:
-    """Build BigQuery DDL for the unified chunks table, COSINE vector indexes, and inverted search index."""
+def _fqn(project_id: str, dataset_id: str, table_id: str) -> tuple[str, str, str]:
     proj = _validate_identifier(project_id, "project_id")
     dataset = _validate_identifier(dataset_id, "dataset_id")
     table = _validate_identifier(table_id, "table_id")
-    fqn = f"{proj}.{dataset}.{table}"
+    return proj, dataset, table
 
+
+def build_tables_ddl(project_id: str, dataset_id: str, table_id: str = "document_chunks") -> str:
+    """CREATE TABLE IF NOT EXISTS for the chunks table, ``ingest_runs`` and ``query_runs`` (spec §5); no indexes."""
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    fqn = f"{proj}.{dataset}.{table}"
     return f"""-- 1. Unified Document Chunks Table with Provenance, Clustering & Dual Embedding Spaces
 CREATE TABLE IF NOT EXISTS `{fqn}` (
   chunk_id STRING NOT NULL,
@@ -60,12 +60,12 @@ CREATE TABLE IF NOT EXISTS `{fqn}` (
   doc_type STRING NOT NULL,
   element_type STRING NOT NULL,
   section_id STRING,
-  amendment_number INT64,
+  amendment_number INT64 DEFAULT 0,
   effective_date DATE,
   amends_section STRING,
-  page_number INT64,
+  page_number INT64 NOT NULL,
   bbox STRUCT<page INT64, x0 FLOAT64, y0 FLOAT64, x1 FLOAT64, y1 FLOAT64>,
-  content STRING,
+  content STRING NOT NULL,
   layout_source STRING,
   embedding ARRAY<FLOAT64>,
   embedding_multimodal ARRAY<FLOAT64>
@@ -107,22 +107,66 @@ CREATE TABLE IF NOT EXISTS `{proj}.{dataset}.query_runs` (
   answer STRING,
   citations JSON,
   demo_mode STRING,
-  git_sha STRING
+  git_sha STRING,
+  synthesis_model STRING,
+  judge_model STRING
 );
 
--- 2. Vector Indexes for Dense Text (gemini-embedding-2 Text Mode) and Multimodal (gemini-embedding-2 Multimodal Mode) Spaces
-CREATE VECTOR INDEX IF NOT EXISTS `{table}_vec_idx`
-ON `{fqn}`(embedding)
-OPTIONS(distance_type = 'COSINE', index_type = 'IVF');
-
-CREATE VECTOR INDEX IF NOT EXISTS `{table}_mm_vec_idx`
-ON `{fqn}`(embedding_multimodal)
-OPTIONS(distance_type = 'COSINE', index_type = 'IVF');
-
--- 3. Inverted Text Search Index for Exact Lexical & Clause Matching
-CREATE SEARCH INDEX IF NOT EXISTS `{table}_search_idx`
-ON `{fqn}`(content);
+-- 1d. Columns added after first deploy (model selection): added in place on the existing table.
+ALTER TABLE `{proj}.{dataset}.query_runs`
+  ADD COLUMN IF NOT EXISTS synthesis_model STRING,
+  ADD COLUMN IF NOT EXISTS judge_model STRING;
 """
+
+
+def vector_index_name(table_id: str, column: str = "embedding") -> str:
+    """Index naming convention shared by DDL and INFORMATION_SCHEMA polling."""
+    table = _validate_identifier(table_id, "table_id")
+    if column not in _VALID_EMBEDDING_COLUMNS:
+        raise ValueError(f"column must be one of {_VALID_EMBEDDING_COLUMNS}, got '{column}'")
+    return f"{table}_vec_idx" if column == "embedding" else f"{table}_mm_vec_idx"
+
+
+def search_index_name(table_id: str) -> str:
+    return f"{_validate_identifier(table_id, 'table_id')}_search_idx"
+
+
+def build_vector_index_ddl(project_id: str, dataset_id: str, table_id: str = "document_chunks", column: str = "embedding") -> str:
+    """CREATE VECTOR INDEX IF NOT EXISTS (IVF, COSINE) on one embedding column."""
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    return (
+        f"CREATE VECTOR INDEX IF NOT EXISTS `{vector_index_name(table, column)}`\n"
+        f"ON `{proj}.{dataset}.{table}`({column})\n"
+        "OPTIONS(distance_type = 'COSINE', index_type = 'IVF');\n"
+    )
+
+
+def build_search_index_ddl(project_id: str, dataset_id: str, table_id: str = "document_chunks") -> str:
+    """CREATE SEARCH INDEX IF NOT EXISTS on ``content``."""
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    return f"CREATE SEARCH INDEX IF NOT EXISTS `{search_index_name(table)}`\nON `{proj}.{dataset}.{table}`(content);\n"
+
+
+def build_index_ddl(
+    project_id: str, dataset_id: str, table_id: str = "document_chunks", *, columns: tuple[str, ...] = ("embedding",)
+) -> str:
+    """Vector index DDL per embedding column + the content search index DDL."""
+    if not columns or any(c not in _VALID_EMBEDDING_COLUMNS for c in columns):
+        raise ValueError(f"columns must be a non-empty subset of {_VALID_EMBEDDING_COLUMNS}")
+    parts = [build_vector_index_ddl(project_id, dataset_id, table_id, col) for col in columns]
+    parts.append(build_search_index_ddl(project_id, dataset_id, table_id))
+    return "\n".join(parts)
+
+
+def build_bigquery_ddl(
+    project_id: str,
+    dataset_id: str,
+    table_id: str = "document_chunks",
+) -> str:
+    """Build BigQuery DDL for the unified chunks table, COSINE vector indexes, and inverted search index."""
+    tables = build_tables_ddl(project_id, dataset_id, table_id)
+    indexes = build_index_ddl(project_id, dataset_id, table_id, columns=_VALID_EMBEDDING_COLUMNS)
+    return f"{tables}\n-- 2. Vector Indexes (gemini-embedding-2 text + multimodal) and 3. Inverted Text Search Index\n{indexes}"
 
 
 def build_hybrid_rrf_sql(

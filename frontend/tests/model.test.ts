@@ -8,6 +8,7 @@ import {
   INITIAL_STREAM_STATE,
   activeStageId,
   deriveIngestProgress,
+  upsertDocProgress,
   reduceStreamEvent,
   reduceStreamEvents,
   type TimelineEvent,
@@ -156,4 +157,23 @@ test("sse: parses data frames, ignores event: lines, rejects non-object frames",
   assert.equal(frame?.event, "stage_started");
   assert.equal(parseSseBlock(": comment only"), null);
   assert.throws(() => parseSseBlock("data: 42"));
+});
+
+test("mini markdown: bullets, bold and inline code parse into blocks (no raw HTML)", async () => {
+  const { parseBlocks } = await import("../src/components/ui/MiniMarkdown");
+  const blocks = parseBlocks("Intro line\n\n* **Primary:** `us-central1`\n* Failover: `us-east4`\n\n1. first\n2. second");
+  assert.deepEqual(blocks.map((b) => b.kind), ["p", "ul", "ol"]);
+  assert.equal((blocks[1] as { items: string[] }).items.length, 2);
+  assert.equal((blocks[2] as { items: string[] }).items[1], "second");
+});
+
+test("ingest doc_progress rows merge per document so chunk-stage counts replace parse-time zeros", () => {
+  const rows: { doc_name: string; pages: number; chunks: number }[] = [];
+  upsertDocProgress(rows, { doc_name: "a.pdf", pages: 2, chunks: 0 });
+  upsertDocProgress(rows, { doc_name: "b.pdf", pages: 1, chunks: 0 });
+  upsertDocProgress(rows, { doc_name: "a.pdf", pages: 2, chunks: 17 });
+  assert.deepEqual(rows, [
+    { doc_name: "a.pdf", pages: 2, chunks: 17 },
+    { doc_name: "b.pdf", pages: 1, chunks: 0 },
+  ]);
 });

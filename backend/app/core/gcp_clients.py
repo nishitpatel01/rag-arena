@@ -15,6 +15,8 @@ _RANK_CLIENTS: dict[str, Any] = {}
 _SEARCH_CLIENTS: dict[str, Any] = {}
 _VVS2_CLIENTS: dict[tuple[str, str], Any] = {}
 _ALLOYDB_POOLS: dict[str, Any] = {}
+_ADC_CREDENTIALS: dict[str, Any] = {}
+_CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
 
 
 def _ensure_live_settings(settings: ArenaSettings) -> None:
@@ -52,12 +54,38 @@ def clear_client_cache() -> None:
     _SEARCH_CLIENTS.clear()
     _VVS2_CLIENTS.clear()
     _ALLOYDB_POOLS.clear()
+    _ADC_CREDENTIALS.clear()
 
 
-def get_genai_client(settings: ArenaSettings) -> Any:
-    """Return a cached google.genai Client configured for Vertex AI."""
+def get_access_token(settings: ArenaSettings) -> str:
+    """Return a fresh ADC OAuth bearer token (cloud-platform scope) for raw Vertex REST calls (e.g. rawPredict)."""
     _ensure_live_settings(settings)
-    genai_location = settings.vertex_genai_location.strip() or "global"
+    try:
+        import google.auth
+        from google.auth.transport.requests import Request as AuthRequest
+    except ImportError as exc:
+        raise RuntimeError("google-auth (with requests transport) is not installed in the current environment") from exc
+
+    key = settings.gcp_project_id.strip()
+    credentials = _ADC_CREDENTIALS.get(key)
+    if credentials is None:
+        _evict_if_full(_ADC_CREDENTIALS)
+        credentials, _ = google.auth.default(scopes=[_CLOUD_PLATFORM_SCOPE])
+        _ADC_CREDENTIALS[key] = credentials
+    if not credentials.valid:
+        credentials.refresh(AuthRequest())
+    token = str(getattr(credentials, "token", "") or "")
+    if not token:
+        raise RuntimeError("Application Default Credentials returned an empty access token")
+    return token
+
+
+def get_genai_client(settings: ArenaSettings, location: str | None = None) -> Any:
+    """Return a cached google.genai Client configured for Vertex AI (``location`` overrides VERTEX_GENAI_LOCATION)."""
+    _ensure_live_settings(settings)
+    if location is not None and (not isinstance(location, str) or not location.strip()):
+        raise ValueError("location must be a non-empty string when provided")
+    genai_location = (location or settings.vertex_genai_location).strip() or "global"
     key = (settings.gcp_project_id.strip(), genai_location)
     if key in _GENAI_CLIENTS:
         return _GENAI_CLIENTS[key]

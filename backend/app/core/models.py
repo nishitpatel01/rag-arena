@@ -136,6 +136,14 @@ class EvalOutcome(NamedTuple):
     judge_model: str
     reference_answer_used: bool
     duration_ms: int
+    # Judge provenance + measured judge usage (defaults keep pre-Opus recordings loadable).
+    judge_provider: str = ""
+    judge_location: str = ""
+    input_tokens: int = 0
+    output_tokens: int = 0
+    judge_cost_usd: float = 0.0
+    rationale: str = ""
+    judge_response_id: str = ""
 
 
 @dataclass(frozen=True)

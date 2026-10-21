@@ -121,7 +121,7 @@ def engine_result_from_dict(raw: Any) -> EngineResult:
 
 
 def eval_outcome_from_dict(raw: Any) -> EvalOutcome:
-    """Deserialize a recorded evaluation (``metrics``, ``judge_model``, ``reference_answer_used``, ``duration_ms``)."""
+    """Deserialize a recorded evaluation (``metrics``, ``judge_model``, ``reference_answer_used``, ``duration_ms`` + judge usage)."""
     d = _require_dict(raw, "evaluation")
     try:
         m = _require_dict(d["metrics"], "evaluation.metrics")
@@ -134,6 +134,14 @@ def eval_outcome_from_dict(raw: Any) -> EvalOutcome:
             judge_model=str(d["judge_model"]),
             reference_answer_used=bool(d["reference_answer_used"]),
             duration_ms=int(d["duration_ms"]),
+            # judge provenance/usage keys are absent in recordings made before the Claude judge
+            judge_provider=str(d.get("judge_provider", "")),
+            judge_location=str(d.get("judge_location", "")),
+            input_tokens=int(d.get("input_tokens", 0)),
+            output_tokens=int(d.get("output_tokens", 0)),
+            judge_cost_usd=float(d.get("judge_cost_usd", 0.0)),
+            rationale=str(d.get("rationale", "")),
+            judge_response_id=str(d.get("judge_response_id", "")),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise RecordingCodecError(f"Malformed evaluation document: {exc}") from exc
@@ -148,6 +156,13 @@ def eval_outcome_to_dict(outcome: EvalOutcome) -> dict[str, Any]:
         "judge_model": outcome.judge_model,
         "reference_answer_used": outcome.reference_answer_used,
         "duration_ms": outcome.duration_ms,
+        "judge_provider": outcome.judge_provider,
+        "judge_location": outcome.judge_location,
+        "input_tokens": outcome.input_tokens,
+        "output_tokens": outcome.output_tokens,
+        "judge_cost_usd": outcome.judge_cost_usd,
+        "rationale": outcome.rationale,
+        "judge_response_id": outcome.judge_response_id,
     }
 
 

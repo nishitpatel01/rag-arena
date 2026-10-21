@@ -3,6 +3,12 @@
 Descriptors describe which GCP services exist in a level and how they connect. They are pure design
 metadata: no timings, scores, or results. All dynamic state on the diagram comes from SSE stage events
 keyed by the canonical ``stage_ids`` below.
+
+Model selection: the ``llm`` (synthesis) and ``judge`` node ``service`` labels are the settings-resolved
+DEFAULTS (``GEMINI_FAST_MODEL`` / ``JUDGE_MODEL``). Users may pick other catalog models per run
+(``app.core.models_catalog``), so the per-run truth is the ``service`` (``"Vertex AI · <label>"``) and
+``request.model``/``request.provider`` carried by that run's ``synthesize`` / ``evaluate`` ``stage_started``
+events — the frontend prefers those over the descriptor label once a run is in progress.
 """
 
 from __future__ import annotations
@@ -116,20 +122,44 @@ class ArchitectureDescriptor:
             "ingest_edges": [e.to_dict() for e in self.ingest_edges],
         }
 
-    def with_regions(self, *, gcp_location: str, vertex_genai_location: str) -> "ArchitectureDescriptor":
-        """Resolve region placeholders from settings (regions are never hardcoded in the descriptors)."""
+    def with_regions(
+        self,
+        *,
+        gcp_location: str,
+        vertex_genai_location: str,
+        judge_location: str = "",
+        judge_model: str = "",
+    ) -> "ArchitectureDescriptor":
+        """Resolve region + judge placeholders from settings (regions/judge model are never hardcoded)."""
         if not gcp_location or not vertex_genai_location:
             raise ValueError("gcp_location and vertex_genai_location must be non-empty")
         mapping = {GCP_LOCATION_PLACEHOLDER: gcp_location, GENAI_LOCATION_PLACEHOLDER: vertex_genai_location}
+        if judge_location:
+            mapping[JUDGE_LOCATION_PLACEHOLDER] = judge_location
+        services = {JUDGE_SERVICE_PLACEHOLDER: f"Vertex AI · {judge_model}"} if judge_model else {}
 
         def _resolve(nodes: tuple[ArchNode, ...]) -> tuple[ArchNode, ...]:
-            return tuple(replace(n, region=mapping.get(n.region, n.region)) for n in nodes)
+            return tuple(
+                replace(n, region=mapping.get(n.region, n.region), service=services.get(n.service, n.service))
+                for n in nodes
+            )
 
         return replace(self, nodes=_resolve(self.nodes), ingest_nodes=_resolve(self.ingest_nodes))
+
+    def resolved(self, settings: Any) -> "ArchitectureDescriptor":
+        """Resolve every placeholder from an ``ArenaSettings``-like object."""
+        return self.with_regions(
+            gcp_location=settings.gcp_location,
+            vertex_genai_location=settings.vertex_genai_location,
+            judge_location=settings.judge_location,
+            judge_model=settings.judge_model,
+        )
 
 
 GCP_LOCATION_PLACEHOLDER = "{GCP_LOCATION}"
 GENAI_LOCATION_PLACEHOLDER = "{VERTEX_GENAI_LOCATION}"
+JUDGE_LOCATION_PLACEHOLDER = "{JUDGE_LOCATION}"
+JUDGE_SERVICE_PLACEHOLDER = "Vertex AI · {JUDGE_MODEL}"
 _GENAI_REGION = GENAI_LOCATION_PLACEHOLDER
 _BQ_REGION = GCP_LOCATION_PLACEHOLDER
 _USER = ArchNode("user", "User question", "Browser", "actor", 0, 1, ("query_prep",))
@@ -141,9 +171,10 @@ _LLM = ArchNode(
     "llm", "Answer synthesis", "Vertex AI · gemini-4-argon", "model", 4, 1, ("synthesize",),
     region=_GENAI_REGION, code_ref="app.engines.level1_naive:Level1NaiveEngine._synthesize",
 )
+_JUDGE_CODE_REF = "app.evaluation.judges:build_judge"
 _JUDGE = ArchNode(
-    "judge", "LLM-as-a-judge", "Vertex AI · gemini-4-argon", "model", 5, 1, ("evaluate",),
-    region=_GENAI_REGION, code_ref="app.evaluation.evaluator:evaluate_engine_result",
+    "judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 5, 1, ("evaluate",),
+    region=JUDGE_LOCATION_PLACEHOLDER, code_ref=_JUDGE_CODE_REF,
 )
 
 
@@ -152,7 +183,7 @@ def _bq_ingest(parser_label: str, parser_service: str, embed_col: str, extra_ind
 ]:
     """Shared BigQuery ingestion sub-diagram: corpus → parser → chunker → embedder → BigQuery → indexes."""
     nodes = (
-        ArchNode("gcs", "Procurement corpus", "Cloud Storage", "store", 0, 0, ("discover_docs",)),
+        ArchNode("corpus", "Procurement corpus (local)", "Local corpus · data/sample_docs", "store", 0, 0, ("discover_docs",)),
         ArchNode("parser", parser_label, parser_service, "process", 1, 0, ("parse",)),
         ArchNode("chunker", "Chunker", "Ingestion job", "process", 2, 0, ("chunk",)),
         ArchNode("embedder", "Chunk embeddings", "Vertex AI · gemini-embedding-2", "model", 3, 0, ("embed",)),
@@ -160,7 +191,7 @@ def _bq_ingest(parser_label: str, parser_service: str, embed_col: str, extra_ind
         ArchNode("index", "Vector" + extra_index + " index", "BigQuery", "store", 5, 0, ("build_indexes",)),
     )
     edges = (
-        ArchEdge("gcs", "parser", "PDF bytes"),
+        ArchEdge("corpus", "parser", "PDF bytes"),
         ArchEdge("parser", "chunker", "pages + bbox"),
         ArchEdge("chunker", "embedder", "chunk text"),
         ArchEdge("embedder", "bq_load", embed_col),
@@ -280,7 +311,10 @@ def _level4() -> ArchitectureDescriptor:
 def _managed() -> ArchitectureDescriptor:
     ds = ArchNode("ds", "Discovery Engine data store", "Vertex AI Search", "store", 1, 1, ("retrieve",))
     summary = ArchNode("summary", "Search summary", "Vertex AI Search summary", "model", 2, 1, ("synthesize",))
-    judge = ArchNode("judge", "LLM-as-a-judge", "Vertex AI · gemini-4-argon", "model", 3, 1, ("evaluate",))
+    judge = ArchNode(
+        "judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 3, 1, ("evaluate",),
+        region=JUDGE_LOCATION_PLACEHOLDER, code_ref=_JUDGE_CODE_REF,
+    )
     ingest_nodes = (
         ArchNode("gcs", "Procurement corpus", "Cloud Storage", "store", 0, 0, ("discover_docs",)),
         ArchNode(
@@ -311,10 +345,7 @@ def list_architecture_descriptors(settings: Any | None = None) -> tuple[Architec
     """All five descriptors in delivery order (spec §3); regions resolved from ``settings`` when given."""
     if settings is None:
         return _DESCRIPTORS
-    return tuple(
-        d.with_regions(gcp_location=settings.gcp_location, vertex_genai_location=settings.vertex_genai_location)
-        for d in _DESCRIPTORS
-    )
+    return tuple(d.resolved(settings) for d in _DESCRIPTORS)
 
 
 def get_architecture_descriptor(level_id: str, settings: Any | None = None) -> ArchitectureDescriptor:
@@ -324,7 +355,7 @@ def get_architecture_descriptor(level_id: str, settings: Any | None = None) -> A
     desc = _BY_ID[level_id]
     if settings is None:
         return desc
-    return desc.with_regions(gcp_location=settings.gcp_location, vertex_genai_location=settings.vertex_genai_location)
+    return desc.resolved(settings)
 
 
 __all__ = [
@@ -333,6 +364,8 @@ __all__ = [
     "ArchitectureDescriptor",
     "CANONICAL_INGEST_STAGES",
     "CANONICAL_QUERY_STAGES",
+    "JUDGE_LOCATION_PLACEHOLDER",
+    "JUDGE_SERVICE_PLACEHOLDER",
     "get_architecture_descriptor",
     "list_architecture_descriptors",
 ]

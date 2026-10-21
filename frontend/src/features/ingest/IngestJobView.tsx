@@ -26,7 +26,7 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
   const embedPct = progress.embed && progress.embed.total > 0 ? Math.round((progress.embed.done / progress.embed.total) * 100) : null;
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]" data-testid="ingest-job-view">
       <Panel
         title={`Ingestion job · ${level.label}`}
         subtitle={job.jobId ? `job ${job.jobId}` : "creating job…"}
@@ -40,7 +40,7 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
         ))}
       </Panel>
 
-      <Panel title="Ingestion architecture" subtitle="GCS → parser → chunker → embeddings → BigQuery → indexes">
+      <Panel title="Ingestion architecture" subtitle="corpus → parser → chunker → embeddings → BigQuery → indexes" className="xl:col-span-2">
         <ArchitectureDiagram
           title={`${level.label} ingestion architecture`}
           nodes={level.architecture.ingest_nodes}
@@ -49,10 +49,11 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
           running={job.isStreaming}
           selectedStage={selectedStage}
           onStageSelect={onSelectStage}
+          detailsPlacement="below"
         />
       </Panel>
 
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="grid min-w-0 gap-4 xl:col-span-2 xl:grid-cols-2">
         <Panel title="Embedding progress" subtitle="embed_progress events">
           {progress.embed ? (
             <div className="flex flex-col gap-1.5">

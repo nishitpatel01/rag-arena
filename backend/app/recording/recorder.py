@@ -3,24 +3,48 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
+import subprocess
 from typing import Any
 
 from app.core.config import ArenaSettings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.models_catalog import RunModels
 from app.core.telemetry import utc_now_iso
 from app.recording.codec import eval_outcome_to_dict
+from app.recording.redaction import assert_redacted, redact_value, redaction_tokens
 from app.recording.store import RECORDING_FORMAT_VERSION, Recording, RecordingStore
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _MAX_REF_DEPTH = 3
+_REFTABLE_HEAD = "ref: refs/heads/.invalid"  # git writes this placeholder HEAD when refs live in a reftable
+_GIT_TIMEOUT_SECONDS = 5
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _git_rev_parse(repo_root: Path) -> str:
+    """Bounded ``git rev-parse HEAD`` for reftable repositories (binary ref storage); fails loud."""
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+        capture_output=True, text=True, timeout=_GIT_TIMEOUT_SECONDS, check=True,
+    )
+    sha = proc.stdout.strip()
+    if not _SHA_RE.match(sha):
+        raise RuntimeError(f"git rev-parse HEAD returned an unexpected value: {sha[:80]!r}")
+    return sha
 
 
 def read_git_sha(repo_root: Path = _PROJECT_ROOT) -> str:
-    """Resolve HEAD from ``.git`` with bounded reads (no subprocess); ``"unknown"`` when not a git checkout."""
+    """Resolve HEAD from ``.git`` with bounded reads; reftable repos use a bounded ``git rev-parse``.
+
+    Returns ``"unknown"`` only when ``repo_root`` is not a git checkout.
+    """
     head = repo_root / ".git" / "HEAD"
     if not head.is_file():
         return "unknown"
     ref = head.read_text(encoding="utf-8").strip()
+    if ref == _REFTABLE_HEAD:
+        return _git_rev_parse(repo_root)
     for _ in range(_MAX_REF_DEPTH):
         if not ref.startswith("ref:"):
             return ref[:40] or "unknown"
@@ -38,6 +62,19 @@ def read_git_sha(repo_root: Path = _PROJECT_ROOT) -> str:
     return "unknown"
 
 
+def _recorded_pair(
+    settings: ArenaSettings, result: EngineResult, evaluation: EvalOutcome | None, models: RunModels | None
+) -> tuple[str, str, str]:
+    """(synthesis, judge, judge_provider) for the header; a selection that contradicts measured usage raises."""
+    if models is None:
+        return settings.gemini_fast_model, settings.judge_model, settings.judge_provider
+    if result.usage.model and result.usage.model != models.synthesis.id:
+        raise ValueError(f"result was synthesized by {result.usage.model}, not the selected {models.synthesis.id}")
+    if evaluation is not None and evaluation.judge_model != models.judge.id:
+        raise ValueError(f"evaluation was judged by {evaluation.judge_model}, not the selected {models.judge.id}")
+    return models.synthesis.id, models.judge.id, models.judge.provider
+
+
 def build_recording(
     *,
     settings: ArenaSettings,
@@ -49,24 +86,33 @@ def build_recording(
     result: EngineResult,
     evaluation: EvalOutcome | None,
     synthetic_dev_fixture: bool = False,
+    models: RunModels | None = None,
 ) -> Recording:
-    """Assemble a Recording with the spec P3 provenance header."""
+    """Assemble a Recording with the spec P3 provenance header, redacted of every identity value (spec §10).
+
+    The header names the (synthesis, judge) pair that actually ran — the selected ``models`` when given (cross-checked
+    against the measured ``result.usage.model`` / ``evaluation.judge_model``), else the settings defaults.
+    """
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
     if not isinstance(result, EngineResult):
         raise TypeError("result must be an EngineResult")
     if not isinstance(events, tuple) or not all(isinstance(e, dict) and "t_rel_ms" in e for e in events):
         raise ValueError("events must be a tuple of emitter event dicts carrying t_rel_ms")
+    synthesis, judge, judge_provider = _recorded_pair(settings, result, evaluation, models)
     header: dict[str, Any] = {
         "format_version": RECORDING_FORMAT_VERSION,
         "recorded_at": utc_now_iso(),
-        "project_id": settings.gcp_project_id,
+        "project_id": "${GCP_PROJECT_ID}",
         "demo_mode": settings.demo_mode,
+        "synthesis_model": synthesis,
+        "judge_model": judge,
         "model_ids": {
-            "generation": settings.gemini_fast_model,
+            "generation": synthesis,
             "reasoning": settings.gemini_pro_model,
             "embedding": settings.text_embedding_model,
-            "judge": settings.gemini_fast_model,
+            "judge": judge,
+            "judge_provider": judge_provider,
         },
         "git_sha": read_git_sha(),
         "app_version": settings.app_version,
@@ -78,12 +124,18 @@ def build_recording(
     if synthetic_dev_fixture:
         header["synthetic_dev_fixture"] = True
         header["note"] = "SYNTHETIC development fixture generated with mocked SDK clients; not a measured live run."
-    return Recording(
-        header=header,
-        events=events,
-        result=result.to_dict(),
-        evaluation=eval_outcome_to_dict(evaluation) if evaluation is not None else None,
+    tokens = redaction_tokens(settings)
+    doc = redact_value(
+        {
+            "header": header,
+            "events": list(events),
+            "result": result.to_dict(),
+            "evaluation": eval_outcome_to_dict(evaluation) if evaluation is not None else None,
+        },
+        tokens,
     )
+    assert_redacted(doc, tokens)
+    return Recording(header=doc["header"], events=tuple(doc["events"]), result=doc["result"], evaluation=doc["evaluation"])
 
 
 def record_run(store: RecordingStore, recording: Recording) -> Path:

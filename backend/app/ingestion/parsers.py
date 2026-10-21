@@ -1,8 +1,9 @@
-"""Multi-tier PDF parser supporting both PyMuPDF (fitz) and pure-Python PDF 1.4 stream extraction."""
+"""Multi-tier PDF parser supporting both PyMuPDF (``pymupdf``) and pure-Python PDF 1.4 stream extraction."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 import re
 
 from app.core.models import BoundingBox, DocumentChunk
@@ -47,13 +48,18 @@ def _infer_doc_type_from_filename(filename: str) -> tuple[str, int]:
     return "BASE_RFP", 0
 
 
-def pymupdf_available() -> bool:
-    """True when PyMuPDF (``fitz``) is importable; decides the parser backend explicitly (no silent fallback)."""
+def _import_pymupdf() -> Any | None:
+    """Return the ``pymupdf`` module, or None when it is not installed (backend choice is explicit, never silent)."""
     try:
-        import fitz  # type: ignore[import-not-found]  # noqa: F401
+        import pymupdf  # type: ignore[import-not-found]
     except ImportError:
-        return False
-    return True
+        return None
+    return pymupdf
+
+
+def pymupdf_available() -> bool:
+    """True when PyMuPDF (``pymupdf``) is importable; decides the parser backend explicitly (no silent fallback)."""
+    return _import_pymupdf() is not None
 
 
 def parser_backend_name() -> str:
@@ -62,16 +68,32 @@ def parser_backend_name() -> str:
 
 
 def _extract_pages_with_pymupdf(raw_bytes: bytes) -> list[list[str]]:
-    import fitz  # type: ignore[import-not-found]
-
+    pymupdf = _import_pymupdf()
+    if pymupdf is None:
+        raise RuntimeError("PyMuPDF is not installed")
     pages: list[list[str]] = []
-    with fitz.open(stream=raw_bytes, filetype="pdf") as doc:
+    with pymupdf.open(stream=raw_bytes, filetype="pdf") as doc:
         for idx in range(min(len(doc), _MAX_PARSE_PAGES)):
-            text = doc[idx].get_text("text")
+            # INFINITE_RECT: the corpus generator writes metadata banners past the right page edge (x1≈631 > 612);
+            # PyMuPDF's default mediabox clip silently drops their tail (e.g. "AMENDS=NONE" → "AMENDS=").
+            text = doc[idx].get_text("text", clip=pymupdf.INFINITE_RECT())
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
             if lines:
                 pages.append(lines)
     return pages
+
+
+def is_genuinely_blank_pdf(pdf_path: Path) -> bool:
+    """True only when every page has no text, no images and no vector drawings (needs PyMuPDF; bounded pages)."""
+    pymupdf = _import_pymupdf()
+    if pymupdf is None:
+        raise RuntimeError("PyMuPDF is required to decide whether a PDF is genuinely blank")
+    with pymupdf.open(pdf_path) as doc:
+        for idx in range(min(len(doc), _MAX_PARSE_PAGES)):
+            page = doc[idx]
+            if page.get_text("text").strip() or page.get_images() or page.get_drawings():
+                return False
+    return True
 
 
 def _extract_pages_with_stream_regex(raw_bytes: bytes) -> list[list[str]]:

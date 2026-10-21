@@ -21,9 +21,9 @@ def _count_pdf_pages(raw_bytes: bytes) -> int:
     if not raw_bytes:
         return 0
     try:
-        import fitz  # type: ignore[import-not-found]
+        import pymupdf  # type: ignore[import-not-found]
 
-        with fitz.open(stream=raw_bytes, filetype="pdf") as doc:
+        with pymupdf.open(stream=raw_bytes, filetype="pdf") as doc:
             return int(len(doc))
     except ImportError:
         pass

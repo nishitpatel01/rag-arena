@@ -4,7 +4,7 @@ import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
 import { summarizePayload } from "../../lib/format";
 import { DiagramNode } from "./DiagramNode";
-import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, type NodeView } from "./diagramModel";
+import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
 import { NodeDetails } from "./NodeDetails";
 
 export const DIAGRAM_MIN_HEIGHT = 280;
@@ -18,6 +18,10 @@ export interface ArchitectureDiagramProps {
   /** Selecting a node also selects its first mapped stage in the parent (keeps rail + diagram in sync). */
   readonly onStageSelect?: (stageId: string) => void;
   readonly selectedStage?: string | null;
+  /** Per-stage model label from `run_started` (e.g. synthesize/evaluate) shown until the stage reports its service. */
+  readonly runServiceByStage?: Readonly<Record<string, string | null | undefined>>;
+  /** "side" (default): details pane beside the diagram on xl; "below": stacked, giving the SVG full width. */
+  readonly detailsPlacement?: "side" | "below";
 }
 
 /** Container width via ResizeObserver (disconnected on unmount). */
@@ -50,6 +54,8 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   running,
   onStageSelect,
   selectedStage,
+  runServiceByStage,
+  detailsPlacement = "side",
 }) => {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [manualId, setManualId] = useState<string | null>(null);
@@ -59,6 +65,10 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const views = useMemo<Record<string, NodeView>>(
     () => Object.fromEntries(nodes.map((n) => [n.id, deriveNodeView(n, timeline)])),
     [nodes, timeline]
+  );
+  const services = useMemo<Record<string, NodeServiceView>>(
+    () => Object.fromEntries(nodes.map((n) => [n.id, resolveNodeService(n, timeline, runServiceByStage)])),
+    [nodes, timeline, runServiceByStage]
   );
   const paths = useMemo(() => buildEdgePaths(edges, layout.boxes, views), [edges, layout.boxes, views]);
   const followed = useMemo(() => followTarget(nodes, timeline), [nodes, timeline]);
@@ -94,7 +104,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const svgHeight = Math.max(DIAGRAM_MIN_HEIGHT, Math.round(layout.height * scale));
 
   return (
-    <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+    <div className={`grid min-w-0 gap-3 ${detailsPlacement === "side" ? "xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]" : ""}`}>
       <figure ref={containerRef} className="min-w-0 overflow-x-auto rounded-md border border-line bg-surface-0 p-2">
         <figcaption className="sr-only">{title}</figcaption>
         <svg
@@ -132,6 +142,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
                 x={x}
                 y={y}
                 view={view}
+                service={services[node.id]}
                 selected={shownId === node.id}
                 summary={view.status === "done" ? summarizePayload(st?.payload ?? null) : ""}
                 onSelect={select}
@@ -150,7 +161,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
             {pinnedId ? "Unpin" : "Pin"}
           </Button>
         </div>
-        <NodeDetails node={shownNode} timeline={timeline} />
+        <NodeDetails node={shownNode} timeline={timeline} service={shownNode ? services[shownNode.id] ?? null : null} />
       </aside>
     </div>
   );

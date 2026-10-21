@@ -2,7 +2,7 @@ import React from "react";
 import { AlertTriangle, Check, Circle, CircleDashed, Loader } from "lucide-react";
 import type { ArchNode, StageStatus } from "../../types/arena";
 import { formatMs, summarizePayload } from "../../lib/format";
-import { NODE_H, NODE_W, type NodeView } from "./diagramModel";
+import { NODE_H, NODE_W, SERVICE_SOURCE_LABEL, type NodeServiceView, type NodeView } from "./diagramModel";
 import { useElapsedMs } from "./useElapsedMs";
 
 const KIND_GLYPH: Record<ArchNode["kind"], string> = {
@@ -30,14 +30,19 @@ export interface DiagramNodeProps {
   readonly x: number;
   readonly y: number;
   readonly view: NodeView;
+  /** Service actually reported by the stage (or the labelled default before the run). */
+  readonly service: NodeServiceView;
   readonly selected: boolean;
   readonly summary: string;
   readonly onSelect: (nodeId: string) => void;
 }
 
 /** One SVG node: icon + label + service + status text; keyboard-focusable via <g role=button>. */
-export const DiagramNode: React.FC<DiagramNodeProps> = ({ node, x, y, view, selected, summary, onSelect }) => {
+export const DiagramNode: React.FC<DiagramNodeProps> = ({ node, x, y, view, service, selected, summary, onSelect }) => {
   const style = STATUS_STYLE[view.status];
+  const sourceLabel = SERVICE_SOURCE_LABEL[service.source];
+  // Prefix the source label so truncation never hides that the text is a default.
+  const serviceLine = service.source === "default" ? `default · ${service.text}` : service.text;
   const elapsed = useElapsedMs(view.startedAt, view.status === "active");
   const timing =
     view.status === "active" ? `${formatMs(elapsed)} …` : view.durationMs !== null ? formatMs(view.durationMs) : "";
@@ -48,7 +53,7 @@ export const DiagramNode: React.FC<DiagramNodeProps> = ({ node, x, y, view, sele
       role="button"
       tabIndex={0}
       aria-pressed={selected}
-      aria-label={`${node.label} (${node.service}): ${style.text}`}
+      aria-label={`${node.label} (${service.text}${sourceLabel ? ` ${sourceLabel}` : ""}): ${style.text}`}
       transform={`translate(${x} ${y})`}
       onClick={() => onSelect(node.id)}
       onKeyDown={(e) => {
@@ -73,13 +78,13 @@ export const DiagramNode: React.FC<DiagramNodeProps> = ({ node, x, y, view, sele
         <tspan fill={style.stroke}>{KIND_GLYPH[node.kind]} </tspan>
         {node.label.length > 19 ? `${node.label.slice(0, 18)}…` : node.label}
       </text>
-      <text x={10} y={37} fontSize={11.5} fill="var(--ink-3)">
-        {node.service.length > 26 ? `${node.service.slice(0, 25)}…` : node.service}
+      <text x={10} y={37} fontSize={11.5} fill="var(--ink-3)" fontStyle={service.source === "stage" ? undefined : "italic"} data-service-source={service.source}>
+        {serviceLine.length > 26 ? `${serviceLine.slice(0, 25)}…` : serviceLine}
       </text>
       <text x={10} y={53} fontSize={11.5} fontFamily="ui-monospace, monospace" fill={style.stroke}>
         {third.length > 26 ? `${third.slice(0, 25)}…` : third}
       </text>
-      <title>{`${node.label} — ${node.service}\n${style.text}${timing ? ` · ${timing}` : ""}${summary ? `\n${summary}` : ""}`}</title>
+      <title>{`${node.label} — ${service.text}${sourceLabel ? ` ${sourceLabel}` : ""}\n${style.text}${timing ? ` · ${timing}` : ""}${summary ? `\n${summary}` : ""}`}</title>
     </g>
   );
 };

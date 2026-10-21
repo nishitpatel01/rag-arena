@@ -320,10 +320,25 @@ def test_seed_bigquery_live_mode_with_mock_clients():
         genai_client=_FakeGenAIClient(),
         bq_client=_FakeBQClient(),
     )
+    from app.ingestion.pipeline import collect_corpus_chunks
+
+    expected = len(collect_corpus_chunks(CORPUS_DIR))  # measured from the active parser, never a hand-typed count
+    assert expected > 0
     assert summary["status"] == "seeded"
-    assert summary["inserted_rows"] == 90
+    assert summary["inserted_rows"] == expected
     assert set(summary["tier_counts"].keys()) == {"naive", "hybrid", "multimodal"}
-    assert sum(summary["tier_counts"].values()) == 90
-    assert called_models.count("gemini-embedding-2") == 90
+    assert sum(summary["tier_counts"].values()) == expected
+    assert called_models.count("gemini-embedding-2") == expected
     assert "gemini-embedding-001" not in called_models
-    assert sum(len(b) for b in inserted_batches) == 90
+    assert sum(len(b) for b in inserted_batches) == expected
+
+
+def test_pymupdf_extraction_keeps_text_past_the_right_page_edge() -> None:
+    """Metadata banners in the generated corpus overflow x=612; mediabox clipping used to drop 'AMENDS=NONE'."""
+    from app.ingestion.parsers import _extract_pages_with_pymupdf, pymupdf_available
+
+    assert pymupdf_available()
+    pdf = CORPUS_DIR / "solicitation_01_cloud_infrastructure" / "03_Technical_Exhibit_Architecture.pdf"
+    lines = _extract_pages_with_pymupdf(pdf.read_bytes())[0]
+    meta = [ln for ln in lines if ln.startswith("DOC_TYPE=")]
+    assert meta and meta[0].endswith("AMENDS=NONE")

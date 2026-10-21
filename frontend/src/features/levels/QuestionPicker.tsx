@@ -2,17 +2,23 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, Square } from "lucide-react";
 import type { BenchmarkQuestion } from "../../types/arena";
+import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
 import type { RunGate } from "../ingest/ingestStatus";
+import { ModelPicker } from "./ModelPicker";
+import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
+import type { ModelCatalogState } from "./useModelCatalog";
 
 export interface QuestionPickerProps {
   readonly levelId: string;
   readonly gate: RunGate;
   readonly isStreaming: boolean;
-  readonly onRun: (query: string, questionId: string | null) => void;
+  /** `models` is null when the catalog is unavailable (pre-picker backend): server defaults apply. */
+  readonly onRun: (query: string, questionId: string | null, models: ModelSelection | null) => void;
   readonly onAbort: () => void;
+  readonly models: ModelCatalogState;
 }
 
 const QUESTION_ID_PATTERN = /^[A-Za-z0-9_.-]{0,80}$/;
@@ -23,9 +29,10 @@ const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.
  * Golden-question select + editable question + explicit `question_id` (the recording key in replay
  * mode, the reference-answer key for the judge). Run is gated by validation and the ingest gate.
  */
-export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, isStreaming, onRun, onAbort }) => {
+export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, isStreaming, onRun, onAbort, models }) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { mask } = useSafeMode();
   const [selectedId, setSelectedId] = useState<string>("");
   const [questionId, setQuestionId] = useState<string>("");
   const [query, setQuery] = useState<string>("");
@@ -60,14 +67,19 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
 
   const validation = validateQueryInput(query, [levelId]);
   const idError = QUESTION_ID_PATTERN.test(questionId) ? null : "question_id may contain only letters, digits, `_ . -` (max 80).";
-  const disabled = isStreaming || validation !== null || idError !== null || gate.blocked;
+  const { catalog, selection } = models;
+  const modelError = catalog && selection ? validateSelection(catalog, selection) : null;
+  const replay = catalog && selection ? replayGate(catalog, levelId, questionId, selection) : null;
+  const disabled =
+    isStreaming || validation !== null || idError !== null || gate.blocked || modelError !== null || Boolean(replay?.blockedReason);
+  const runModels = catalog && selection ? selection : null;
 
   return (
     <form
       className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!disabled) onRun(query.trim(), questionId.trim() || null);
+        if (!disabled) onRun(query.trim(), questionId.trim() || null, runModels);
       }}
     >
       <div className="flex flex-col gap-1">
@@ -80,7 +92,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
             </option>
           ))}
         </select>
-        {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {loadError}</p>}
+        {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {mask(loadError)}</p>}
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="custom-question" className="text-xs font-medium text-ink-2">Question (editable)</label>
@@ -96,6 +108,16 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
         <input id="question-id" value={questionId} onChange={(e) => setQuestionId(e.target.value)} placeholder="e.g. q_exact_clin_lookup" spellCheck={false} className={`${fieldClass} font-mono`} />
         {idError && <p className="text-xs text-clay" role="alert">{idError}</p>}
       </div>
+      <ModelPicker
+        catalog={catalog}
+        loading={models.loading}
+        error={models.error}
+        selection={selection}
+        onChange={models.setSelection}
+        disabled={isStreaming}
+        validationError={modelError}
+        replay={replay}
+      />
       {validation && query.length > 0 && <p className="text-xs text-clay">{validation}</p>}
       {gate.blocked && gate.count === 0 && (
         <p className="text-xs text-clay" role="alert">

@@ -5,16 +5,19 @@ import { KeyValue } from "../../components/ui/KeyValue";
 import { Pill } from "../../components/ui/Pill";
 import { formatMs, summarizePayload } from "../../lib/format";
 import { IDLE_STAGE } from "./model";
+import { SERVICE_SOURCE_LABEL, type NodeServiceView } from "./diagramModel";
 import { splitPayload } from "./StageDetail";
 import { STAGE_LABELS, STATUS_META } from "./StageRail";
 
 export interface NodeDetailsProps {
   readonly node: ArchNode | null;
   readonly timeline: EngineTimeline | undefined;
+  /** Resolved service (actual stage service, run model, or labelled descriptor default). */
+  readonly service: NodeServiceView | null;
 }
 
 /** Details pane next to the diagram: service/region, request, response summary, code ref, duration. */
-export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline }) => {
+export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline, service }) => {
   if (!node) {
     return <p className="text-xs text-ink-3">Run the level or click a node to see what that service received and returned.</p>;
   }
@@ -22,7 +25,15 @@ export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline }) => {
     <div className="flex flex-col gap-3">
       <div>
         <h3 className="text-sm font-semibold text-ink-1">{node.label}</h3>
-        <p className="text-xs text-ink-2">{node.service}</p>
+        <p className="text-xs text-ink-2" data-service-source={service?.source ?? "default"}>
+          {service?.text ?? node.service}
+          {(service?.source ?? "default") !== "stage" && (
+            <span className="ml-1 italic text-ink-3">{SERVICE_SOURCE_LABEL[service?.source ?? "default"]}</span>
+          )}
+        </p>
+        {service?.source === "stage" && service.text !== node.service && (
+          <p className="text-xs text-ink-3">descriptor default: {node.service}</p>
+        )}
         <KeyValue
           items={[
             ["kind", node.kind],

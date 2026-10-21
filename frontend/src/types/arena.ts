@@ -138,9 +138,17 @@ export interface IngestRunSummary {
   readonly run_id: string;
   readonly level: string;
   readonly tier_profile: string;
+  readonly started_at?: string | null;
   readonly finished_at: string | null;
   readonly status: string;
+  readonly docs?: number;
+  readonly pages?: number;
   readonly chunks: number;
+  readonly embedded?: number;
+  readonly loaded?: number;
+  readonly embedding_model?: string;
+  readonly layout_source?: string;
+  readonly git_sha?: string;
 }
 
 export interface IngestStatusResponse {
@@ -152,10 +160,75 @@ export interface IngestStatusResponse {
   readonly reason?: string | null;
   readonly demo_mode?: string;
   readonly last_runs_source?: string;
+  /** Fully-qualified BigQuery table the counts were read from (server-provided; never hardcoded). */
+  readonly table?: string;
 }
 
 export interface IngestJobCreated {
   readonly job_id: string;
+}
+
+// ---------------------------------------------------------------------------
+// Model catalog (GET /api/v1/models) — prices and availability come only from the API
+// ---------------------------------------------------------------------------
+
+export type ModelRole = "synthesis" | "judge";
+export type ModelProvider = "vertex_gemini" | "anthropic_vertex" | (string & {});
+
+export interface ModelCatalogEntry {
+  readonly id: string;
+  readonly label: string;
+  readonly provider: ModelProvider;
+  readonly location: string;
+  readonly roles: readonly (ModelRole | (string & {}))[];
+  readonly input_usd_per_1m: number | null;
+  readonly output_usd_per_1m: number | null;
+  readonly price_source: string | null;
+  readonly price_as_of: string | null;
+  readonly available: boolean;
+  readonly unavailable_reason: string | null;
+  readonly verified_at: string | null;
+}
+
+export interface RecordedPair {
+  readonly engine: string;
+  readonly synthesis_model: string;
+  readonly judge_model: string;
+  readonly question_ids: readonly string[];
+}
+
+export interface ModelsResponse {
+  readonly models: readonly ModelCatalogEntry[];
+  readonly defaults: { readonly synthesis_model: string; readonly judge_model: string };
+  readonly demo_mode: DemoMode | string;
+  readonly recorded_pairs: readonly RecordedPair[];
+}
+
+// ---------------------------------------------------------------------------
+// Leaderboard (GET /api/v1/leaderboard) — tolerant of the pre-picker shape (rows without models)
+// ---------------------------------------------------------------------------
+
+export interface LeaderboardProvenance {
+  readonly question_id?: string | null;
+  readonly recorded_at?: string | null;
+  readonly git_sha?: string | null;
+  readonly model_ids?: unknown;
+  readonly synthetic_dev_fixture?: boolean;
+}
+
+export interface LeaderboardRow {
+  readonly engine: string;
+  readonly synthesis_model?: string | null;
+  readonly judge_model?: string | null;
+  readonly runs?: number;
+  readonly provenance?: readonly LeaderboardProvenance[];
+  readonly [metric: string]: unknown;
+}
+
+export interface LeaderboardResponse {
+  readonly source?: string;
+  readonly engines?: readonly LeaderboardRow[];
+  readonly rows?: readonly LeaderboardRow[];
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +285,8 @@ export interface TokenUsage {
   readonly prompt_tokens: number;
   readonly output_tokens: number;
   readonly embedding_tokens: number;
+  /** Synthesis model id (catalog id) that produced the answer. */
+  readonly model?: string | null;
 }
 
 export interface EngineFlags {
@@ -230,6 +305,9 @@ export interface RunStartedEvent extends BaseEvent {
   readonly engines: readonly string[];
   readonly demo_mode: string;
   readonly question_id: string | null;
+  /** Catalog ids of the models this run actually uses (absent on pre-picker backends/recordings). */
+  readonly synthesis_model?: string | null;
+  readonly judge_model?: string | null;
 }
 
 /** Replay-mode frames carry `replayed: true` and the original `recorded_ts`. */
@@ -299,6 +377,13 @@ export interface EvalCompleteEvent extends BaseEvent {
   readonly judge_model: string;
   readonly reference_answer_used: boolean;
   readonly duration_ms: number;
+  readonly judge_provider?: string;
+  readonly judge_location?: string;
+  readonly input_tokens?: number;
+  readonly output_tokens?: number;
+  readonly judge_cost_usd?: number;
+  readonly run_cost_usd?: number;
+  readonly rationale?: string;
 }
 
 export interface EngineErrorEvent extends BaseEvent {
@@ -451,6 +536,13 @@ export interface EngineEvaluation {
   readonly judgeModel: string;
   readonly referenceAnswerUsed: boolean;
   readonly durationMs: number;
+  readonly judgeProvider?: string | null;
+  readonly judgeLocation?: string | null;
+  readonly inputTokens?: number | null;
+  readonly outputTokens?: number | null;
+  readonly judgeCostUsd?: number | null;
+  readonly runCostUsd?: number | null;
+  readonly rationale?: string | null;
 }
 
 export interface EngineTimeline {

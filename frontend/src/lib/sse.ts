@@ -9,6 +9,7 @@
  */
 
 import type { StreamWarningEvent } from "../types/arena";
+import { backendErrorText } from "./api";
 
 export const MAX_SSE_FRAMES = 600;
 export const DEFAULT_STREAM_TIMEOUT_MS = 180_000;
@@ -137,7 +138,8 @@ export function openSseStream(params: OpenStreamParams): StreamHandle {
       });
       if (!response.ok) {
         const text = await response.text().catch(() => "");
-        throw new Error(`HTTP ${response.status} from ${params.url}${text ? `: ${text.slice(0, 300)}` : ""}`);
+        // `{"error": "..."}` bodies (e.g. 400 invalid model selection) are shown verbatim.
+        throw new Error(`HTTP ${response.status}: ${backendErrorText(text, response.statusText || params.url)}`);
       }
       await readSseStream(response, params.onFrame);
     } catch (err) {

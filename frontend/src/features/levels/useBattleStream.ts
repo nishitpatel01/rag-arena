@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { openSseStream, type SseFrame, type StreamHandle } from "../../lib/sse";
 import type { BattleEvent } from "../../types/arena";
@@ -9,6 +10,9 @@ export interface BattleRunParams {
   readonly questionId?: string | null;
   readonly engines: readonly string[];
   readonly solicitationFilter?: string | null;
+  /** Catalog ids; omitted from the request when null (server defaults apply). */
+  readonly synthesisModel?: string | null;
+  readonly judgeModel?: string | null;
 }
 
 export interface BattleStream {
@@ -98,6 +102,8 @@ export function useBattleStream(): BattleStream {
           question_id: params.questionId ?? null,
           engines: params.engines,
           solicitation_filter: params.solicitationFilter ?? null,
+          ...(params.synthesisModel ? { synthesis_model: params.synthesisModel } : {}),
+          ...(params.judgeModel ? { judge_model: params.judgeModel } : {}),
         },
         onFrame: append,
         onError: (err) => setTransportError(err.message),
@@ -109,5 +115,9 @@ export function useBattleStream(): BattleStream {
 
   useEffect(() => () => abort(), [abort]);
 
-  return { state, isStreaming, transportError, isMock, run, abort, reset };
+  // Screen-share safe mode: consumers only ever see the masked view of server data.
+  const { mask, maskValue } = useSafeMode();
+  const shownState = useMemo(() => maskValue(state), [maskValue, state]);
+  const shownError = transportError === null ? null : mask(transportError);
+  return { state: shownState, isStreaming, transportError: shownError, isMock, run, abort, reset };
 }

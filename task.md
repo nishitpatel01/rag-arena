@@ -38,19 +38,20 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 
 ---
 
-## Phase 1 — Level 1: Naive Vector RAG (`level1_naive`)
-- [ ] Ingestion job `naive` tier: `discover_docs → parse (PyMuPDF, bbox) → chunk (360/60) → embed (batched, bounded concurrency) → load_bigquery → build_indexes (poll INFORMATION_SCHEMA, bounded) → verify_counts`; writes `ingest_runs`.
-- [ ] Engine stages emitted: `query_prep`, `embed_query`, `retrieve` (parameterized SQL + `rows_returned` + `bytes_processed` + scores), `synthesize` (usage from `usage_metadata`), `evaluate`.
-- [ ] Level 1 page wired; ingest status pill; run disabled when tier count = 0.
-- [ ] Record 12 golden questions (`DEMO_MODE=record`); replay verified offline.
+## Phase 1 — Level 1: Naive Vector RAG (`level1_naive`) — branch `phase-1/level1-live`
+- [x] Ingestion job `naive` tier: `discover_docs → parse (PyMuPDF, bbox) → chunk (360/60) → embed (batched, bounded concurrency) → load_bigquery → build_indexes (poll INFORMATION_SCHEMA, bounded) → verify_counts`; writes `ingest_runs`. (`be2a845`, `0300986`)
+- [x] Engine stages emitted: `query_prep`, `embed_query`, `retrieve` (parameterized SQL + `rows_returned` + `bytes_processed` + scores), `synthesize` (usage from `usage_metadata`), `evaluate`. (`1adb425`)
+- [x] Level 1 page wired; ingest status pill; run disabled when tier count = 0. (`frontend` live polish commit)
+- [x] Record 8 golden questions (`DEMO_MODE=record`); replay verified offline. (`23ddce5`)
+- [x] Owner feedback 2026-10-21: (1) judge model ≠ synthesis model → Claude Opus 5.5 judge via Vertex `global` rawPredict (`68b3a56`); (2) citation click opens an always-visible drawer with the real PDF page + `search_for` highlights, 40/40 recorded citations matched (`52a5697`); (3) per-run model picker over a verified catalog — Gemini 4 Argon, Gemini 3.8 Flash, Claude Opus 5.5, Claude Fable 5.1 (Anthropic data sharing enabled with owner consent) — server rejects judge == synthesis / unavailable / unknown with 400; recordings keyed by pair, second pair Flash+Opus recorded (`b903440`, `5a9ce9d`, `692f574`). Live: `run_d3a5b6c878e9` Flash+Opus, `run_59059c80810e` Opus+Argon, `run_1ff86e8569a1` Fable+Opus, `run_7987c888b46b` Argon+Fable; 169 backend tests, frontend 23 tests.
 - [ ] Gate evidence D1–D7:
-  - D1 job_id / counts: `…`
-  - D2 curl transcript: `…`
-  - D3 run_ids: `…`
-  - D4 screenshots: `…`
-  - D5 recordings: `…`
-  - D6 tests: `…`
-  - D7 owner sign-off: `____ (date)`
+  - D1 ingestion (live, 2026-10-21): job `ing_db965791a174` → `job_complete`; stage `duration_ms` discover_docs 2 · parse 1211 (526 pages, parser `pymupdf`, `empty_docs []`) · chunk 107 (5067) · embed 199918 (5067 × 3072-d, 159 batches, `RETRIEVAL_DOCUMENT`) · load_bigquery 70993 (6 staging load jobs + transactional tier replace) · build_indexes 63243 · verify_counts 641; `counts_by_tier {"naive": 5067}`; `ingest_runs` row with `git_sha b63953c`. Index states (BigQuery-reported): vector index `ACTIVE (coverage 0%)` → `VECTOR_SEARCH` brute-forces until coverage builds; search index `TEMPORARILY DISABLED` (table < 10 GB).
+  - D2 stage emission: battle stream emits `stage_started/stage_completed` for query_prep, embed_query, retrieve, synthesize, evaluate with backend-measured `duration_ms`; `test_routes_no_timers.py` guards `routes.py`.
+  - D3 live runs: `run_901106d37279` (q_exact_clin_lookup, G 1.0 / QA 1.0 / CP 0.6, 5 citations, \$0.0098, 20.3 s), `run_ecc591d1aafe` (q_amendment_rate_comparison, 1.0 / 0.75 / 0.75, \$0.0235), `run_ec6a11ff6988` (q_sla_credit_calculation, 1.0 / 0.5 / 0.6, \$0.0217); `query_runs` rows written (live 6, record 8). Retrieve scans ≈128 MB per query (5067 × 3072-d brute force).
+  - D4 UI (live, 2026-10-21): `run_f5e46f79dcba` q_vpc_failover_diagram — rail/diagram/details follow real events (Embed 247 ms · Retrieve 996 ms [BigQuery cache hit, 0 B] · Synthesize 17.9 s · Evaluate 2.71 s), 5 citations → bbox viewer, judge metrics 1.0/1.0/0.85, real parameterized SQL in stage detail; `/ingest` shows `ing_db965791a174` from `bigquery:ingest_runs` and verbatim index states. Screenshots (light idle/3 s/15 s/done/retrieve-detail, dark done, ingest light/dark) kept outside the repo. `npm test` 9/9, `npm run build` clean.
+  - D5 recordings: 2 model pairs × 8 golden questions in `data/recordings/level1_naive/<synthesis>__<judge>/` (headers `project_id "${GCP_PROJECT_ID}"`, judge `claude-opus-5-5`). Averages (G / QA / CP · latency · run cost incl. judge): Argon+Opus 0.956 / 0.693 / 0.715 · 24.6 s · $0.0354; Flash+Opus 0.934 / 0.672 / 0.715 · 14.9 s · $0.0229. Lowest QA (multi-hop, Level 1 failure modes as designed): cross_cost 0.30 / 0.25, sla_credit 0.40 / 0.50, amendment 0.50 / 0.40. Replay reproduces recorded stage durations exactly; unrecorded pair/question → `engine_error ReplayUnavailableError`.
+  - D6 tests: `PYTHONPATH=backend .venv/bin/pytest backend/tests -q` → `111 passed`; frontend `npm run build` clean.
+  - D7 owner sign-off: ✅ 2026-10-21 (owner reviewed live UI: "look good"; chose fast-forward of `main`)
 
 ## Phase 2 — Level 2: BigQuery Hybrid + Reranker (`level2_hybrid`)
 - [ ] Ingestion job `hybrid` tier (contextual lineage headers) + `SEARCH INDEX` build verified via `INFORMATION_SCHEMA.SEARCH_INDEXES`.
@@ -82,6 +83,7 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 - [ ] `/compare`: concurrent run of enabled levels, stacked stage rails, Battle Score from `query_runs`.
 - [ ] `/leaderboard`: aggregated from `query_runs` (live) or recordings (replay); provenance shown per row; delete hand-typed `precomputed_runs.json` metrics.
 - [ ] README rewrite (v3 claims only), `publish.json` scrub check, `docker compose up` in replay.
+- [ ] **Cloud Run deployment (spec §8.1)**: root multi-stage `Dockerfile` (SPA build + Uvicorn serving `/api` and static SPA with route fallback); runtime service account with least-privilege IAM (no key files); `deploy/cloudrun.env.example` + git-ignored `deploy/cloudrun.env`; `infra/main.tf` Cloud Run v2 service + Artifact Registry + IAP; `scripts/deploy_cloudrun.sh`; optional Cloud Run Job for long ingestion. Gate: IAP-protected URL, live run + ingestion job succeed from the deployed UI, image leak scan clean.
 - [ ] Decide fate of parked `vertex_vector_v2` / `alloydb_scann` (re-enable one at a time under the same gate, or remove).
 
 ---

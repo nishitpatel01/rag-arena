@@ -50,6 +50,8 @@ def test_health_levels_and_benchmarks_endpoints() -> None:
     assert health["enabled_levels"] == ["level1_naive"]
     bench = client.get("/api/v1/benchmarks").json()
     assert len(bench["questions"]) >= 8 and {"question_id", "question", "failure_mode_category"} <= set(bench["questions"][0])
+    golden = json.loads((_PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json").read_text(encoding="utf-8"))
+    assert bench["question_count"] == len(golden["questions"]) == len(bench["questions"])  # file is the source of truth (8 today, not 12)
     levels = client.get("/api/v1/levels").json()
     assert [lvl["enabled"] for lvl in levels["levels"]] == [True, False, False, False, False]
 
@@ -83,7 +85,7 @@ def test_replay_battle_stream_forwards_recorded_stage_events_in_v3_envelope() ->
     assert len(answer["citations"]) == 2 and "bbox" in answer["citations"][0]
     evaluated = next(e for e in events if e["event"] == "eval_complete")
     assert set(evaluated["metrics"]) == {"groundedness", "qa_relevance", "context_precision"}
-    assert evaluated["judge_model"] == "gemini-4-argon" and evaluated["reference_answer_used"] is False
+    assert evaluated["judge_model"] == "claude-opus-5-5" and evaluated["reference_answer_used"] is False
     assert isinstance(evaluated["duration_ms"], int)
     assert kinds.index("answer_complete") < kinds.index("eval_complete") < kinds.index("battle_complete")
     assert events[-1] == {"event": "battle_complete", "run_id": run_id, "engines_completed": ["level1_naive"], "engines_failed": [], "ts": events[-1]["ts"]}

@@ -56,6 +56,36 @@ PRICE_TABLE: dict[str, ModelPrice] = {
         price_as_of="2026-10-20",
         note="Text input rate; multimodal (image/file) inputs are billed at a separate rate.",
     ),
+    "claude-opus-5-5": ModelPrice(
+        model="claude-opus-5-5",
+        input_usd_per_1m=4.00,
+        output_usd_per_1m=20.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-10-21",
+        note=(
+            "Anthropic Claude Opus 5.5 partner model (LLM-as-a-judge), Global endpoint, <= 200K input tokens; "
+            "regional/multi-region endpoints are priced separately."
+        ),
+    ),
+    "gemini-3.8-flash": ModelPrice(
+        model="gemini-3.8-flash",
+        input_usd_per_1m=0.75,
+        output_usd_per_1m=3.75,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-10-21",
+        note=(
+            "Introductory global-endpoint rate through 2026-12-31 (standard $1.50 / $7.50 from 2027-01-01); "
+            "output rate includes reasoning tokens."
+        ),
+    ),
+    "claude-fable-5-1": ModelPrice(
+        model="claude-fable-5-1",
+        input_usd_per_1m=10.00,
+        output_usd_per_1m=50.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-10-21",
+        note="Anthropic Claude Fable 5.1 partner model, Global endpoint; regional/multi-region endpoints are $11 / $55.",
+    ),
     "discovery-engine-rank": ModelPrice(
         model="discovery-engine-rank",
         usd_per_1k_requests=1.00,
@@ -89,6 +119,16 @@ def cost_from_usage(usage: TokenUsage, model: str) -> float:
     return round(total, 8)
 
 
+def judge_cost_usd(model: str, *, input_tokens: int, output_tokens: int) -> float:
+    """USD cost of one LLM-as-a-judge call from its measured input/output token counts."""
+    for name, value in (("input_tokens", input_tokens), ("output_tokens", output_tokens)):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"{name} must be an integer >= 0, got {value!r}")
+    price = price_for_model(model)
+    total = (input_tokens / 1_000_000.0) * price.input_usd_per_1m + (output_tokens / 1_000_000.0) * price.output_usd_per_1m
+    return round(total, 8)
+
+
 def rank_cost_usd(requests: int) -> float:
     """USD cost of ``requests`` Discovery Engine Ranking API calls."""
     if not isinstance(requests, int) or isinstance(requests, bool) or requests < 0:
@@ -96,4 +136,12 @@ def rank_cost_usd(requests: int) -> float:
     return round((requests / 1000.0) * PRICE_TABLE["discovery-engine-rank"].usd_per_1k_requests, 8)
 
 
-__all__ = ["ModelPrice", "PRICE_TABLE", "PricingError", "cost_from_usage", "price_for_model", "rank_cost_usd"]
+__all__ = [
+    "ModelPrice",
+    "PRICE_TABLE",
+    "PricingError",
+    "cost_from_usage",
+    "judge_cost_usd",
+    "price_for_model",
+    "rank_cost_usd",
+]

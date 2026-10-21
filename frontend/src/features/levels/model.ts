@@ -23,6 +23,9 @@ export interface StreamState {
   readonly runId: string | null;
   /** From `run_started.demo_mode` (live | record | replay | …); null before the run starts. */
   readonly demoMode: string | null;
+  /** Catalog ids from `run_started` — the models this run actually executed (not the dropdown state). */
+  readonly synthesisModel: string | null;
+  readonly judgeModel: string | null;
   /** True once any frame carried `replayed: true`. */
   readonly replayed: boolean;
   readonly events: readonly TimelineEvent[];
@@ -48,6 +51,8 @@ export const IDLE_STAGE: StageState = {
 export const INITIAL_STREAM_STATE: StreamState = {
   runId: null,
   demoMode: null,
+  synthesisModel: null,
+  judgeModel: null,
   replayed: false,
   events: [],
   timelines: {},
@@ -95,6 +100,8 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
       return {
         ...base,
         demoMode: ev.demo_mode,
+        synthesisModel: typeof ev.synthesis_model === "string" ? ev.synthesis_model : null,
+        judgeModel: typeof ev.judge_model === "string" ? ev.judge_model : null,
         timelines: Object.fromEntries(ev.engines.map((e) => [e, state.timelines[e] ?? emptyTimeline(e)])),
       };
     case "job_started":
@@ -172,6 +179,13 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
           judgeModel: ev.judge_model,
           referenceAnswerUsed: ev.reference_answer_used,
           durationMs: ev.duration_ms,
+          judgeProvider: ev.judge_provider ?? null,
+          judgeLocation: ev.judge_location ?? null,
+          inputTokens: ev.input_tokens ?? null,
+          outputTokens: ev.output_tokens ?? null,
+          judgeCostUsd: ev.judge_cost_usd ?? null,
+          runCostUsd: ev.run_cost_usd ?? null,
+          rationale: ev.rationale ?? null,
         },
       });
     }
@@ -222,13 +236,26 @@ export interface IngestProgress {
   readonly indexStates: Record<string, string> | null;
 }
 
+type DocProgressRow = { doc_name: string; pages: number; chunks: number };
+
+/** One row per document: later doc_progress events (e.g. the chunk stage) update the parse-time row. */
+export function upsertDocProgress(rows: DocProgressRow[], next: DocProgressRow): void {
+  const idx = rows.findIndex((r) => r.doc_name === next.doc_name);
+  if (idx === -1) {
+    if (rows.length < 1000) rows.push(next);
+    return;
+  }
+  const prev = rows[idx];
+  rows[idx] = { doc_name: prev.doc_name, pages: Math.max(prev.pages, next.pages), chunks: Math.max(prev.chunks, next.chunks) };
+}
+
 export function deriveIngestProgress(events: readonly TimelineEvent[]): IngestProgress {
-  const docs: { doc_name: string; pages: number; chunks: number }[] = [];
+  const docs: DocProgressRow[] = [];
   let embed: IngestProgress["embed"] = null;
   let countsByTier: Record<string, number> | null = null;
   let indexStates: Record<string, string> | null = null;
   for (const ev of events) {
-    if (ev.event === "doc_progress") docs.push({ doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks });
+    if (ev.event === "doc_progress") upsertDocProgress(docs, { doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks });
     else if (ev.event === "embed_progress") embed = { done: ev.done, total: ev.total, batchMs: ev.batch_ms };
     else if (ev.event === "job_complete") {
       countsByTier = ev.counts_by_tier;

@@ -135,3 +135,44 @@ export function followTarget(nodes: readonly ArchNode[], timeline: EngineTimelin
   }
   return null;
 }
+
+/** Where a node's displayed service text came from. */
+export type NodeServiceSource = "stage" | "run" | "default";
+
+export interface NodeServiceView {
+  readonly text: string;
+  readonly source: NodeServiceSource;
+}
+
+/** Short suffix shown next to a service that is not (yet) reported by a stage event. */
+export const SERVICE_SOURCE_LABEL: Readonly<Record<NodeServiceSource, string>> = {
+  stage: "",
+  run: "(selected for this run)",
+  default: "(default)",
+};
+
+/**
+ * Service text for a node, preferring what the backend actually reported:
+ * 1. `stage_started.service` of a mapped stage (latest started wins) — the model really called;
+ * 2. the run's model from `run_started` for that stage (e.g. synthesize/evaluate before they start);
+ * 3. the descriptor's design-time default, labelled "(default)".
+ */
+export function resolveNodeService(
+  node: ArchNode,
+  timeline: EngineTimeline | undefined,
+  runServiceByStage: Readonly<Record<string, string | null | undefined>> = {}
+): NodeServiceView {
+  let latest: { service: string; startedAt: number } | null = null;
+  for (const stageId of node.stage_ids) {
+    const st = timeline?.stages[stageId];
+    if (!st?.service) continue;
+    const at = st.startedAt ?? 0;
+    if (!latest || at >= latest.startedAt) latest = { service: st.service, startedAt: at };
+  }
+  if (latest) return { text: latest.service, source: "stage" };
+  for (const stageId of node.stage_ids) {
+    const runService = runServiceByStage[stageId];
+    if (runService) return { text: runService, source: "run" };
+  }
+  return { text: node.service, source: "default" };
+}

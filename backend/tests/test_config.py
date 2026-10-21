@@ -88,3 +88,51 @@ def test_gcp_identity_comes_only_from_env_and_is_required_in_live_modes() -> Non
         assert "GCP_PROJECT_ID" in str(exc)
     else:
         raise AssertionError("invalid project id characters must be rejected")
+
+
+# ---------------------------------------------------------------- LLM-as-a-judge settings (owner: judge != synthesis model)
+
+
+def test_judge_defaults_to_claude_opus_on_the_vertex_global_endpoint() -> None:
+    settings = get_settings(_env())
+    assert settings.judge_provider == "anthropic_vertex"
+    assert settings.judge_model == "claude-opus-5-5"
+    assert settings.judge_location == "global"
+    assert settings.judge_max_tokens == 1024 and settings.judge_timeout_seconds == 60
+
+
+def test_judge_settings_parse_from_env() -> None:
+    settings = get_settings(
+        _env(JUDGE_PROVIDER="gemini", JUDGE_MODEL="gemini-4-argon-judge", JUDGE_LOCATION="us-east5",
+             JUDGE_MAX_TOKENS="2048", JUDGE_TIMEOUT_SECONDS="30")
+    )
+    assert (settings.judge_provider, settings.judge_model, settings.judge_location) == ("gemini", "gemini-4-argon-judge", "us-east5")
+    assert settings.judge_max_tokens == 2048 and settings.judge_timeout_seconds == 30
+
+
+def test_judge_model_equal_to_a_synthesis_model_is_rejected_at_startup() -> None:
+    for env in (
+        _env(JUDGE_PROVIDER="gemini", JUDGE_MODEL="gemini-4-argon"),  # == GEMINI_FAST_MODEL default
+        _env(JUDGE_PROVIDER="gemini", JUDGE_MODEL="gemini-4-pro-x", GEMINI_PRO_MODEL="gemini-4-pro-x"),
+        _env(JUDGE_MODEL="claude-opus-5-5", GEMINI_FAST_MODEL="claude-opus-5-5"),
+    ):
+        with pytest.raises(ValueError, match="must differ from the synthesis model"):
+            get_settings(env)
+
+
+def test_judge_settings_are_validated() -> None:
+    bad_envs = (
+        _env(JUDGE_PROVIDER="openai"),
+        _env(JUDGE_MODEL="claude opus; rm -rf"),
+        _env(JUDGE_MODEL=""),
+        _env(JUDGE_LOCATION="Global/../x"),
+        _env(JUDGE_MAX_TOKENS="10"),
+        _env(JUDGE_MAX_TOKENS="100000"),
+        _env(JUDGE_TIMEOUT_SECONDS="0"),
+        _env(JUDGE_TIMEOUT_SECONDS="999"),
+        _env(JUDGE_PROVIDER="gemini"),  # default claude model is not a Gemini judge
+        _env(JUDGE_MODEL="gemini-4-argon-judge"),  # anthropic provider needs a claude-* model
+    )
+    for env in bad_envs:
+        with pytest.raises(ValueError):
+            get_settings(env)

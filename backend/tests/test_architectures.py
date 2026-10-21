@@ -92,16 +92,37 @@ def test_levels_endpoint_lists_all_levels_with_enabled_flag_and_descriptor() -> 
 
 def test_descriptor_regions_are_placeholders_resolved_from_settings_not_hardcoded() -> None:
     """Regions are never hardcoded: raw descriptors carry placeholders; settings resolve them."""
-    from app.core.architectures import GCP_LOCATION_PLACEHOLDER, GENAI_LOCATION_PLACEHOLDER
+    from app.core.architectures import GCP_LOCATION_PLACEHOLDER, GENAI_LOCATION_PLACEHOLDER, JUDGE_LOCATION_PLACEHOLDER
     from app.core.config import ArenaSettings
 
     raw = get_architecture_descriptor("level1_naive")
     raw_regions = {n.region for n in raw.nodes if n.region}
-    assert raw_regions == {GCP_LOCATION_PLACEHOLDER, GENAI_LOCATION_PLACEHOLDER}
-    settings = ArenaSettings(demo_mode="replay", gcp_location="europe-west4", vertex_genai_location="us-east4")
+    assert raw_regions == {GCP_LOCATION_PLACEHOLDER, GENAI_LOCATION_PLACEHOLDER, JUDGE_LOCATION_PLACEHOLDER}
+    settings = ArenaSettings(
+        demo_mode="replay", gcp_location="europe-west4", vertex_genai_location="us-east4", judge_location="global"
+    )
     resolved = get_architecture_descriptor("level1_naive", settings)
     resolved_regions = {n.region for n in resolved.nodes if n.region}
-    assert resolved_regions == {"europe-west4", "us-east4"}
+    assert resolved_regions == {"europe-west4", "us-east4", "global"}
     dumped = json.dumps(resolved.to_dict())
-    assert GCP_LOCATION_PLACEHOLDER not in dumped and GENAI_LOCATION_PLACEHOLDER not in dumped
+    for placeholder in (GCP_LOCATION_PLACEHOLDER, GENAI_LOCATION_PLACEHOLDER, JUDGE_LOCATION_PLACEHOLDER):
+        assert placeholder not in dumped
     assert len(list_architecture_descriptors(settings)) == 5
+
+
+def test_judge_node_service_and_region_come_from_judge_settings() -> None:
+    """The judge box names the configured judge model (never a hardcoded string) and its JUDGE_LOCATION."""
+    from app.core.architectures import JUDGE_LOCATION_PLACEHOLDER, JUDGE_SERVICE_PLACEHOLDER
+
+    raw = get_architecture_descriptor("level1_naive")
+    raw_judge = next(n for n in raw.nodes if n.id == "judge")
+    assert raw_judge.service == JUDGE_SERVICE_PLACEHOLDER and raw_judge.region == JUDGE_LOCATION_PLACEHOLDER
+    settings = ArenaSettings(demo_mode="replay", judge_location="us-east5")
+    for desc in list_architecture_descriptors(settings):
+        judge = next(n for n in desc.nodes if n.id == "judge")
+        assert judge.service == "Vertex AI · claude-opus-5-5"
+        assert judge.region == "us-east5"
+        assert JUDGE_SERVICE_PLACEHOLDER not in json.dumps(desc.to_dict())
+    other = ArenaSettings(demo_mode="replay", judge_provider="gemini", judge_model="gemini-4-argon-judge")
+    judge = next(n for n in get_architecture_descriptor("level1_naive", other).nodes if n.id == "judge")
+    assert judge.service == "Vertex AI · gemini-4-argon-judge"

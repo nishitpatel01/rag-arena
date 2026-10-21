@@ -1,4 +1,5 @@
 import React from "react";
+import { maskNode, useSafeMode } from "../../app/SafeMode";
 
 export interface DataTableColumn<Row> {
   readonly key: string;
@@ -26,6 +27,7 @@ export function DataTable<Row>({
   dense = true,
 }: DataTableProps<Row>): React.ReactElement {
   const cell = dense ? "px-2 py-1" : "px-3 py-2";
+  const { mask } = useSafeMode();
   return (
     <div className="w-full overflow-x-auto rounded-md border border-line">
       <table className="w-full border-collapse text-xs">
@@ -62,7 +64,7 @@ export function DataTable<Row>({
                       col.align === "right" ? "text-right tabular-nums" : ""
                     }`}
                   >
-                    {col.render(row)}
+                    {maskNode(col.render(row), mask)}
                   </td>
                 ))}
               </tr>

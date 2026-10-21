@@ -18,8 +18,9 @@ import uuid
 
 from app.core.config import ALL_LEVEL_IDS, ArenaSettings
 from app.core.telemetry import BaseStageEmitter, stage_scope, utc_now_iso
-from app.ingestion.parsers import chunk_pages, extract_pdf_pages, parser_backend_name
+from app.ingestion.parsers import chunk_pages, extract_pdf_pages, is_genuinely_blank_pdf, parser_backend_name
 from app.ingestion.pipeline import chunk_to_bigquery_row
+from app.recording.recorder import read_git_sha
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CORPUS_DIR = _PROJECT_ROOT / "data" / "sample_docs" / "procurement_corpus"
@@ -52,6 +53,14 @@ class IngestBackendUnavailable(RuntimeError):
     """Raised when no live embedder/loader is wired for the current mode."""
 
 
+class ParserUnavailableError(RuntimeError):
+    """Live/record ingestion requires PyMuPDF (Level 1 spec); the regex fallback is for offline tests only."""
+
+
+class EmptyDocumentsError(ValueError):
+    """One or more non-blank PDFs yielded zero text pages (parse defect; never silently skipped)."""
+
+
 class Embedder(Protocol):
     """Batch text embedder (live: gemini-embedding-2 via google-genai; tests: fake)."""
 
@@ -76,6 +85,8 @@ class BigQueryLoader(Protocol):
     def index_states(self) -> dict[str, str]: ...
 
     def write_ingest_run(self, row: dict[str, Any]) -> None: ...
+
+    def recent_ingest_runs(self, limit: int = 20) -> list[dict[str, Any]]: ...
 
 
 @dataclass(frozen=True)
@@ -243,7 +254,8 @@ class IngestJobRunner:
                 "started_at": job.created_at, "finished_at": utc_now_iso(), "status": "completed",
                 "docs": len(docs), "pages": sum(len(p) for p in pages_by_doc.values()), "chunks": len(chunks),
                 "embedded": len(vectors), "loaded": len(chunks), "embedding_model": backends.embedder.model,
-                "layout_source": parser_backend_name(), "stage_log": [r.to_dict() for r in emitter.records],
+                "layout_source": parser_backend_name(), "git_sha": read_git_sha(),
+                "stage_log": [r.to_dict() for r in emitter.records],
             },
         )
         job.status = "completed"
@@ -254,11 +266,22 @@ class IngestJobRunner:
         pages_by_doc: dict[str, list[list[str]]] = {}
         backend = parser_backend_name()
         async with tracker.scope(emitter, "parse", "Parse PDF pages", backend, {"docs": len(docs), "parser": backend}) as sc:
+            if self.settings.is_live and backend != "pymupdf":
+                raise ParserUnavailableError(
+                    f"Level 1 ingestion requires PyMuPDF (pymupdf) in DEMO_MODE={self.settings.demo_mode}; "
+                    f"active parser is '{backend}'. Install the declared dependency 'pymupdf>=1.24.0'."
+                )
             for doc in docs:
                 pages = await asyncio.to_thread(extract_pdf_pages, doc.path)
                 pages_by_doc[doc.path.name] = pages
                 await self._put(job, {"event": "doc_progress", "stage": "parse", "doc_name": doc.path.name, "pages": len(pages), "chunks": 0})
-            sc.payload = {"docs": len(docs), "pages": sum(len(p) for p in pages_by_doc.values()), "parser": backend}
+            empty_docs, blank_docs = await asyncio.to_thread(_classify_empty_docs, docs, pages_by_doc, backend)
+            if empty_docs:
+                raise EmptyDocumentsError(f"{len(empty_docs)} non-blank document(s) yielded 0 text pages; empty_docs={empty_docs}")
+            sc.payload = {
+                "docs": len(docs), "pages": sum(len(p) for p in pages_by_doc.values()), "parser": backend,
+                "empty_docs": empty_docs, "blank_docs": blank_docs,
+            }
         return pages_by_doc
 
     async def _chunk(self, job: IngestJob, emitter: "_JobEmitter", tracker: "_StageTracker", docs: list[_DiscoveredDoc], pages_by_doc: dict[str, list[list[str]]]) -> list[Any]:
@@ -286,12 +309,15 @@ class IngestJobRunner:
                 texts = [c.content for c in chunks[start : start + _EMBED_BATCH_SIZE]]
                 t0 = time.perf_counter()
                 batch_vectors = await asyncio.to_thread(backends.embedder.embed_batch, texts)
-                if len(batch_vectors) != len(texts):
-                    raise ValueError(f"embedder returned {len(batch_vectors)} vectors for {len(texts)} texts")
+                _check_batch_vectors(batch_vectors, texts, len(vectors[0]) if vectors else None)
                 vectors.extend(batch_vectors)
                 batches += 1
                 await self._put(tracker.job, {"event": "embed_progress", "done": len(vectors), "total": total, "batch_ms": int((time.perf_counter() - t0) * 1000)})
-            sc.payload = {"embedded": len(vectors), "model": backends.embedder.model, "dimensions": len(vectors[0]) if vectors else 0, "batches": batches}
+            sc.payload = {
+                "embedded": len(vectors), "model": backends.embedder.model, "dimensions": len(vectors[0]) if vectors else 0,
+                "batches": batches, "task_type": getattr(backends.embedder, "task_type", None),
+                "input_format": getattr(backends.embedder, "input_format", None),
+            }
         return backends, vectors
 
     async def _load(self, emitter: "_JobEmitter", tracker: "_StageTracker", job: IngestJob, backends: IngestBackends, chunks: list[Any], vectors: list[list[float]]) -> None:
@@ -327,19 +353,52 @@ class IngestJobRunner:
         yield {"event": "stream_warning", "run_id": job.job_id, "job_id": job.job_id, "engine": job.level, "message": f"Ingest stream bound reached ({max_frames} frames or timeout)", "ts": utc_now_iso()}
 
     async def status(self) -> dict[str, Any]:
-        """``GET /api/v1/ingest/status``: live counts by tier + index states, or an explicit unavailability reason."""
-        last_runs = [
+        """``GET /api/v1/ingest/status``: live counts by tier + index states + ingest_runs provenance, or a reason."""
+        base: dict[str, Any] = {"demo_mode": self.settings.demo_mode, **self._memory_runs()}
+        try:
+            backends = self.backend_factory(self.settings)
+            counts = await asyncio.to_thread(backends.loader.count_by_tier)
+            states = await asyncio.to_thread(backends.loader.index_states)
+            if self.settings.is_live:
+                runs = await asyncio.to_thread(backends.loader.recent_ingest_runs, 20)
+                base.update({"last_runs": runs, "last_runs_source": "bigquery:ingest_runs"})
+        except IngestBackendUnavailable as exc:
+            return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {}}
+        return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn}
+
+    def _memory_runs(self) -> dict[str, Any]:
+        runs = [
             {"run_id": j.job_id, "level": j.level, "tier_profile": j.tier_profile, "finished_at": j.finished_at, "status": j.status, "chunks": j.chunks}
             for j in list(self._jobs.values())[-20:]
         ]
-        base: dict[str, Any] = {"demo_mode": self.settings.demo_mode, "last_runs": last_runs, "last_runs_source": "in-memory jobs (ingest_runs table lands in Phase 1)"}
-        try:
-            backends = self.backend_factory(self.settings)
-        except IngestBackendUnavailable as exc:
-            return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {}}
-        counts = await asyncio.to_thread(backends.loader.count_by_tier)
-        states = await asyncio.to_thread(backends.loader.index_states)
-        return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn}
+        return {"last_runs": runs, "last_runs_source": f"in-memory jobs (DEMO_MODE={self.settings.demo_mode})"}
+
+
+def _classify_empty_docs(
+    docs: list[_DiscoveredDoc], pages_by_doc: dict[str, list[list[str]]], backend: str
+) -> tuple[list[str], list[str]]:
+    """Split zero-page docs into (empty = parse defect, blank = genuinely blank PDF; PyMuPDF decides blankness)."""
+    empty: list[str] = []
+    blank: list[str] = []
+    for doc in docs:
+        if pages_by_doc.get(doc.path.name):
+            continue
+        if backend == "pymupdf" and is_genuinely_blank_pdf(doc.path):
+            blank.append(doc.path.name)
+        else:
+            empty.append(doc.path.name)
+    return empty, blank
+
+
+def _check_batch_vectors(batch_vectors: list[list[float]], texts: list[str], expected_dims: int | None) -> None:
+    """One vector per text, all with the dimensionality of the first batch (fail loud on drift)."""
+    if len(batch_vectors) != len(texts):
+        raise ValueError(f"embedder returned {len(batch_vectors)} vectors for {len(texts)} texts")
+    dims = {len(v) for v in batch_vectors}
+    if expected_dims is not None:
+        dims.add(expected_dims)
+    if len(dims) != 1 or 0 in dims:
+        raise ValueError(f"embedding dimension drift across batches: {sorted(dims)}")
 
 
 class _JobEmitter(BaseStageEmitter):

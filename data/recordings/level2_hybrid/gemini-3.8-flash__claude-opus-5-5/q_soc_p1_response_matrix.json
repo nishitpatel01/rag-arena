@@ -1,0 +1,2631 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-21T19:35:35.462Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-3.8-flash",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-3.8-flash",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "5f5e6657feea173d8ce200aa0a68cdf955665b0e",
+    "app_version": "3.0.0",
+    "engine": "level2_hybrid",
+    "question_id": "q_soc_p1_response_matrix",
+    "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+    "run_id": "run_468f640e243e"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:35:23.119Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "expansions": []
+      },
+      "ts": "2026-10-21T19:35:23.119Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-10-21T19:35:23.119Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "embed_query",
+      "duration_ms": 234,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 82,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-10-21T19:35:23.353Z",
+      "t_rel_ms": 234
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "retrieve",
+      "label": "BigQuery VECTOR_SEARCH + SEARCH() \u2192 RRF",
+      "service": "BigQuery",
+      "request": {
+        "sql": "WITH vector_results AS (\n  SELECT\n    base.chunk_id,\n    distance AS vector_distance,\n    ROW_NUMBER() OVER (ORDER BY distance ASC, base.chunk_id) AS vector_rank\n  FROM VECTOR_SEARCH(\n    (SELECT chunk_id, embedding FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` WHERE tier_profile = 'hybrid'),\n    'embedding',\n    (SELECT @query_embedding AS embedding),\n    top_k => 50,\n    distance_type => 'COSINE'\n  )\n),\nlexical_scored AS (\n  SELECT\n    chunk_id,\n    SEARCH(content, REGEXP_REPLACE(@lexical_query, r'[^a-zA-Z0-9 ]', ' ')) AS all_terms_match,\n    (\n      SELECT SUM(IF(STRPOS(LOWER(content), term) > 0, IF(REGEXP_CONTAINS(term, r'[0-9]'), 3, 1), 0))\n      FROM UNNEST(@lexical_terms) AS term\n    ) AS lexical_score\n  FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3`\n  WHERE tier_profile = 'hybrid'\n),\nlexical_results AS (\n  SELECT chunk_id, lexical_score, lexical_rank\n  FROM (\n    SELECT\n      chunk_id,\n      lexical_score,\n      ROW_NUMBER() OVER (ORDER BY all_terms_match DESC, lexical_score DESC, chunk_id) AS lexical_rank\n    FROM lexical_scored\n    WHERE all_terms_match OR lexical_score > 0\n  )\n  WHERE lexical_rank <= 50\n),\nfused AS (\n  SELECT\n    COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,\n    v.vector_rank,\n    v.vector_distance,\n    l.lexical_rank,\n    l.lexical_score,\n    COALESCE(1.0 / (60 + v.vector_rank), 0.0) + COALESCE(1.0 / (60 + l.lexical_rank), 0.0) AS rrf_score\n  FROM vector_results v\n  FULL OUTER JOIN lexical_results l\n    ON v.chunk_id = l.chunk_id\n)\nSELECT\n  f.chunk_id,\n  c.solicitation_id,\n  c.doc_name,\n  c.doc_type,\n  c.element_type,\n  c.section_id,\n  c.amendment_number,\n  c.effective_date,\n  c.amends_section,\n  c.page_number,\n  c.bbox,\n  c.content,\n  f.vector_rank,\n  f.vector_distance,\n  f.lexical_rank,\n  f.lexical_score,\n  f.rrf_score\nFROM fused f\nJOIN `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` c\n  ON c.chunk_id = f.chunk_id\nWHERE c.tier_profile = 'hybrid'\nORDER BY f.rrf_score DESC, f.chunk_id\nLIMIT 50;\n",
+        "params": {
+          "query_embedding": {
+            "dimensions": 3072,
+            "preview": [
+              -0.029712679,
+              0.02808584,
+              -0.011538323,
+              -0.010708342
+            ]
+          },
+          "lexical_query": "p1 critical p2 high incident response triage slas containment monthly fee penalty credits solicitation 03 slas.pdf along soc2 type hipaa controls required 02 04 compliance matrix.pdf",
+          "lexical_terms": [
+            "p1",
+            "critical",
+            "p2",
+            "high",
+            "incident",
+            "response",
+            "triage",
+            "slas",
+            "containment",
+            "monthly",
+            "fee",
+            "penalty",
+            "credits",
+            "solicitation",
+            "03",
+            "slas.pdf",
+            "along",
+            "soc2",
+            "type",
+            "hipaa",
+            "controls",
+            "required",
+            "02",
+            "04",
+            "compliance",
+            "matrix.pdf"
+          ]
+        },
+        "candidate_k": 50
+      },
+      "ts": "2026-10-21T19:35:23.354Z",
+      "t_rel_ms": 235
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "retrieve",
+      "duration_ms": 868,
+      "payload": {
+        "rows_returned": 50,
+        "candidate_k": 50,
+        "job_id": "5b94f96b-aa3d-4e6d-8916-c5cb22f6809d",
+        "bytes_processed": 0,
+        "slot_millis": 0,
+        "cache_hit": true,
+        "index_usage": {
+          "search": {
+            "index_usage_mode": "UNUSED",
+            "index_unused_reasons": [
+              {
+                "code": "QUERY_CACHE_HIT",
+                "message": "Search indexes are not used because the query was cached."
+              }
+            ]
+          },
+          "vector_search": {
+            "index_usage_mode": "UNUSED",
+            "index_unused_reasons": [
+              {
+                "code": "QUERY_CACHE_HIT",
+                "message": "Vector indexes are not used because the query was cached."
+              }
+            ]
+          }
+        },
+        "rrf_k": 60,
+        "vector_k": 50,
+        "lexical_k": 50,
+        "with_both_ranks": 16,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 1,
+            "lexical_rank": 1,
+            "vector_distance": 0.193266,
+            "rrf_score": 0.032787
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 2,
+            "lexical_rank": 3,
+            "vector_distance": 0.23457,
+            "rrf_score": 0.032002
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 4,
+            "lexical_rank": 2,
+            "vector_distance": 0.310155,
+            "rrf_score": 0.031754
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 8,
+            "lexical_rank": 6,
+            "vector_distance": 0.336221,
+            "rrf_score": 0.029857
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 7,
+            "lexical_rank": 11,
+            "vector_distance": 0.329897,
+            "rrf_score": 0.02901
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 12,
+            "lexical_rank": 9,
+            "vector_distance": 0.350513,
+            "rrf_score": 0.028382
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 3,
+            "lexical_rank": 24,
+            "vector_distance": 0.284749,
+            "rrf_score": 0.027778
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 15,
+            "lexical_rank": 12,
+            "vector_distance": 0.35978,
+            "rrf_score": 0.027222
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 25,
+            "section_id": null,
+            "vector_rank": 22,
+            "lexical_rank": 14,
+            "vector_distance": 0.380496,
+            "rrf_score": 0.025709
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 10,
+            "lexical_rank": 31,
+            "vector_distance": 0.344285,
+            "rrf_score": 0.025275
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-1001",
+            "vector_rank": 28,
+            "lexical_rank": 15,
+            "vector_distance": 0.394521,
+            "rrf_score": 0.024697
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 14,
+            "lexical_rank": 36,
+            "vector_distance": 0.355992,
+            "rrf_score": 0.02393
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 24,
+            "section_id": null,
+            "vector_rank": 30,
+            "lexical_rank": 26,
+            "vector_distance": 0.395481,
+            "rrf_score": 0.022739
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p4_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 4,
+            "section_id": null,
+            "vector_rank": 35,
+            "lexical_rank": 28,
+            "vector_distance": 0.407701,
+            "rrf_score": 0.02189
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p28_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 28,
+            "section_id": null,
+            "vector_rank": 43,
+            "lexical_rank": 27,
+            "vector_distance": 0.410363,
+            "rrf_score": 0.021203
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 22,
+            "section_id": null,
+            "vector_rank": 32,
+            "lexical_rank": 44,
+            "vector_distance": 0.397628,
+            "rrf_score": 0.020485
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p3_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 3,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 4,
+            "vector_distance": null,
+            "rrf_score": 0.015625
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 5,
+            "lexical_rank": null,
+            "vector_distance": 0.313432,
+            "rrf_score": 0.015385
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p7_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 5,
+            "vector_distance": null,
+            "rrf_score": 0.015385
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 6,
+            "lexical_rank": null,
+            "vector_distance": 0.313496,
+            "rrf_score": 0.015152
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p4_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 4,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 7,
+            "vector_distance": null,
+            "rrf_score": 0.014925
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p5_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 8,
+            "vector_distance": null,
+            "rrf_score": 0.014706
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 9,
+            "lexical_rank": null,
+            "vector_distance": 0.340391,
+            "rrf_score": 0.014493
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p5_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 10,
+            "vector_distance": null,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 11,
+            "lexical_rank": null,
+            "vector_distance": 0.347988,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 13,
+            "lexical_rank": null,
+            "vector_distance": 0.354803,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p20_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 20,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 13,
+            "vector_distance": null,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 11,
+            "section_id": null,
+            "vector_rank": 16,
+            "lexical_rank": null,
+            "vector_distance": 0.367431,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p2_hybrid",
+            "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 16,
+            "vector_distance": null,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 22,
+            "section_id": null,
+            "vector_rank": 17,
+            "lexical_rank": null,
+            "vector_distance": 0.37645,
+            "rrf_score": 0.012987
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p11_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 11,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 17,
+            "vector_distance": null,
+            "rrf_score": 0.012987
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 24,
+            "section_id": null,
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.377915,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p14_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 14,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 18,
+            "vector_distance": null,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 19,
+            "lexical_rank": null,
+            "vector_distance": 0.378492,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p1_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 19,
+            "vector_distance": null,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p2_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 20,
+            "vector_distance": null,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "section_id": "ZTA-NIST-800-207",
+            "vector_rank": 20,
+            "lexical_rank": null,
+            "vector_distance": 0.379335,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 12,
+            "section_id": null,
+            "vector_rank": 21,
+            "lexical_rank": null,
+            "vector_distance": 0.379755,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p6_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 21,
+            "vector_distance": null,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p8_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 22,
+            "vector_distance": null,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 23,
+            "lexical_rank": null,
+            "vector_distance": 0.382685,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p9_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 9,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 23,
+            "vector_distance": null,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 17,
+            "section_id": null,
+            "vector_rank": 24,
+            "lexical_rank": null,
+            "vector_distance": 0.383395,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 25,
+            "vector_distance": null,
+            "rrf_score": 0.011765
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 25,
+            "lexical_rank": null,
+            "vector_distance": 0.387965,
+            "rrf_score": 0.011765
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p2_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 26,
+            "lexical_rank": null,
+            "vector_distance": 0.388876,
+            "rrf_score": 0.011628
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p21_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 21,
+            "section_id": null,
+            "vector_rank": 27,
+            "lexical_rank": null,
+            "vector_distance": 0.391644,
+            "rrf_score": 0.011494
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 29,
+            "vector_distance": null,
+            "rrf_score": 0.011236
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 25,
+            "section_id": null,
+            "vector_rank": 29,
+            "lexical_rank": null,
+            "vector_distance": 0.395401,
+            "rrf_score": 0.011236
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 30,
+            "vector_distance": null,
+            "rrf_score": 0.011111
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:35:24.223Z",
+      "t_rel_ms": 1104
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "rerank",
+      "label": "Semantic rerank (cross-encoder)",
+      "service": "Discovery Engine Ranking API",
+      "request": {
+        "service": "Discovery Engine Ranking API",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 50,
+        "records_sent": 50,
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "method": "rankingConfigs.rank",
+        "ranking_config": "default_ranking_config",
+        "record_content_max_chars": 3600,
+        "context_k": 5
+      },
+      "ts": "2026-10-21T19:35:24.223Z",
+      "t_rel_ms": 1104
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "rerank",
+      "duration_ms": 255,
+      "payload": {
+        "service_used": "Discovery Engine Ranking API",
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 50,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.032787,
+            "rerank_rank": 1,
+            "rerank_score": 0.5367
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.031754,
+            "rerank_rank": 2,
+            "rerank_score": 0.3341
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.032002,
+            "rerank_rank": 3,
+            "rerank_score": 0.3049
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 17,
+            "rrf_rank": 43,
+            "rrf_score": 0.011905,
+            "rerank_rank": 4,
+            "rerank_score": 0.1579
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 25,
+            "rrf_rank": 49,
+            "rrf_score": 0.011236,
+            "rerank_rank": 5,
+            "rerank_score": 0.1088
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 11,
+            "rrf_rank": 28,
+            "rrf_score": 0.013158,
+            "rerank_rank": 6,
+            "rerank_score": 0.0969
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 22,
+            "rrf_rank": 30,
+            "rrf_score": 0.012987,
+            "rerank_rank": 7,
+            "rerank_score": 0.0964
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 7,
+            "rrf_score": 0.027778,
+            "rerank_rank": 8,
+            "rerank_score": 0.072
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 12,
+            "rrf_rank": 38,
+            "rrf_score": 0.012346,
+            "rerank_rank": 9,
+            "rerank_score": 0.0578
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p21_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 21,
+            "rrf_rank": 47,
+            "rrf_score": 0.011494,
+            "rerank_rank": 10,
+            "rerank_score": 0.0559
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "rrf_rank": 11,
+            "rrf_score": 0.024697,
+            "rerank_rank": 11,
+            "rerank_score": 0.0498
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 12,
+            "rrf_score": 0.02393,
+            "rerank_rank": 12,
+            "rerank_score": 0.0481
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "rrf_rank": 45,
+            "rrf_score": 0.011765,
+            "rerank_rank": 13,
+            "rerank_score": 0.0464
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.025275,
+            "rerank_rank": 14,
+            "rerank_score": 0.0435
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p5_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 5,
+            "rrf_rank": 24,
+            "rrf_score": 0.014286,
+            "rerank_rank": 15,
+            "rerank_score": 0.0372
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 25,
+            "rrf_rank": 9,
+            "rrf_score": 0.025709,
+            "rerank_rank": 16,
+            "rerank_score": 0.0338
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 6,
+            "rrf_score": 0.028382,
+            "rerank_rank": 17,
+            "rerank_score": 0.0329
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p28_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 28,
+            "rrf_rank": 15,
+            "rrf_score": 0.021203,
+            "rerank_rank": 18,
+            "rerank_score": 0.0321
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p9_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 9,
+            "rrf_rank": 42,
+            "rrf_score": 0.012048,
+            "rerank_rank": 19,
+            "rerank_score": 0.0317
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 22,
+            "rrf_rank": 16,
+            "rrf_score": 0.020485,
+            "rerank_rank": 20,
+            "rerank_score": 0.0314
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p20_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 20,
+            "rrf_rank": 27,
+            "rrf_score": 0.013699,
+            "rerank_rank": 21,
+            "rerank_score": 0.0302
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 18,
+            "rrf_score": 0.015385,
+            "rerank_rank": 22,
+            "rerank_score": 0.029
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p2_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 46,
+            "rrf_score": 0.011628,
+            "rerank_rank": 23,
+            "rerank_score": 0.0289
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 7,
+            "rrf_rank": 50,
+            "rrf_score": 0.011111,
+            "rerank_rank": 24,
+            "rerank_score": 0.0287
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 26,
+            "rrf_score": 0.013699,
+            "rerank_rank": 25,
+            "rerank_score": 0.0281
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 20,
+            "rrf_score": 0.015152,
+            "rerank_rank": 26,
+            "rerank_score": 0.0275
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 24,
+            "rrf_rank": 13,
+            "rrf_score": 0.022739,
+            "rerank_rank": 27,
+            "rerank_score": 0.0273
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 4,
+            "rrf_score": 0.029857,
+            "rerank_rank": 28,
+            "rerank_score": 0.027
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p4_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 4,
+            "rrf_rank": 14,
+            "rrf_score": 0.02189,
+            "rerank_rank": 29,
+            "rerank_score": 0.0263
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "rrf_rank": 37,
+            "rrf_score": 0.0125,
+            "rerank_rank": 30,
+            "rerank_score": 0.0262
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 41,
+            "rrf_score": 0.012048,
+            "rerank_rank": 31,
+            "rerank_score": 0.0261
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 34,
+            "rrf_score": 0.012658,
+            "rerank_rank": 32,
+            "rerank_score": 0.0259
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p8_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 8,
+            "rrf_rank": 40,
+            "rrf_score": 0.012195,
+            "rerank_rank": 33,
+            "rerank_score": 0.0257
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p4_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 4,
+            "rrf_rank": 21,
+            "rrf_score": 0.014925,
+            "rerank_rank": 34,
+            "rerank_score": 0.0255
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p5_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 5,
+            "rrf_rank": 22,
+            "rrf_score": 0.014706,
+            "rerank_rank": 35,
+            "rerank_score": 0.0253
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 1,
+            "rrf_rank": 44,
+            "rrf_score": 0.011765,
+            "rerank_rank": 36,
+            "rerank_score": 0.0252
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 23,
+            "rrf_score": 0.014493,
+            "rerank_rank": 37,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 6,
+            "rrf_rank": 48,
+            "rrf_score": 0.011236,
+            "rerank_rank": 38,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 8,
+            "rrf_score": 0.027222,
+            "rerank_rank": 39,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 24,
+            "rrf_rank": 32,
+            "rrf_score": 0.012821,
+            "rerank_rank": 40,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p2_hybrid",
+            "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 29,
+            "rrf_score": 0.013158,
+            "rerank_rank": 41,
+            "rerank_score": 0.0245
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p11_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 11,
+            "rrf_rank": 31,
+            "rrf_score": 0.012987,
+            "rerank_rank": 42,
+            "rerank_score": 0.0233
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p7_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 7,
+            "rrf_rank": 19,
+            "rrf_score": 0.015385,
+            "rerank_rank": 43,
+            "rerank_score": 0.0216
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p6_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 6,
+            "rrf_rank": 39,
+            "rrf_score": 0.012346,
+            "rerank_rank": 44,
+            "rerank_score": 0.0211
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 5,
+            "rrf_score": 0.02901,
+            "rerank_rank": 45,
+            "rerank_score": 0.0209
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p3_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 3,
+            "rrf_rank": 17,
+            "rrf_score": 0.015625,
+            "rerank_rank": 46,
+            "rerank_score": 0.0208
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 25,
+            "rrf_score": 0.014085,
+            "rerank_rank": 47,
+            "rerank_score": 0.0207
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p1_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 1,
+            "rrf_rank": 35,
+            "rrf_score": 0.012658,
+            "rerank_rank": 48,
+            "rerank_score": 0.0203
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p14_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 14,
+            "rrf_rank": 33,
+            "rrf_score": 0.012821,
+            "rerank_rank": 49,
+            "rerank_score": 0.0189
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p2_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 36,
+            "rrf_score": 0.0125,
+            "rerank_rank": 50,
+            "rerank_score": 0.0186
+          }
+        ],
+        "rank_api_ms": 254,
+        "attempts": 1,
+        "records_truncated": 19,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-10-21T19:35:24.478Z",
+      "t_rel_ms": 1359
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 3.8 Flash",
+      "request": {
+        "model": "gemini-3.8-flash",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[03_Incident_Response_SLAs.pdf | Sec: SLA-SEC-3.1 | p.1]: [Contextual Lineage: Solicitation=solicitation_03 | Document=03_Incident_Response_SLAs.pdf | DocType=SLA_MATRIX | Section=SLA-SEC-3.1]\nSOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |\n\n[05_SLA_and_QASP_Requirements.pdf | Sec: SLA-4.2 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=05_SLA_and_QASP_Requirements.pdf | DocType=SLA_MATRIX | Section=SLA-4.2]\nSOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).\n\n[04_Compliance_and_SOC2_Matrix.pdf | Sec: CTRL-SOC2-MATRIX | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\n[FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | Sec: GENERAL | p.17]: [Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nANNEX\u00a02:\u00a0SERVICES\u00a0AND\u00a0LIABILITIES\nService\nPeriod\nTimetable\nResponse\nLiability\nEvaluation\nPeriod\nType\u00a0of\u00a0Evaluation\nNetwork\u00a0Availability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0network\u00a0is\u00a0not\navailable\nFault\u00a0reports\u00a0of\u00a0network\nand\u00a0server\u00a0infrastructure\nproblems\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\nAlert\u00a0in\u00a0the\u00a015\u00a0minutes\u00a0following\u00a0the\nfault\u00a0report\u00a0as\u00a0well\u00a0as\u00a0an\u00a0account\nwhen\u00a0the\u00a0problem\u00a0has\u00a0been\u00a0solved.\nDefine\u00a0what\u00a0alert,\u00a0how\u00a0and\u00a0who\ncommunicates\u00a0it.\n98%\u00a0of\u00a0faults\nreported\u00a0in\u00a0the\ntime\u00a0period\nMonthly\nMeasuring\u00a0the\u00a0period\nbetween\u00a0the\u00a0beginning\nand\u00a0the\u00a0end\u00a0of\u00a0the\nproblem,\u00a0and\u00a0fault\nreporting\nGes-Indus\nAvailability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0application\u00a0is\u00a0not\navailable\nGes-Indus\u00a0Support\u00a0Level\n2\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u00d8\nResponse:\u00a0less\u00a0than\u00a0two\u00a0South\nAfrican\u00a0working\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0response\u00a0times\nfor\u00a0each\u00a0request\n\u00d8\u00a0 Blocking\u00a0Bug:\nGes-Indus\nMaintenance\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0two\u00a0South\u00a0African\nworking\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0the\u00a0response\ntimes\u00a0for\u00a0encountered\nproblems\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0less\nthan\u00a0one\u00a0South\u00a0African\nworkday\n\u00d8\nNon-blocking\u00a0Bug:\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0three\u00a0South\u00a0African\nworkdays\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0set\nout\u00a0by\u00a0the\u00a0requestor\nElectronic\u00a0Mail\u00a0Service\nAvailability\n7d/7d\n24h/24h\n99%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nthe\u00a0electronic\u00a0mail\u00a0service\nis\u00a0not\u00a0available\nOFINET\u00a0Availability\n7d/7d\n24h/24h\n95%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nOFINET\u00a0is\u00a0not\u00a0available\nSource: FERROGLOBE PLC, F-4/A, 6/24/2015\n\n[QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf | Sec: GENERAL | p.25]: [Contextual Lineage: Solicitation=solicitation_01 | Document=QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nService\u00a0Levels\nIBM\u00a0will\u00a0provide\u00a0the\u00a0following\u00a0monthly\u00a0availability\u00a0Service\u00a0Level\u00a0Agreement\u00a0(\u201cSLA\u201d)\u00a0for\u00a0the\u00a0Services\u00a0provided\u00a0by\u00a0IBM:\nFor\u00a0Managed\u00a0Devices\u00a0and\u00a0Managed\u00a0Servers\u00a0(including\u00a0firewall(s)\u00a0and\u00a0switches)\u00a0that\u00a0are\u00a0not\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.7\u00a0percent.\nFor\u00a0Managed\u00a0Devices\u00a0and\u00a0Managed\u00a0Servers\u00a0(including\u00a0firewall(s)\u00a0and\u00a0switches)\u00a0that\u00a0are\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.9\u00a0percent.\nFor\u00a0Managed\u00a0Application\u00a0Solution\u00a0(including\u00a0firewalls(s)\u00a0and\u00a0switches)\u00a0that\u00a0are\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a098.0\u00a0percent.\nFor\u00a0Managed\u00a0Application\u00a0Solution\u00a0(including\u00a0firewalls(s)\u00a0and\u00a0switches)\u00a0that\u00a0is\u00a0not\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.5\u00a0percent.\nFor\u00a0Basic\u00a0Monitoring\u00a0Services\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.9\u00a0percent\u00a0applicable\u00a0only\u00a0for\u00a0the\u00a0core\u00a0infrastructure\u00a0components\u00a0(including\npower,\u00a0cooling,\u00a0Internet\u00a0connectivity,\u00a0firewalls,\u00a0load\u00a0balancers,\u00a0SSL\u00a0acceleration,\u00a0Network\u00a0Intrusion\u00a0Detection,\u00a0VLAN\u00a0segments,\nswitches,\u00a0VPN\u00a0connection\u00a0at\u00a0the\u00a0Hosting\u00a0Center,\u00a0and\u00a0all\u00a0related\u00a0connections).\nFor\u00a0Advanced\u00a0Monitoring\u00a0Services\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.9\u00a0percent\u00a0applicable\u00a0only\u00a0for\u00a0the\u00a0core\u00a0infrastructure\u00a0components\n(including\u00a0power,\u00a0cooling,\u00a0Internet\u00a0connectivity,\u00a0firewalls,\u00a0load\u00a0balancers,\u00a0SSL\u00a0acceleration,\u00a0Network\u00a0Intrusion\u00a0Detection,\u00a0VLAN\nsegments,\u00a0switches,\u00a0VPN\u00a0connection\u00a0at\u00a0the\u00a0Hosting\u00a0Center,\u00a0and\u00a0all\u00a0related\u00a0connections).\nAvailability\u00a0Credits\nIf\u00a0in\u00a0any\u00a0month\u00a0during\u00a0the\u00a0term\u00a0of\u00a0Managed\u00a0Hosting\u00a0Services\u00a0the\u00a0Monthly\u00a0Availability\u00a0Percentage\u00a0for\u00a0a\u00a0Qualifying\u00a0Server\u00a0is\u00a0less\u00a0than\u00a0the\nSLA\u00a0Target\u00a0Percentage\u00a0for\u00a0that\u00a0Qualifying\u00a0Server,\u00a0Customer\u00a0shall\u00a0be\u00a0eligible\u00a0to\u00a0receive\u00a0an\u00a0Availability\u00a0Credit,\u00a0subject\u00a0to\u00a0Section\u00a08.3(b),\n8.4,\u00a08.5,\u00a08.6\u00a0and\u00a08.7.\nIf\u00a0in\u00a0any\u00a0month\u00a0during\u00a0the\u00a0term\u00a0of\u00a0Managed\u00a0Hosting\u00a0Services\u00a0the\u00a0Monthly\u00a0Availability\u00a0Percentage\u00a0for\u00a0Basic\u00a0Monitoring\u00a0or\u00a0Advanced\nMonitoring\u00a0Services\u00a0is\u00a0less\u00a0than\u00a0the\u00a0SLA\u00a0Target\u00a0Percentage\u00a0for\u00a0Basic\u00a0Monitoring\u00a0or\u00a0Advanced\u00a0Monitoring\u00a0Services,\u00a0Customer\u00a0shall\u00a0be\neligible\u00a0to\u00a0receive\u00a0an\u00a0Availability\u00a0Credit,\u00a0subject\u00a0to\u00a0Section\u00a08.3(b),\u00a08.4,\u00a08.5,\u00a08.6\u00a0and\u00a08.7.\nCustomer\u00a0agrees\u00a0to\u00a0contact\u00a0the\u00a0IBM\u00a0Help\u00a0Desk\u00a0to\u00a0report\u00a0problems\u00a0and\u00a0open\u00a0trouble\u00a0tickets\u00a0that\u00a0reflect\u00a0the\u00a0start\u00a0time\u00a0of\u00a0the\u00a0Outage\nevent.\nSettlement\u00a0of\u00a0Credits\nAvailability\u00a0Credits\u00a0will\u00a0be\u00a0aggregated\u00a0on\u00a0a\u00a0quarterly\u00a0basis\u00a0and\u00a0settled\u00a0by\u00a0the\u00a0last\u00a0day\u00a0of\u00a0the\u00a0first\u00a0month\u00a0following\u00a0the\u00a0end\u00a0of\u00a0the\u00a0quarter\nin\u00a0which\u00a0such\u00a0Availability\u00a0Credits\u00a0were\u00a0earned.\u00a0(For\u00a0example,\u00a0the\u00a0aggregate\u00a0Availability\u00a0Credits\u00a0earned\u00a0in\u00a0the\u00a0first\u00a0quarter\u00a02007\u00a0will\u00a0be\napplied\u00a0against\u00a0Monthly\u00a0Recurring\u00a0Charge\u00a0for\u00a0Services\u00a0the\u00a0Customer\u00a0incurs\u00a0in\u00a0the\u00a0April\u00a02007\u00a0invoice.)\u00a0Any\u00a0Availability\u00a0Credits\u00a0owed\u00a0from\nIBM\u00a0to\u00a0Customer\u00a0upon\u00a0the\u00a0expiration\u00a0or\u00a0termination\u00a0of\u00a0the\u00a0Services\u00a0will\u00a0be\u00a0paid\u00a0within\u00a0one\u00a0(1)\u00a0month\u00a0following\u00a0the\u00a0effective\u00a0date\u00a0of\nexpiration\u00a0or\u00a0termination.\u00a0If\u00a0the\u00a0Monthly\u00a0",
+        "context_chunks": 5,
+        "method": "models.generate_content",
+        "truncated": true
+      },
+      "ts": "2026-10-21T19:35:24.479Z",
+      "t_rel_ms": 1360
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "synthesize",
+      "duration_ms": 7160,
+      "payload": {
+        "model": "gemini-3.8-flash",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 4212,
+        "output_tokens": 434,
+        "thinking_tokens": 688,
+        "stop_reason": "STOP",
+        "response_id": "_BPZavKiIKaxw8cPoZvagAE",
+        "attempts": 1,
+        "answer": "Based on the provided context, here is the comparison of the incident response SLAs for Solicitation 03 and the required SOC2 Type II and HIPAA controls for Solicitation 02:\n\n---\n\n### 1. Incident Response SLAs Comparison: P1 Critical vs. P2 High (Solicitation 03)\n*Source: `03_Incident_Response_SLAs.pdf` (Clause SLA-SEC-3.1)*\n\n| Metric / Parameter | **P1 Critical** | **P2 High** |\n| :--- | :--- | :--- |\n| **Definition** | Active Ransomware / Root Breach | Privileged Account Compromise |\n| **Initial Triage SLA** | $\\le$ 15 minutes | $\\le$ 30 minutes |\n| **Containment SLA** | $\\le$ 60 minutes | $\\le$ 4 hours |\n| **Penalty Credit** | 20% Monthly Fee | 10% Monthly Fee |\n\n---\n\n### 2. SOC2 Type II and HIPAA Controls (Solicitation 02)\n*Source: `04_Compliance_and_SOC2_Matrix.pdf` (Clause CTRL-SOC2-MATRIX)*\n\n* **SOC2 Type II Controls:**\n  * **Control ID `CTRL-SOC2-CC6.1`**:\n    * **Requirement:** Logical Access Boundary\n    * **GCP Implementation:** VPC Service Controls (VPC-SC)\n    * **Mandatory:** Yes\n  * **Control ID `CTRL-SOC2-CC6.7`**:\n    * **Requirement:** Encryption in Transit/Rest\n    * **GCP Implementation:** Cloud KMS CMEK + TLS 1.3\n    * **Mandatory:** Yes\n\n* **HIPAA Control:**\n  * **Control ID `CTRL-HIPAA-164.312`**:\n    * **Requirement:** PHI De-Identification\n    * **GCP Implementation:** Cloud DLP Streaming Redaction\n    * **Mandatory:** Yes",
+        "thinking_level": "HIGH"
+      },
+      "ts": "2026-10-21T19:35:31.639Z",
+      "t_rel_ms": 8520
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-21T19:35:31.640Z",
+      "t_rel_ms": 8520
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_468f640e243e",
+      "engine": "level2_hybrid",
+      "stage": "evaluate",
+      "duration_ms": 3821,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.97,
+        "qa_relevance": 1.0,
+        "context_precision": 0.45,
+        "reference_answer_used": true,
+        "input_tokens": 4545,
+        "output_tokens": 327,
+        "judge_cost_usd": 0.02472,
+        "rationale": "Every SLA value, penalty credit, and control detail in the answer matches the retrieved chunks; the only slip is calling the section label 'CTRL-SOC2-MATRIX' a clause. The answer fully covers both parts of the query and agrees with the reference. Only 2 of 5 retrieved chunks are relevant: the Solicitation 01 QASP table is a distractor and the Ferroglobe and Quantum commercial agreements are off-topic noise.",
+        "judge_response_id": "msg_vrtx_011CgFwhe4FbRFPKoToQJ6yc"
+      },
+      "ts": "2026-10-21T19:35:35.462Z",
+      "t_rel_ms": 12342
+    }
+  ],
+  "result": {
+    "engine_id": "level2_hybrid",
+    "engine_label": "Level 2: BigQuery Hybrid + Reranker",
+    "answer": "Based on the provided context, here is the comparison of the incident response SLAs for Solicitation 03 and the required SOC2 Type II and HIPAA controls for Solicitation 02:\n\n---\n\n### 1. Incident Response SLAs Comparison: P1 Critical vs. P2 High (Solicitation 03)\n*Source: `03_Incident_Response_SLAs.pdf` (Clause SLA-SEC-3.1)*\n\n| Metric / Parameter | **P1 Critical** | **P2 High** |\n| :--- | :--- | :--- |\n| **Definition** | Active Ransomware / Root Breach | Privileged Account Compromise |\n| **Initial Triage SLA** | $\\le$ 15 minutes | $\\le$ 30 minutes |\n| **Containment SLA** | $\\le$ 60 minutes | $\\le$ 4 hours |\n| **Penalty Credit** | 20% Monthly Fee | 10% Monthly Fee |\n\n---\n\n### 2. SOC2 Type II and HIPAA Controls (Solicitation 02)\n*Source: `04_Compliance_and_SOC2_Matrix.pdf` (Clause CTRL-SOC2-MATRIX)*\n\n* **SOC2 Type II Controls:**\n  * **Control ID `CTRL-SOC2-CC6.1`**:\n    * **Requirement:** Logical Access Boundary\n    * **GCP Implementation:** VPC Service Controls (VPC-SC)\n    * **Mandatory:** Yes\n  * **Control ID `CTRL-SOC2-CC6.7`**:\n    * **Requirement:** Encryption in Transit/Rest\n    * **GCP Implementation:** Cloud KMS CMEK + TLS 1.3\n    * **Mandatory:** Yes\n\n* **HIPAA Control:**\n  * **Control ID `CTRL-HIPAA-164.312`**:\n    * **Requirement:** PHI De-Identification\n    * **GCP Implementation:** Cloud DLP Streaming Redaction\n    * **Mandatory:** Yes",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "SLA-SEC-3.1",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=03_Incident_Response_SLAs.pdf | DocType=SLA_MATRIX | Section=SLA-SEC-3.1] SOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf EXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALT"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SLA-4.2",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=05_SLA_and_QASP_Requirements.pdf | DocType=SLA_MATRIX | Section=SLA-4.2] SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf EXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP)"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CTRL-SOC2-MATRIX",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX] SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE"
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 17,
+        "section_id": null,
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 17,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL] ANNEX\u00a02:\u00a0SERVICES\u00a0AND\u00a0LIABILITIES Service Period "
+      },
+      {
+        "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_hybrid",
+        "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 25,
+        "section_id": null,
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 25,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL] Service\u00a0Levels IBM\u00a0will\u00a0provide\u00a0the\u00a0following\u00a0monthl"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "SLA-SEC-3.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=03_Incident_Response_SLAs.pdf | DocType=SLA_MATRIX | Section=SLA-SEC-3.1]\nSOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |",
+        "score": 0.5367
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "SLA-4.2",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=05_SLA_and_QASP_Requirements.pdf | DocType=SLA_MATRIX | Section=SLA-4.2]\nSOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).",
+        "score": 0.3341
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "CTRL-SOC2-MATRIX",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |",
+        "score": 0.3049
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 17,
+        "bbox": {
+          "page": 17,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nANNEX\u00a02:\u00a0SERVICES\u00a0AND\u00a0LIABILITIES\nService\nPeriod\nTimetable\nResponse\nLiability\nEvaluation\nPeriod\nType\u00a0of\u00a0Evaluation\nNetwork\u00a0Availability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0network\u00a0is\u00a0not\navailable\nFault\u00a0reports\u00a0of\u00a0network\nand\u00a0server\u00a0infrastructure\nproblems\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\nAlert\u00a0in\u00a0the\u00a015\u00a0minutes\u00a0following\u00a0the\nfault\u00a0report\u00a0as\u00a0well\u00a0as\u00a0an\u00a0account\nwhen\u00a0the\u00a0problem\u00a0has\u00a0been\u00a0solved.\nDefine\u00a0what\u00a0alert,\u00a0how\u00a0and\u00a0who\ncommunicates\u00a0it.\n98%\u00a0of\u00a0faults\nreported\u00a0in\u00a0the\ntime\u00a0period\nMonthly\nMeasuring\u00a0the\u00a0period\nbetween\u00a0the\u00a0beginning\nand\u00a0the\u00a0end\u00a0of\u00a0the\nproblem,\u00a0and\u00a0fault\nreporting\nGes-Indus\nAvailability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0application\u00a0is\u00a0not\navailable\nGes-Indus\u00a0Support\u00a0Level\n2\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u00d8\nResponse:\u00a0less\u00a0than\u00a0two\u00a0South\nAfrican\u00a0working\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0response\u00a0times\nfor\u00a0each\u00a0request\n\u00d8\u00a0 Blocking\u00a0Bug:\nGes-Indus\nMaintenance\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0two\u00a0South\u00a0African\nworking\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0the\u00a0response\ntimes\u00a0for\u00a0encountered\nproblems\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0less\nthan\u00a0one\u00a0South\u00a0African\nworkday\n\u00d8\nNon-blocking\u00a0Bug:\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0three\u00a0South\u00a0African\nworkdays\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0set\nout\u00a0by\u00a0the\u00a0requestor\nElectronic\u00a0Mail\u00a0Service\nAvailability\n7d/7d\n24h/24h\n99%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nthe\u00a0electronic\u00a0mail\u00a0service\nis\u00a0not\u00a0available\nOFINET\u00a0Availability\n7d/7d\n24h/24h\n95%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nOFINET\u00a0is\u00a0not\u00a0available\nSource: FERROGLOBE PLC, F-4/A, 6/24/2015",
+        "score": 0.1579
+      },
+      {
+        "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 25,
+        "bbox": {
+          "page": 25,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nService\u00a0Levels\nIBM\u00a0will\u00a0provide\u00a0the\u00a0following\u00a0monthly\u00a0availability\u00a0Service\u00a0Level\u00a0Agreement\u00a0(\u201cSLA\u201d)\u00a0for\u00a0the\u00a0Services\u00a0provided\u00a0by\u00a0IBM:\nFor\u00a0Managed\u00a0Devices\u00a0and\u00a0Managed\u00a0Servers\u00a0(including\u00a0firewall(s)\u00a0and\u00a0switches)\u00a0that\u00a0are\u00a0not\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.7\u00a0percent.\nFor\u00a0Managed\u00a0Devices\u00a0and\u00a0Managed\u00a0Servers\u00a0(including\u00a0firewall(s)\u00a0and\u00a0switches)\u00a0that\u00a0are\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.9\u00a0percent.\nFor\u00a0Managed\u00a0Application\u00a0Solution\u00a0(including\u00a0firewalls(s)\u00a0and\u00a0switches)\u00a0that\u00a0are\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a098.0\u00a0percent.\nFor\u00a0Managed\u00a0Application\u00a0Solution\u00a0(including\u00a0firewalls(s)\u00a0and\u00a0switches)\u00a0that\u00a0is\u00a0not\u00a0clustered\u00a0or\u00a0configured\u00a0in\u00a0a\u00a0high\u00a0availability\nconfiguration,\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.5\u00a0percent.\nFor\u00a0Basic\u00a0Monitoring\u00a0Services\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.9\u00a0percent\u00a0applicable\u00a0only\u00a0for\u00a0the\u00a0core\u00a0infrastructure\u00a0components\u00a0(including\npower,\u00a0cooling,\u00a0Internet\u00a0connectivity,\u00a0firewalls,\u00a0load\u00a0balancers,\u00a0SSL\u00a0acceleration,\u00a0Network\u00a0Intrusion\u00a0Detection,\u00a0VLAN\u00a0segments,\nswitches,\u00a0VPN\u00a0connection\u00a0at\u00a0the\u00a0Hosting\u00a0Center,\u00a0and\u00a0all\u00a0related\u00a0connections).\nFor\u00a0Advanced\u00a0Monitoring\u00a0Services\u00a0the\u00a0SLA\u00a0is\u00a0a\u00a0minimum\u00a0of\u00a099.9\u00a0percent\u00a0applicable\u00a0only\u00a0for\u00a0the\u00a0core\u00a0infrastructure\u00a0components\n(including\u00a0power,\u00a0cooling,\u00a0Internet\u00a0connectivity,\u00a0firewalls,\u00a0load\u00a0balancers,\u00a0SSL\u00a0acceleration,\u00a0Network\u00a0Intrusion\u00a0Detection,\u00a0VLAN\nsegments,\u00a0switches,\u00a0VPN\u00a0connection\u00a0at\u00a0the\u00a0Hosting\u00a0Center,\u00a0and\u00a0all\u00a0related\u00a0connections).\nAvailability\u00a0Credits\nIf\u00a0in\u00a0any\u00a0month\u00a0during\u00a0the\u00a0term\u00a0of\u00a0Managed\u00a0Hosting\u00a0Services\u00a0the\u00a0Monthly\u00a0Availability\u00a0Percentage\u00a0for\u00a0a\u00a0Qualifying\u00a0Server\u00a0is\u00a0less\u00a0than\u00a0the\nSLA\u00a0Target\u00a0Percentage\u00a0for\u00a0that\u00a0Qualifying\u00a0Server,\u00a0Customer\u00a0shall\u00a0be\u00a0eligible\u00a0to\u00a0receive\u00a0an\u00a0Availability\u00a0Credit,\u00a0subject\u00a0to\u00a0Section\u00a08.3(b),\n8.4,\u00a08.5,\u00a08.6\u00a0and\u00a08.7.\nIf\u00a0in\u00a0any\u00a0month\u00a0during\u00a0the\u00a0term\u00a0of\u00a0Managed\u00a0Hosting\u00a0Services\u00a0the\u00a0Monthly\u00a0Availability\u00a0Percentage\u00a0for\u00a0Basic\u00a0Monitoring\u00a0or\u00a0Advanced\nMonitoring\u00a0Services\u00a0is\u00a0less\u00a0than\u00a0the\u00a0SLA\u00a0Target\u00a0Percentage\u00a0for\u00a0Basic\u00a0Monitoring\u00a0or\u00a0Advanced\u00a0Monitoring\u00a0Services,\u00a0Customer\u00a0shall\u00a0be\neligible\u00a0to\u00a0receive\u00a0an\u00a0Availability\u00a0Credit,\u00a0subject\u00a0to\u00a0Section\u00a08.3(b),\u00a08.4,\u00a08.5,\u00a08.6\u00a0and\u00a08.7.\nCustomer\u00a0agrees\u00a0to\u00a0contact\u00a0the\u00a0IBM\u00a0Help\u00a0Desk\u00a0to\u00a0report\u00a0problems\u00a0and\u00a0open\u00a0trouble\u00a0tickets\u00a0that\u00a0reflect\u00a0the\u00a0start\u00a0time\u00a0of\u00a0the\u00a0Outage\nevent.\nSettlement\u00a0of\u00a0Credits\nAvailability\u00a0Credits\u00a0will\u00a0be\u00a0aggregated\u00a0on\u00a0a\u00a0quarterly\u00a0basis\u00a0and\u00a0settled\u00a0by\u00a0the\u00a0last\u00a0day\u00a0of\u00a0the\u00a0first\u00a0month\u00a0following\u00a0the\u00a0end\u00a0of\u00a0the\u00a0quarter\nin\u00a0which\u00a0such\u00a0Availability\u00a0Credits\u00a0were\u00a0earned.\u00a0(For\u00a0example,\u00a0the\u00a0aggregate\u00a0Availability\u00a0Credits\u00a0earned\u00a0in\u00a0the\u00a0first\u00a0quarter\u00a02007\u00a0will\u00a0be\napplied\u00a0against\u00a0Monthly\u00a0Recurring\u00a0Charge\u00a0for\u00a0Services\u00a0the\u00a0Customer\u00a0incurs\u00a0in\u00a0the\u00a0April\u00a02007\u00a0invoice.)\u00a0Any\u00a0Availability\u00a0Credits\u00a0owed\u00a0from\nIBM\u00a0to\u00a0Customer\u00a0upon\u00a0the\u00a0expiration\u00a0or\u00a0termination\u00a0of\u00a0the\u00a0Services\u00a0will\u00a0be\u00a0paid\u00a0within\u00a0one\u00a0(1)\u00a0month\u00a0following\u00a0the\u00a0effective\u00a0date\u00a0of\nexpiration\u00a0or\u00a0termination.\u00a0If\u00a0the\u00a0Monthly\u00a0Recurring\u00a0Charge\u00a0for\u00a0a\u00a0subject\u00a0month\u00a0has\u00a0not\u00a0been\u00a0incurred,\u00a0or\u00a0for\u00a0any\u00a0other\u00a0reason\u00a0has\u00a0been\ncredited\u00a0or\u00a0waived,\u00a0Customer\u00a0shall\u00a0not\u00a0be\u00a0eligible\u00a0for\u00a0an\u00a0Availability\u00a0Credit\u00a0for\u00a0that\u00a0month.\u00a0 Customer\u00a0shall\u00a0receive\u00a0no\u00a0more\u00a0than\u00a0five\npercent\u00a0(5%)\u00a0of\u00a0Customer\u2019s\u00a0Monthly\u00a0Recurring\u00a0Charge\u00a0for\u00a0Managed\u00a0Hosting\u00a0Services\u00a0as\u00a0an\u00a0Availability\u00a0Credit\u00a0in\u00a0a\u00a0given\u00a0month.\nCommencement\u00a0of\u00a0Service\u00a0Level\u00a0Agreement\nIBM\u00a0will\u00a0exercise\u00a0commercially\u00a0reasonable\u00a0efforts\u00a0to\u00a0meet\u00a0the\u00a0SLA\u00a0Target\u00a0Percentage.\u00a0Notwithstanding\u00a0the\u00a0foregoing,\u00a0Customer\u00a0shall\nnot\u00a0be\u00a0eligible\u00a0for\u00a0an\u00a0Availability\u00a0Credit\u00a0until\u00a0the\u00a0first\u00a0full\u00a0calendar\u00a0month\u00a0following\u00a0the\u00a0Hosting\u00a0Service\u00a0Ready\u00a0Date.\nExclusivity\u00a0of\u00a0Remedies\nCustomer\u00a0agrees\u00a0that\u00a0its\u00a0sole\u00a0remedy\u00a0for\u00a0IBM\u2019s\u00a0failure\u00a0to\u00a0meet\u00a0an\u00a0SLA\u00a0Target\u00a0Percentage\u00a0is\u00a0the\u00a0Availability\u00a0Credit\u00a0as\u00a0provided\u00a0in\u00a0this\nAttachment.\nExclusions\nIBM\u00a0is\u00a0not\u00a0responsible\u00a0for\u00a0any\u00a0Outage\u00a0outside\u00a0of\u00a0its\u00a0control,\u00a0including\u00a0but\u00a0not\u00a0limited\u00a0to,\u00a0the\u00a0following\u00a0examples:\nperiods\u00a0of\u00a0scheduled\u00a0or\u00a0emergency\u00a0maintenance\u00a0activities\u00a0or\u00a0scheduled\u00a0Outage\u037e\nOutage\u00a0due\u00a0to\u00a0problems\u00a0with\u00a0Customer\u00a0provided\u00a0Content\u00a0or\u00a0programming\u00a0errors\u00a0including,\u00a0but\u00a0not\u00a0limited\u00a0to,\u00a0Content\u00a0installation\u00a0and\nintegration\u037e\nPage\u00a025\u00a0of\u00a036\nSource: QUANTUM GROUP INC /FL, 8-K, 1/20/2009",
+        "score": 0.1088
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 8520,
+    "cost_usd": 0.0083829,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-21T19:35:23.119Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "expansions": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-10-21T19:35:23.119Z",
+        "duration_ms": 234,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 82,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "BigQuery VECTOR_SEARCH + SEARCH() \u2192 RRF",
+        "service": "BigQuery",
+        "status": "completed",
+        "started_at": "2026-10-21T19:35:23.354Z",
+        "duration_ms": 868,
+        "request": {},
+        "payload": {
+          "rows_returned": 50,
+          "candidate_k": 50,
+          "job_id": "5b94f96b-aa3d-4e6d-8916-c5cb22f6809d",
+          "bytes_processed": 0,
+          "slot_millis": 0,
+          "cache_hit": true,
+          "index_usage": {
+            "search": {
+              "index_usage_mode": "UNUSED",
+              "index_unused_reasons": [
+                {
+                  "code": "QUERY_CACHE_HIT",
+                  "message": "Search indexes are not used because the query was cached."
+                }
+              ]
+            },
+            "vector_search": {
+              "index_usage_mode": "UNUSED",
+              "index_unused_reasons": [
+                {
+                  "code": "QUERY_CACHE_HIT",
+                  "message": "Vector indexes are not used because the query was cached."
+                }
+              ]
+            }
+          },
+          "rrf_k": 60,
+          "vector_k": 50,
+          "lexical_k": 50,
+          "with_both_ranks": 16,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 1,
+              "lexical_rank": 1,
+              "vector_distance": 0.193266,
+              "rrf_score": 0.032787
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 2,
+              "lexical_rank": 3,
+              "vector_distance": 0.23457,
+              "rrf_score": 0.032002
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 4,
+              "lexical_rank": 2,
+              "vector_distance": 0.310155,
+              "rrf_score": 0.031754
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 8,
+              "lexical_rank": 6,
+              "vector_distance": 0.336221,
+              "rrf_score": 0.029857
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 7,
+              "lexical_rank": 11,
+              "vector_distance": 0.329897,
+              "rrf_score": 0.02901
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 12,
+              "lexical_rank": 9,
+              "vector_distance": 0.350513,
+              "rrf_score": 0.028382
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 3,
+              "lexical_rank": 24,
+              "vector_distance": 0.284749,
+              "rrf_score": 0.027778
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 15,
+              "lexical_rank": 12,
+              "vector_distance": 0.35978,
+              "rrf_score": 0.027222
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 25,
+              "section_id": null,
+              "vector_rank": 22,
+              "lexical_rank": 14,
+              "vector_distance": 0.380496,
+              "rrf_score": 0.025709
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 10,
+              "lexical_rank": 31,
+              "vector_distance": 0.344285,
+              "rrf_score": 0.025275
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-1001",
+              "vector_rank": 28,
+              "lexical_rank": 15,
+              "vector_distance": 0.394521,
+              "rrf_score": 0.024697
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 14,
+              "lexical_rank": 36,
+              "vector_distance": 0.355992,
+              "rrf_score": 0.02393
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 24,
+              "section_id": null,
+              "vector_rank": 30,
+              "lexical_rank": 26,
+              "vector_distance": 0.395481,
+              "rrf_score": 0.022739
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p4_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 4,
+              "section_id": null,
+              "vector_rank": 35,
+              "lexical_rank": 28,
+              "vector_distance": 0.407701,
+              "rrf_score": 0.02189
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p28_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 28,
+              "section_id": null,
+              "vector_rank": 43,
+              "lexical_rank": 27,
+              "vector_distance": 0.410363,
+              "rrf_score": 0.021203
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 22,
+              "section_id": null,
+              "vector_rank": 32,
+              "lexical_rank": 44,
+              "vector_distance": 0.397628,
+              "rrf_score": 0.020485
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p3_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 3,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 4,
+              "vector_distance": null,
+              "rrf_score": 0.015625
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 5,
+              "lexical_rank": null,
+              "vector_distance": 0.313432,
+              "rrf_score": 0.015385
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p7_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 5,
+              "vector_distance": null,
+              "rrf_score": 0.015385
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 6,
+              "lexical_rank": null,
+              "vector_distance": 0.313496,
+              "rrf_score": 0.015152
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p4_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 4,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 7,
+              "vector_distance": null,
+              "rrf_score": 0.014925
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p5_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 8,
+              "vector_distance": null,
+              "rrf_score": 0.014706
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 9,
+              "lexical_rank": null,
+              "vector_distance": 0.340391,
+              "rrf_score": 0.014493
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p5_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 10,
+              "vector_distance": null,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 11,
+              "lexical_rank": null,
+              "vector_distance": 0.347988,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 13,
+              "lexical_rank": null,
+              "vector_distance": 0.354803,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p20_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 20,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 13,
+              "vector_distance": null,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 11,
+              "section_id": null,
+              "vector_rank": 16,
+              "lexical_rank": null,
+              "vector_distance": 0.367431,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p2_hybrid",
+              "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 16,
+              "vector_distance": null,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 22,
+              "section_id": null,
+              "vector_rank": 17,
+              "lexical_rank": null,
+              "vector_distance": 0.37645,
+              "rrf_score": 0.012987
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p11_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 11,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 17,
+              "vector_distance": null,
+              "rrf_score": 0.012987
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 24,
+              "section_id": null,
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.377915,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p14_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 14,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 18,
+              "vector_distance": null,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 19,
+              "lexical_rank": null,
+              "vector_distance": 0.378492,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p1_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 19,
+              "vector_distance": null,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p2_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 20,
+              "vector_distance": null,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "section_id": "ZTA-NIST-800-207",
+              "vector_rank": 20,
+              "lexical_rank": null,
+              "vector_distance": 0.379335,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 12,
+              "section_id": null,
+              "vector_rank": 21,
+              "lexical_rank": null,
+              "vector_distance": 0.379755,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p6_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 21,
+              "vector_distance": null,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p8_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 22,
+              "vector_distance": null,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 23,
+              "lexical_rank": null,
+              "vector_distance": 0.382685,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p9_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 9,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 23,
+              "vector_distance": null,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 17,
+              "section_id": null,
+              "vector_rank": 24,
+              "lexical_rank": null,
+              "vector_distance": 0.383395,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 25,
+              "vector_distance": null,
+              "rrf_score": 0.011765
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 25,
+              "lexical_rank": null,
+              "vector_distance": 0.387965,
+              "rrf_score": 0.011765
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p2_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 26,
+              "lexical_rank": null,
+              "vector_distance": 0.388876,
+              "rrf_score": 0.011628
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p21_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 21,
+              "section_id": null,
+              "vector_rank": 27,
+              "lexical_rank": null,
+              "vector_distance": 0.391644,
+              "rrf_score": 0.011494
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 29,
+              "vector_distance": null,
+              "rrf_score": 0.011236
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 25,
+              "section_id": null,
+              "vector_rank": 29,
+              "lexical_rank": null,
+              "vector_distance": 0.395401,
+              "rrf_score": 0.011236
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 30,
+              "vector_distance": null,
+              "rrf_score": 0.011111
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Semantic rerank (cross-encoder)",
+        "service": "Discovery Engine Ranking API",
+        "status": "completed",
+        "started_at": "2026-10-21T19:35:24.223Z",
+        "duration_ms": 255,
+        "request": {},
+        "payload": {
+          "service_used": "Discovery Engine Ranking API",
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 50,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.032787,
+              "rerank_rank": 1,
+              "rerank_score": 0.5367
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.031754,
+              "rerank_rank": 2,
+              "rerank_score": 0.3341
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.032002,
+              "rerank_rank": 3,
+              "rerank_score": 0.3049
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 17,
+              "rrf_rank": 43,
+              "rrf_score": 0.011905,
+              "rerank_rank": 4,
+              "rerank_score": 0.1579
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 25,
+              "rrf_rank": 49,
+              "rrf_score": 0.011236,
+              "rerank_rank": 5,
+              "rerank_score": 0.1088
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 11,
+              "rrf_rank": 28,
+              "rrf_score": 0.013158,
+              "rerank_rank": 6,
+              "rerank_score": 0.0969
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 22,
+              "rrf_rank": 30,
+              "rrf_score": 0.012987,
+              "rerank_rank": 7,
+              "rerank_score": 0.0964
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 7,
+              "rrf_score": 0.027778,
+              "rerank_rank": 8,
+              "rerank_score": 0.072
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 12,
+              "rrf_rank": 38,
+              "rrf_score": 0.012346,
+              "rerank_rank": 9,
+              "rerank_score": 0.0578
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p21_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 21,
+              "rrf_rank": 47,
+              "rrf_score": 0.011494,
+              "rerank_rank": 10,
+              "rerank_score": 0.0559
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "rrf_rank": 11,
+              "rrf_score": 0.024697,
+              "rerank_rank": 11,
+              "rerank_score": 0.0498
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 12,
+              "rrf_score": 0.02393,
+              "rerank_rank": 12,
+              "rerank_score": 0.0481
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "rrf_rank": 45,
+              "rrf_score": 0.011765,
+              "rerank_rank": 13,
+              "rerank_score": 0.0464
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.025275,
+              "rerank_rank": 14,
+              "rerank_score": 0.0435
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p5_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 5,
+              "rrf_rank": 24,
+              "rrf_score": 0.014286,
+              "rerank_rank": 15,
+              "rerank_score": 0.0372
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 25,
+              "rrf_rank": 9,
+              "rrf_score": 0.025709,
+              "rerank_rank": 16,
+              "rerank_score": 0.0338
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 6,
+              "rrf_score": 0.028382,
+              "rerank_rank": 17,
+              "rerank_score": 0.0329
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p28_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 28,
+              "rrf_rank": 15,
+              "rrf_score": 0.021203,
+              "rerank_rank": 18,
+              "rerank_score": 0.0321
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p9_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 9,
+              "rrf_rank": 42,
+              "rrf_score": 0.012048,
+              "rerank_rank": 19,
+              "rerank_score": 0.0317
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 22,
+              "rrf_rank": 16,
+              "rrf_score": 0.020485,
+              "rerank_rank": 20,
+              "rerank_score": 0.0314
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p20_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 20,
+              "rrf_rank": 27,
+              "rrf_score": 0.013699,
+              "rerank_rank": 21,
+              "rerank_score": 0.0302
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 18,
+              "rrf_score": 0.015385,
+              "rerank_rank": 22,
+              "rerank_score": 0.029
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p2_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 46,
+              "rrf_score": 0.011628,
+              "rerank_rank": 23,
+              "rerank_score": 0.0289
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 7,
+              "rrf_rank": 50,
+              "rrf_score": 0.011111,
+              "rerank_rank": 24,
+              "rerank_score": 0.0287
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 26,
+              "rrf_score": 0.013699,
+              "rerank_rank": 25,
+              "rerank_score": 0.0281
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 20,
+              "rrf_score": 0.015152,
+              "rerank_rank": 26,
+              "rerank_score": 0.0275
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 24,
+              "rrf_rank": 13,
+              "rrf_score": 0.022739,
+              "rerank_rank": 27,
+              "rerank_score": 0.0273
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 4,
+              "rrf_score": 0.029857,
+              "rerank_rank": 28,
+              "rerank_score": 0.027
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p4_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 4,
+              "rrf_rank": 14,
+              "rrf_score": 0.02189,
+              "rerank_rank": 29,
+              "rerank_score": 0.0263
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "rrf_rank": 37,
+              "rrf_score": 0.0125,
+              "rerank_rank": 30,
+              "rerank_score": 0.0262
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 41,
+              "rrf_score": 0.012048,
+              "rerank_rank": 31,
+              "rerank_score": 0.0261
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 34,
+              "rrf_score": 0.012658,
+              "rerank_rank": 32,
+              "rerank_score": 0.0259
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p8_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 8,
+              "rrf_rank": 40,
+              "rrf_score": 0.012195,
+              "rerank_rank": 33,
+              "rerank_score": 0.0257
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p4_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 4,
+              "rrf_rank": 21,
+              "rrf_score": 0.014925,
+              "rerank_rank": 34,
+              "rerank_score": 0.0255
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p5_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 5,
+              "rrf_rank": 22,
+              "rrf_score": 0.014706,
+              "rerank_rank": 35,
+              "rerank_score": 0.0253
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 1,
+              "rrf_rank": 44,
+              "rrf_score": 0.011765,
+              "rerank_rank": 36,
+              "rerank_score": 0.0252
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 23,
+              "rrf_score": 0.014493,
+              "rerank_rank": 37,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 6,
+              "rrf_rank": 48,
+              "rrf_score": 0.011236,
+              "rerank_rank": 38,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 8,
+              "rrf_score": 0.027222,
+              "rerank_rank": 39,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 24,
+              "rrf_rank": 32,
+              "rrf_score": 0.012821,
+              "rerank_rank": 40,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p2_hybrid",
+              "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 29,
+              "rrf_score": 0.013158,
+              "rerank_rank": 41,
+              "rerank_score": 0.0245
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p11_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 11,
+              "rrf_rank": 31,
+              "rrf_score": 0.012987,
+              "rerank_rank": 42,
+              "rerank_score": 0.0233
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p7_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 7,
+              "rrf_rank": 19,
+              "rrf_score": 0.015385,
+              "rerank_rank": 43,
+              "rerank_score": 0.0216
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p6_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 6,
+              "rrf_rank": 39,
+              "rrf_score": 0.012346,
+              "rerank_rank": 44,
+              "rerank_score": 0.0211
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 5,
+              "rrf_score": 0.02901,
+              "rerank_rank": 45,
+              "rerank_score": 0.0209
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p3_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 3,
+              "rrf_rank": 17,
+              "rrf_score": 0.015625,
+              "rerank_rank": 46,
+              "rerank_score": 0.0208
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 25,
+              "rrf_score": 0.014085,
+              "rerank_rank": 47,
+              "rerank_score": 0.0207
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p1_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 1,
+              "rrf_rank": 35,
+              "rrf_score": 0.012658,
+              "rerank_rank": 48,
+              "rerank_score": 0.0203
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p14_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 14,
+              "rrf_rank": 33,
+              "rrf_score": 0.012821,
+              "rerank_rank": 49,
+              "rerank_score": 0.0189
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p2_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 36,
+              "rrf_score": 0.0125,
+              "rerank_rank": 50,
+              "rerank_score": 0.0186
+            }
+          ],
+          "rank_api_ms": 254,
+          "attempts": 1,
+          "records_truncated": 19,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 3.8 Flash",
+        "status": "completed",
+        "started_at": "2026-10-21T19:35:24.479Z",
+        "duration_ms": 7160,
+        "request": {},
+        "payload": {
+          "model": "gemini-3.8-flash",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 4212,
+          "output_tokens": 434,
+          "thinking_tokens": 688,
+          "stop_reason": "STOP",
+          "response_id": "_BPZavKiIKaxw8cPoZvagAE",
+          "attempts": 1,
+          "answer": "Based on the provided context, here is the comparison of the incident response SLAs for Solicitation 03 and the required SOC2 Type II and HIPAA controls for Solicitation 02:\n\n---\n\n### 1. Incident Response SLAs Comparison: P1 Critical vs. P2 High (Solicitation 03)\n*Source: `03_Incident_Response_SLAs.pdf` (Clause SLA-SEC-3.1)*\n\n| Metric / Parameter | **P1 Critical** | **P2 High** |\n| :--- | :--- | :--- |\n| **Definition** | Active Ransomware / Root Breach | Privileged Account Compromise |\n| **Initial Triage SLA** | $\\le$ 15 minutes | $\\le$ 30 minutes |\n| **Containment SLA** | $\\le$ 60 minutes | $\\le$ 4 hours |\n| **Penalty Credit** | 20% Monthly Fee | 10% Monthly Fee |\n\n---\n\n### 2. SOC2 Type II and HIPAA Controls (Solicitation 02)\n*Source: `04_Compliance_and_SOC2_Matrix.pdf` (Clause CTRL-SOC2-MATRIX)*\n\n* **SOC2 Type II Controls:**\n  * **Control ID `CTRL-SOC2-CC6.1`**:\n    * **Requirement:** Logical Access Boundary\n    * **GCP Implementation:** VPC Service Controls (VPC-SC)\n    * **Mandatory:** Yes\n  * **Control ID `CTRL-SOC2-CC6.7`**:\n    * **Requirement:** Encryption in Transit/Rest\n    * **GCP Implementation:** Cloud KMS CMEK + TLS 1.3\n    * **Mandatory:** Yes\n\n* **HIPAA Control:**\n  * **Control ID `CTRL-HIPAA-164.312`**:\n    * **Requirement:** PHI De-Identification\n    * **GCP Implementation:** Cloud DLP Streaming Redaction\n    * **Mandatory:** Yes",
+          "thinking_level": "HIGH"
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 4212,
+      "output_tokens": 434,
+      "embedding_tokens": 82,
+      "thinking_tokens": 688,
+      "model": "gemini-3.8-flash",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "pymupdf"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.97,
+      "qa_relevance": 1.0,
+      "context_precision": 0.45
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 3821,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4545,
+    "output_tokens": 327,
+    "judge_cost_usd": 0.02472,
+    "rationale": "Every SLA value, penalty credit, and control detail in the answer matches the retrieved chunks; the only slip is calling the section label 'CTRL-SOC2-MATRIX' a clause. The answer fully covers both parts of the query and agrees with the reference. Only 2 of 5 retrieved chunks are relevant: the Solicitation 01 QASP table is a distractor and the Ferroglobe and Quantum commercial agreements are off-topic noise.",
+    "judge_response_id": "msg_vrtx_011CgFwhe4FbRFPKoToQJ6yc"
+  }
+}

@@ -1,0 +1,2684 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-21T19:33:25.611Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "5f5e6657feea173d8ce200aa0a68cdf955665b0e",
+    "app_version": "3.0.0",
+    "engine": "level2_hybrid",
+    "question_id": "q_vpc_failover_diagram",
+    "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+    "run_id": "run_84f488ce3bf1"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:33:04.691Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "prepared_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+        "expansions": [
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:33:04.691Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-10-21T19:33:04.691Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "embed_query",
+      "duration_ms": 250,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 121,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-10-21T19:33:04.941Z",
+      "t_rel_ms": 250
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "retrieve",
+      "label": "BigQuery VECTOR_SEARCH + SEARCH() \u2192 RRF",
+      "service": "BigQuery",
+      "request": {
+        "sql": "WITH vector_results AS (\n  SELECT\n    base.chunk_id,\n    distance AS vector_distance,\n    ROW_NUMBER() OVER (ORDER BY distance ASC, base.chunk_id) AS vector_rank\n  FROM VECTOR_SEARCH(\n    (SELECT chunk_id, embedding FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` WHERE tier_profile = 'hybrid'),\n    'embedding',\n    (SELECT @query_embedding AS embedding),\n    top_k => 50,\n    distance_type => 'COSINE'\n  )\n),\nlexical_scored AS (\n  SELECT\n    chunk_id,\n    SEARCH(content, REGEXP_REPLACE(@lexical_query, r'[^a-zA-Z0-9 ]', ' ')) AS all_terms_match,\n    (\n      SELECT SUM(IF(STRPOS(LOWER(content), term) > 0, IF(REGEXP_CONTAINS(term, r'[0-9]'), 3, 1), 0))\n      FROM UNNEST(@lexical_terms) AS term\n    ) AS lexical_score\n  FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3`\n  WHERE tier_profile = 'hybrid'\n),\nlexical_results AS (\n  SELECT chunk_id, lexical_score, lexical_rank\n  FROM (\n    SELECT\n      chunk_id,\n      lexical_score,\n      ROW_NUMBER() OVER (ORDER BY all_terms_match DESC, lexical_score DESC, chunk_id) AS lexical_rank\n    FROM lexical_scored\n    WHERE all_terms_match OR lexical_score > 0\n  )\n  WHERE lexical_rank <= 50\n),\nfused AS (\n  SELECT\n    COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,\n    v.vector_rank,\n    v.vector_distance,\n    l.lexical_rank,\n    l.lexical_score,\n    COALESCE(1.0 / (60 + v.vector_rank), 0.0) + COALESCE(1.0 / (60 + l.lexical_rank), 0.0) AS rrf_score\n  FROM vector_results v\n  FULL OUTER JOIN lexical_results l\n    ON v.chunk_id = l.chunk_id\n)\nSELECT\n  f.chunk_id,\n  c.solicitation_id,\n  c.doc_name,\n  c.doc_type,\n  c.element_type,\n  c.section_id,\n  c.amendment_number,\n  c.effective_date,\n  c.amends_section,\n  c.page_number,\n  c.bbox,\n  c.content,\n  f.vector_rank,\n  f.vector_distance,\n  f.lexical_rank,\n  f.lexical_score,\n  f.rrf_score\nFROM fused f\nJOIN `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` c\n  ON c.chunk_id = f.chunk_id\nWHERE c.tier_profile = 'hybrid'\nORDER BY f.rrf_score DESC, f.chunk_id\nLIMIT 50;\n",
+        "params": {
+          "query_embedding": {
+            "dimensions": 3072,
+            "preview": [
+              0.016098341,
+              0.028819699,
+              -0.016611863,
+              -0.011215541
+            ]
+          },
+          "lexical_query": "according multi-region vpc topology diagram solicitation 01 03 technical exhibit architecture.pdf amendment 0001 primary failover gcp regions cloud vpn bgp asn private connectivity mechanism bigquery vertex amended rto rpo targets",
+          "lexical_terms": [
+            "according",
+            "multi-region",
+            "vpc",
+            "topology",
+            "diagram",
+            "solicitation",
+            "01",
+            "03",
+            "technical",
+            "exhibit",
+            "architecture.pdf",
+            "amendment",
+            "0001",
+            "primary",
+            "failover",
+            "gcp",
+            "regions",
+            "cloud",
+            "vpn",
+            "bgp",
+            "asn",
+            "private",
+            "connectivity",
+            "mechanism",
+            "bigquery",
+            "vertex",
+            "amended",
+            "rto",
+            "rpo",
+            "targets"
+          ]
+        },
+        "candidate_k": 50
+      },
+      "ts": "2026-10-21T19:33:04.942Z",
+      "t_rel_ms": 250
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "retrieve",
+      "duration_ms": 984,
+      "payload": {
+        "rows_returned": 50,
+        "candidate_k": 50,
+        "job_id": "e954f212-71de-4342-8d69-c3cda38a254b",
+        "bytes_processed": 0,
+        "slot_millis": 0,
+        "cache_hit": true,
+        "index_usage": {
+          "search": {
+            "index_usage_mode": "UNUSED",
+            "index_unused_reasons": [
+              {
+                "code": "QUERY_CACHE_HIT",
+                "message": "Search indexes are not used because the query was cached."
+              }
+            ]
+          },
+          "vector_search": {
+            "index_usage_mode": "UNUSED",
+            "index_unused_reasons": [
+              {
+                "code": "QUERY_CACHE_HIT",
+                "message": "Vector indexes are not used because the query was cached."
+              }
+            ]
+          }
+        },
+        "rrf_k": 60,
+        "vector_k": 50,
+        "lexical_k": 50,
+        "with_both_ranks": 18,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 1,
+            "lexical_rank": 1,
+            "vector_distance": 0.205261,
+            "rrf_score": 0.032787
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 2,
+            "lexical_rank": 4,
+            "vector_distance": 0.263007,
+            "rrf_score": 0.031754
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 4,
+            "lexical_rank": 5,
+            "vector_distance": 0.288853,
+            "rrf_score": 0.03101
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 8,
+            "lexical_rank": 2,
+            "vector_distance": 0.341308,
+            "rrf_score": 0.030835
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 5,
+            "lexical_rank": 7,
+            "vector_distance": 0.299756,
+            "rrf_score": 0.03031
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 3,
+            "lexical_rank": 12,
+            "vector_distance": 0.269293,
+            "rrf_score": 0.029762
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 16,
+            "lexical_rank": 3,
+            "vector_distance": 0.380853,
+            "rrf_score": 0.029031
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 9,
+            "lexical_rank": 9,
+            "vector_distance": 0.349906,
+            "rrf_score": 0.028986
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 6,
+            "lexical_rank": 13,
+            "vector_distance": 0.302058,
+            "rrf_score": 0.02885
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 14,
+            "lexical_rank": 8,
+            "vector_distance": 0.372391,
+            "rrf_score": 0.028219
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 17,
+            "lexical_rank": 11,
+            "vector_distance": 0.391961,
+            "rrf_score": 0.027072
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 7,
+            "lexical_rank": 28,
+            "vector_distance": 0.320065,
+            "rrf_score": 0.026289
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p3_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 3,
+            "section_id": null,
+            "vector_rank": 30,
+            "lexical_rank": 6,
+            "vector_distance": 0.460749,
+            "rrf_score": 0.026263
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 4,
+            "section_id": null,
+            "vector_rank": 24,
+            "lexical_rank": 17,
+            "vector_distance": 0.45065,
+            "rrf_score": 0.024892
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 19,
+            "lexical_rank": 40,
+            "vector_distance": 0.411741,
+            "rrf_score": 0.022658
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p1_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": 37,
+            "lexical_rank": 26,
+            "vector_distance": 0.46673,
+            "rrf_score": 0.021937
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": 38,
+            "lexical_rank": 27,
+            "vector_distance": 0.466762,
+            "rrf_score": 0.021698
+          },
+          {
+            "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p6_hybrid",
+            "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": 35,
+            "lexical_rank": 37,
+            "vector_distance": 0.46394,
+            "rrf_score": 0.020836
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p8_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 10,
+            "vector_distance": null,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 10,
+            "lexical_rank": null,
+            "vector_distance": 0.35108,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 11,
+            "lexical_rank": null,
+            "vector_distance": 0.35509,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-1001",
+            "vector_rank": 12,
+            "lexical_rank": null,
+            "vector_distance": 0.364151,
+            "rrf_score": 0.013889
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 13,
+            "lexical_rank": null,
+            "vector_distance": 0.368926,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p14_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 14,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 14,
+            "vector_distance": null,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p4_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 4,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 15,
+            "vector_distance": null,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "section_id": "ZTA-NIST-800-207",
+            "vector_rank": 15,
+            "lexical_rank": null,
+            "vector_distance": 0.374739,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p6_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 16,
+            "vector_distance": null,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_02_cnspharmaceuticalsinc_20200326_8-k_ex-10.1_12079626_ex-10.1_development agreement_p1_hybrid",
+            "doc_name": "CnsPharmaceuticalsInc_20200326_8-K_EX-10.1_12079626_EX-10.1_Development Agreement.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 18,
+            "vector_distance": null,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.403119,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p3_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 3,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 19,
+            "vector_distance": null,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": 20,
+            "lexical_rank": null,
+            "vector_distance": 0.438764,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p11_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 11,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 20,
+            "vector_distance": null,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p12_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 12,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 21,
+            "vector_distance": null,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 21,
+            "lexical_rank": null,
+            "vector_distance": 0.441912,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p13_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 13,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 22,
+            "vector_distance": null,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p9_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 9,
+            "section_id": null,
+            "vector_rank": 22,
+            "lexical_rank": null,
+            "vector_distance": 0.444694,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p1_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": 23,
+            "lexical_rank": null,
+            "vector_distance": 0.449635,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 23,
+            "vector_distance": null,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p1_hybrid",
+            "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 24,
+            "vector_distance": null,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 9,
+            "section_id": null,
+            "vector_rank": 25,
+            "lexical_rank": null,
+            "vector_distance": 0.452998,
+            "rrf_score": 0.011765
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 25,
+            "vector_distance": null,
+            "rrf_score": 0.011765
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p8_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": 26,
+            "lexical_rank": null,
+            "vector_distance": 0.454011,
+            "rrf_score": 0.011628
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p23_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 23,
+            "section_id": null,
+            "vector_rank": 27,
+            "lexical_rank": null,
+            "vector_distance": 0.457684,
+            "rrf_score": 0.011494
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p13_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 13,
+            "section_id": null,
+            "vector_rank": 28,
+            "lexical_rank": null,
+            "vector_distance": 0.459728,
+            "rrf_score": 0.011364
+          },
+          {
+            "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p1_hybrid",
+            "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 29,
+            "vector_distance": null,
+            "rrf_score": 0.011236
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 29,
+            "lexical_rank": null,
+            "vector_distance": 0.459903,
+            "rrf_score": 0.011236
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p13_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 13,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 30,
+            "vector_distance": null,
+            "rrf_score": 0.011111
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p3_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 3,
+            "section_id": null,
+            "vector_rank": 31,
+            "lexical_rank": null,
+            "vector_distance": 0.461405,
+            "rrf_score": 0.010989
+          },
+          {
+            "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p2_hybrid",
+            "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 31,
+            "vector_distance": null,
+            "rrf_score": 0.010989
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 20,
+            "section_id": null,
+            "vector_rank": 32,
+            "lexical_rank": null,
+            "vector_distance": 0.461541,
+            "rrf_score": 0.01087
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:33:05.926Z",
+      "t_rel_ms": 1235
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "rerank",
+      "label": "Semantic rerank (cross-encoder)",
+      "service": "Discovery Engine Ranking API",
+      "request": {
+        "service": "Discovery Engine Ranking API",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 50,
+        "records_sent": 50,
+        "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "method": "rankingConfigs.rank",
+        "ranking_config": "default_ranking_config",
+        "record_content_max_chars": 3600,
+        "context_k": 5
+      },
+      "ts": "2026-10-21T19:33:05.926Z",
+      "t_rel_ms": 1235
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "rerank",
+      "duration_ms": 313,
+      "payload": {
+        "service_used": "Discovery Engine Ranking API",
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 50,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.032787,
+            "rerank_rank": 1,
+            "rerank_score": 0.7747
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 6,
+            "rrf_score": 0.029762,
+            "rerank_rank": 2,
+            "rerank_score": 0.3838
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.031754,
+            "rerank_rank": 3,
+            "rerank_score": 0.3058
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.03101,
+            "rerank_rank": 4,
+            "rerank_score": 0.1717
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 21,
+            "rrf_score": 0.014085,
+            "rerank_rank": 5,
+            "rerank_score": 0.1057
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 5,
+            "rrf_score": 0.03031,
+            "rerank_rank": 6,
+            "rerank_score": 0.0867
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "rrf_rank": 26,
+            "rrf_score": 0.013333,
+            "rerank_rank": 7,
+            "rerank_score": 0.0674
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 8,
+            "rrf_score": 0.028986,
+            "rerank_rank": 8,
+            "rerank_score": 0.0581
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p1_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 1,
+            "rrf_rank": 37,
+            "rrf_score": 0.012048,
+            "rerank_rank": 9,
+            "rerank_score": 0.0514
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 23,
+            "rrf_score": 0.013699,
+            "rerank_rank": 10,
+            "rerank_score": 0.0468
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 9,
+            "rrf_score": 0.02885,
+            "rerank_rank": 11,
+            "rerank_score": 0.0463
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 12,
+            "rrf_score": 0.026289,
+            "rerank_rank": 12,
+            "rerank_score": 0.0461
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 15,
+            "rrf_score": 0.022658,
+            "rerank_rank": 13,
+            "rerank_score": 0.0453
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 20,
+            "rrf_score": 0.014286,
+            "rerank_rank": 14,
+            "rerank_score": 0.0453
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p23_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 23,
+            "rrf_rank": 43,
+            "rrf_score": 0.011494,
+            "rerank_rank": 15,
+            "rerank_score": 0.0449
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.028219,
+            "rerank_rank": 16,
+            "rerank_score": 0.0446
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "rrf_rank": 22,
+            "rrf_score": 0.013889,
+            "rerank_rank": 17,
+            "rerank_score": 0.0407
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 2,
+            "rrf_rank": 34,
+            "rrf_score": 0.012346,
+            "rerank_rank": 18,
+            "rerank_score": 0.0377
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p6_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 6,
+            "rrf_rank": 27,
+            "rrf_score": 0.013158,
+            "rerank_rank": 19,
+            "rerank_score": 0.0373
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 4,
+            "rrf_score": 0.030835,
+            "rerank_rank": 20,
+            "rerank_score": 0.0369
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 29,
+            "rrf_score": 0.012821,
+            "rerank_rank": 21,
+            "rerank_score": 0.0367
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p14_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 14,
+            "rrf_rank": 24,
+            "rrf_score": 0.013514,
+            "rerank_rank": 22,
+            "rerank_score": 0.0351
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p12_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 12,
+            "rrf_rank": 33,
+            "rrf_score": 0.012346,
+            "rerank_rank": 23,
+            "rerank_score": 0.0343
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 20,
+            "rrf_rank": 50,
+            "rrf_score": 0.01087,
+            "rerank_rank": 24,
+            "rerank_score": 0.034
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p3_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 3,
+            "rrf_rank": 13,
+            "rrf_score": 0.026263,
+            "rerank_rank": 25,
+            "rerank_score": 0.0337
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p13_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 13,
+            "rrf_rank": 35,
+            "rrf_score": 0.012195,
+            "rerank_rank": 26,
+            "rerank_score": 0.0337
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 5,
+            "rrf_rank": 31,
+            "rrf_score": 0.0125,
+            "rerank_rank": 27,
+            "rerank_score": 0.0335
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p8_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 8,
+            "rrf_rank": 19,
+            "rrf_score": 0.014286,
+            "rerank_rank": 28,
+            "rerank_score": 0.0335
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p1_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 1,
+            "rrf_rank": 16,
+            "rrf_score": 0.021937,
+            "rerank_rank": 29,
+            "rerank_score": 0.0333
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 4,
+            "rrf_rank": 14,
+            "rrf_score": 0.024892,
+            "rerank_rank": 30,
+            "rerank_score": 0.0329
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p11_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 11,
+            "rrf_rank": 32,
+            "rrf_score": 0.0125,
+            "rerank_rank": 31,
+            "rerank_score": 0.0323
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 5,
+            "rrf_rank": 38,
+            "rrf_score": 0.012048,
+            "rerank_rank": 32,
+            "rerank_score": 0.0315
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 9,
+            "rrf_rank": 40,
+            "rrf_score": 0.011765,
+            "rerank_rank": 33,
+            "rerank_score": 0.0309
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 11,
+            "rrf_score": 0.027072,
+            "rerank_rank": 34,
+            "rerank_score": 0.0307
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p13_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 13,
+            "rrf_rank": 44,
+            "rrf_score": 0.011364,
+            "rerank_rank": 35,
+            "rerank_score": 0.0299
+          },
+          {
+            "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p1_hybrid",
+            "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+            "page_number": 1,
+            "rrf_rank": 45,
+            "rrf_score": 0.011236,
+            "rerank_rank": 36,
+            "rerank_score": 0.0293
+          },
+          {
+            "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p1_hybrid",
+            "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+            "page_number": 1,
+            "rrf_rank": 39,
+            "rrf_score": 0.011905,
+            "rerank_rank": 37,
+            "rerank_score": 0.0289
+          },
+          {
+            "chunk_id": "solicitation_02_cnspharmaceuticalsinc_20200326_8-k_ex-10.1_12079626_ex-10.1_development agreement_p1_hybrid",
+            "doc_name": "CnsPharmaceuticalsInc_20200326_8-K_EX-10.1_12079626_EX-10.1_Development Agreement.pdf",
+            "page_number": 1,
+            "rrf_rank": 28,
+            "rrf_score": 0.012821,
+            "rerank_rank": 38,
+            "rerank_score": 0.0283
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p4_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 4,
+            "rrf_rank": 25,
+            "rrf_score": 0.013333,
+            "rerank_rank": 39,
+            "rerank_score": 0.0271
+          },
+          {
+            "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p13_hybrid",
+            "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+            "page_number": 13,
+            "rrf_rank": 47,
+            "rrf_score": 0.011111,
+            "rerank_rank": 40,
+            "rerank_score": 0.0269
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p9_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 9,
+            "rrf_rank": 36,
+            "rrf_score": 0.012195,
+            "rerank_rank": 41,
+            "rerank_score": 0.0266
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 7,
+            "rrf_rank": 17,
+            "rrf_score": 0.021698,
+            "rerank_rank": 42,
+            "rerank_score": 0.0264
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 46,
+            "rrf_score": 0.011236,
+            "rerank_rank": 43,
+            "rerank_score": 0.0257
+          },
+          {
+            "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p2_hybrid",
+            "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 49,
+            "rrf_score": 0.010989,
+            "rerank_rank": 44,
+            "rerank_score": 0.0256
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p3_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 3,
+            "rrf_rank": 30,
+            "rrf_score": 0.012658,
+            "rerank_rank": 45,
+            "rerank_score": 0.0248
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p3_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 3,
+            "rrf_rank": 48,
+            "rrf_score": 0.010989,
+            "rerank_rank": 46,
+            "rerank_score": 0.0243
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 1,
+            "rrf_rank": 41,
+            "rrf_score": 0.011765,
+            "rerank_rank": 47,
+            "rerank_score": 0.024
+          },
+          {
+            "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p6_hybrid",
+            "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+            "page_number": 6,
+            "rrf_rank": 18,
+            "rrf_score": 0.020836,
+            "rerank_rank": 48,
+            "rerank_score": 0.0203
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p8_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 8,
+            "rrf_rank": 42,
+            "rrf_score": 0.011628,
+            "rerank_rank": 49,
+            "rerank_score": 0.0194
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 7,
+            "rrf_score": 0.029031,
+            "rerank_rank": 50,
+            "rerank_score": 0.0032
+          }
+        ],
+        "rank_api_ms": 312,
+        "attempts": 1,
+        "records_truncated": 8,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-10-21T19:33:06.240Z",
+      "t_rel_ms": 1549
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[03_Technical_Exhibit_Architecture.pdf | Sec: ARCH-TOPOLOGY-01 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=03_Technical_Exhibit_Architecture.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-TOPOLOGY-01]\nSOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\nenforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\nCloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\ncross-region replica and automated failover to Secondary Region us-east4.\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\nprivately to BigQuery and Vertex AI without traversing the public internet.\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\nCloud Armor WAF + Global LB\nCloud HA VPN (BGP ASN 64512)\nPrimary VPC: us-central1\nFailover VPC: us-east4\nPrivate Service Connect (PSC)\nBigQuery + Vertex AI Endpoints\n\n[01_RFP_Base_Solicitation.pdf | Sec: SEC-4.2.1 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=01_RFP_Base_Solicitation.pdf | DocType=BASE_RFP | Section=SEC-4.2.1]\nSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\n[06_Amendment_0001_Scope_Update.pdf | Sec: AMD-0001 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.\n\n[08_Vendor_A_Proposal_Redacted.pdf | Sec: PROP-EXEC-01 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=08_Vendor_A_Proposal_Redacted.pdf | DocType=VENDOR_PROPOSAL | Section=PROP-EXEC-01]\nSOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\n[02_Architecture_Requirements.pdf | Sec: ARCH-MEDALLION-02 | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02]\nSOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nCloud Pub/Sub Ingest\nDataflow + Cloud DLP\nBigQuery Bronze (Raw)\nBigQuery Silver (Curated)\nBigQuery Gold (Governed)\nVertex AI Feature Store\n\nQuestion: According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-10-21T19:33:06.241Z",
+      "t_rel_ms": 1549
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "synthesize",
+      "duration_ms": 16327,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 1928,
+        "output_tokens": 303,
+        "thinking_tokens": 588,
+        "stop_reason": "STOP",
+        "response_id": "chPZapjkEb2iw8cP1P68oQw",
+        "attempts": 1,
+        "answer": "Based on `03_Technical_Exhibit_Architecture.pdf` and `06_Amendment_0001_Scope_Update.pdf` for Solicitation 01 (`SOL-2026-CLOUD-01`), the requested architecture and disaster recovery details are as follows:\n\n* **Primary and Failover GCP Regions:**\n  * **Primary Region (Primary VPC):** `us-central1`\n  * **Failover / Secondary Region (Failover VPC):** `us-east4`\n* **Cloud HA VPN BGP ASN:** \n  * Dynamic BGP **ASN `64512`** terminating on Cloud Router (with On-Premises ASN `65001`).\n* **Private Connectivity Mechanism to BigQuery / Vertex AI:** \n  * **Private Service Connect (PSC)** endpoints in both regions, which route privately to BigQuery and Vertex AI without traversing the public internet.\n* **Amended RTO / RPO Targets (per Amendment 0001):**\n  * **Amended RTO (Recovery Time Objective):** **15 minutes** (tightened from the original 4 hours / 240 minutes).\n  * **Amended RPO (Recovery Point Objective):** **0 minutes** (tightened from the original 1 hour / 60 minutes, requiring synchronous zero-data-loss cross-region replication between `us-central1` and `us-east4`).",
+        "thinking_level": "HIGH"
+      },
+      "ts": "2026-10-21T19:33:22.568Z",
+      "t_rel_ms": 17876
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-21T19:33:22.568Z",
+      "t_rel_ms": 17877
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_84f488ce3bf1",
+      "engine": "level2_hybrid",
+      "stage": "evaluate",
+      "duration_ms": 3042,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 1.0,
+        "context_precision": 0.75,
+        "reference_answer_used": true,
+        "input_tokens": 3933,
+        "output_tokens": 272,
+        "judge_cost_usd": 0.021172,
+        "rationale": "Every claim in the candidate answer is directly supported by the retrieved context: regions us-central1/us-east4, BGP ASN 64512 with on-prem ASN 65001, PSC endpoints to BigQuery and Vertex AI, and the amended 15-minute RTO and 0-minute RPO with synchronous replication. The answer fully matches the reference, apart from omitting the non-requested Cloud Armor WAF detail. Context precision is reduced because the Vertex AI proposal chunk is only marginally useful and the Solicitation 02 medallion chunk is irrelevant, though the three key chunks (architecture exhibit, base RFP, amendment) are highl",
+        "judge_response_id": "msg_vrtx_011CgFwY8dvxUbqtnR9UxyDd"
+      },
+      "ts": "2026-10-21T19:33:25.611Z",
+      "t_rel_ms": 20920
+    }
+  ],
+  "result": {
+    "engine_id": "level2_hybrid",
+    "engine_label": "Level 2: BigQuery Hybrid + Reranker",
+    "answer": "Based on `03_Technical_Exhibit_Architecture.pdf` and `06_Amendment_0001_Scope_Update.pdf` for Solicitation 01 (`SOL-2026-CLOUD-01`), the requested architecture and disaster recovery details are as follows:\n\n* **Primary and Failover GCP Regions:**\n  * **Primary Region (Primary VPC):** `us-central1`\n  * **Failover / Secondary Region (Failover VPC):** `us-east4`\n* **Cloud HA VPN BGP ASN:** \n  * Dynamic BGP **ASN `64512`** terminating on Cloud Router (with On-Premises ASN `65001`).\n* **Private Connectivity Mechanism to BigQuery / Vertex AI:** \n  * **Private Service Connect (PSC)** endpoints in both regions, which route privately to BigQuery and Vertex AI without traversing the public internet.\n* **Amended RTO / RPO Targets (per Amendment 0001):**\n  * **Amended RTO (Recovery Time Objective):** **15 minutes** (tightened from the original 4 hours / 240 minutes).\n  * **Amended RPO (Recovery Point Objective):** **0 minutes** (tightened from the original 1 hour / 60 minutes, requiring synchronous zero-data-loss cross-region replication between `us-central1` and `us-east4`).",
+    "citations": [
+      {
+        "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+        "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "ARCH-TOPOLOGY-01",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=03_Technical_Exhibit_Architecture.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-TOPOLOGY-01] SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf TECHNICAL EXHIBIT A: MULTI-"
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SEC-4.2.1",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=01_RFP_Base_Solicitation.pdf | DocType=BASE_RFP | Section=SEC-4.2.1] SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFER"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001] SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CL"
+      },
+      {
+        "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "PROP-EXEC-01",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=08_Vendor_A_Proposal_Redacted.pdf | DocType=VENDOR_PROPOSAL | Section=PROP-EXEC-01] SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf VENDOR A TECHNICAL & PRICE PROPOSAL (REDA"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "ARCH-MEDALLION-02",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02] SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf EXHIBIT A: STREAMING PUB/SUB -> DATAF"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-TOPOLOGY-01",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=03_Technical_Exhibit_Architecture.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-TOPOLOGY-01]\nSOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\nenforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\nCloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\ncross-region replica and automated failover to Secondary Region us-east4.\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\nprivately to BigQuery and Vertex AI without traversing the public internet.\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\nCloud Armor WAF + Global LB\nCloud HA VPN (BGP ASN 64512)\nPrimary VPC: us-central1\nFailover VPC: us-east4\nPrivate Service Connect (PSC)\nBigQuery + Vertex AI Endpoints",
+        "score": 0.7747
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-4.2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=01_RFP_Base_Solicitation.pdf | DocType=BASE_RFP | Section=SEC-4.2.1]\nSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.",
+        "score": 0.3838
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.",
+        "score": 0.3058
+      },
+      {
+        "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "doc_type": "VENDOR_PROPOSAL",
+        "element_type": "narrative_text",
+        "section_id": "PROP-EXEC-01",
+        "amendment_number": 0,
+        "effective_date": "2026-04-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=08_Vendor_A_Proposal_Redacted.pdf | DocType=VENDOR_PROPOSAL | Section=PROP-EXEC-01]\nSOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.",
+        "score": 0.1717
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02]\nSOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nCloud Pub/Sub Ingest\nDataflow + Cloud DLP\nBigQuery Bronze (Raw)\nBigQuery Silver (Curated)\nBigQuery Gold (Governed)\nVertex AI Feature Store",
+        "score": 0.1057
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 17876,
+    "cost_usd": 0.0137902,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-21T19:33:04.691Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+          "prepared_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+          "expansions": [
+            {
+              "term": "RTO",
+              "expansion": "Recovery Time Objective"
+            },
+            {
+              "term": "RPO",
+              "expansion": "Recovery Point Objective"
+            },
+            {
+              "term": "VPC",
+              "expansion": "Virtual Private Cloud"
+            },
+            {
+              "term": "VPN",
+              "expansion": "Virtual Private Network"
+            },
+            {
+              "term": "BGP",
+              "expansion": "Border Gateway Protocol"
+            },
+            {
+              "term": "ASN",
+              "expansion": "Autonomous System Number"
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-10-21T19:33:04.691Z",
+        "duration_ms": 250,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 121,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "BigQuery VECTOR_SEARCH + SEARCH() \u2192 RRF",
+        "service": "BigQuery",
+        "status": "completed",
+        "started_at": "2026-10-21T19:33:04.942Z",
+        "duration_ms": 984,
+        "request": {},
+        "payload": {
+          "rows_returned": 50,
+          "candidate_k": 50,
+          "job_id": "e954f212-71de-4342-8d69-c3cda38a254b",
+          "bytes_processed": 0,
+          "slot_millis": 0,
+          "cache_hit": true,
+          "index_usage": {
+            "search": {
+              "index_usage_mode": "UNUSED",
+              "index_unused_reasons": [
+                {
+                  "code": "QUERY_CACHE_HIT",
+                  "message": "Search indexes are not used because the query was cached."
+                }
+              ]
+            },
+            "vector_search": {
+              "index_usage_mode": "UNUSED",
+              "index_unused_reasons": [
+                {
+                  "code": "QUERY_CACHE_HIT",
+                  "message": "Vector indexes are not used because the query was cached."
+                }
+              ]
+            }
+          },
+          "rrf_k": 60,
+          "vector_k": 50,
+          "lexical_k": 50,
+          "with_both_ranks": 18,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 1,
+              "lexical_rank": 1,
+              "vector_distance": 0.205261,
+              "rrf_score": 0.032787
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 2,
+              "lexical_rank": 4,
+              "vector_distance": 0.263007,
+              "rrf_score": 0.031754
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 4,
+              "lexical_rank": 5,
+              "vector_distance": 0.288853,
+              "rrf_score": 0.03101
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 8,
+              "lexical_rank": 2,
+              "vector_distance": 0.341308,
+              "rrf_score": 0.030835
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 5,
+              "lexical_rank": 7,
+              "vector_distance": 0.299756,
+              "rrf_score": 0.03031
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 3,
+              "lexical_rank": 12,
+              "vector_distance": 0.269293,
+              "rrf_score": 0.029762
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 16,
+              "lexical_rank": 3,
+              "vector_distance": 0.380853,
+              "rrf_score": 0.029031
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 9,
+              "lexical_rank": 9,
+              "vector_distance": 0.349906,
+              "rrf_score": 0.028986
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 6,
+              "lexical_rank": 13,
+              "vector_distance": 0.302058,
+              "rrf_score": 0.02885
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 14,
+              "lexical_rank": 8,
+              "vector_distance": 0.372391,
+              "rrf_score": 0.028219
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 17,
+              "lexical_rank": 11,
+              "vector_distance": 0.391961,
+              "rrf_score": 0.027072
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 7,
+              "lexical_rank": 28,
+              "vector_distance": 0.320065,
+              "rrf_score": 0.026289
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p3_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 3,
+              "section_id": null,
+              "vector_rank": 30,
+              "lexical_rank": 6,
+              "vector_distance": 0.460749,
+              "rrf_score": 0.026263
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 4,
+              "section_id": null,
+              "vector_rank": 24,
+              "lexical_rank": 17,
+              "vector_distance": 0.45065,
+              "rrf_score": 0.024892
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 19,
+              "lexical_rank": 40,
+              "vector_distance": 0.411741,
+              "rrf_score": 0.022658
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p1_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": 37,
+              "lexical_rank": 26,
+              "vector_distance": 0.46673,
+              "rrf_score": 0.021937
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": 38,
+              "lexical_rank": 27,
+              "vector_distance": 0.466762,
+              "rrf_score": 0.021698
+            },
+            {
+              "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p6_hybrid",
+              "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": 35,
+              "lexical_rank": 37,
+              "vector_distance": 0.46394,
+              "rrf_score": 0.020836
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p8_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 10,
+              "vector_distance": null,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 10,
+              "lexical_rank": null,
+              "vector_distance": 0.35108,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 11,
+              "lexical_rank": null,
+              "vector_distance": 0.35509,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-1001",
+              "vector_rank": 12,
+              "lexical_rank": null,
+              "vector_distance": 0.364151,
+              "rrf_score": 0.013889
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 13,
+              "lexical_rank": null,
+              "vector_distance": 0.368926,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p14_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 14,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 14,
+              "vector_distance": null,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p4_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 4,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 15,
+              "vector_distance": null,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "section_id": "ZTA-NIST-800-207",
+              "vector_rank": 15,
+              "lexical_rank": null,
+              "vector_distance": 0.374739,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p6_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 16,
+              "vector_distance": null,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_02_cnspharmaceuticalsinc_20200326_8-k_ex-10.1_12079626_ex-10.1_development agreement_p1_hybrid",
+              "doc_name": "CnsPharmaceuticalsInc_20200326_8-K_EX-10.1_12079626_EX-10.1_Development Agreement.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 18,
+              "vector_distance": null,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.403119,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p3_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 3,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 19,
+              "vector_distance": null,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": 20,
+              "lexical_rank": null,
+              "vector_distance": 0.438764,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p11_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 11,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 20,
+              "vector_distance": null,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p12_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 12,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 21,
+              "vector_distance": null,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 21,
+              "lexical_rank": null,
+              "vector_distance": 0.441912,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p13_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 13,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 22,
+              "vector_distance": null,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p9_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 9,
+              "section_id": null,
+              "vector_rank": 22,
+              "lexical_rank": null,
+              "vector_distance": 0.444694,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p1_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": 23,
+              "lexical_rank": null,
+              "vector_distance": 0.449635,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 23,
+              "vector_distance": null,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p1_hybrid",
+              "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 24,
+              "vector_distance": null,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 9,
+              "section_id": null,
+              "vector_rank": 25,
+              "lexical_rank": null,
+              "vector_distance": 0.452998,
+              "rrf_score": 0.011765
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 25,
+              "vector_distance": null,
+              "rrf_score": 0.011765
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p8_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": 26,
+              "lexical_rank": null,
+              "vector_distance": 0.454011,
+              "rrf_score": 0.011628
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p23_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 23,
+              "section_id": null,
+              "vector_rank": 27,
+              "lexical_rank": null,
+              "vector_distance": 0.457684,
+              "rrf_score": 0.011494
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p13_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 13,
+              "section_id": null,
+              "vector_rank": 28,
+              "lexical_rank": null,
+              "vector_distance": 0.459728,
+              "rrf_score": 0.011364
+            },
+            {
+              "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p1_hybrid",
+              "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 29,
+              "vector_distance": null,
+              "rrf_score": 0.011236
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 29,
+              "lexical_rank": null,
+              "vector_distance": 0.459903,
+              "rrf_score": 0.011236
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p13_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 13,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 30,
+              "vector_distance": null,
+              "rrf_score": 0.011111
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p3_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 3,
+              "section_id": null,
+              "vector_rank": 31,
+              "lexical_rank": null,
+              "vector_distance": 0.461405,
+              "rrf_score": 0.010989
+            },
+            {
+              "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p2_hybrid",
+              "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 31,
+              "vector_distance": null,
+              "rrf_score": 0.010989
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 20,
+              "section_id": null,
+              "vector_rank": 32,
+              "lexical_rank": null,
+              "vector_distance": 0.461541,
+              "rrf_score": 0.01087
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Semantic rerank (cross-encoder)",
+        "service": "Discovery Engine Ranking API",
+        "status": "completed",
+        "started_at": "2026-10-21T19:33:05.926Z",
+        "duration_ms": 313,
+        "request": {},
+        "payload": {
+          "service_used": "Discovery Engine Ranking API",
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 50,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.032787,
+              "rerank_rank": 1,
+              "rerank_score": 0.7747
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 6,
+              "rrf_score": 0.029762,
+              "rerank_rank": 2,
+              "rerank_score": 0.3838
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.031754,
+              "rerank_rank": 3,
+              "rerank_score": 0.3058
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.03101,
+              "rerank_rank": 4,
+              "rerank_score": 0.1717
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 21,
+              "rrf_score": 0.014085,
+              "rerank_rank": 5,
+              "rerank_score": 0.1057
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 5,
+              "rrf_score": 0.03031,
+              "rerank_rank": 6,
+              "rerank_score": 0.0867
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "rrf_rank": 26,
+              "rrf_score": 0.013333,
+              "rerank_rank": 7,
+              "rerank_score": 0.0674
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 8,
+              "rrf_score": 0.028986,
+              "rerank_rank": 8,
+              "rerank_score": 0.0581
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p1_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 1,
+              "rrf_rank": 37,
+              "rrf_score": 0.012048,
+              "rerank_rank": 9,
+              "rerank_score": 0.0514
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 23,
+              "rrf_score": 0.013699,
+              "rerank_rank": 10,
+              "rerank_score": 0.0468
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 9,
+              "rrf_score": 0.02885,
+              "rerank_rank": 11,
+              "rerank_score": 0.0463
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 12,
+              "rrf_score": 0.026289,
+              "rerank_rank": 12,
+              "rerank_score": 0.0461
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 15,
+              "rrf_score": 0.022658,
+              "rerank_rank": 13,
+              "rerank_score": 0.0453
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 20,
+              "rrf_score": 0.014286,
+              "rerank_rank": 14,
+              "rerank_score": 0.0453
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p23_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 23,
+              "rrf_rank": 43,
+              "rrf_score": 0.011494,
+              "rerank_rank": 15,
+              "rerank_score": 0.0449
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.028219,
+              "rerank_rank": 16,
+              "rerank_score": 0.0446
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "rrf_rank": 22,
+              "rrf_score": 0.013889,
+              "rerank_rank": 17,
+              "rerank_score": 0.0407
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 2,
+              "rrf_rank": 34,
+              "rrf_score": 0.012346,
+              "rerank_rank": 18,
+              "rerank_score": 0.0377
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p6_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 6,
+              "rrf_rank": 27,
+              "rrf_score": 0.013158,
+              "rerank_rank": 19,
+              "rerank_score": 0.0373
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 4,
+              "rrf_score": 0.030835,
+              "rerank_rank": 20,
+              "rerank_score": 0.0369
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 29,
+              "rrf_score": 0.012821,
+              "rerank_rank": 21,
+              "rerank_score": 0.0367
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p14_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 14,
+              "rrf_rank": 24,
+              "rrf_score": 0.013514,
+              "rerank_rank": 22,
+              "rerank_score": 0.0351
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p12_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 12,
+              "rrf_rank": 33,
+              "rrf_score": 0.012346,
+              "rerank_rank": 23,
+              "rerank_score": 0.0343
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 20,
+              "rrf_rank": 50,
+              "rrf_score": 0.01087,
+              "rerank_rank": 24,
+              "rerank_score": 0.034
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p3_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 3,
+              "rrf_rank": 13,
+              "rrf_score": 0.026263,
+              "rerank_rank": 25,
+              "rerank_score": 0.0337
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p13_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 13,
+              "rrf_rank": 35,
+              "rrf_score": 0.012195,
+              "rerank_rank": 26,
+              "rerank_score": 0.0337
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 5,
+              "rrf_rank": 31,
+              "rrf_score": 0.0125,
+              "rerank_rank": 27,
+              "rerank_score": 0.0335
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p8_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 8,
+              "rrf_rank": 19,
+              "rrf_score": 0.014286,
+              "rerank_rank": 28,
+              "rerank_score": 0.0335
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p1_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 1,
+              "rrf_rank": 16,
+              "rrf_score": 0.021937,
+              "rerank_rank": 29,
+              "rerank_score": 0.0333
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 4,
+              "rrf_rank": 14,
+              "rrf_score": 0.024892,
+              "rerank_rank": 30,
+              "rerank_score": 0.0329
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p11_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 11,
+              "rrf_rank": 32,
+              "rrf_score": 0.0125,
+              "rerank_rank": 31,
+              "rerank_score": 0.0323
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 5,
+              "rrf_rank": 38,
+              "rrf_score": 0.012048,
+              "rerank_rank": 32,
+              "rerank_score": 0.0315
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 9,
+              "rrf_rank": 40,
+              "rrf_score": 0.011765,
+              "rerank_rank": 33,
+              "rerank_score": 0.0309
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 11,
+              "rrf_score": 0.027072,
+              "rerank_rank": 34,
+              "rerank_score": 0.0307
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p13_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 13,
+              "rrf_rank": 44,
+              "rrf_score": 0.011364,
+              "rerank_rank": 35,
+              "rerank_score": 0.0299
+            },
+            {
+              "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p1_hybrid",
+              "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+              "page_number": 1,
+              "rrf_rank": 45,
+              "rrf_score": 0.011236,
+              "rerank_rank": 36,
+              "rerank_score": 0.0293
+            },
+            {
+              "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p1_hybrid",
+              "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+              "page_number": 1,
+              "rrf_rank": 39,
+              "rrf_score": 0.011905,
+              "rerank_rank": 37,
+              "rerank_score": 0.0289
+            },
+            {
+              "chunk_id": "solicitation_02_cnspharmaceuticalsinc_20200326_8-k_ex-10.1_12079626_ex-10.1_development agreement_p1_hybrid",
+              "doc_name": "CnsPharmaceuticalsInc_20200326_8-K_EX-10.1_12079626_EX-10.1_Development Agreement.pdf",
+              "page_number": 1,
+              "rrf_rank": 28,
+              "rrf_score": 0.012821,
+              "rerank_rank": 38,
+              "rerank_score": 0.0283
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p4_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 4,
+              "rrf_rank": 25,
+              "rrf_score": 0.013333,
+              "rerank_rank": 39,
+              "rerank_score": 0.0271
+            },
+            {
+              "chunk_id": "solicitation_02_elpollolocoholdingsinc_20200306_10-k_ex-10.16_12041700_ex-10.16_development agreement_p13_hybrid",
+              "doc_name": "ElPolloLocoHoldingsInc_20200306_10-K_EX-10.16_12041700_EX-10.16_Development Agreement.pdf",
+              "page_number": 13,
+              "rrf_rank": 47,
+              "rrf_score": 0.011111,
+              "rerank_rank": 40,
+              "rerank_score": 0.0269
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p9_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 9,
+              "rrf_rank": 36,
+              "rrf_score": 0.012195,
+              "rerank_rank": 41,
+              "rerank_score": 0.0266
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 7,
+              "rrf_rank": 17,
+              "rrf_score": 0.021698,
+              "rerank_rank": 42,
+              "rerank_score": 0.0264
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 46,
+              "rrf_score": 0.011236,
+              "rerank_rank": 43,
+              "rerank_score": 0.0257
+            },
+            {
+              "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p2_hybrid",
+              "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 49,
+              "rrf_score": 0.010989,
+              "rerank_rank": 44,
+              "rerank_score": 0.0256
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p3_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 3,
+              "rrf_rank": 30,
+              "rrf_score": 0.012658,
+              "rerank_rank": 45,
+              "rerank_score": 0.0248
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p3_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 3,
+              "rrf_rank": 48,
+              "rrf_score": 0.010989,
+              "rerank_rank": 46,
+              "rerank_score": 0.0243
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p1_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 1,
+              "rrf_rank": 41,
+              "rrf_score": 0.011765,
+              "rerank_rank": 47,
+              "rerank_score": 0.024
+            },
+            {
+              "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p6_hybrid",
+              "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+              "page_number": 6,
+              "rrf_rank": 18,
+              "rrf_score": 0.020836,
+              "rerank_rank": 48,
+              "rerank_score": 0.0203
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p8_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 8,
+              "rrf_rank": 42,
+              "rrf_score": 0.011628,
+              "rerank_rank": 49,
+              "rerank_score": 0.0194
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 7,
+              "rrf_score": 0.029031,
+              "rerank_rank": 50,
+              "rerank_score": 0.0032
+            }
+          ],
+          "rank_api_ms": 312,
+          "attempts": 1,
+          "records_truncated": 8,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-21T19:33:06.241Z",
+        "duration_ms": 16327,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 1928,
+          "output_tokens": 303,
+          "thinking_tokens": 588,
+          "stop_reason": "STOP",
+          "response_id": "chPZapjkEb2iw8cP1P68oQw",
+          "attempts": 1,
+          "answer": "Based on `03_Technical_Exhibit_Architecture.pdf` and `06_Amendment_0001_Scope_Update.pdf` for Solicitation 01 (`SOL-2026-CLOUD-01`), the requested architecture and disaster recovery details are as follows:\n\n* **Primary and Failover GCP Regions:**\n  * **Primary Region (Primary VPC):** `us-central1`\n  * **Failover / Secondary Region (Failover VPC):** `us-east4`\n* **Cloud HA VPN BGP ASN:** \n  * Dynamic BGP **ASN `64512`** terminating on Cloud Router (with On-Premises ASN `65001`).\n* **Private Connectivity Mechanism to BigQuery / Vertex AI:** \n  * **Private Service Connect (PSC)** endpoints in both regions, which route privately to BigQuery and Vertex AI without traversing the public internet.\n* **Amended RTO / RPO Targets (per Amendment 0001):**\n  * **Amended RTO (Recovery Time Objective):** **15 minutes** (tightened from the original 4 hours / 240 minutes).\n  * **Amended RPO (Recovery Point Objective):** **0 minutes** (tightened from the original 1 hour / 60 minutes, requiring synchronous zero-data-loss cross-region replication between `us-central1` and `us-east4`).",
+          "thinking_level": "HIGH"
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1928,
+      "output_tokens": 303,
+      "embedding_tokens": 121,
+      "thinking_tokens": 588,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "pymupdf"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 1.0,
+      "context_precision": 0.75
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 3042,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3933,
+    "output_tokens": 272,
+    "judge_cost_usd": 0.021172,
+    "rationale": "Every claim in the candidate answer is directly supported by the retrieved context: regions us-central1/us-east4, BGP ASN 64512 with on-prem ASN 65001, PSC endpoints to BigQuery and Vertex AI, and the amended 15-minute RTO and 0-minute RPO with synchronous replication. The answer fully matches the reference, apart from omitting the non-requested Cloud Armor WAF detail. Context precision is reduced because the Vertex AI proposal chunk is only marginally useful and the Solicitation 02 medallion chunk is irrelevant, though the three key chunks (architecture exhibit, base RFP, amendment) are highl",
+    "judge_response_id": "msg_vrtx_011CgFwY8dvxUbqtnR9UxyDd"
+  }
+}

@@ -1,0 +1,2646 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-21T19:26:22.172Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "d1d530b4245cb9fe2e3287175b7a597d18833e93",
+    "app_version": "3.0.0",
+    "engine": "level2_hybrid",
+    "question_id": "q_exact_clin_lookup",
+    "query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+    "run_id": "run_db79f24ab47b"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:25:59.358Z",
+      "t_rel_ms": 1634
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+        "prepared_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12? (CLIN = Contract Line Item Number; KMS = Key Management Service)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:25:59.358Z",
+      "t_rel_ms": 1634
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12? (CLIN = Contract Line Item Number; KMS = Key Management Service)",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-10-21T19:25:59.358Z",
+      "t_rel_ms": 1635
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "embed_query",
+      "duration_ms": 463,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 92,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-10-21T19:25:59.821Z",
+      "t_rel_ms": 2098
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "retrieve",
+      "label": "BigQuery VECTOR_SEARCH + SEARCH() \u2192 RRF",
+      "service": "BigQuery",
+      "request": {
+        "sql": "WITH vector_results AS (\n  SELECT\n    base.chunk_id,\n    distance AS vector_distance,\n    ROW_NUMBER() OVER (ORDER BY distance ASC, base.chunk_id) AS vector_rank\n  FROM VECTOR_SEARCH(\n    (SELECT chunk_id, embedding FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` WHERE tier_profile = 'hybrid'),\n    'embedding',\n    (SELECT @query_embedding AS embedding),\n    top_k => 50,\n    distance_type => 'COSINE'\n  )\n),\nlexical_scored AS (\n  SELECT\n    chunk_id,\n    SEARCH(content, REGEXP_REPLACE(@lexical_query, r'[^a-zA-Z0-9 ]', ' ')) AS all_terms_match,\n    (\n      SELECT SUM(IF(STRPOS(LOWER(content), term) > 0, IF(REGEXP_CONTAINS(term, r'[0-9]'), 3, 1), 0))\n      FROM UNNEST(@lexical_terms) AS term\n    ) AS lexical_score\n  FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3`\n  WHERE tier_profile = 'hybrid'\n),\nlexical_results AS (\n  SELECT chunk_id, lexical_score, lexical_rank\n  FROM (\n    SELECT\n      chunk_id,\n      lexical_score,\n      ROW_NUMBER() OVER (ORDER BY all_terms_match DESC, lexical_score DESC, chunk_id) AS lexical_rank\n    FROM lexical_scored\n    WHERE all_terms_match OR lexical_score > 0\n  )\n  WHERE lexical_rank <= 50\n),\nfused AS (\n  SELECT\n    COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,\n    v.vector_rank,\n    v.vector_distance,\n    l.lexical_rank,\n    l.lexical_score,\n    COALESCE(1.0 / (60 + v.vector_rank), 0.0) + COALESCE(1.0 / (60 + l.lexical_rank), 0.0) AS rrf_score\n  FROM vector_results v\n  FULL OUTER JOIN lexical_results l\n    ON v.chunk_id = l.chunk_id\n)\nSELECT\n  f.chunk_id,\n  c.solicitation_id,\n  c.doc_name,\n  c.doc_type,\n  c.element_type,\n  c.section_id,\n  c.amendment_number,\n  c.effective_date,\n  c.amends_section,\n  c.page_number,\n  c.bbox,\n  c.content,\n  f.vector_rank,\n  f.vector_distance,\n  f.lexical_rank,\n  f.lexical_score,\n  f.rrf_score\nFROM fused f\nJOIN `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3` c\n  ON c.chunk_id = f.chunk_id\nWHERE c.tier_profile = 'hybrid'\nORDER BY f.rrf_score DESC, f.chunk_id\nLIMIT 50;\n",
+        "params": {
+          "query_embedding": {
+            "dimensions": 3072,
+            "preview": [
+              0.01577529,
+              0.03666116,
+              -0.006214932,
+              -0.009861832
+            ]
+          },
+          "lexical_query": "solicitation 01 sol-2026-cloud-01 exact base hourly rate year 1 ceiling clin-0004-ab prior contract amendments mandatory cloud kms key rotation period specified amendment 0002 q12",
+          "lexical_terms": [
+            "solicitation",
+            "01",
+            "sol-2026-cloud-01",
+            "exact",
+            "base",
+            "hourly",
+            "rate",
+            "year",
+            "1",
+            "ceiling",
+            "clin-0004-ab",
+            "prior",
+            "contract",
+            "amendments",
+            "mandatory",
+            "cloud",
+            "kms",
+            "key",
+            "rotation",
+            "period",
+            "specified",
+            "amendment",
+            "0002",
+            "q12"
+          ]
+        },
+        "candidate_k": 50
+      },
+      "ts": "2026-10-21T19:25:59.822Z",
+      "t_rel_ms": 2098
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "retrieve",
+      "duration_ms": 1275,
+      "payload": {
+        "rows_returned": 50,
+        "candidate_k": 50,
+        "job_id": "174b1af0-9fa4-4733-badf-c165a5c11957",
+        "bytes_processed": 0,
+        "slot_millis": 0,
+        "cache_hit": true,
+        "index_usage": {
+          "search": {
+            "index_usage_mode": "UNUSED",
+            "index_unused_reasons": [
+              {
+                "code": "QUERY_CACHE_HIT",
+                "message": "Search indexes are not used because the query was cached."
+              }
+            ]
+          },
+          "vector_search": {
+            "index_usage_mode": "UNUSED",
+            "index_unused_reasons": [
+              {
+                "code": "QUERY_CACHE_HIT",
+                "message": "Vector indexes are not used because the query was cached."
+              }
+            ]
+          }
+        },
+        "rrf_k": 60,
+        "vector_k": 50,
+        "lexical_k": 50,
+        "with_both_ranks": 17,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 1,
+            "lexical_rank": 1,
+            "vector_distance": 0.136498,
+            "rrf_score": 0.032787
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 2,
+            "lexical_rank": 3,
+            "vector_distance": 0.212403,
+            "rrf_score": 0.032002
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 4,
+            "lexical_rank": 2,
+            "vector_distance": 0.234362,
+            "rrf_score": 0.031754
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 3,
+            "lexical_rank": 4,
+            "vector_distance": 0.219506,
+            "rrf_score": 0.031498
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 7,
+            "lexical_rank": 6,
+            "vector_distance": 0.276047,
+            "rrf_score": 0.030077
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 6,
+            "lexical_rank": 9,
+            "vector_distance": 0.26606,
+            "rrf_score": 0.029644
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 11,
+            "lexical_rank": 5,
+            "vector_distance": 0.312476,
+            "rrf_score": 0.029469
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 5,
+            "lexical_rank": 13,
+            "vector_distance": 0.249114,
+            "rrf_score": 0.029083
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 13,
+            "lexical_rank": 7,
+            "vector_distance": 0.325519,
+            "rrf_score": 0.028624
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 14,
+            "lexical_rank": 37,
+            "vector_distance": 0.345487,
+            "rrf_score": 0.023823
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p7_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": 45,
+            "lexical_rank": 10,
+            "vector_distance": 0.433396,
+            "rrf_score": 0.02381
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p15_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 15,
+            "section_id": null,
+            "vector_rank": 33,
+            "lexical_rank": 17,
+            "vector_distance": 0.425841,
+            "rrf_score": 0.02374
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 16,
+            "lexical_rank": 36,
+            "vector_distance": 0.369711,
+            "rrf_score": 0.023575
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": 49,
+            "lexical_rank": 12,
+            "vector_distance": 0.435414,
+            "rrf_score": 0.023063
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p17_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 17,
+            "section_id": null,
+            "vector_rank": 34,
+            "lexical_rank": 21,
+            "vector_distance": 0.428321,
+            "rrf_score": 0.022984
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p15_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 15,
+            "section_id": null,
+            "vector_rank": 41,
+            "lexical_rank": 43,
+            "vector_distance": 0.431573,
+            "rrf_score": 0.01961
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p14_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 14,
+            "section_id": null,
+            "vector_rank": 39,
+            "lexical_rank": 47,
+            "vector_distance": 0.431006,
+            "rrf_score": 0.019447
+          },
+          {
+            "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p17_hybrid",
+            "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+            "page_number": 17,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 8,
+            "vector_distance": null,
+            "rrf_score": 0.014706
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-1001",
+            "vector_rank": 8,
+            "lexical_rank": null,
+            "vector_distance": 0.296947,
+            "rrf_score": 0.014706
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 9,
+            "lexical_rank": null,
+            "vector_distance": 0.299969,
+            "rrf_score": 0.014493
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 10,
+            "lexical_rank": null,
+            "vector_distance": 0.311385,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 11,
+            "vector_distance": null,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 12,
+            "lexical_rank": null,
+            "vector_distance": 0.322284,
+            "rrf_score": 0.013889
+          },
+          {
+            "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p6_hybrid",
+            "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 14,
+            "vector_distance": null,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 15,
+            "lexical_rank": null,
+            "vector_distance": 0.34791,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_03_chinarealestateinformationcorp_20090929_f-1_ex-10.32_4771615_ex-10.32_content license agreement_p12_hybrid",
+            "doc_name": "ChinaRealEstateInformationCorp_20090929_F-1_EX-10.32_4771615_EX-10.32_Content License Agreement.pdf",
+            "page_number": 12,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 15,
+            "vector_distance": null,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p22_hybrid",
+            "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+            "page_number": 22,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 16,
+            "vector_distance": null,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 17,
+            "lexical_rank": null,
+            "vector_distance": 0.387582,
+            "rrf_score": 0.012987
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 4,
+            "section_id": null,
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.392748,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_01_freecook_20180605_s-1_ex-10.3_11233807_ex-10.3_hosting agreement_p1_hybrid",
+            "doc_name": "Freecook_20180605_S-1_EX-10.3_11233807_EX-10.3_Hosting Agreement.pdf",
+            "page_number": 1,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 18,
+            "vector_distance": null,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p12_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 12,
+            "section_id": null,
+            "vector_rank": 19,
+            "lexical_rank": null,
+            "vector_distance": 0.401098,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p14_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 14,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 19,
+            "vector_distance": null,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p15_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 15,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 20,
+            "vector_distance": null,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 20,
+            "lexical_rank": null,
+            "vector_distance": 0.402952,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p8_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": 21,
+            "lexical_rank": null,
+            "vector_distance": 0.410574,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 22,
+            "lexical_rank": null,
+            "vector_distance": 0.412937,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p19_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 19,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 22,
+            "vector_distance": null,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 20,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 23,
+            "vector_distance": null,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p3_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 3,
+            "section_id": null,
+            "vector_rank": 23,
+            "lexical_rank": null,
+            "vector_distance": 0.415282,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 24,
+            "lexical_rank": null,
+            "vector_distance": 0.416916,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 22,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 24,
+            "vector_distance": null,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 22,
+            "section_id": null,
+            "vector_rank": 25,
+            "lexical_rank": null,
+            "vector_distance": 0.419172,
+            "rrf_score": 0.011765
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p9_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 9,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 25,
+            "vector_distance": null,
+            "rrf_score": 0.011765
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": 26,
+            "lexical_rank": null,
+            "vector_distance": 0.420299,
+            "rrf_score": 0.011628
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p4_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 4,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 26,
+            "vector_distance": null,
+            "rrf_score": 0.011628
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 24,
+            "section_id": null,
+            "vector_rank": 27,
+            "lexical_rank": null,
+            "vector_distance": 0.422287,
+            "rrf_score": 0.011494
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 27,
+            "vector_distance": null,
+            "rrf_score": 0.011494
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 28,
+            "vector_distance": null,
+            "rrf_score": 0.011364
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p8_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": 28,
+            "lexical_rank": null,
+            "vector_distance": 0.422907,
+            "rrf_score": 0.011364
+          },
+          {
+            "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p8_hybrid",
+            "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 29,
+            "vector_distance": null,
+            "rrf_score": 0.011236
+          }
+        ]
+      },
+      "ts": "2026-10-21T19:26:01.098Z",
+      "t_rel_ms": 3374
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "rerank",
+      "label": "Semantic rerank (cross-encoder)",
+      "service": "Discovery Engine Ranking API",
+      "request": {
+        "service": "Discovery Engine Ranking API",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 50,
+        "records_sent": 50,
+        "query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+        "method": "rankingConfigs.rank",
+        "ranking_config": "default_ranking_config",
+        "record_content_max_chars": 3600,
+        "context_k": 5
+      },
+      "ts": "2026-10-21T19:26:01.098Z",
+      "t_rel_ms": 3374
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "rerank",
+      "duration_ms": 356,
+      "payload": {
+        "service_used": "Discovery Engine Ranking API",
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 50,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.032787,
+            "rerank_rank": 1,
+            "rerank_score": 0.8994
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.032002,
+            "rerank_rank": 2,
+            "rerank_score": 0.7588
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.031754,
+            "rerank_rank": 3,
+            "rerank_score": 0.7402
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 5,
+            "rrf_score": 0.030077,
+            "rerank_rank": 4,
+            "rerank_score": 0.6136
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 4,
+            "rrf_score": 0.031498,
+            "rerank_rank": 5,
+            "rerank_score": 0.4075
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 8,
+            "rrf_score": 0.029083,
+            "rerank_rank": 6,
+            "rerank_score": 0.3495
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 7,
+            "rrf_score": 0.029469,
+            "rerank_rank": 7,
+            "rerank_score": 0.2791
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "rrf_rank": 19,
+            "rrf_score": 0.014706,
+            "rerank_rank": 8,
+            "rerank_score": 0.2676
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 6,
+            "rrf_score": 0.029644,
+            "rerank_rank": 9,
+            "rerank_score": 0.2451
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 9,
+            "rrf_score": 0.028624,
+            "rerank_rank": 10,
+            "rerank_score": 0.1532
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "rrf_rank": 40,
+            "rrf_score": 0.011905,
+            "rerank_rank": 11,
+            "rerank_score": 0.1439
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p8_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 8,
+            "rrf_rank": 49,
+            "rrf_score": 0.011364,
+            "rerank_rank": 12,
+            "rerank_score": 0.1387
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p12_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 12,
+            "rrf_rank": 31,
+            "rrf_score": 0.012658,
+            "rerank_rank": 13,
+            "rerank_score": 0.1351
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p8_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 8,
+            "rrf_rank": 35,
+            "rrf_score": 0.012346,
+            "rerank_rank": 14,
+            "rerank_score": 0.1111
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.023823,
+            "rerank_rank": 15,
+            "rerank_score": 0.1098
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p15_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+            "page_number": 15,
+            "rrf_rank": 16,
+            "rrf_score": 0.01961,
+            "rerank_rank": 16,
+            "rerank_score": 0.1022
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p15_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 15,
+            "rrf_rank": 12,
+            "rrf_score": 0.02374,
+            "rerank_rank": 17,
+            "rerank_score": 0.102
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 4,
+            "rrf_rank": 29,
+            "rrf_score": 0.012821,
+            "rerank_rank": 18,
+            "rerank_score": 0.0994
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p15_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 15,
+            "rrf_rank": 33,
+            "rrf_score": 0.0125,
+            "rerank_rank": 19,
+            "rerank_score": 0.0966
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 20,
+            "rrf_score": 0.014493,
+            "rerank_rank": 20,
+            "rerank_score": 0.0963
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 5,
+            "rrf_rank": 44,
+            "rrf_score": 0.011628,
+            "rerank_rank": 21,
+            "rerank_score": 0.089
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p17_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 17,
+            "rrf_rank": 15,
+            "rrf_score": 0.022984,
+            "rerank_rank": 22,
+            "rerank_score": 0.0782
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 24,
+            "rrf_rank": 46,
+            "rrf_score": 0.011494,
+            "rerank_rank": 23,
+            "rerank_score": 0.0776
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p14_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 14,
+            "rrf_rank": 32,
+            "rrf_score": 0.012658,
+            "rerank_rank": 24,
+            "rerank_score": 0.0761
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 2,
+            "rrf_rank": 36,
+            "rrf_score": 0.012195,
+            "rerank_rank": 25,
+            "rerank_score": 0.0747
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p9_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 9,
+            "rrf_rank": 43,
+            "rrf_score": 0.011765,
+            "rerank_rank": 26,
+            "rerank_score": 0.0743
+          },
+          {
+            "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p17_hybrid",
+            "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+            "page_number": 17,
+            "rrf_rank": 18,
+            "rrf_score": 0.014706,
+            "rerank_rank": 27,
+            "rerank_score": 0.068
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 21,
+            "rrf_score": 0.014286,
+            "rerank_rank": 28,
+            "rerank_score": 0.0675
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p7_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 7,
+            "rrf_rank": 11,
+            "rrf_score": 0.02381,
+            "rerank_rank": 29,
+            "rerank_score": 0.065
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 22,
+            "rrf_rank": 41,
+            "rrf_score": 0.011905,
+            "rerank_rank": 30,
+            "rerank_score": 0.064
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 25,
+            "rrf_score": 0.013333,
+            "rerank_rank": 31,
+            "rerank_score": 0.0616
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 20,
+            "rrf_rank": 38,
+            "rrf_score": 0.012048,
+            "rerank_rank": 32,
+            "rerank_score": 0.0615
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p3_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 3,
+            "rrf_rank": 39,
+            "rrf_score": 0.012048,
+            "rerank_rank": 33,
+            "rerank_score": 0.0606
+          },
+          {
+            "chunk_id": "solicitation_01_freecook_20180605_s-1_ex-10.3_11233807_ex-10.3_hosting agreement_p1_hybrid",
+            "doc_name": "Freecook_20180605_S-1_EX-10.3_11233807_EX-10.3_Hosting Agreement.pdf",
+            "page_number": 1,
+            "rrf_rank": 30,
+            "rrf_score": 0.012821,
+            "rerank_rank": 34,
+            "rerank_score": 0.0601
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p19_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 19,
+            "rrf_rank": 37,
+            "rrf_score": 0.012195,
+            "rerank_rank": 35,
+            "rerank_score": 0.0595
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 22,
+            "rrf_rank": 42,
+            "rrf_score": 0.011765,
+            "rerank_rank": 36,
+            "rerank_score": 0.0589
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 13,
+            "rrf_score": 0.023575,
+            "rerank_rank": 37,
+            "rerank_score": 0.0573
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 7,
+            "rrf_rank": 22,
+            "rrf_score": 0.014085,
+            "rerank_rank": 38,
+            "rerank_score": 0.057
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 7,
+            "rrf_rank": 14,
+            "rrf_score": 0.023063,
+            "rerank_rank": 39,
+            "rerank_score": 0.0502
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 47,
+            "rrf_score": 0.011494,
+            "rerank_rank": 40,
+            "rerank_score": 0.0495
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p4_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 4,
+            "rrf_rank": 45,
+            "rrf_score": 0.011628,
+            "rerank_rank": 41,
+            "rerank_score": 0.0478
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p14_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 14,
+            "rrf_rank": 17,
+            "rrf_score": 0.019447,
+            "rerank_rank": 42,
+            "rerank_score": 0.0457
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 28,
+            "rrf_score": 0.012987,
+            "rerank_rank": 43,
+            "rerank_score": 0.0448
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 23,
+            "rrf_score": 0.013889,
+            "rerank_rank": 44,
+            "rerank_score": 0.0415
+          },
+          {
+            "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p22_hybrid",
+            "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+            "page_number": 22,
+            "rrf_rank": 27,
+            "rrf_score": 0.013158,
+            "rerank_rank": 45,
+            "rerank_score": 0.0386
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 8,
+            "rrf_rank": 48,
+            "rrf_score": 0.011364,
+            "rerank_rank": 46,
+            "rerank_score": 0.0377
+          },
+          {
+            "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p6_hybrid",
+            "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+            "page_number": 6,
+            "rrf_rank": 24,
+            "rrf_score": 0.013514,
+            "rerank_rank": 47,
+            "rerank_score": 0.037
+          },
+          {
+            "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p8_hybrid",
+            "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+            "page_number": 8,
+            "rrf_rank": 50,
+            "rrf_score": 0.011236,
+            "rerank_rank": 48,
+            "rerank_score": 0.0361
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 34,
+            "rrf_score": 0.0125,
+            "rerank_rank": 49,
+            "rerank_score": 0.0358
+          },
+          {
+            "chunk_id": "solicitation_03_chinarealestateinformationcorp_20090929_f-1_ex-10.32_4771615_ex-10.32_content license agreement_p12_hybrid",
+            "doc_name": "ChinaRealEstateInformationCorp_20090929_F-1_EX-10.32_4771615_EX-10.32_Content License Agreement.pdf",
+            "page_number": 12,
+            "rrf_rank": 26,
+            "rrf_score": 0.013333,
+            "rerank_rank": 50,
+            "rerank_score": 0.0305
+          }
+        ],
+        "rank_api_ms": 355,
+        "attempts": 1,
+        "records_truncated": 18,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-10-21T19:26:01.455Z",
+      "t_rel_ms": 3731
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[07_Amendment_0002_Vendor_QA.pdf | Sec: AMD-0002-QA | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA]\nSOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\n[04_Pricing_Schedule_CLINs.pdf | Sec: CLIN-0004-AB | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=04_Pricing_Schedule_CLINs.pdf | DocType=PRICING_CLIN | Section=CLIN-0004-AB]\nSOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\n[01_RFP_Base_Solicitation.pdf | Sec: SEC-4.2.1 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=01_RFP_Base_Solicitation.pdf | DocType=BASE_RFP | Section=SEC-4.2.1]\nSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\n[08_Vendor_A_Proposal_Redacted.pdf | Sec: PROP-EXEC-01 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=08_Vendor_A_Proposal_Redacted.pdf | DocType=VENDOR_PROPOSAL | Section=PROP-EXEC-01]\nSOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\n[06_Amendment_0001_Scope_Update.pdf | Sec: AMD-0001 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.\n\nQuestion: In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-10-21T19:26:01.455Z",
+      "t_rel_ms": 3731
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "synthesize",
+      "duration_ms": 17435,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 2140,
+        "output_tokens": 372,
+        "thinking_tokens": 944,
+        "stop_reason": "STOP",
+        "response_id": "yRHZarbfH5iiw8cPsbrTmQ4",
+        "attempts": 1,
+        "answer": "Based on the provided solicitation documents for **SOL-2026-CLOUD-01**, here are the details:\n\n### 1. CLIN-0004-AB Base Rate and Year 1 Ceiling (Prior to Amendments)\n* **Base Hourly Rate:** **$210.00/hr** (or $210/hr)\n* **Year 1 Base Ceiling:** **$420,000.00** (or $420,000), based on an estimated 2,000 base hours.\n*(Sources: `01_RFP_Base_Solicitation.pdf`, Clause SEC-4.3.2; `04_Pricing_Schedule_CLINs.pdf`, Schedule B)*\n\n*(Note: Under `06_Amendment_0001_Scope_Update.pdf`, this rate was subsequently superseded and increased to $245.00/hr with a 5% volume discount for orders exceeding 1,500 hours, resulting in an amended Year 1 net total of $465,500.00.)*\n\n---\n\n### 2. Mandatory Cloud KMS Key Rotation Period (Amendment 0002, Q12)\n* **Standard CMEK Keys:** All Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule**.\n* **Tier-0 Keys:** Tier-0 identity signing keys must enforce a **30-day rotation** schedule.\n*(Source: `07_Amendment_0002_Vendor_QA.pdf`, Q12/A12)*",
+        "thinking_level": "HIGH"
+      },
+      "ts": "2026-10-21T19:26:18.891Z",
+      "t_rel_ms": 21167
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-21T19:26:18.892Z",
+      "t_rel_ms": 21168
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_db79f24ab47b",
+      "engine": "level2_hybrid",
+      "stage": "evaluate",
+      "duration_ms": 3280,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 1.0,
+        "context_precision": 0.85,
+        "reference_answer_used": true,
+        "input_tokens": 3871,
+        "output_tokens": 202,
+        "judge_cost_usd": 0.019524,
+        "rationale": "Every claim in the answer is supported by the retrieved chunks: the $210/hr rate, the $420,000 Year 1 ceiling, the 2,000 hours, the 90-day/30-day KMS rotation periods, and the Amendment 0001 note, all with correct citations. The answer fully matches the reference on both parts of the query. Context precision is high, but the Vendor A proposal chunk is extraneous, and the base RFP chunk includes unrelated DR clause content.",
+        "judge_response_id": "msg_vrtx_011CgFvzxVNUGPJE7FmyB5K3"
+      },
+      "ts": "2026-10-21T19:26:22.172Z",
+      "t_rel_ms": 24448
+    }
+  ],
+  "result": {
+    "engine_id": "level2_hybrid",
+    "engine_label": "Level 2: BigQuery Hybrid + Reranker",
+    "answer": "Based on the provided solicitation documents for **SOL-2026-CLOUD-01**, here are the details:\n\n### 1. CLIN-0004-AB Base Rate and Year 1 Ceiling (Prior to Amendments)\n* **Base Hourly Rate:** **$210.00/hr** (or $210/hr)\n* **Year 1 Base Ceiling:** **$420,000.00** (or $420,000), based on an estimated 2,000 base hours.\n*(Sources: `01_RFP_Base_Solicitation.pdf`, Clause SEC-4.3.2; `04_Pricing_Schedule_CLINs.pdf`, Schedule B)*\n\n*(Note: Under `06_Amendment_0001_Scope_Update.pdf`, this rate was subsequently superseded and increased to $245.00/hr with a 5% volume discount for orders exceeding 1,500 hours, resulting in an amended Year 1 net total of $465,500.00.)*\n\n---\n\n### 2. Mandatory Cloud KMS Key Rotation Period (Amendment 0002, Q12)\n* **Standard CMEK Keys:** All Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule**.\n* **Tier-0 Keys:** Tier-0 identity signing keys must enforce a **30-day rotation** schedule.\n*(Source: `07_Amendment_0002_Vendor_QA.pdf`, Q12/A12)*",
+    "citations": [
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0002-QA",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA] SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf AMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTA"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=04_Pricing_Schedule_CLINs.pdf | DocType=PRICING_CLIN | Section=CLIN-0004-AB] SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING"
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SEC-4.2.1",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=01_RFP_Base_Solicitation.pdf | DocType=BASE_RFP | Section=SEC-4.2.1] SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFER"
+      },
+      {
+        "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "PROP-EXEC-01",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=08_Vendor_A_Proposal_Redacted.pdf | DocType=VENDOR_PROPOSAL | Section=PROP-EXEC-01] SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf VENDOR A TECHNICAL & PRICE PROPOSAL (REDA"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001] SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CL"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA]\nSOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.8994
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=04_Pricing_Schedule_CLINs.pdf | DocType=PRICING_CLIN | Section=CLIN-0004-AB]\nSOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).",
+        "score": 0.7588
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-4.2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=01_RFP_Base_Solicitation.pdf | DocType=BASE_RFP | Section=SEC-4.2.1]\nSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.",
+        "score": 0.7402
+      },
+      {
+        "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "doc_type": "VENDOR_PROPOSAL",
+        "element_type": "narrative_text",
+        "section_id": "PROP-EXEC-01",
+        "amendment_number": 0,
+        "effective_date": "2026-04-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=08_Vendor_A_Proposal_Redacted.pdf | DocType=VENDOR_PROPOSAL | Section=PROP-EXEC-01]\nSOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.",
+        "score": 0.6136
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+        "tier_profile": "hybrid",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.",
+        "score": 0.4075
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 21167,
+    "cost_usd": 0.0184584,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-21T19:25:59.358Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+          "prepared_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12? (CLIN = Contract Line Item Number; KMS = Key Management Service)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "KMS",
+              "expansion": "Key Management Service"
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-10-21T19:25:59.358Z",
+        "duration_ms": 463,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 92,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "BigQuery VECTOR_SEARCH + SEARCH() \u2192 RRF",
+        "service": "BigQuery",
+        "status": "completed",
+        "started_at": "2026-10-21T19:25:59.822Z",
+        "duration_ms": 1275,
+        "request": {},
+        "payload": {
+          "rows_returned": 50,
+          "candidate_k": 50,
+          "job_id": "174b1af0-9fa4-4733-badf-c165a5c11957",
+          "bytes_processed": 0,
+          "slot_millis": 0,
+          "cache_hit": true,
+          "index_usage": {
+            "search": {
+              "index_usage_mode": "UNUSED",
+              "index_unused_reasons": [
+                {
+                  "code": "QUERY_CACHE_HIT",
+                  "message": "Search indexes are not used because the query was cached."
+                }
+              ]
+            },
+            "vector_search": {
+              "index_usage_mode": "UNUSED",
+              "index_unused_reasons": [
+                {
+                  "code": "QUERY_CACHE_HIT",
+                  "message": "Vector indexes are not used because the query was cached."
+                }
+              ]
+            }
+          },
+          "rrf_k": 60,
+          "vector_k": 50,
+          "lexical_k": 50,
+          "with_both_ranks": 17,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 1,
+              "lexical_rank": 1,
+              "vector_distance": 0.136498,
+              "rrf_score": 0.032787
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 2,
+              "lexical_rank": 3,
+              "vector_distance": 0.212403,
+              "rrf_score": 0.032002
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 4,
+              "lexical_rank": 2,
+              "vector_distance": 0.234362,
+              "rrf_score": 0.031754
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 3,
+              "lexical_rank": 4,
+              "vector_distance": 0.219506,
+              "rrf_score": 0.031498
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 7,
+              "lexical_rank": 6,
+              "vector_distance": 0.276047,
+              "rrf_score": 0.030077
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 6,
+              "lexical_rank": 9,
+              "vector_distance": 0.26606,
+              "rrf_score": 0.029644
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 11,
+              "lexical_rank": 5,
+              "vector_distance": 0.312476,
+              "rrf_score": 0.029469
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 5,
+              "lexical_rank": 13,
+              "vector_distance": 0.249114,
+              "rrf_score": 0.029083
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 13,
+              "lexical_rank": 7,
+              "vector_distance": 0.325519,
+              "rrf_score": 0.028624
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 14,
+              "lexical_rank": 37,
+              "vector_distance": 0.345487,
+              "rrf_score": 0.023823
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p7_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": 45,
+              "lexical_rank": 10,
+              "vector_distance": 0.433396,
+              "rrf_score": 0.02381
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p15_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 15,
+              "section_id": null,
+              "vector_rank": 33,
+              "lexical_rank": 17,
+              "vector_distance": 0.425841,
+              "rrf_score": 0.02374
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 16,
+              "lexical_rank": 36,
+              "vector_distance": 0.369711,
+              "rrf_score": 0.023575
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": 49,
+              "lexical_rank": 12,
+              "vector_distance": 0.435414,
+              "rrf_score": 0.023063
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p17_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 17,
+              "section_id": null,
+              "vector_rank": 34,
+              "lexical_rank": 21,
+              "vector_distance": 0.428321,
+              "rrf_score": 0.022984
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p15_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 15,
+              "section_id": null,
+              "vector_rank": 41,
+              "lexical_rank": 43,
+              "vector_distance": 0.431573,
+              "rrf_score": 0.01961
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p14_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 14,
+              "section_id": null,
+              "vector_rank": 39,
+              "lexical_rank": 47,
+              "vector_distance": 0.431006,
+              "rrf_score": 0.019447
+            },
+            {
+              "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p17_hybrid",
+              "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+              "page_number": 17,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 8,
+              "vector_distance": null,
+              "rrf_score": 0.014706
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-1001",
+              "vector_rank": 8,
+              "lexical_rank": null,
+              "vector_distance": 0.296947,
+              "rrf_score": 0.014706
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 9,
+              "lexical_rank": null,
+              "vector_distance": 0.299969,
+              "rrf_score": 0.014493
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 10,
+              "lexical_rank": null,
+              "vector_distance": 0.311385,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 11,
+              "vector_distance": null,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 12,
+              "lexical_rank": null,
+              "vector_distance": 0.322284,
+              "rrf_score": 0.013889
+            },
+            {
+              "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p6_hybrid",
+              "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 14,
+              "vector_distance": null,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 15,
+              "lexical_rank": null,
+              "vector_distance": 0.34791,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_03_chinarealestateinformationcorp_20090929_f-1_ex-10.32_4771615_ex-10.32_content license agreement_p12_hybrid",
+              "doc_name": "ChinaRealEstateInformationCorp_20090929_F-1_EX-10.32_4771615_EX-10.32_Content License Agreement.pdf",
+              "page_number": 12,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 15,
+              "vector_distance": null,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p22_hybrid",
+              "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+              "page_number": 22,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 16,
+              "vector_distance": null,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 17,
+              "lexical_rank": null,
+              "vector_distance": 0.387582,
+              "rrf_score": 0.012987
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 4,
+              "section_id": null,
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.392748,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_01_freecook_20180605_s-1_ex-10.3_11233807_ex-10.3_hosting agreement_p1_hybrid",
+              "doc_name": "Freecook_20180605_S-1_EX-10.3_11233807_EX-10.3_Hosting Agreement.pdf",
+              "page_number": 1,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 18,
+              "vector_distance": null,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p12_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 12,
+              "section_id": null,
+              "vector_rank": 19,
+              "lexical_rank": null,
+              "vector_distance": 0.401098,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p14_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 14,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 19,
+              "vector_distance": null,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p15_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 15,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 20,
+              "vector_distance": null,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 20,
+              "lexical_rank": null,
+              "vector_distance": 0.402952,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p8_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": 21,
+              "lexical_rank": null,
+              "vector_distance": 0.410574,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 22,
+              "lexical_rank": null,
+              "vector_distance": 0.412937,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p19_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 19,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 22,
+              "vector_distance": null,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 20,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 23,
+              "vector_distance": null,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p3_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 3,
+              "section_id": null,
+              "vector_rank": 23,
+              "lexical_rank": null,
+              "vector_distance": 0.415282,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 24,
+              "lexical_rank": null,
+              "vector_distance": 0.416916,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 22,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 24,
+              "vector_distance": null,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 22,
+              "section_id": null,
+              "vector_rank": 25,
+              "lexical_rank": null,
+              "vector_distance": 0.419172,
+              "rrf_score": 0.011765
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p9_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 9,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 25,
+              "vector_distance": null,
+              "rrf_score": 0.011765
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": 26,
+              "lexical_rank": null,
+              "vector_distance": 0.420299,
+              "rrf_score": 0.011628
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p4_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 4,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 26,
+              "vector_distance": null,
+              "rrf_score": 0.011628
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 24,
+              "section_id": null,
+              "vector_rank": 27,
+              "lexical_rank": null,
+              "vector_distance": 0.422287,
+              "rrf_score": 0.011494
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 27,
+              "vector_distance": null,
+              "rrf_score": 0.011494
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 28,
+              "vector_distance": null,
+              "rrf_score": 0.011364
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p8_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": 28,
+              "lexical_rank": null,
+              "vector_distance": 0.422907,
+              "rrf_score": 0.011364
+            },
+            {
+              "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p8_hybrid",
+              "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 29,
+              "vector_distance": null,
+              "rrf_score": 0.011236
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Semantic rerank (cross-encoder)",
+        "service": "Discovery Engine Ranking API",
+        "status": "completed",
+        "started_at": "2026-10-21T19:26:01.098Z",
+        "duration_ms": 356,
+        "request": {},
+        "payload": {
+          "service_used": "Discovery Engine Ranking API",
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 50,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.032787,
+              "rerank_rank": 1,
+              "rerank_score": 0.8994
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.032002,
+              "rerank_rank": 2,
+              "rerank_score": 0.7588
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.031754,
+              "rerank_rank": 3,
+              "rerank_score": 0.7402
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 5,
+              "rrf_score": 0.030077,
+              "rerank_rank": 4,
+              "rerank_score": 0.6136
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 4,
+              "rrf_score": 0.031498,
+              "rerank_rank": 5,
+              "rerank_score": 0.4075
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 8,
+              "rrf_score": 0.029083,
+              "rerank_rank": 6,
+              "rerank_score": 0.3495
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 7,
+              "rrf_score": 0.029469,
+              "rerank_rank": 7,
+              "rerank_score": 0.2791
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "rrf_rank": 19,
+              "rrf_score": 0.014706,
+              "rerank_rank": 8,
+              "rerank_score": 0.2676
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 6,
+              "rrf_score": 0.029644,
+              "rerank_rank": 9,
+              "rerank_score": 0.2451
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 9,
+              "rrf_score": 0.028624,
+              "rerank_rank": 10,
+              "rerank_score": 0.1532
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "rrf_rank": 40,
+              "rrf_score": 0.011905,
+              "rerank_rank": 11,
+              "rerank_score": 0.1439
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p8_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 8,
+              "rrf_rank": 49,
+              "rrf_score": 0.011364,
+              "rerank_rank": 12,
+              "rerank_score": 0.1387
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p12_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 12,
+              "rrf_rank": 31,
+              "rrf_score": 0.012658,
+              "rerank_rank": 13,
+              "rerank_score": 0.1351
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p8_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 8,
+              "rrf_rank": 35,
+              "rrf_score": 0.012346,
+              "rerank_rank": 14,
+              "rerank_score": 0.1111
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.023823,
+              "rerank_rank": 15,
+              "rerank_score": 0.1098
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement1_p15_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement1.pdf",
+              "page_number": 15,
+              "rrf_rank": 16,
+              "rrf_score": 0.01961,
+              "rerank_rank": 16,
+              "rerank_score": 0.1022
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p15_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 15,
+              "rrf_rank": 12,
+              "rrf_score": 0.02374,
+              "rerank_rank": 17,
+              "rerank_score": 0.102
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 4,
+              "rrf_rank": 29,
+              "rrf_score": 0.012821,
+              "rerank_rank": 18,
+              "rerank_score": 0.0994
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p15_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 15,
+              "rrf_rank": 33,
+              "rrf_score": 0.0125,
+              "rerank_rank": 19,
+              "rerank_score": 0.0966
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 20,
+              "rrf_score": 0.014493,
+              "rerank_rank": 20,
+              "rerank_score": 0.0963
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 5,
+              "rrf_rank": 44,
+              "rrf_score": 0.011628,
+              "rerank_rank": 21,
+              "rerank_score": 0.089
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p17_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 17,
+              "rrf_rank": 15,
+              "rrf_score": 0.022984,
+              "rerank_rank": 22,
+              "rerank_score": 0.0782
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 24,
+              "rrf_rank": 46,
+              "rrf_score": 0.011494,
+              "rerank_rank": 23,
+              "rerank_score": 0.0776
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p14_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 14,
+              "rrf_rank": 32,
+              "rrf_score": 0.012658,
+              "rerank_rank": 24,
+              "rerank_score": 0.0761
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 2,
+              "rrf_rank": 36,
+              "rrf_score": 0.012195,
+              "rerank_rank": 25,
+              "rerank_score": 0.0747
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p9_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 9,
+              "rrf_rank": 43,
+              "rrf_score": 0.011765,
+              "rerank_rank": 26,
+              "rerank_score": 0.0743
+            },
+            {
+              "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p17_hybrid",
+              "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+              "page_number": 17,
+              "rrf_rank": 18,
+              "rrf_score": 0.014706,
+              "rerank_rank": 27,
+              "rerank_score": 0.068
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 21,
+              "rrf_score": 0.014286,
+              "rerank_rank": 28,
+              "rerank_score": 0.0675
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p7_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 7,
+              "rrf_rank": 11,
+              "rrf_score": 0.02381,
+              "rerank_rank": 29,
+              "rerank_score": 0.065
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 22,
+              "rrf_rank": 41,
+              "rrf_score": 0.011905,
+              "rerank_rank": 30,
+              "rerank_score": 0.064
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 25,
+              "rrf_score": 0.013333,
+              "rerank_rank": 31,
+              "rerank_score": 0.0616
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p20_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 20,
+              "rrf_rank": 38,
+              "rrf_score": 0.012048,
+              "rerank_rank": 32,
+              "rerank_score": 0.0615
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p3_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 3,
+              "rrf_rank": 39,
+              "rrf_score": 0.012048,
+              "rerank_rank": 33,
+              "rerank_score": 0.0606
+            },
+            {
+              "chunk_id": "solicitation_01_freecook_20180605_s-1_ex-10.3_11233807_ex-10.3_hosting agreement_p1_hybrid",
+              "doc_name": "Freecook_20180605_S-1_EX-10.3_11233807_EX-10.3_Hosting Agreement.pdf",
+              "page_number": 1,
+              "rrf_rank": 30,
+              "rrf_score": 0.012821,
+              "rerank_rank": 34,
+              "rerank_score": 0.0601
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p19_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 19,
+              "rrf_rank": 37,
+              "rrf_score": 0.012195,
+              "rerank_rank": 35,
+              "rerank_score": 0.0595
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p22_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 22,
+              "rrf_rank": 42,
+              "rrf_score": 0.011765,
+              "rerank_rank": 36,
+              "rerank_score": 0.0589
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 13,
+              "rrf_score": 0.023575,
+              "rerank_rank": 37,
+              "rerank_score": 0.0573
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p7_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 7,
+              "rrf_rank": 22,
+              "rrf_score": 0.014085,
+              "rerank_rank": 38,
+              "rerank_score": 0.057
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p7_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 7,
+              "rrf_rank": 14,
+              "rrf_score": 0.023063,
+              "rerank_rank": 39,
+              "rerank_score": 0.0502
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p2_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 47,
+              "rrf_score": 0.011494,
+              "rerank_rank": 40,
+              "rerank_score": 0.0495
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p4_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 4,
+              "rrf_rank": 45,
+              "rrf_score": 0.011628,
+              "rerank_rank": 41,
+              "rerank_score": 0.0478
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p14_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 14,
+              "rrf_rank": 17,
+              "rrf_score": 0.019447,
+              "rerank_rank": 42,
+              "rerank_score": 0.0457
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 28,
+              "rrf_score": 0.012987,
+              "rerank_rank": 43,
+              "rerank_score": 0.0448
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 23,
+              "rrf_score": 0.013889,
+              "rerank_rank": 44,
+              "rerank_score": 0.0415
+            },
+            {
+              "chunk_id": "solicitation_01_bloomenergycorp_20180321_drsa (on s-1)_ex-10_11240356_ex-10_maintenance agreement_p22_hybrid",
+              "doc_name": "BloomEnergyCorp_20180321_DRSA (on S-1)_EX-10_11240356_EX-10_Maintenance Agreement.pdf",
+              "page_number": 22,
+              "rrf_rank": 27,
+              "rrf_score": 0.013158,
+              "rerank_rank": 45,
+              "rerank_score": 0.0386
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 8,
+              "rrf_rank": 48,
+              "rrf_score": 0.011364,
+              "rerank_rank": 46,
+              "rerank_score": 0.0377
+            },
+            {
+              "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p6_hybrid",
+              "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+              "page_number": 6,
+              "rrf_rank": 24,
+              "rrf_score": 0.013514,
+              "rerank_rank": 47,
+              "rerank_score": 0.037
+            },
+            {
+              "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p8_hybrid",
+              "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+              "page_number": 8,
+              "rrf_rank": 50,
+              "rrf_score": 0.011236,
+              "rerank_rank": 48,
+              "rerank_score": 0.0361
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 34,
+              "rrf_score": 0.0125,
+              "rerank_rank": 49,
+              "rerank_score": 0.0358
+            },
+            {
+              "chunk_id": "solicitation_03_chinarealestateinformationcorp_20090929_f-1_ex-10.32_4771615_ex-10.32_content license agreement_p12_hybrid",
+              "doc_name": "ChinaRealEstateInformationCorp_20090929_F-1_EX-10.32_4771615_EX-10.32_Content License Agreement.pdf",
+              "page_number": 12,
+              "rrf_rank": 26,
+              "rrf_score": 0.013333,
+              "rerank_rank": 50,
+              "rerank_score": 0.0305
+            }
+          ],
+          "rank_api_ms": 355,
+          "attempts": 1,
+          "records_truncated": 18,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-21T19:26:01.455Z",
+        "duration_ms": 17435,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 2140,
+          "output_tokens": 372,
+          "thinking_tokens": 944,
+          "stop_reason": "STOP",
+          "response_id": "yRHZarbfH5iiw8cPsbrTmQ4",
+          "attempts": 1,
+          "answer": "Based on the provided solicitation documents for **SOL-2026-CLOUD-01**, here are the details:\n\n### 1. CLIN-0004-AB Base Rate and Year 1 Ceiling (Prior to Amendments)\n* **Base Hourly Rate:** **$210.00/hr** (or $210/hr)\n* **Year 1 Base Ceiling:** **$420,000.00** (or $420,000), based on an estimated 2,000 base hours.\n*(Sources: `01_RFP_Base_Solicitation.pdf`, Clause SEC-4.3.2; `04_Pricing_Schedule_CLINs.pdf`, Schedule B)*\n\n*(Note: Under `06_Amendment_0001_Scope_Update.pdf`, this rate was subsequently superseded and increased to $245.00/hr with a 5% volume discount for orders exceeding 1,500 hours, resulting in an amended Year 1 net total of $465,500.00.)*\n\n---\n\n### 2. Mandatory Cloud KMS Key Rotation Period (Amendment 0002, Q12)\n* **Standard CMEK Keys:** All Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule**.\n* **Tier-0 Keys:** Tier-0 identity signing keys must enforce a **30-day rotation** schedule.\n*(Source: `07_Amendment_0002_Vendor_QA.pdf`, Q12/A12)*",
+          "thinking_level": "HIGH"
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 2140,
+      "output_tokens": 372,
+      "embedding_tokens": 92,
+      "thinking_tokens": 944,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "pymupdf"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 1.0,
+      "context_precision": 0.85
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 3280,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3871,
+    "output_tokens": 202,
+    "judge_cost_usd": 0.019524,
+    "rationale": "Every claim in the answer is supported by the retrieved chunks: the $210/hr rate, the $420,000 Year 1 ceiling, the 2,000 hours, the 90-day/30-day KMS rotation periods, and the Amendment 0001 note, all with correct citations. The answer fully matches the reference on both parts of the query. Context precision is high, but the Vendor A proposal chunk is extraneous, and the base RFP chunk includes unrelated DR clause content.",
+    "judge_response_id": "msg_vrtx_011CgFvzxVNUGPJE7FmyB5K3"
+  }
+}

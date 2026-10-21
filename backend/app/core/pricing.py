@@ -90,8 +90,11 @@ PRICE_TABLE: dict[str, ModelPrice] = {
         model="discovery-engine-rank",
         usd_per_1k_requests=1.00,
         source=_DISCOVERY_PRICING_URL,
-        price_as_of="2026-10-20",
-        note="Ranking API (semantic-ranker-default), billed per 1,000 rank requests.",
+        price_as_of="2026-10-21",
+        note=(
+            "Ranking API 'Ranking' SKU: $1.00 per 1,000 count (pay-as-you-go list price). One count = one rank query "
+            "of up to 100 documents; each further started block of 100 documents is another count (132 docs = 2)."
+        ),
     ),
 }
 
@@ -129,11 +132,21 @@ def judge_cost_usd(model: str, *, input_tokens: int, output_tokens: int) -> floa
     return round(total, 8)
 
 
+RANK_DOCUMENTS_PER_COUNT = 100
+
+
 def rank_cost_usd(requests: int) -> float:
-    """USD cost of ``requests`` Discovery Engine Ranking API calls."""
+    """USD cost of ``requests`` billable Ranking API counts (see ``rank_billed_counts``)."""
     if not isinstance(requests, int) or isinstance(requests, bool) or requests < 0:
         raise ValueError("requests must be an integer >= 0")
     return round((requests / 1000.0) * PRICE_TABLE["discovery-engine-rank"].usd_per_1k_requests, 8)
+
+
+def rank_billed_counts(records: int) -> int:
+    """Billable counts for ONE rank call with ``records`` documents: ceil(records / 100) (pricing page example)."""
+    if not isinstance(records, int) or isinstance(records, bool) or records < 1:
+        raise ValueError("records must be an integer >= 1")
+    return -(-records // RANK_DOCUMENTS_PER_COUNT)
 
 
 __all__ = [
@@ -143,5 +156,6 @@ __all__ = [
     "cost_from_usage",
     "judge_cost_usd",
     "price_for_model",
+    "rank_billed_counts",
     "rank_cost_usd",
 ]

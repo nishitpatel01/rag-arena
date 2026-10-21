@@ -92,6 +92,20 @@ body {
   animation: arena-flow-dash 0.9s linear infinite;
 }
 
+/* Document viewer slide-over: enters from the right; disabled under reduced motion. */
+@keyframes arena-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.drawer-slide-in {
+  animation: arena-drawer-in 180ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -106,6 +120,9 @@ body {
     outline-offset: 3px;
   }
   .edge-flowing {
+    animation: none;
+  }
+  .drawer-slide-in {
     animation: none;
   }
 }

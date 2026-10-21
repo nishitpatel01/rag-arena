@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAppData } from "../../app/AppDataProvider";
+import { DocumentDrawer } from "../../components/DocumentDrawer";
 import { DocumentViewer } from "../../components/DocumentViewer";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Panel } from "../../components/ui/Panel";
@@ -28,6 +29,13 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [userPicked, setUserPicked] = useState(false);
   const [citation, setCitation] = useState<Citation | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const openCitation = useCallback((c: Citation) => {
+    setCitation(c);
+    setViewerOpen(true);
+  }, []);
+  const openViewer = useCallback(() => setViewerOpen(true), []);
+  const closeViewer = useCallback(() => setViewerOpen(false), []);
 
   const timeline = stream.state.timelines[level.level_id];
   const active = activeStageId(timeline);
@@ -49,6 +57,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     setSelectedStage(null);
     setUserPicked(false);
     setCitation(null);
+    setViewerOpen(false);
     stream.run({ query, questionId, engines: [level.level_id] });
   };
 
@@ -93,8 +102,8 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
         </div>
       </Panel>
 
-      <Panel title="Document viewer" subtitle="bbox of the selected citation" className="xl:row-span-2" as="aside">
-        <DocumentViewer citation={citation} />
+      <Panel title="Document viewer" subtitle="Real source page of the selected citation" className="xl:row-span-2" as="aside">
+        <DocumentViewer citation={citation} onOpen={openViewer} />
       </Panel>
 
       <Panel title="Stage detail" subtitle="Exact request and response from the event" className="xl:col-start-2">
@@ -119,11 +128,12 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       </Panel>
 
       <Panel title="Answer + citations" className="xl:col-span-2">
-        <AnswerPanel timeline={timeline} running={stream.isStreaming} selectedCitation={citation} onSelectCitation={setCitation} />
+        <AnswerPanel timeline={timeline} running={stream.isStreaming} selectedCitation={citation} onSelectCitation={openCitation} />
       </Panel>
       <Panel title="Metrics" subtitle="LLM judge · cost · latency">
         <MetricsPanel timeline={timeline} running={stream.isStreaming} />
       </Panel>
+      <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} />
     </div>
   );
 };

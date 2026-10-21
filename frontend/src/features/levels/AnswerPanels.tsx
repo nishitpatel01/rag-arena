@@ -50,6 +50,8 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
                   <button
                     type="button"
                     aria-pressed={selected}
+                    aria-haspopup="dialog"
+                    title={`Open ${c.doc_name} p.${c.page_number} in the document viewer`}
                     onClick={() => onSelectCitation(c)}
                     className={`rounded-md border px-2 py-1 text-left text-xs hover:bg-surface-2 ${selected ? "border-slate text-slate" : "border-line text-ink-2"}`}
                   >

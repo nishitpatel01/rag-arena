@@ -10,6 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 
+from app.api.documents import get_document_routes
 from app.api.routes import get_api_routes
 from app.core.config import ArenaSettings, get_settings
 from app.api.query_runs import QueryRunWriter
@@ -48,6 +49,7 @@ def create_app(
     routes = list(get_api_routes())
     if not routes:
         raise RuntimeError("API route table must not be empty")
+    routes.extend(get_document_routes())
 
     if _FRONTEND_DIST.is_dir() and (_FRONTEND_DIST / "index.html").is_file():
         routes.append(

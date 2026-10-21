@@ -34,7 +34,14 @@ def test_level1_emits_canonical_stages_in_order_with_measured_payloads() -> None
     completed = {e["stage"]: e for e in emitter.events if e["event"] == "stage_completed"}
     assert completed["query_prep"]["payload"] == {"original_query": _QUERY, "prepared_query": _QUERY, "expansions": []}
     embed = completed["embed_query"]["payload"]
-    assert embed == {"model": "gemini-embedding-2", "dimensions": EMBED_DIMS, "token_count": 14}
+    assert embed == {"model": "gemini-embedding-2", "dimensions": EMBED_DIMS, "token_count": 14, "task_type": "RETRIEVAL_QUERY"}
+    embed_kwargs = genai_client.calls[0][1]
+    assert embed_kwargs["config"].task_type == "RETRIEVAL_QUERY" and embed_kwargs["model"] == "gemini-embedding-2"
+    assert embed_kwargs["contents"] == f"task: question answering | query: {_QUERY}"
+    assert started_embed_request(emitter)["contents"] == embed_kwargs["contents"]
+    assert "tier_profile = 'naive'" in completed["retrieve"]["payload"]["sql"]
+    assert "/" not in completed["retrieve"]["payload"]["job_id"] and "test-project" not in completed["retrieve"]["payload"]["job_id"]
+    assert {"bytes_processed", "slot_millis", "cache_hit", "job_id"} <= set(completed["retrieve"]["payload"])
     retrieve = completed["retrieve"]["payload"]
     assert retrieve["rows_returned"] == 2 and retrieve["top_k"] == 5
     assert retrieve["scores"] == [0.8123, 0.7791]
@@ -50,6 +57,10 @@ def test_level1_emits_canonical_stages_in_order_with_measured_payloads() -> None
     assert all(isinstance(e["duration_ms"], int) and e["duration_ms"] >= 0 for e in completed.values())
     assert [c[0] for c in genai_client.calls] == ["embed_content", "generate_content"]
     assert len(bq_client.queries) == 1
+
+
+def started_embed_request(emitter: RecordingStageEmitter) -> dict:
+    return next(e["request"] for e in emitter.events if e["event"] == "stage_started" and e["stage"] == "embed_query")
 
 
 def test_level1_result_carries_usage_flags_cost_and_stage_log_without_eval_metrics() -> None:

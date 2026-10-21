@@ -11,6 +11,7 @@ import time
 from typing import Any
 
 from app.core.config import ArenaSettings
+from app.core.embeddings import QUERY_TASK_TYPE, embed_config, format_query_for_embedding, single_vector
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
 from app.core.pricing import cost_from_usage
@@ -169,20 +170,22 @@ class Level1NaiveEngine(BaseRAGEngine):
         return prepared
 
     async def _embed_query(self, prepared: str, genai_client: Any, emitter: StageEmitter) -> tuple[list[float], int]:
+        """Embed the query in the same gemini-embedding-2 space as the ingested documents (RETRIEVAL_QUERY side)."""
         model = self.settings.text_embedding_model
+        contents = format_query_for_embedding(prepared)
         async with self.stage(
             emitter,
             "embed_query",
             label="Query embedding",
             service=f"Vertex AI · {model}",
-            request={"model": model, "contents": prepared, "method": "models.embed_content"},
+            request={"model": model, "contents": contents, "task_type": QUERY_TASK_TYPE, "method": "models.embed_content"},
         ) as ctx:
-            resp = await self.blocking(genai_client.models.embed_content, model=model, contents=prepared)
-            vector = [float(v) for v in resp.embeddings[0].values]
-            if not vector:
-                raise ValueError("embed_content returned an empty embedding vector")
+            resp = await self.blocking(
+                genai_client.models.embed_content, model=model, contents=contents, config=embed_config(QUERY_TASK_TYPE)
+            )
+            vector = single_vector(resp)
             token_count = _embedding_token_count(resp)
-            ctx.payload = {"model": model, "dimensions": len(vector), "token_count": token_count}
+            ctx.payload = {"model": model, "dimensions": len(vector), "token_count": token_count, "task_type": QUERY_TASK_TYPE}
         return vector, token_count or 0
 
     async def _retrieve(

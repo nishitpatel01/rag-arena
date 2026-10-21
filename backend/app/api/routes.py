@@ -20,6 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
+from app.api.query_runs import QueryRunWriter, build_query_run_row, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
@@ -168,11 +169,13 @@ async def _run_single_engine_worker(
     solicitation_filter: str | None,
     settings: ArenaSettings,
     queue: asyncio.Queue,
+    query_run_writer: QueryRunWriter | None = None,
 ) -> bool:
     """Run one engine + judge with a bounded timeout; forward emitter events; return True on success."""
     engine_id = engine.engine_id
     emitter = QueueStageEmitter(queue, run_id=run_id, engine=engine_id)
     timeout = float(settings.query_timeout_seconds)
+    started_at = utc_now_iso()
     try:
         result = await asyncio.wait_for(
             engine.run_query(query, question_id=question_id, solicitation_filter=solicitation_filter, emitter=emitter),
@@ -188,13 +191,19 @@ async def _run_single_engine_worker(
             settings, run_id=run_id, engine_id=engine_id, question_id=question_id, query=query,
             emitter=emitter, result=result, outcome=outcome, queue=queue,
         )
-        return True
     except ReplayUnavailableError as exc:
         await queue.put(_engine_error_event(run_id, engine_id, exc, _last_failed_stage(emitter)))
         return False
     except Exception as exc:  # boundary: every failure is surfaced as engine_error (spec P2), never swallowed
         await queue.put(_engine_error_event(run_id, engine_id, exc, _last_failed_stage(emitter)))
         return False
+    if settings.is_live and query_run_writer is not None:
+        row = build_query_run_row(
+            settings=settings, run_id=run_id, question_id=question_id, query=query, started_at=started_at,
+            emitter=emitter, result=result, outcome=outcome,
+        )
+        await write_query_run_or_warn(query_run_writer, row, queue=queue, run_id=run_id, engine_id=engine_id)
+    return True
 
 
 async def _stream_battle_events(
@@ -204,6 +213,7 @@ async def _stream_battle_events(
     solicitation_filter: str | None,
     registry: dict[str, BaseRAGEngine],
     settings: ArenaSettings,
+    query_run_writer: QueryRunWriter | None = None,
 ) -> AsyncIterator[str]:
     """Run selected engines concurrently and forward their events as SSE frames (bounded by MAX_SSE_FRAMES)."""
     if not query.strip() or not selected_engines:
@@ -215,7 +225,9 @@ async def _stream_battle_events(
     )
     tasks = [
         asyncio.create_task(
-            _run_single_engine_worker(run_id, registry[eng_id], query, question_id, solicitation_filter, settings, queue)
+            _run_single_engine_worker(
+                run_id, registry[eng_id], query, question_id, solicitation_filter, settings, queue, query_run_writer
+            )
         )
         for eng_id in selected_engines[:_MAX_ENGINES_PER_BATTLE]
     ]
@@ -280,6 +292,7 @@ async def benchmarks_endpoint(request: Request) -> JSONResponse:
             "domain": data.get("domain", "Enterprise IT & Cloud Procurement"),
             "failure_mode_categories": data.get("failure_mode_categories", []),
             "questions": data.get("questions", []),
+            "question_count": len(data.get("questions", [])),
         }
     )
 
@@ -317,6 +330,7 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
     event_generator = _stream_battle_events(
         query=query, question_id=q_id, selected_engines=selected_engines,
         solicitation_filter=sol_filter, registry=registry, settings=settings,
+        query_run_writer=getattr(request.app.state, "query_run_writer", None),
     )
     return StreamingResponse(
         event_generator,

@@ -1,12 +1,15 @@
 """Record → replay round trip (spec §6.4): recordings carry provenance; replay streams them with timing.
 
-``test_generate_dev_fixture`` (re)generates ``data/recordings/_dev/level1_naive/dev_q01.json`` from a mocked
-live run so the fixture always matches what ``DEMO_MODE=record`` writes. It is clearly labelled synthetic.
+``test_generate_dev_fixture`` builds ``dev_q01`` from a mocked live run into a temp store and checks that the
+committed ``data/recordings/_dev/level1_naive/dev_q01.json`` has the same shape (so it matches what
+``DEMO_MODE=record`` writes) without rewriting it. Set ``REGENERATE_DEV_FIXTURES=1`` to deliberately refresh the
+committed fixture. It is clearly labelled synthetic.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import tempfile
 import time
@@ -54,26 +57,42 @@ def _mocked_live_run(question_id: str) -> tuple[EngineResult, EvalOutcome, Recor
     return result, outcome, emitter, settings
 
 
+def _shape(doc: dict) -> dict:
+    """Run-independent structure of a recording (no timestamps, durations, run ids or git sha)."""
+    volatile = {"recorded_at", "git_sha", "run_id"}
+    return {
+        "header": {k: v for k, v in doc["header"].items() if k not in volatile},
+        "events": [(e["event"], e.get("stage")) for e in doc["events"]],
+        "result_keys": sorted(doc["result"]),
+        "answer": doc["result"]["answer"],
+        "citations": [c["chunk_id"] for c in doc["result"]["citations"]],
+        "evaluation": {k: v for k, v in doc["evaluation"].items() if k != "duration_ms"},
+    }
+
+
 def test_generate_dev_fixture_from_mocked_live_run() -> None:
     result, outcome, emitter, settings = _mocked_live_run("dev_q01")
     recording = build_recording(
         settings=settings, engine_id="level1_naive", question_id="dev_q01", query=_DEV_QUERY, run_id="run_rec",
         events=emitter.events, result=result, evaluation=outcome, synthetic_dev_fixture=True,
     )
-    store = RecordingStore(DEV_FIXTURE.parents[2], allow_dev_fixtures=True)
-    path = record_run(store, recording)
-    assert path == DEV_FIXTURE and path.is_file()
+    regenerate = os.environ.get("REGENERATE_DEV_FIXTURES", "").strip() == "1"
+    root = DEV_FIXTURE.parents[2] if regenerate else Path(tempfile.mkdtemp(prefix="rag_arena_devfix_"))
+    path = record_run(RecordingStore(root, allow_dev_fixtures=True), recording)
+    assert path == root / "_dev" / "level1_naive" / "dev_q01.json" and path.is_file()
     doc = json.loads(path.read_text(encoding="utf-8"))
     assert doc["header"]["synthetic_dev_fixture"] is True
     for key in ("recorded_at", "project_id", "demo_mode", "model_ids", "git_sha", "app_version"):
         assert key in doc["header"]
-    assert doc["header"]["demo_mode"] == "record"
+    assert doc["header"]["demo_mode"] == "record" and doc["header"]["project_id"] == "${GCP_PROJECT_ID}"
     assert [e["event"] for e in doc["events"]][:2] == ["stage_started", "stage_completed"]
     assert doc["events"][-1]["event"] == "stage_completed" and doc["events"][-1]["stage"] == "evaluate"
     assert all(isinstance(e["t_rel_ms"], int) for e in doc["events"])
     assert "eval_metrics" not in doc["result"]
     assert doc["evaluation"]["judge_model"] == "gemini-4-argon"
     assert doc["evaluation"]["reference_answer_used"] is False
+    committed = json.loads(DEV_FIXTURE.read_text(encoding="utf-8"))
+    assert _shape(committed) == _shape(doc), "committed dev fixture is stale; rerun with REGENERATE_DEV_FIXTURES=1"
 
 
 def test_recording_roundtrip_to_tmp_store_and_replay_with_timing() -> None:
@@ -147,3 +166,12 @@ def test_recording_documents_are_validated() -> None:
         )
     with pytest.raises(ValueError):
         RecordingStore(Path("/tmp")).path_for("../etc", "q")
+
+
+def test_pytest_run_leaves_the_committed_dev_fixture_untouched() -> None:
+    """Running the generator test must not rewrite the committed fixture (``git status`` stays clean)."""
+    import hashlib
+
+    before = hashlib.sha256(DEV_FIXTURE.read_bytes()).hexdigest()
+    test_generate_dev_fixture_from_mocked_live_run()
+    assert hashlib.sha256(DEV_FIXTURE.read_bytes()).hexdigest() == before

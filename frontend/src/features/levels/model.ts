@@ -236,13 +236,26 @@ export interface IngestProgress {
   readonly indexStates: Record<string, string> | null;
 }
 
+type DocProgressRow = { doc_name: string; pages: number; chunks: number };
+
+/** One row per document: later doc_progress events (e.g. the chunk stage) update the parse-time row. */
+export function upsertDocProgress(rows: DocProgressRow[], next: DocProgressRow): void {
+  const idx = rows.findIndex((r) => r.doc_name === next.doc_name);
+  if (idx === -1) {
+    if (rows.length < 1000) rows.push(next);
+    return;
+  }
+  const prev = rows[idx];
+  rows[idx] = { doc_name: prev.doc_name, pages: Math.max(prev.pages, next.pages), chunks: Math.max(prev.chunks, next.chunks) };
+}
+
 export function deriveIngestProgress(events: readonly TimelineEvent[]): IngestProgress {
-  const docs: { doc_name: string; pages: number; chunks: number }[] = [];
+  const docs: DocProgressRow[] = [];
   let embed: IngestProgress["embed"] = null;
   let countsByTier: Record<string, number> | null = null;
   let indexStates: Record<string, string> | null = null;
   for (const ev of events) {
-    if (ev.event === "doc_progress") docs.push({ doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks });
+    if (ev.event === "doc_progress") upsertDocProgress(docs, { doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks });
     else if (ev.event === "embed_progress") embed = { done: ev.done, total: ev.total, batchMs: ev.batch_ms };
     else if (ev.event === "job_complete") {
       countsByTier = ev.counts_by_tier;

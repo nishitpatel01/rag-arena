@@ -20,6 +20,8 @@ export interface ArchitectureDiagramProps {
   readonly selectedStage?: string | null;
   /** Per-stage model label from `run_started` (e.g. synthesize/evaluate) shown until the stage reports its service. */
   readonly runServiceByStage?: Readonly<Record<string, string | null | undefined>>;
+  /** "side" (default): details pane beside the diagram on xl; "below": stacked, giving the SVG full width. */
+  readonly detailsPlacement?: "side" | "below";
 }
 
 /** Container width via ResizeObserver (disconnected on unmount). */
@@ -53,6 +55,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   onStageSelect,
   selectedStage,
   runServiceByStage,
+  detailsPlacement = "side",
 }) => {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [manualId, setManualId] = useState<string | null>(null);
@@ -101,7 +104,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const svgHeight = Math.max(DIAGRAM_MIN_HEIGHT, Math.round(layout.height * scale));
 
   return (
-    <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+    <div className={`grid min-w-0 gap-3 ${detailsPlacement === "side" ? "xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]" : ""}`}>
       <figure ref={containerRef} className="min-w-0 overflow-x-auto rounded-md border border-line bg-surface-0 p-2">
         <figcaption className="sr-only">{title}</figcaption>
         <svg

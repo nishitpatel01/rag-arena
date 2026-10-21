@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { BoundingBox } from "../types/arena";
+import { useSafeMode } from "../app/SafeMode";
 import { fetchPageImage, rectToPercent, type HighlightSource, type NormalizedRect } from "../lib/documents";
 
 export interface PageCanvasProps {
@@ -30,6 +31,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHin
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aspect, setAspect] = useState<number | null>(aspectHint);
+  const { mask } = useSafeMode();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,7 +92,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHin
       {error && (
         <div role="alert" className="absolute inset-0 overflow-auto p-3 text-xs">
           <p className="font-semibold text-err">Page image failed to load</p>
-          <p className="mt-1 break-words font-mono text-ink-1">{error}</p>
+          <p className="mt-1 break-words font-mono text-ink-1">{mask(error)}</p>
         </div>
       )}
       {image && showMatch &&

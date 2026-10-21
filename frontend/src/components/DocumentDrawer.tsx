@@ -14,6 +14,7 @@ import {
   type ZoomLevel,
 } from "../lib/documents";
 import { KeyValue } from "./ui/KeyValue";
+import { useSafeMode } from "../app/SafeMode";
 import { PageCanvas } from "./PageCanvas";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -94,6 +95,7 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [zoom, setZoom] = useState<ZoomLevel>(100);
   const hl = useCitationHighlights(citation);
+  const { mask } = useSafeMode();
   useFocusTrap(panelRef, onClose);
 
   useEffect(() => {
@@ -188,7 +190,7 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
           >
             {highlightLabel(source)}
             {source === "other_page" ? ` (p.${citation.page_number}).` : ""}
-            {source === "lookup_failed" && hl.error ? <span className="block break-words font-mono">{hl.error}</span> : null}
+            {source === "lookup_failed" && hl.error ? <span className="block break-words font-mono">{mask(hl.error)}</span> : null}
           </p>
           <div className="shrink-0 overflow-x-auto">
             <div style={{ width: `${zoom}%` }} className="min-w-full">

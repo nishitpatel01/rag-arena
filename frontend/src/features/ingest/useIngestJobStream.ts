@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { openSseStream, type SseFrame, type StreamHandle } from "../../lib/sse";
 import type { IngestEvent } from "../../types/arena";
@@ -61,5 +62,9 @@ export function useIngestJobStream(): IngestJobStream {
 
   useEffect(() => () => abort(), [abort]);
 
-  return { state, jobId, level, isStreaming, transportError, start, abort };
+  // Screen-share safe mode: consumers only ever see the masked view of server data.
+  const { mask, maskValue } = useSafeMode();
+  const shownState = useMemo(() => maskValue(state), [maskValue, state]);
+  const shownError = transportError === null ? null : mask(transportError);
+  return { state: shownState, jobId, level, isStreaming, transportError: shownError, start, abort };
 }

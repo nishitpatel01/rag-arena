@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, Square } from "lucide-react";
 import type { BenchmarkQuestion } from "../../types/arena";
+import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
@@ -31,6 +32,7 @@ const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.
 export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, isStreaming, onRun, onAbort, models }) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { mask } = useSafeMode();
   const [selectedId, setSelectedId] = useState<string>("");
   const [questionId, setQuestionId] = useState<string>("");
   const [query, setQuery] = useState<string>("");
@@ -90,7 +92,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
             </option>
           ))}
         </select>
-        {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {loadError}</p>}
+        {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {mask(loadError)}</p>}
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="custom-question" className="text-xs font-medium text-ink-2">Question (editable)</label>

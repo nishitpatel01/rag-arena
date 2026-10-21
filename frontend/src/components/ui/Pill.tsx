@@ -9,6 +9,7 @@ import {
   Lock,
   XCircle,
 } from "lucide-react";
+import { maskNode, useSafeMode } from "../../app/SafeMode";
 
 export type PillTone = "neutral" | "ok" | "err" | "warn" | "info" | "active" | "locked";
 
@@ -44,15 +45,16 @@ export interface PillProps {
 export const Pill: React.FC<PillProps> = ({ tone = "neutral", icon, mono = false, title, children }) => {
   const Icon = TONE_ICON[tone];
   const showIcon = icon !== false;
+  const { mask } = useSafeMode();
   return (
     <span
-      title={title}
+      title={title === undefined ? undefined : mask(title)}
       className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
         mono ? "font-mono" : "font-medium"
       } ${TONE_CLASS[tone]}`}
     >
       {showIcon && (icon ?? <Icon className="h-3 w-3 shrink-0" aria-hidden />)}
-      <span className="truncate">{children}</span>
+      <span className="truncate">{React.Children.map(children, (c) => maskNode(c, mask))}</span>
     </span>
   );
 };

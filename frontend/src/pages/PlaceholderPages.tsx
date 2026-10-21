@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { DataTable, type DataTableColumn } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
 import { formatValue } from "../components/ui/KeyValue";
+import { useSafeMode } from "../app/SafeMode";
 import { api } from "../lib/api";
 import { formatTimestamp } from "../lib/format";
 import type { LeaderboardResponse, LeaderboardRow } from "../types/arena";
@@ -75,7 +76,8 @@ export const LeaderboardPage: React.FC = () => {
       cancelled = true;
     };
   }, []);
-  const view = groupLeaderboard(data);
+  const { mask, maskValue } = useSafeMode();
+  const view = groupLeaderboard(maskValue(data));
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-lg font-semibold text-ink-1">Leaderboard</h1>
@@ -90,7 +92,7 @@ export const LeaderboardPage: React.FC = () => {
           different model pairs must not be mixed.
         </p>
       )}
-      {error && <p className="text-xs text-clay" role="status">GET /api/v1/leaderboard: {error}</p>}
+      {error && <p className="text-xs text-clay" role="status">GET /api/v1/leaderboard: {mask(error)}</p>}
     </div>
   );
 };

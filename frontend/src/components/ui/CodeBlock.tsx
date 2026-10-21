@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { useSafeMode } from "../../app/SafeMode";
 
 export interface CodeBlockProps {
   readonly code: string;
@@ -10,12 +11,15 @@ export interface CodeBlockProps {
 
 /** Monospace, wrapping code block with a copy button. Used for SQL / API bodies / payloads. */
 export const CodeBlock: React.FC<CodeBlockProps> = ({
-  code,
+  code: rawCode,
   language,
   label,
   maxHeightClass = "max-h-72",
 }) => {
   const [copied, setCopied] = useState(false);
+  const { mask } = useSafeMode();
+  // Safe mode masks both what is shown and what the Copy button puts on the clipboard.
+  const code = mask(rawCode);
 
   const onCopy = async (): Promise<void> => {
     try {
@@ -30,7 +34,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     <figure className="min-w-0 rounded-md border border-line bg-surface-0">
       <figcaption className="flex items-center justify-between gap-2 border-b border-line px-2 py-1 text-xs text-ink-3">
         <span className="truncate font-mono">
-          {label ?? "code"}
+          {mask(label ?? "code")}
           {language ? ` · ${language}` : ""}
         </span>
         <button

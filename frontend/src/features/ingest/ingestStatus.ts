@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import type { IngestStatusResponse } from "../../types/arena";
 
@@ -72,5 +73,8 @@ export function useIngestStatus(): IngestStatusState {
       cancelled = true;
     };
   }, [nonce]);
-  return { status, error, reload: () => setNonce((n) => n + 1) };
+  // Screen-share safe mode: the table FQN and any error text are masked before rendering.
+  const { mask, maskValue } = useSafeMode();
+  const shownStatus = useMemo(() => maskValue(status), [maskValue, status]);
+  return { status: shownStatus, error: error === null ? null : mask(error), reload: () => setNonce((n) => n + 1) };
 }

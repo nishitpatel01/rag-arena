@@ -2,6 +2,8 @@ import React from "react";
 import { Lock } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAppData } from "./AppDataProvider";
+import { SafeModeToggle, useSafeMode } from "./SafeMode";
+import { MASK_PROJECT_ID } from "../lib/safeMode";
 import { Pill } from "../components/ui/Pill";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LEVEL_IDS, type LevelDescriptor } from "../types/arena";
@@ -58,7 +60,8 @@ const LevelLadderNav: React.FC = () => {
 
 const HealthPills: React.FC = () => {
   const { health, error } = useAppData();
-  if (error && !health) return <Pill tone="err" title={error}>backend unreachable</Pill>;
+  const { enabled: safe, mask } = useSafeMode();
+  if (error && !health) return <Pill tone="err" title={mask(error)}>backend unreachable</Pill>;
   if (!health) return <Pill tone="neutral">connecting…</Pill>;
   const mode = String(health.demo_mode);
   return (
@@ -67,8 +70,13 @@ const HealthPills: React.FC = () => {
         {mode}
       </Pill>
       {health.project_id && (
-        <Pill tone="neutral" mono title="GCP project (from /api/v1/health)">
-          {health.project_id}
+        <Pill tone="neutral" mono title={safe ? "GCP project (masked by safe mode)" : "GCP project (from /api/v1/health)"}>
+          {safe ? MASK_PROJECT_ID : health.project_id}
+          {safe && (
+            <span className="ml-1 rounded-sm bg-surface-0 px-1 font-sans text-[10px] uppercase tracking-wide text-ink-3" data-testid="masked-marker">
+              masked
+            </span>
+          )}
         </Pill>
       )}
     </>
@@ -102,6 +110,7 @@ export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => (
         <LevelLadderNav />
         <div className="ml-auto flex items-center gap-2">
           <HealthPills />
+          <SafeModeToggle />
           <ThemeToggle />
         </div>
       </div>

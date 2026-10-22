@@ -1,0 +1,1169 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-22T16:29:45.277Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "500749c36bf78b8e0faa3bcb7af33791dbb09f55",
+    "app_version": "3.0.0",
+    "engine": "level4_agentic",
+    "question_id": "q_exact_clin_lookup",
+    "query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+    "run_id": "run_c5e8534c82e5"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-10-22T16:29:04.547Z",
+      "t_rel_ms": 624
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 2,
+      "payload": {
+        "original_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+        "prepared_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12? (CLIN = Contract Line Item Number; KMS = Key Management Service)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          }
+        ],
+        "element_intent": [
+          "table",
+          "amendment"
+        ],
+        "intent_matches": {
+          "table": [
+            "rate",
+            "clin",
+            "hourly"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments"
+          ]
+        },
+        "handed_to_agent": "Question: In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?\nAcronyms: CLIN = Contract Line Item Number; KMS = Key Management Service\nElement intent (keywords found): table, amendment"
+      },
+      "ts": "2026-10-22T16:29:04.549Z",
+      "t_rel_ms": 627
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?\nAcronyms: CLIN = Contract Line Item Number; KMS = Key Management Service\nElement intent (keywords found): table, amendment",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 117.4
+      },
+      "ts": "2026-10-22T16:29:04.549Z",
+      "t_rel_ms": 627
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 12603,
+      "tokens": {
+        "prompt": 1291,
+        "output": 143,
+        "thinking": 0,
+        "total": 1434
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "check_amendments"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:29:17.416Z",
+      "t_rel_ms": 13494
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-0004-AB base hourly rate Year 1 base ceiling",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_184375",
+      "repair": false,
+      "ts": "2026-10-22T16:29:17.416Z",
+      "t_rel_ms": 13494
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_01",
+        "query": "Amendment 0002 Q12 Cloud KMS key rotation period"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_184376",
+      "repair": false,
+      "ts": "2026-10-22T16:29:17.416Z",
+      "t_rel_ms": 13494
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_01",
+        "section_or_clin_id": "CLIN-0004-AB"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_184377",
+      "repair": false,
+      "ts": "2026-10-22T16:29:17.416Z",
+      "t_rel_ms": 13494
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Pricing_Schedule_CLINs.pdf p.1 (0.9235) \u00b7 41.3 MB scanned",
+      "duration_ms": 2181,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_184375",
+      "repair": false,
+      "ts": "2026-10-22T16:29:19.653Z",
+      "t_rel_ms": 15731
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 07_Amendment_0002_Vendor_QA.pdf p.1 (0.9809) \u00b7 41.3 MB scanned",
+      "duration_ms": 2233,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_184376",
+      "repair": false,
+      "ts": "2026-10-22T16:29:19.653Z",
+      "t_rel_ms": 15731
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0001 (effective 2026-03-15) \u00b7 06_Amendment_0001_Scope_Update.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+      "duration_ms": 883,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_184377",
+      "repair": false,
+      "ts": "2026-10-22T16:29:19.653Z",
+      "t_rel_ms": 15731
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 10651,
+      "tokens": {
+        "prompt": 6661,
+        "output": 620,
+        "thinking": 0,
+        "total": 7281
+      },
+      "function_calls": [
+        "check_amendments",
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:29:30.304Z",
+      "t_rel_ms": 26382
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "SEC-4.3.5",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_298537",
+      "repair": false,
+      "ts": "2026-10-22T16:29:30.304Z",
+      "t_rel_ms": 26382
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"draft_answer\": \"In Solicitation 01 (SOL-2026-CLOUD-01):\\n\\n1. **CLIN-0004-AB (Cloud Security Architect Labor) Pricing:**\\n* **Prior to Amendments (Superseded Base Values):** Per `04_Pricing_Schedule_CLINs.pdf` (Schedule B, p. 1), the base hourly rate prior to any contract amendments is **$210.00/hr** for a base quantity of 2,000 hours, resulting in a Year 1 base ceiling (total) of **$420,000**.\\n* **Amendment Supersession (Governing Values):** Per `06_Amendment_0001_Scope_Update.pdf` (Amendment 0001, effective 2026-03-15) and confirmed in `07_Amendment_0002_Vendor_QA.pdf` (Q19/A19), CLIN-0004-AB is superseded. The governing hourly rate is increased from $210.00/hr to **$245.00/hr**, and with the mandatory 5% volume discount for orders exceeding 1,500 hours, the governing Year 1 net total for 2,000 hours is **$465,500.00**.\\n\\n2. **Mandatory Cloud KMS Key Rotation Period (Amendment 0002 Q12):**\\n* Per `07_Amendment_0002_Vendor_QA.pdf` (Amendment 0002, effective 2026-04-02, superseding `SEC-4.3.5`, Q12/A12), all Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule** (or a **3\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_298538",
+      "repair": false,
+      "ts": "2026-10-22T16:29:30.304Z",
+      "t_rel_ms": 26382
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0002 (effective 2026-04-02) \u00b7 07_Amendment_0002_Vendor_QA.pdf p.1 \u00b7 2 row(s) \u00b7 2.0 MB scanned",
+      "duration_ms": 662,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_298537",
+      "repair": false,
+      "ts": "2026-10-22T16:29:30.969Z",
+      "t_rel_ms": 27047
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "11 claims checked \u00b7 0 unsupported",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_298538",
+      "repair": false,
+      "ts": "2026-10-22T16:29:30.969Z",
+      "t_rel_ms": 27047
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 9375,
+      "tokens": {
+        "prompt": 8336,
+        "output": 546,
+        "thinking": 0,
+        "total": 8882
+      },
+      "function_calls": [],
+      "text_preview": "In Solicitation 01 (SOL-2026-CLOUD-01):\n\n1. **CLIN-0004-AB (Cloud Security Architect Labor) Pricing:**\n* **Prior to Amendments (Superseded Base Values):** Per `04_Pricing_Schedule_CLINs.pdf` (Schedule B, p. 1), the base hourly rate prior to any contract amendments is **$210.00/hr** for a base quantity of 2,000 hours, resulting in a Year 1 base ceiling (total) of **$420,000**.\n* **Amendment Supersession (Governing Values):** Per `06_Amendment_0001_Scope_Update.pdf` (Amendment 0001, effective 2026-03-15) and confirmed in `07_Amendment_0002_Vendor_QA.pdf` (Q19/A19), CLIN-0004-AB is superseded. Th",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:29:40.344Z",
+      "t_rel_ms": 36422
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 35796,
+      "payload": {
+        "turns": 3,
+        "agent_turn_events": 13,
+        "tool_calls": 5,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 2,
+          "check_amendments": 2,
+          "calculate_contract_pricing": 0,
+          "verify_citations": 1
+        },
+        "tool_errors": 0,
+        "verify_calls": 1,
+        "unsupported_claims_before": 0,
+        "unsupported_claims_after": 0,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [],
+        "unsupported_after_list": [],
+        "repair_turns": 0,
+        "final_answer_check": {
+          "checked_claims": 11,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 3,
+        "tokens": {
+          "prompt": 16288,
+          "output": 1309,
+          "thinking": 0,
+          "total": 17597
+        },
+        "citations": [
+          "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+          "solicitation_01_04_pricing_schedule_clins_p1_e3_multimodal",
+          "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+          "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 9,
+        "retrieval_usage": {
+          "embedding_tokens": 61,
+          "rank_billed_counts": 2,
+          "bigquery_bytes": 84711813,
+          "bigquery_jobs": 4,
+          "search_calls": 2
+        },
+        "calculator_values": []
+      },
+      "ts": "2026-10-22T16:29:40.346Z",
+      "t_rel_ms": 36424
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 3,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-10-22T16:29:40.346Z",
+      "t_rel_ms": 36424
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 16288,
+        "output_tokens": 1309,
+        "thinking_tokens": 0,
+        "turns": 3,
+        "final_turn": {
+          "turn_index": 3,
+          "duration_ms": 9375,
+          "tokens": {
+            "prompt": 8336,
+            "output": 546,
+            "thinking": 0,
+            "total": 8882
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "In Solicitation 01 (SOL-2026-CLOUD-01):\n\n1. **CLIN-0004-AB (Cloud Security Architect Labor) Pricing:**\n* **Prior to Amendments (Superseded Base Values):** Per `04_Pricing_Schedule_CLINs.pdf` (Schedule B, p. 1), the base hourly rate prior to any contract amendments is **$210.00/hr** for a base quantity of 2,000 hours, resulting in a Year 1 base ceiling (total) of **$420,000**.\n* **Amendment Supersession (Governing Values):** Per `06_Amendment_0001_Scope_Update.pdf` (Amendment 0001, effective 2026-03-15) and confirmed in `07_Amendment_0002_Vendor_QA.pdf` (Q19/A19), CLIN-0004-AB is superseded. The governing hourly rate is increased from $210.00/hr to **$245.00/hr**, and with the mandatory 5% volume discount for orders exceeding 1,500 hours, the governing Year 1 net total for 2,000 hours is **$465,500.00**.\n\n2. **Mandatory Cloud KMS Key Rotation Period (Amendment 0002 Q12):**\n* Per `07_Amendment_0002_Vendor_QA.pdf` (Amendment 0002, effective 2026-04-02, superseding `SEC-4.3.5`, Q12/A12), all Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule** (or a **30-day rotation** schedule for Tier-0 identity signing keys)."
+      },
+      "ts": "2026-10-22T16:29:40.346Z",
+      "t_rel_ms": 36424
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-22T16:29:40.347Z",
+      "t_rel_ms": 36425
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c5e8534c82e5",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 4930,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.85,
+        "qa_relevance": 0.95,
+        "context_precision": 0.7,
+        "reference_answer_used": true,
+        "input_tokens": 3326,
+        "output_tokens": 394,
+        "judge_cost_usd": 0.021184,
+        "rationale": "The context supports nearly every claim: the pre-amendment $210.00/hr and $420,000 Year 1 total, the Amendment 0001 change to $245/hr and $465,500.00, and the Q12/A12 rotation periods of 90 days (30 for Tier-0 keys). However, the claim that Amendment 0002 supersedes 'SEC-4.3.5' appears nowhere in the retrieved context and is a hallucinated citation detail. The answer fully matches the reference, but retrieval includes irrelevant GMA chunks (Clause 12 invoicing, Other License and Rights, Effective Date and Duration) that lower precision.",
+        "judge_response_id": "msg_vrtx_011CgHbLbXJFuFek48Txdbrf"
+      },
+      "ts": "2026-10-22T16:29:45.277Z",
+      "t_rel_ms": 41355
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 4: Agentic RAG (Google ADK)",
+    "answer": "In Solicitation 01 (SOL-2026-CLOUD-01):\n\n1. **CLIN-0004-AB (Cloud Security Architect Labor) Pricing:**\n* **Prior to Amendments (Superseded Base Values):** Per `04_Pricing_Schedule_CLINs.pdf` (Schedule B, p. 1), the base hourly rate prior to any contract amendments is **$210.00/hr** for a base quantity of 2,000 hours, resulting in a Year 1 base ceiling (total) of **$420,000**.\n* **Amendment Supersession (Governing Values):** Per `06_Amendment_0001_Scope_Update.pdf` (Amendment 0001, effective 2026-03-15) and confirmed in `07_Amendment_0002_Vendor_QA.pdf` (Q19/A19), CLIN-0004-AB is superseded. The governing hourly rate is increased from $210.00/hr to **$245.00/hr**, and with the mandatory 5% volume discount for orders exceeding 1,500 hours, the governing Year 1 net total for 2,000 hours is **$465,500.00**.\n\n2. **Mandatory Cloud KMS Key Rotation Period (Amendment 0002 Q12):**\n* Per `07_Amendment_0002_Vendor_QA.pdf` (Amendment 0002, effective 2026-04-02, superseding `SEC-4.3.5`, Q12/A12), all Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule** (or a **30-day rotation** schedule for Tier-0 identity signing keys).",
+    "citations": [
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX | CLIN | Description | Unit | Qty | Base Rate | Year 1 Total | | --- | --- | --- | --- | --- | --- | | CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e3_multimodal",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.311,
+          "x1": 0.6098,
+          "y1": 0.3266
+        },
+        "excerpt": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX Note: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6651,
+          "y1": 0.3973
+        },
+        "excerpt": "[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB] Solicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15 - SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO): Section SEC-4.2.1 of 01_RFP_Base_",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0002-QA",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6226,
+          "y1": 0.2913
+        },
+        "excerpt": "[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)] Solicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02 Q12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation peri",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6651,
+          "y1": 0.3973
+        },
+        "content": "[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n- SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full. The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes, and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n- SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope, the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf is increased from $210.00/hr to $245.00/hr.\n- VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5% volume discount applies to the entire CLIN-0004-AB order: For 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.926,
+          "y1": 0.0981
+        },
+        "content": "AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |",
+        "score": 0.9235,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6226,
+          "y1": 0.2913
+        },
+        "content": "[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02 Q12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation period for BigQuery and Cloud SQL volumes under FedRAMP High? A12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule (or 30-day rotation for Tier-0 identity signing keys). Q19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB? A19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the 5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.8901,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "narrative_text",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.311,
+          "x1": 0.6098,
+          "y1": 0.3266
+        },
+        "content": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).",
+        "score": 0.8767,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.9009,
+          "y1": 0.0981
+        },
+        "content": "AMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION",
+        "score": 0.7524,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p4_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 4,
+        "bbox": {
+          "page": 4,
+          "x0": 0.368,
+          "y0": 0.4936,
+          "x1": 0.5371,
+          "y1": 0.5033
+        },
+        "content": "2.1 Clause 12 - INVOICING AND PAYMENT TERMS\n- Clause 12.1(ii) of the GMA shall be cancelled and substituted as follow: [*****] [*****] [*****] [*****] [*****] [*****] [*****] [*****]\n- Any other provision of Clause 12 shall remain in full force and effect.",
+        "score": 0.2668,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p7_e5_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 7,
+        "bbox": {
+          "page": 7,
+          "x0": 0.0841,
+          "y0": 0.4805,
+          "x1": 0.3398,
+          "y1": 0.4925
+        },
+        "content": "12.0 Other License and Rights",
+        "score": 0.1584,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p5_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 5,
+        "bbox": {
+          "page": 5,
+          "x0": 0.0841,
+          "y0": 0.2852,
+          "x1": 0.7048,
+          "y1": 0.3249
+        },
+        "content": "3. EFFECTIVE DATE AND DURATION\nThis Amendment shall enter into force on the date of its signature by both Parties and, unless otherwise agreed upon in writing by the Parties through a subsequent amendment to the GMA, shall remain in force for the term of the referenced GMA.",
+        "score": 0.132,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-0004-AB base hourly rate Year 1 base ceiling",
+          "solicitation_id": "solicitation_01",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Pricing_Schedule_CLINs.pdf p.1 (0.9235) \u00b7 41.3 MB scanned",
+        "latency_ms": 2181
+      },
+      {
+        "step_number": 2,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "Amendment 0002 Q12 Cloud KMS key rotation period",
+          "solicitation_id": "solicitation_01",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 07_Amendment_0002_Vendor_QA.pdf p.1 (0.9809) \u00b7 41.3 MB scanned",
+        "latency_ms": 2233
+      },
+      {
+        "step_number": 3,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "CLIN-0004-AB"
+        },
+        "result_summary": "governing: Amendment 0001 (effective 2026-03-15) \u00b7 06_Amendment_0001_Scope_Update.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+        "latency_ms": 883
+      },
+      {
+        "step_number": 4,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "SEC-4.3.5"
+        },
+        "result_summary": "governing: Amendment 0002 (effective 2026-04-02) \u00b7 07_Amendment_0002_Vendor_QA.pdf p.1 \u00b7 2 row(s) \u00b7 2.0 MB scanned",
+        "latency_ms": 662
+      },
+      {
+        "step_number": 5,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "In Solicitation 01 (SOL-2026-CLOUD-01):\n\n1. **CLIN-0004-AB (Cloud Security Architect Labor) Pricing:**\n* **Prior to Amendments (Superseded Base Values):** Per `04_Pricing_Schedule_CLINs.pdf` (Schedule B, p. 1), the base hourly rate prior to any contract amendments is **$210.00/hr** for a base quantity of 2,000 hours, resulting in a Year 1 base ceiling (total) of **$420,000**.\n* **Amendment Supersession (Governing Values):** Per `06_Amendment_0001_Scope_Update.pdf` (Amendment 0001, effective 2026-03-15) and confirmed in `07_Amendment_0002_Vendor_QA.pdf` (Q19/A19), CLIN-0004-AB is superseded. The governing hourly rate is increased from $210.00/hr to **$245.00/hr**, and with the mandatory 5% volume discount for orders exceeding 1,500 hours, the governing Year 1 net total for 2,000 hours is **$465,500.00**.\n\n2. **Mandatory Cloud KMS Key Rotation Period (Amendment 0002 Q12):**\n* Per `07_Amendment_0002_Vendor_QA.pdf` (Amendment 0002, effective 2026-04-02, superseding `SEC-4.3.5`, Q12/A12), all Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule** (or a **30-day rotation** schedule for Tier-0 identity signing keys).",
+          "cited_chunk_ids": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_04_pricing_schedule_clins_p1_e3_multimodal",
+            "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+            "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+          ]
+        },
+        "result_summary": "11 claims checked \u00b7 0 unsupported",
+        "latency_ms": 0
+      }
+    ],
+    "latency_ms": 36424,
+    "cost_usd": 0.0476782,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-22T16:29:04.546Z",
+        "duration_ms": 2,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?",
+          "prepared_query": "In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12? (CLIN = Contract Line Item Number; KMS = Key Management Service)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "KMS",
+              "expansion": "Key Management Service"
+            }
+          ],
+          "element_intent": [
+            "table",
+            "amendment"
+          ],
+          "intent_matches": {
+            "table": [
+              "rate",
+              "clin",
+              "hourly"
+            ],
+            "amendment": [
+              "amendment",
+              "amendments"
+            ]
+          },
+          "handed_to_agent": "Question: In Solicitation 01 (SOL-2026-CLOUD-01), what is the exact base hourly rate and Year 1 base ceiling for CLIN-0004-AB prior to any contract amendments, and what is the mandatory Cloud KMS key rotation period specified in Amendment 0002 Q12?\nAcronyms: CLIN = Contract Line Item Number; KMS = Key Management Service\nElement intent (keywords found): table, amendment"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-22T16:29:04.549Z",
+        "duration_ms": 35796,
+        "request": {},
+        "payload": {
+          "turns": 3,
+          "agent_turn_events": 13,
+          "tool_calls": 5,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 2,
+            "check_amendments": 2,
+            "calculate_contract_pricing": 0,
+            "verify_citations": 1
+          },
+          "tool_errors": 0,
+          "verify_calls": 1,
+          "unsupported_claims_before": 0,
+          "unsupported_claims_after": 0,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [],
+          "unsupported_after_list": [],
+          "repair_turns": 0,
+          "final_answer_check": {
+            "checked_claims": 11,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 3,
+          "tokens": {
+            "prompt": 16288,
+            "output": 1309,
+            "thinking": 0,
+            "total": 17597
+          },
+          "citations": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_04_pricing_schedule_clins_p1_e3_multimodal",
+            "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+            "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 9,
+          "retrieval_usage": {
+            "embedding_tokens": 61,
+            "rank_billed_counts": 2,
+            "bigquery_bytes": 84711813,
+            "bigquery_jobs": 4,
+            "search_calls": 2
+          },
+          "calculator_values": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-22T16:29:40.346Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 16288,
+          "output_tokens": 1309,
+          "thinking_tokens": 0,
+          "turns": 3,
+          "final_turn": {
+            "turn_index": 3,
+            "duration_ms": 9375,
+            "tokens": {
+              "prompt": 8336,
+              "output": 546,
+              "thinking": 0,
+              "total": 8882
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "In Solicitation 01 (SOL-2026-CLOUD-01):\n\n1. **CLIN-0004-AB (Cloud Security Architect Labor) Pricing:**\n* **Prior to Amendments (Superseded Base Values):** Per `04_Pricing_Schedule_CLINs.pdf` (Schedule B, p. 1), the base hourly rate prior to any contract amendments is **$210.00/hr** for a base quantity of 2,000 hours, resulting in a Year 1 base ceiling (total) of **$420,000**.\n* **Amendment Supersession (Governing Values):** Per `06_Amendment_0001_Scope_Update.pdf` (Amendment 0001, effective 2026-03-15) and confirmed in `07_Amendment_0002_Vendor_QA.pdf` (Q19/A19), CLIN-0004-AB is superseded. The governing hourly rate is increased from $210.00/hr to **$245.00/hr**, and with the mandatory 5% volume discount for orders exceeding 1,500 hours, the governing Year 1 net total for 2,000 hours is **$465,500.00**.\n\n2. **Mandatory Cloud KMS Key Rotation Period (Amendment 0002 Q12):**\n* Per `07_Amendment_0002_Vendor_QA.pdf` (Amendment 0002, effective 2026-04-02, superseding `SEC-4.3.5`, Q12/A12), all Customer-Managed Encryption Keys (CMEK) in Cloud HSM for BigQuery and Cloud SQL volumes under FedRAMP High must enforce an automated **90-day rotation schedule** (or a **30-day rotation** schedule for Tier-0 identity signing keys)."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 16288,
+      "output_tokens": 1309,
+      "embedding_tokens": 61,
+      "thinking_tokens": 0,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.85,
+      "qa_relevance": 0.95,
+      "context_precision": 0.7
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 4929,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3326,
+    "output_tokens": 394,
+    "judge_cost_usd": 0.021184,
+    "rationale": "The context supports nearly every claim: the pre-amendment $210.00/hr and $420,000 Year 1 total, the Amendment 0001 change to $245/hr and $465,500.00, and the Q12/A12 rotation periods of 90 days (30 for Tier-0 keys). However, the claim that Amendment 0002 supersedes 'SEC-4.3.5' appears nowhere in the retrieved context and is a hallucinated citation detail. The answer fully matches the reference, but retrieval includes irrelevant GMA chunks (Clause 12 invoicing, Other License and Rights, Effective Date and Duration) that lower precision.",
+    "judge_response_id": "msg_vrtx_011CgHbLbXJFuFek48Txdbrf"
+  }
+}

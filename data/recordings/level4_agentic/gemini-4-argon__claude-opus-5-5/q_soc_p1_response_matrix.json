@@ -1,0 +1,2068 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-22T16:35:25.567Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "500749c36bf78b8e0faa3bcb7af33791dbb09f55",
+    "app_version": "3.0.0",
+    "engine": "level4_agentic",
+    "question_id": "q_soc_p1_response_matrix",
+    "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+    "run_id": "run_22002b1b417e"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-10-22T16:34:35.135Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "expansions": [],
+        "element_intent": [
+          "table"
+        ],
+        "intent_matches": {
+          "table": [
+            "matrix",
+            "credits",
+            "penalty",
+            "fee"
+          ]
+        },
+        "handed_to_agent": "Question: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).\nElement intent (keywords found): table"
+      },
+      "ts": "2026-10-22T16:34:35.136Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).\nElement intent (keywords found): table",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 118.0
+      },
+      "ts": "2026-10-22T16:34:35.136Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 6218,
+      "tokens": {
+        "prompt": 1278,
+        "output": 217,
+        "thinking": 0,
+        "total": 1495
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:34:41.355Z",
+      "t_rel_ms": 6220
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "element_types": [
+          "table"
+        ],
+        "query": "P1 Critical P2 High incident response triage containment SLA monthly fee penalty credit 03_Incident_Response_SLAs.pdf",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_171286",
+      "repair": false,
+      "ts": "2026-10-22T16:34:41.355Z",
+      "t_rel_ms": 6220
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "SOC2 Type II HIPAA controls 04_Compliance_and_SOC2_Matrix.pdf",
+        "element_types": [
+          "table"
+        ],
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_171287",
+      "repair": false,
+      "ts": "2026-10-22T16:34:41.355Z",
+      "t_rel_ms": 6220
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "P1 Critical P2 High incident response triage SLA containment SLA penalty credit",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_171288",
+      "repair": false,
+      "ts": "2026-10-22T16:34:41.355Z",
+      "t_rel_ms": 6220
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "SOC2 Type II HIPAA controls compliance matrix",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_171289",
+      "repair": false,
+      "ts": "2026-10-22T16:34:41.355Z",
+      "t_rel_ms": 6220
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 7/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.9718) \u00b7 0.0 MB scanned \u00b7 cache hit",
+      "duration_ms": 1430,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_171286",
+      "repair": false,
+      "ts": "2026-10-22T16:34:45.878Z",
+      "t_rel_ms": 10743
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 5/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.9771) \u00b7 41.3 MB scanned",
+      "duration_ms": 4404,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_171287",
+      "repair": false,
+      "ts": "2026-10-22T16:34:45.878Z",
+      "t_rel_ms": 10743
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.9701) \u00b7 41.3 MB scanned",
+      "duration_ms": 1944,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_171288",
+      "repair": false,
+      "ts": "2026-10-22T16:34:45.878Z",
+      "t_rel_ms": 10743
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.9613) \u00b7 41.3 MB scanned",
+      "duration_ms": 4519,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_171289",
+      "repair": false,
+      "ts": "2026-10-22T16:34:45.878Z",
+      "t_rel_ms": 10743
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 6202,
+      "tokens": {
+        "prompt": 11002,
+        "output": 326,
+        "thinking": 0,
+        "total": 11328
+      },
+      "function_calls": [
+        "check_amendments",
+        "check_amendments",
+        "check_amendments",
+        "check_amendments",
+        "check_amendments",
+        "search_procurement_corpus",
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.080Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "section_or_clin_id": "SLA-SEC-3.1"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520055",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.080Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "section_or_clin_id": "CTRL-SOC2-MATRIX"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520056",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.080Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "CTRL-SOC2-CC6.1",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520057",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.081Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 14,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "section_or_clin_id": "CTRL-SOC2-CC6.7"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520058",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.081Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 15,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "CTRL-HIPAA-164.312",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520059",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.081Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 16,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "query": "amendment SLA-SEC-3.1 P1 Critical P2 High incident response"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520060",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.081Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 17,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "amendment CTRL-SOC2-MATRIX SOC2 HIPAA compliance matrix",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_520061",
+      "repair": false,
+      "ts": "2026-10-22T16:34:52.081Z",
+      "t_rel_ms": 16946
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 18,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names SLA-SEC-3.1 in solicitation_03 \u00b7 0.0 MB scanned",
+      "duration_ms": 639,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520055",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 19,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CTRL-SOC2-MATRIX in solicitation_02 \u00b7 0.0 MB scanned",
+      "duration_ms": 706,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520056",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 20,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CTRL-SOC2-CC6.1 in solicitation_02 \u00b7 0.0 MB scanned",
+      "duration_ms": 570,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520057",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 21,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CTRL-SOC2-CC6.7 in solicitation_02 \u00b7 0.0 MB scanned",
+      "duration_ms": 533,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520058",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 22,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CTRL-HIPAA-164.312 in solicitation_02 \u00b7 0.0 MB scanned",
+      "duration_ms": 721,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520059",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 23,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.925) \u00b7 41.3 MB scanned",
+      "duration_ms": 1932,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520060",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 24,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.8362) \u00b7 0.0 MB scanned \u00b7 cache hit",
+      "duration_ms": 1245,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_520061",
+      "repair": false,
+      "ts": "2026-10-22T16:34:54.027Z",
+      "t_rel_ms": 18892
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 25,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 6484,
+      "tokens": {
+        "prompt": 15912,
+        "output": 186,
+        "thinking": 0,
+        "total": 16098
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:35:00.511Z",
+      "t_rel_ms": 25377
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 26,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "query": "03_Incident_Response_SLAs.pdf SLA-SEC"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_177739",
+      "repair": false,
+      "ts": "2026-10-22T16:35:00.512Z",
+      "t_rel_ms": 25377
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 27,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "04_Compliance_and_SOC2_Matrix.pdf CTRL-SOC2",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_177740",
+      "repair": false,
+      "ts": "2026-10-22T16:35:00.512Z",
+      "t_rel_ms": 25377
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 28,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "05_Amendments Amendment SLA-SEC-3.1",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_177741",
+      "repair": false,
+      "ts": "2026-10-22T16:35:00.512Z",
+      "t_rel_ms": 25377
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 29,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "05_Amendments Amendment CTRL-SOC2-MATRIX",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_177742",
+      "repair": false,
+      "ts": "2026-10-22T16:35:00.512Z",
+      "t_rel_ms": 25377
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 30,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.9564) \u00b7 41.3 MB scanned",
+      "duration_ms": 1905,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_177739",
+      "repair": false,
+      "ts": "2026-10-22T16:35:02.419Z",
+      "t_rel_ms": 27284
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 31,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.8952) \u00b7 41.3 MB scanned",
+      "duration_ms": 1864,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_177740",
+      "repair": false,
+      "ts": "2026-10-22T16:35:02.419Z",
+      "t_rel_ms": 27284
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 32,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf p.14 (0.6385) \u00b7 41.3 MB scanned",
+      "duration_ms": 1877,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_177741",
+      "repair": false,
+      "ts": "2026-10-22T16:35:02.419Z",
+      "t_rel_ms": 27284
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 33,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.5528) \u00b7 41.3 MB scanned",
+      "duration_ms": 1885,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_177742",
+      "repair": false,
+      "ts": "2026-10-22T16:35:02.419Z",
+      "t_rel_ms": 27284
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 34,
+      "turn_index": 4,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 8663,
+      "tokens": {
+        "prompt": 24164,
+        "output": 471,
+        "thinking": 0,
+        "total": 24635
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:35:11.083Z",
+      "t_rel_ms": 35948
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 35,
+      "turn_index": 4,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"draft_answer\": \"### 1. Solicitation 03: P1 Critical vs. P2 High Incident Response SLAs\\nAccording to `03_Incident_Response_SLAs.pdf` (Section `SLA-SEC-3.1`, Exhibit B: SOC Incident Response Severity Matrix & Penalty Credits), no amendments supersede `SLA-SEC-3.1`\u2014the base matrix governs:\\n\\n| Severity | Definition | Initial Triage SLA | Containment SLA | Monthly Fee Penalty Credit |\\n| :--- | :--- | :--- | :--- | :--- |\\n| **P1 Critical** | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\\n| **P2 High** | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\\n\\n---\\n\\n### 2. Solicitation 02: Required SOC2 Type II and HIPAA Controls\\nAccording to `04_Compliance_and_SOC2_Matrix.pdf` (Section `CTRL-SOC2-MATRIX`, Exhibit B: SOC2 Type II, HIPAA & VPC Service Controls Compliance Matrix), no amendments supersede `CTRL-SOC2-MATRIX`\u2014the base compliance requirements govern:\\n\\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\\n| :--- | :--- | :--- | :--- | :--- |\\n| **CTRL-SOC2-CC6.1** | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\\n| **CTRL-SOC2-CC6.7** | SOC2 Type II | E\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_219200",
+      "repair": false,
+      "ts": "2026-10-22T16:35:11.083Z",
+      "t_rel_ms": 35948
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 36,
+      "turn_index": 4,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "11 claims checked \u00b7 0 unsupported",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_219200",
+      "repair": false,
+      "ts": "2026-10-22T16:35:11.085Z",
+      "t_rel_ms": 35950
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "seq": 37,
+      "turn_index": 5,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 7716,
+      "tokens": {
+        "prompt": 24753,
+        "output": 447,
+        "thinking": 0,
+        "total": 25200
+      },
+      "function_calls": [],
+      "text_preview": "### 1. Solicitation 03: P1 Critical vs. P2 High Incident Response SLAs\nAccording to `03_Incident_Response_SLAs.pdf` (Section `SLA-SEC-3.1`, Exhibit B: SOC Incident Response Severity Matrix & Penalty Credits), no amendments supersede `SLA-SEC-3.1`\u2014the base matrix governs:\n\n| Severity | Definition | Initial Triage SLA | Containment SLA | Monthly Fee Penalty Credit |\n| :--- | :--- | :--- | :--- | :--- |\n| **P1 Critical** | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| **P2 High** | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:35:18.802Z",
+      "t_rel_ms": 43667
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 43667,
+      "payload": {
+        "turns": 5,
+        "agent_turn_events": 37,
+        "tool_calls": 16,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 10,
+          "check_amendments": 5,
+          "calculate_contract_pricing": 0,
+          "verify_citations": 1
+        },
+        "tool_errors": 0,
+        "verify_calls": 1,
+        "unsupported_claims_before": 0,
+        "unsupported_claims_after": 0,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [],
+        "unsupported_after_list": [],
+        "repair_turns": 0,
+        "final_answer_check": {
+          "checked_claims": 11,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 5,
+        "tokens": {
+          "prompt": 77109,
+          "output": 1647,
+          "thinking": 0,
+          "total": 78756
+        },
+        "citations": [
+          "solicitation_03_03_incident_response_slas_p1_e2_multimodal",
+          "solicitation_02_04_compliance_and_soc2_matrix_p1_e2_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 28,
+        "retrieval_usage": {
+          "embedding_tokens": 262,
+          "rank_billed_counts": 10,
+          "bigquery_bytes": 330690232,
+          "bigquery_jobs": 15,
+          "search_calls": 10
+        },
+        "calculator_values": []
+      },
+      "ts": "2026-10-22T16:35:18.803Z",
+      "t_rel_ms": 43668
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 5,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-10-22T16:35:18.803Z",
+      "t_rel_ms": 43669
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 77109,
+        "output_tokens": 1647,
+        "thinking_tokens": 0,
+        "turns": 5,
+        "final_turn": {
+          "turn_index": 5,
+          "duration_ms": 7716,
+          "tokens": {
+            "prompt": 24753,
+            "output": 447,
+            "thinking": 0,
+            "total": 25200
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "### 1. Solicitation 03: P1 Critical vs. P2 High Incident Response SLAs\nAccording to `03_Incident_Response_SLAs.pdf` (Section `SLA-SEC-3.1`, Exhibit B: SOC Incident Response Severity Matrix & Penalty Credits), no amendments supersede `SLA-SEC-3.1`\u2014the base matrix governs:\n\n| Severity | Definition | Initial Triage SLA | Containment SLA | Monthly Fee Penalty Credit |\n| :--- | :--- | :--- | :--- | :--- |\n| **P1 Critical** | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| **P2 High** | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02: Required SOC2 Type II and HIPAA Controls\nAccording to `04_Compliance_and_SOC2_Matrix.pdf` (Section `CTRL-SOC2-MATRIX`, Exhibit B: SOC2 Type II, HIPAA & VPC Service Controls Compliance Matrix), no amendments supersede `CTRL-SOC2-MATRIX`\u2014the base compliance requirements govern:\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| :--- | :--- | :--- | :--- | :--- |\n| **CTRL-SOC2-CC6.1** | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| **CTRL-SOC2-CC6.7** | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| **CTRL-HIPAA-164.312** | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |"
+      },
+      "ts": "2026-10-22T16:35:18.803Z",
+      "t_rel_ms": 43669
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-22T16:35:18.804Z",
+      "t_rel_ms": 43669
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_22002b1b417e",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 6763,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.97,
+        "qa_relevance": 0.98,
+        "context_precision": 0.3,
+        "reference_answer_used": true,
+        "input_tokens": 9348,
+        "output_tokens": 553,
+        "judge_cost_usd": 0.048452,
+        "rationale": "Every SLA value, penalty credit and control row in the answer appears verbatim in the retrieved Exhibit B tables, and the no-amendment statements are backed by the check_amendments tool outputs; the CTRL-SOC2-MATRIX section label rests only on tool metadata, a negligible gap. The answer fully covers the P1/P2 comparison and the three SOC2/HIPAA controls, matching the reference answer. Context precision is low because only two chunks (the severity matrix and the compliance matrix) are relevant, while most retrieved chunks are unrelated material such as pharma licensing agreements, South African",
+        "judge_response_id": "msg_vrtx_011CgHbmYko1gMjzo6PzUR9x"
+      },
+      "ts": "2026-10-22T16:35:25.567Z",
+      "t_rel_ms": 50433
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 4: Agentic RAG (Google ADK)",
+    "answer": "### 1. Solicitation 03: P1 Critical vs. P2 High Incident Response SLAs\nAccording to `03_Incident_Response_SLAs.pdf` (Section `SLA-SEC-3.1`, Exhibit B: SOC Incident Response Severity Matrix & Penalty Credits), no amendments supersede `SLA-SEC-3.1`\u2014the base matrix governs:\n\n| Severity | Definition | Initial Triage SLA | Containment SLA | Monthly Fee Penalty Credit |\n| :--- | :--- | :--- | :--- | :--- |\n| **P1 Critical** | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| **P2 High** | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02: Required SOC2 Type II and HIPAA Controls\nAccording to `04_Compliance_and_SOC2_Matrix.pdf` (Section `CTRL-SOC2-MATRIX`, Exhibit B: SOC2 Type II, HIPAA & VPC Service Controls Compliance Matrix), no amendments supersede `CTRL-SOC2-MATRIX`\u2014the base compliance requirements govern:\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| :--- | :--- | :--- | :--- | :--- |\n| **CTRL-SOC2-CC6.1** | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| **CTRL-SOC2-CC6.7** | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| **CTRL-HIPAA-164.312** | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_e2_multimodal",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "SLA-SEC-3.1",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "EXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS | Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit | | --- | --- | --- | --- | --- | | P1 Critical | Active Ransomware / Root Breach | <= 15 min",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_e2_multimodal",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CTRL-SOC2-MATRIX",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX | Control ID | Framework | Requirement | GCP Implementation | Mandatory | | --- | --- | --- | --- | --- | | CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VP",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "SLA-SEC-3.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "EXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| --- | --- | --- | --- | --- |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |",
+        "score": 0.9718,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 17,
+        "bbox": {
+          "page": 17,
+          "x0": 0.1353,
+          "y0": 0.0909,
+          "x1": 0.8993,
+          "y1": 0.5719
+        },
+        "content": "ANNEX 1: DEFINITIONS\n| Service | Period | Timetable | Response | Liability | Evaluation Period | Type of Evaluation |\n| --- | --- | --- | --- | --- | --- | --- |\n| Network Availability | Workdays in South African work schedule | 8H-20H |  | 98% availability | Monthly | Measuring periods when the network is not available |\n| Fault reports of network and server infrastructure problems | Workdays in South African work schedule | 8H-20H | Alert in the 15 minutes following the fault report as well as an account when the problem has been solved. Define what alert, how and who communicates it. | 98% of faults reported in the time period | Monthly | Measuring the period between the beginning and the end of the problem, and fault reporting |\n| Ges-Indus Availability | Workdays in South African work schedule | 8H-20H |  | 98% availability | Monthly | Measuring periods when the application is not available |\n| Ges-Indus Support Level 2 | Workdays in South African work schedule | 8H-20H | \u27a2 Response: less than two South African working hours | 98% of requests solved in the time period | Monthly | Measuring response times for each request |\n|  |  |  | \u27a2 Blocking Bug: |  |  |  |\n|  |  |  | Consideration and response: less than two South African working hours Solution or work-around: less than one South African workday |  |  |  |\n| Ges-Indus Maintenance | Workdays in South African work schedule | 8H-20H | \u27a2 Non-blocking Bug: | 98% of requests solved in the time period | Monthly | Measuring the response times for encountered problems |\n|  |  |  | Consideration and response: less than three South African workdays Solution or work-around: set out by the requestor |  |  |  |\n| Electronic Mail Service Availability | 7d/7d | 24h/24h |  | 99% availability |  | Measuring periods when the electronic mail service is not available |\n| OFINET Availability | 7d/7d | 24h/24h |  | 95% availability |  | Measuring periods when OFINET is not available |",
+        "score": 0.3104,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-2001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |",
+        "score": 0.2482,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_paratekpharmaceuticalsinc_20170505_10-ka_ex-10.29_10323872_ex-10.29_outsourcing agreement_p3_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "ParatekPharmaceuticalsInc_20170505_10-KA_EX-10.29_10323872_EX-10.29_Outsourcing Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 3,
+        "bbox": {
+          "page": 3,
+          "x0": 0.0841,
+          "y0": 0.0978,
+          "x1": 0.1361,
+          "y1": 0.5753
+        },
+        "content": "THIS EXHIBIT HAS BEEN REDACTED AND IS THE SUBJECT OF A CONFIDENTIAL TREATMENT REQUEST. REDACTED MATERIAL IS MARKED WITH [* * *] AND HAS BEEN FILED SEPARATELY WITH THE SECURITIES AND EXCHANGE COMMISSION.\n| Article 5 | Testing and Samples | 19 |\n| --- | --- | --- |\n| 5.1 | Release Testing | 19 |\n| 5.2 | Additional Release Testing | 19 |\n| 5.3 | Retention Samples | 19 |\n| 5.4 | Stability Testing | 20 |\n| 5.5 | Reference Standards | 20 |\n| 5.6 | Preparation of Process Qualification | 20 |\n| Article 6 | Purchase Orders | 20 |\n| 6.1 | Placement of Purchase Orders | 20 |\n| 6.2 | Acceptance of Orders | 20 |\n| 6.3 | Delays | 21 |\n| 6.4 | Cancellation of Purchase Orders | 21 |\n| 6.5 | Material Failure of Supply | 21 |\n| 6.6 | Services | 21 |\n| Article 7 | Shipment of Product | 22 |\n| 7.1 | Storage of Product | 22 |\n| 7.2 | Release and Shipment of Product | 22 |\n| 7.3 | Documentation | 23 |\n| 7.4 | Steering Committee | 23 |\n| Article 8 | Acceptance of Shipments | 23 |\n| 8.1 | Acceptance of Shipments | 23 |\n| 8.2 | Dispute of Rejected Product | 24 |\n| 8.3 | Remedies | 24 |\n| Article 9 | Fees | 25 |\n| 9.1 | Fees | 25 |\n| 9.2 | Adjustments to Fees | 25 |\n| 9.3 | Taxes | 26 |",
+        "score": 0.1543,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p5_e4_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 5,
+        "bbox": {
+          "page": 5,
+          "x0": 0.0873,
+          "y0": 0.3272,
+          "x1": 0.331,
+          "y1": 0.3369
+        },
+        "content": "FUNDING AND PAYMENT\n| Official Feedback from FDA regarding the Program Data | Milestone |\n| --- | --- |\n| [...***...] | $[...***...] |\n| [...***...] | $[...***...] |\n| [...***...] | $[...***...] |\n| [...***...] | [...***...] |",
+        "score": 0.153,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "narrative_text",
+        "section_id": "SLA-SEC-3.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8302,
+          "y1": 0.0981
+        },
+        "content": "EXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS",
+        "score": 0.5539,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p21_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 21,
+        "bbox": {
+          "page": 21,
+          "x0": 0.0839,
+          "y0": 0.063,
+          "x1": 0.3003,
+          "y1": 0.515
+        },
+        "content": "ARTICLE 8 CONSIDERATION\nCytoDyn shall promptly notify Vyera in writing following the achievement of the first two (2) milestone events described in this Section 8.2 and submit to Vyera an invoice for the corresponding milestone payment set forth in this Section 8.2. Within thirty (30) days of Vyera's receipt of any such invoice, Vyera shall remit the milestone payment to CytoDyn in immediately available funds. Vyera shall promptly notify CytoDyn in writing following the achievement of each remaining milestone event described in this Section 8.2, but in no event will such notice be given to CytoDyn later than (a) five (5) Business Days after First Commercial Sale of Licensed Product and (b) twenty (20) Business Days after Vyera becomes aware of the achievement of any milestone related to cumulative Net Sales. Thereafter, CytoDyn shall submit to Vyera an invoice for the corresponding milestone payment set forth in this Section 8.2. Within thirty (30) days of Vyera's receipt of any such invoice, Vyera shall remit the applicable milestone payment to CytoDyn. 8.3 Milestone Payment for [***]. Vyera shall pay to CytoDyn [***] (the \"[***] Milestone Payment\") in the event that \\([***] (a ^{\"[***]\"})\\) results in a [***]. Whether a [***] meets the criteria set forth in this Section 8.3 will be determined in good faith by the JC. The determination of whether a [***] results in [***] will not be a Reserved Dispute of either Party. In the event that the JC approves a proposed [***], the JC will discuss in good faith the details of the program that will be implemented to pursue the [***], including the budget, the timeline and any other items that the JC deems material. The proposed program will then be presented to the management of each Party for approval. In the event that the Parties agree to pursue a [***], CytoDyn shall promptly notify Vyera in writing following receipt of [***] and submit to Vyera an invoice for the [***]. Within thirty (30) days of Vyera's receipt of any such invoice, Vyera shall remit the [***] to CytoDyn. The [***] shall be non-refundable and non-creditable. Notwithstanding the foregoing, if the JC and/or the Parties are not able to come to agreement on a program to pursue a [***], the decision on whether to pursue a [****] shall be made by CytoDyn in its sole discretion provided, however, that such [***] will not be eligible for a [***]. 8.4 Milestone Payment for [***]. If CytoDyn receives [***], then Vyera shall pay to CytoDyn [***] (the \"[***]\") in immediately available funds upon the receipt of [***]. CytoDyn shall promptly notify Vyera in writing following receipt of [***] and submit to Vyera an invoice for the corresponding milestone payment set forth in this Section 8.4. Within thirty (30) days of Vyera's receipt of any such invoice, Vyera shall remit the milestone payment to CytoDyn. The [***] shall be non-refundable and non-creditable. 8.5 Milestone Payment for [***]. With respect to any [***] for the Licensed Product within the Field other than the [***], the JC shall determine in good faith (which determination, for the avoidance of doubt, shall not be a Reserved Dispute of either Party) the amount of the payment, if any, payable by Vyera to CytoDyn in the event [***] is received. Such payment as recommended by the JC shall be approved by the management of each Party. CytoDyn shall promptly notify Vyera in writing following receipt [***] for which payment has been agreed and approved and submit to Vyera an invoice for the corresponding milestone payment that the Parties have agreed upon pursuant to this Section 8.5. Within thirty (30) days of Vyera's receipt of any such invoice, Vyera shall remit the milestone payment to CytoDyn. Each milestone payment for a [***] shall be non-refundable and non-creditable. Notwithstanding the foregoing, in the event that the JC is unable to agree on whether to pursue a [***], the decision as to whether to pursue a [***] shall be made by CytoDyn in its sole discretion provided, however, that such [***] will not be eligible for a milestone payment pursuant to this Section 8.5. 8.6 Royalty Obligation. Vyera shall pay to CytoDyn royalties equal to fifty percent (50%) of Net Sales of Licensed Products in the Territory during the Royalty Term; provided that, after the Step-Down Date, the royalty percentage will be reduced to [***] of Net Sales of Licensed Products in the Territory throughout the remaining period in the Royalty Term. Royalties shall be payable commencing upon the First Commercial Sale of the Licensed Product in the Territory until the expiration of the Royalty Term in the Territory. Following the expiration of the Royalty Term with respect to the Licensed Product, the licenses granted under Section 2.1 with respect to such Licensed Product in the Field and the Territory shall be non-exclusive, perpetual, irrevocable, fully-paid and royalty-free.",
+        "score": 0.1579,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p11_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 11,
+        "bbox": {
+          "page": 11,
+          "x0": 0.0841,
+          "y0": 0.061,
+          "x1": 0.5541,
+          "y1": 0.0947
+        },
+        "content": "6.4 No Consequential Damages. IN NO EVENT SHALL EITHER PARTY BE LIABLE TO THE OTHER PARTY UNDER THIS AGREEMENT IN A DIRECT ACTION BETWEEN THE PARTIES FOR SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES (INCLUDING, WITHOUT LIMITATION, LOSS OF PROFITS) SUFFERED BY THE OTHER PARTY.",
+        "score": 0.1473,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "CTRL-SOC2-MATRIX",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| --- | --- | --- | --- | --- |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |",
+        "score": 0.9771,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p11_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 11,
+        "bbox": {
+          "page": 11,
+          "x0": 0.1849,
+          "y0": 0.1982,
+          "x1": 0.2836,
+          "y1": 0.2079
+        },
+        "content": "G. PAYMENT SCHEDULE.\n|  |  | Clickstream Corp. |  |\n| --- | --- | --- | --- |\n| CLIENT | By: | Frank Magliochetti, |  |\n|  | Title: | CEO |  |\n|  | Name: | CEO |  |\n|  | Title: | InfinixSoft Global LLC |  |\n| DEVELOPER |  |  |  |\n|  | By: | Ivan Alejandro Saroka |  |\n|  | Name: |  | 11 \\| Page |\n|  | Title: | CEO - Founding Partner |  |",
+        "score": 0.0345,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_coherusbiosciencesinc_20200227_10-k_ex-10.29_12021376_ex-10.29_development agreement_p2_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "CoherusBiosciencesInc_20200227_10-K_EX-10.29_12021376_EX-10.29_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 2,
+        "bbox": {
+          "page": 2,
+          "x0": 0.0841,
+          "y0": 0.1116,
+          "x1": 0.1319,
+          "y1": 0.1229
+        },
+        "content": "CONTENTS\n| Clause | Page |  |\n| --- | --- | --- |\n| 1. | DEFINITIONS AND INTERPRETATION | 1 |\n| 2. | LICENSE GRANT | 10 |\n| 3. | DEVELOPMENT | 11 |\n| 4. | REGULATORY ACTIVITIES | 14 |\n| 5. | MANUFACTURING AND SUPPLY | 17 |\n| 6. | COMMERCIALIZATION | 18 |\n| 7. | FINANCIAL PROVISIONS | 20 |\n| 8. | TAXATION | 23 |\n| 9. | INTELLECTUAL PROPERTY | 24 |\n| 10. | COVENANTS RELATING TO THE [***] AGREEMENT | 30 |\n| 11. | CONFIDENTIALITY | 30 |\n| 12. | REPRESENTATIONS, WARRANTIES AND COVENANTS | 32 |\n| 13. | INDEMNIFICATION AND LIMITATION OF LIABILITY | 34 |\n| 14. | GOVERNANCE | 35 |\n| 15. | TERM AND TERMINATION; NON-SOLICITATION | 37 |\n| 16. | GENERAL PROVISIONS | 43 |",
+        "score": 0.0236,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p2_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 2,
+        "bbox": {
+          "page": 2,
+          "x0": 0.8986,
+          "y0": 0.075,
+          "x1": 0.9244,
+          "y1": 0.4604
+        },
+        "content": "LICENSE, DEVELOPMENT AND COMMERCIALIZATION AGREEMENT\n|  | Page |\n| --- | --- |\n| ARTICLE 1 Definitions | 1 |\n| ARTICLE 2 Licenses | 13 |\n| ARTICLE 3 Development | 16 |\n| ARTICLE 4 Regulatory | 17 |\n| ARTICLE 5 Commercialization | 19 |\n| ARTICLE 6 Supply | 20 |\n| ARTICLE 7 Payments | 21 |\n| ARTICLE 8 Payment; Records; Audits | 24 |\n| ARTICLE 9 Intellectual Property Matters | 26 |\n| ARTICLE 10 Representations, Warranties and Covenants; Compliance | 31 |\n| ARTICLE 11 Indemnification | 34 |\n| ARTICLE 12 Confidentiality | 36 |\n| ARTICLE 13 Term and Termination | 40 |\n| ARTICLE 14 Effects of Expiration Or Termination | 40 |\n| ARTICLE 15 Miscellaneous | 43 |\n| Schedule 1.10 Antibody | 50 |\n| Schedule 1.79 Xencor General Patents | 51 |\n| Schedule 1.81 Xencor Product Specific Patents | 52 |\n| Schedule 2.7 Xencor Know-How, Regulatory Materials, and Regulatory Data | 53 |\n| Schedule 6.1 Initial Product Supply | 54 |\n| Schedule 10.2.6 Exceptions | 55 |\n| Schedule 12.2 Initial Press Release | 56 |",
+        "score": 0.0222,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-1001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |",
+        "score": 0.0208,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "narrative_text",
+        "section_id": "CTRL-SOC2-MATRIX",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8672,
+          "y1": 0.0981
+        },
+        "content": "EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX",
+        "score": 0.902,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_conformisinc_20191101_10-q_ex-10.6_11861402_ex-10.6_development agreement_p8_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "ConformisInc_20191101_10-Q_EX-10.6_11861402_EX-10.6_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 8,
+        "bbox": {
+          "page": 8,
+          "x0": 0.4523,
+          "y0": 0.1246,
+          "x1": 0.5456,
+          "y1": 0.4094
+        },
+        "content": "ARTICLE II",
+        "score": 0.0871,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p19_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 19,
+        "bbox": {
+          "page": 19,
+          "x0": 0.4619,
+          "y0": 0.2028,
+          "x1": 0.5474,
+          "y1": 0.2239
+        },
+        "content": "ARTICLE 4 REGULATORY",
+        "score": 0.0633,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p8_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 8,
+        "bbox": {
+          "page": 8,
+          "x0": 0.0841,
+          "y0": 0.091,
+          "x1": 0.1499,
+          "y1": 0.1008
+        },
+        "content": "EXHIBIT A",
+        "score": 0.0624,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p6_e6_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 6,
+        "bbox": {
+          "page": 6,
+          "x0": 0.0841,
+          "y0": 0.3189,
+          "x1": 0.7451,
+          "y1": 0.3406
+        },
+        "content": "15. AMENDMENTS.\nNo amendment, change, or modification of this Agreement shall be valid unless in writing and signed by both Parties.",
+        "score": 0.071,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_conformisinc_20191101_10-q_ex-10.6_11861402_ex-10.6_development agreement_p17_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "ConformisInc_20191101_10-Q_EX-10.6_11861402_EX-10.6_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 17,
+        "bbox": {
+          "page": 17,
+          "x0": 0.4523,
+          "y0": 0.168,
+          "x1": 0.5477,
+          "y1": 0.18
+        },
+        "content": "ARTICLE VI",
+        "score": 0.0706,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p14_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 14,
+        "bbox": {
+          "page": 14,
+          "x0": 0.0839,
+          "y0": 0.0979,
+          "x1": 0.4722,
+          "y1": 0.4218
+        },
+        "content": "3.1 Joint Committee.\n(a) Within ten (10) days after the Effective Date, a Joint Committee (\u201cJC\u201d) shall be established with the responsibilities and authority set forth in this Section 3.1. The JC shall consist of six (6) members, three (3) members to be appointed by each of CytoDyn and Vyera, and the Alliance Manager from each Party. Each Party may, with notice to the other, substitute any of its members serving on the JC and may invite ad hoc non-voting members as desired. The Parties may also, by mutual agreement, increase or (subject to Section 3.1(d)) decrease the number of members serving on the JC; provided that the number of members representing each Party remains equal. Prior to Regulatory Approval of a Licensed Product, CytoDyn will have the right to appoint one of its members to be the chairperson of the JC. Vyera and CytoDyn shall alternate appointing the chairperson of the JC in each year following Regulatory Approval. (b) The JC shall have the responsibility and authority to: (i) provide a forum for exchange of information related to the Development and Commercialization of Licensed Products in the Field in the Territory; (ii) review and discuss any proposed material amendments or updates to the Development Plan and present the results of such discussions to the management or boards of the Parties for approval; (iii) review and discuss the Commercialization Plan for the Licensed Products in the Field in the Territory and any proposed material amendments or updates thereto and present the results of such discussions to the management or the boards of the Parties for approval; (iv) oversee the implementation of the Development Plan and the Commercialization Plan; (v) monitor the progress of the Development Plan and the Commercialization Plan against the metrics agreed to by the Parties (such as timeline, costs, and revenue) and report on such progress to the management or boards of the Parties; and (vi) perform any other functions as the Parties may agree in writing. (c) The JC shall hold meetings as mutually agreed by the Parties, but in no event less than quarterly unless Vyera and CytoDyn mutually agree in writing (which may include email), no later than thirty (30) days in advance of any meeting following the initial meeting of the JC, that no new business has transpired that would require a meeting of the JC. The first meeting of the JC shall be held within forty-five (45) days of the Effective Date and shall be held in New York, NY. After the initial meeting, meetings may be held by telephone or video conference, provided that the Parties shall meet in person at least once per year, and such meetings shall alternate between New York, New York and Vancouver, Washington. Minutes of all meetings setting forth decisions of the JC shall be prepared by the chairperson and circulated to both Parties within thirty (30) days after each meeting, and shall not become official until approved by both Parties in writing; minutes shall be presented for approval as the first order of business at the subsequent JC meeting, or if it is necessary to approve the minutes prior to such subsequent meeting, then the Parties shall approve the minutes within thirty (30) days of receipt thereof. (d) The quorum for JC meetings shall be four (4) members, provided there are at least two (2) members from each of CytoDyn and Vyera present. The JC will render decisions by unanimous vote. The members of the JC shall act in good faith to cooperate with one another and to reach agreement with respect to issues to be decided by the JC.",
+        "score": 0.1488,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p18_e5_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 18,
+        "bbox": {
+          "page": 18,
+          "x0": 0.1179,
+          "y0": 0.2726,
+          "x1": 0.4957,
+          "y1": 0.2821
+        },
+        "content": "3.2 Compliance.\nAimmune shall conduct the Development Activities in accordance with sound and ethical business and scientific practices, and in compliance with all Applicable Law, including GCPs and GLPs, and also including all applicable data privacy and data protection laws. In addition, Aimmune shall not use in any capacity, in connection with its Development (or Commercialization) of the Product hereunder, any Person who has been debarred pursuant to Section 306 of the FD&C Act (or similar Applicable Law outside of the U.S.), or who is the subject of a conviction described in such section, and Aimmune shall inform Xencor in writing promptly if it or any Person who is performing services for Aimmune hereunder is debarred or is the subject of a conviction described in Section 306 (or similar Applicable Law outside of the U.S.), or if any action, suit, claim, investigation or legal administrative proceeding is pending or, to Aimmune's knowledge, is threatened, relating to the debarment of Aimmune or any Person used in any capacity by Aimmune in connection with its Development (or Commercialization) of the Product hereunder. Xencor shall not use in any capacity in connection with performing its obligations under this Agreement, any Person who has been debarred pursuant to Section 306 of the FD&C Act (or similar Applicable Law outside of the U.S.), or who is the subject of a conviction described in such section. Xencor shall inform Aimmune in writing immediately promptly if it or any Person who is performing services for Xencor hereunder is debarred or is the subject of a conviction described in Section 306 (or similar Applicable Law outside of the U.S.), or if any action, suit, claim, investigation or legal administrative proceeding is pending or, to Xencor's knowledge, is threatened, relating to the debarment of Xencor or any Person used in any capacity by Xencor in connection with its Development or Manufacture of the Product prior to the Effective Date or performance under this Agreement or during the Term in the course of performing Xencor's obligations under this Agreement. 16",
+        "score": 0.2721,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_coherusbiosciencesinc_20200227_10-k_ex-10.29_12021376_ex-10.29_development agreement_p12_e6_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "CoherusBiosciencesInc_20200227_10-K_EX-10.29_12021376_EX-10.29_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 12,
+        "bbox": {
+          "page": 12,
+          "x0": 0.1467,
+          "y0": 0.4295,
+          "x1": 0.3674,
+          "y1": 0.4407
+        },
+        "content": "4.REGULATORY ACTIVITIES",
+        "score": 0.2152,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_paratekpharmaceuticalsinc_20170505_10-ka_ex-10.29_10323872_ex-10.29_outsourcing agreement_p13_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "ParatekPharmaceuticalsInc_20170505_10-KA_EX-10.29_10323872_EX-10.29_Outsourcing Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 13,
+        "bbox": {
+          "page": 13,
+          "x0": 0.0841,
+          "y0": 0.0977,
+          "x1": 0.1361,
+          "y1": 0.1075
+        },
+        "content": "Article 3 Supply of Product\nb) [* * *] c) [* * *] d) In the event the Product manufactured and delivered to Customer under a Purchase Order is less than [* * *] of the amount ordered by Customer under such Purchase Order or if Customer otherwise reasonably requests, [* * *]. d) For clarity, nothing in this Section 3.1 limits Supplier's liability under this Agreement or under law, including liability for negligence, willful misconduct and failure to comply with Product Specifications; [* * *].",
+        "score": 0.4297,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p16_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 16,
+        "bbox": {
+          "page": 16,
+          "x0": 0.0839,
+          "y0": 0.1212,
+          "x1": 0.6885,
+          "y1": 0.2122
+        },
+        "content": "4.3 Amendments to the Development Plan\nCytoDyn may decide from time to time to propose for approval by the JC updates to the Development Plan as necessary to reflect changes in the progress of Development for the Licensed Product for the Initial Indication or a Subsequent Indication in the Territory. Any proposed change to the Development Plan shall set forth all anticipated Development activities and timelines. The JC shall promptly review such proposed change and shall as soon as practicable but in any event within fifteen (15) days following submission either (a) approve it or (b) provide comments to CytoDyn for its consideration. CytoDyn shall consider such comments (if any) and revise the Development Plan to implement all such reasonable comments and provide such revised Development Plan to the JC. If Disputes remain with respect to such amendments to the Development Plan, then such dispute shall be referred to the JC for resolution thereof in accordance with Section 3.1(e). For the avoidance of doubt, the failure to agree on a proposed update to the Development Plan or any Development activities is a CytoDyn Reserved Dispute.",
+        "score": 0.3954,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "P1 Critical P2 High incident response triage containment SLA monthly fee penalty credit 03_Incident_Response_SLAs.pdf",
+          "solicitation_id": "solicitation_03",
+          "element_types": [
+            "table"
+          ]
+        },
+        "result_summary": "5 chunks of 7/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.9718) \u00b7 0.0 MB scanned \u00b7 cache hit",
+        "latency_ms": 1430
+      },
+      {
+        "step_number": 2,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "SOC2 Type II HIPAA controls 04_Compliance_and_SOC2_Matrix.pdf",
+          "solicitation_id": "solicitation_02",
+          "element_types": [
+            "table"
+          ]
+        },
+        "result_summary": "5 chunks of 5/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.9771) \u00b7 41.3 MB scanned",
+        "latency_ms": 4404
+      },
+      {
+        "step_number": 3,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "P1 Critical P2 High incident response triage SLA containment SLA penalty credit",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.9701) \u00b7 41.3 MB scanned",
+        "latency_ms": 1944
+      },
+      {
+        "step_number": 4,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "SOC2 Type II HIPAA controls compliance matrix",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.9613) \u00b7 41.3 MB scanned",
+        "latency_ms": 4519
+      },
+      {
+        "step_number": 5,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_03",
+          "section_or_clin_id": "SLA-SEC-3.1"
+        },
+        "result_summary": "no amendment row names SLA-SEC-3.1 in solicitation_03 \u00b7 0.0 MB scanned",
+        "latency_ms": 639
+      },
+      {
+        "step_number": 6,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CTRL-SOC2-MATRIX"
+        },
+        "result_summary": "no amendment row names CTRL-SOC2-MATRIX in solicitation_02 \u00b7 0.0 MB scanned",
+        "latency_ms": 706
+      },
+      {
+        "step_number": 7,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CTRL-SOC2-CC6.1"
+        },
+        "result_summary": "no amendment row names CTRL-SOC2-CC6.1 in solicitation_02 \u00b7 0.0 MB scanned",
+        "latency_ms": 570
+      },
+      {
+        "step_number": 8,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CTRL-SOC2-CC6.7"
+        },
+        "result_summary": "no amendment row names CTRL-SOC2-CC6.7 in solicitation_02 \u00b7 0.0 MB scanned",
+        "latency_ms": 533
+      },
+      {
+        "step_number": 9,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CTRL-HIPAA-164.312"
+        },
+        "result_summary": "no amendment row names CTRL-HIPAA-164.312 in solicitation_02 \u00b7 0.0 MB scanned",
+        "latency_ms": 721
+      },
+      {
+        "step_number": 10,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "amendment SLA-SEC-3.1 P1 Critical P2 High incident response",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.925) \u00b7 41.3 MB scanned",
+        "latency_ms": 1932
+      },
+      {
+        "step_number": 11,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "amendment CTRL-SOC2-MATRIX SOC2 HIPAA compliance matrix",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.8362) \u00b7 0.0 MB scanned \u00b7 cache hit",
+        "latency_ms": 1245
+      },
+      {
+        "step_number": 12,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "03_Incident_Response_SLAs.pdf SLA-SEC",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 03_Incident_Response_SLAs.pdf p.1 (0.9564) \u00b7 41.3 MB scanned",
+        "latency_ms": 1905
+      },
+      {
+        "step_number": 13,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "04_Compliance_and_SOC2_Matrix.pdf CTRL-SOC2",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.8952) \u00b7 41.3 MB scanned",
+        "latency_ms": 1864
+      },
+      {
+        "step_number": 14,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "05_Amendments Amendment SLA-SEC-3.1",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf p.14 (0.6385) \u00b7 41.3 MB scanned",
+        "latency_ms": 1877
+      },
+      {
+        "step_number": 15,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "05_Amendments Amendment CTRL-SOC2-MATRIX",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 50/50 RRF candidates \u00b7 top 04_Compliance_and_SOC2_Matrix.pdf p.1 (0.5528) \u00b7 41.3 MB scanned",
+        "latency_ms": 1885
+      },
+      {
+        "step_number": 16,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "### 1. Solicitation 03: P1 Critical vs. P2 High Incident Response SLAs\nAccording to `03_Incident_Response_SLAs.pdf` (Section `SLA-SEC-3.1`, Exhibit B: SOC Incident Response Severity Matrix & Penalty Credits), no amendments supersede `SLA-SEC-3.1`\u2014the base matrix governs:\n\n| Severity | Definition | Initial Triage SLA | Containment SLA | Monthly Fee Penalty Credit |\n| :--- | :--- | :--- | :--- | :--- |\n| **P1 Critical** | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| **P2 High** | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02: Required SOC2 Type II and HIPAA Controls\nAccording to `04_Compliance_and_SOC2_Matrix.pdf` (Section `CTRL-SOC2-MATRIX`, Exhibit B: SOC2 Type II, HIPAA & VPC Service Controls Compliance Matrix), no amendments supersede `CTRL-SOC2-MATRIX`\u2014the base compliance requirements govern:\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| :--- | :--- | :--- | :--- | :--- |\n| **CTRL-SOC2-CC6.1** | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| **CTRL-SOC2-CC6.7** | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| **CTRL-HIPAA-164.312** | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |",
+          "cited_chunk_ids": [
+            "solicitation_03_03_incident_response_slas_p1_e2_multimodal",
+            "solicitation_02_04_compliance_and_soc2_matrix_p1_e2_multimodal"
+          ]
+        },
+        "result_summary": "11 claims checked \u00b7 0 unsupported",
+        "latency_ms": 0
+      }
+    ],
+    "latency_ms": 43669,
+    "cost_usd": 0.1807404,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-22T16:34:35.135Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "expansions": [],
+          "element_intent": [
+            "table"
+          ],
+          "intent_matches": {
+            "table": [
+              "matrix",
+              "credits",
+              "penalty",
+              "fee"
+            ]
+          },
+          "handed_to_agent": "Question: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).\nElement intent (keywords found): table"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-22T16:34:35.136Z",
+        "duration_ms": 43667,
+        "request": {},
+        "payload": {
+          "turns": 5,
+          "agent_turn_events": 37,
+          "tool_calls": 16,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 10,
+            "check_amendments": 5,
+            "calculate_contract_pricing": 0,
+            "verify_citations": 1
+          },
+          "tool_errors": 0,
+          "verify_calls": 1,
+          "unsupported_claims_before": 0,
+          "unsupported_claims_after": 0,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [],
+          "unsupported_after_list": [],
+          "repair_turns": 0,
+          "final_answer_check": {
+            "checked_claims": 11,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 5,
+          "tokens": {
+            "prompt": 77109,
+            "output": 1647,
+            "thinking": 0,
+            "total": 78756
+          },
+          "citations": [
+            "solicitation_03_03_incident_response_slas_p1_e2_multimodal",
+            "solicitation_02_04_compliance_and_soc2_matrix_p1_e2_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 28,
+          "retrieval_usage": {
+            "embedding_tokens": 262,
+            "rank_billed_counts": 10,
+            "bigquery_bytes": 330690232,
+            "bigquery_jobs": 15,
+            "search_calls": 10
+          },
+          "calculator_values": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-22T16:35:18.803Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 77109,
+          "output_tokens": 1647,
+          "thinking_tokens": 0,
+          "turns": 5,
+          "final_turn": {
+            "turn_index": 5,
+            "duration_ms": 7716,
+            "tokens": {
+              "prompt": 24753,
+              "output": 447,
+              "thinking": 0,
+              "total": 25200
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "### 1. Solicitation 03: P1 Critical vs. P2 High Incident Response SLAs\nAccording to `03_Incident_Response_SLAs.pdf` (Section `SLA-SEC-3.1`, Exhibit B: SOC Incident Response Severity Matrix & Penalty Credits), no amendments supersede `SLA-SEC-3.1`\u2014the base matrix governs:\n\n| Severity | Definition | Initial Triage SLA | Containment SLA | Monthly Fee Penalty Credit |\n| :--- | :--- | :--- | :--- | :--- |\n| **P1 Critical** | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| **P2 High** | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02: Required SOC2 Type II and HIPAA Controls\nAccording to `04_Compliance_and_SOC2_Matrix.pdf` (Section `CTRL-SOC2-MATRIX`, Exhibit B: SOC2 Type II, HIPAA & VPC Service Controls Compliance Matrix), no amendments supersede `CTRL-SOC2-MATRIX`\u2014the base compliance requirements govern:\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| :--- | :--- | :--- | :--- | :--- |\n| **CTRL-SOC2-CC6.1** | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| **CTRL-SOC2-CC6.7** | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| **CTRL-HIPAA-164.312** | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |"
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 77109,
+      "output_tokens": 1647,
+      "embedding_tokens": 262,
+      "thinking_tokens": 0,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.97,
+      "qa_relevance": 0.98,
+      "context_precision": 0.3
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 6762,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 9348,
+    "output_tokens": 553,
+    "judge_cost_usd": 0.048452,
+    "rationale": "Every SLA value, penalty credit and control row in the answer appears verbatim in the retrieved Exhibit B tables, and the no-amendment statements are backed by the check_amendments tool outputs; the CTRL-SOC2-MATRIX section label rests only on tool metadata, a negligible gap. The answer fully covers the P1/P2 comparison and the three SOC2/HIPAA controls, matching the reference answer. Context precision is low because only two chunks (the severity matrix and the compliance matrix) are relevant, while most retrieved chunks are unrelated material such as pharma licensing agreements, South African",
+    "judge_response_id": "msg_vrtx_011CgHbmYko1gMjzo6PzUR9x"
+  }
+}

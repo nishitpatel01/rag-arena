@@ -2,13 +2,14 @@
 
 Two ways to run it:
 
-1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1
-   and Level 2 runs. No Google Cloud account, no credentials, no network calls to GCP.
+1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–3
+   runs. No Google Cloud account, no credentials, no network calls to GCP.
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-**Levels 1 and 2** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid`; override in `.env` or the environment). Levels 3–5, the Compare page and the Cloud Run deployment are planned; see the
-[README roadmap](../README.md#roadmap).
+**Levels 1–3** are live. Levels 1 and 2 are enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid`);
+add `level3_multimodal` (in `.env` or the environment) for Level 3. Levels 4–5, the Compare page and the Cloud
+Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 ---
 
@@ -86,6 +87,9 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `QUERY_TIMEOUT_SECONDS` / `INGEST_JOB_TIMEOUT_SECONDS` | `90` / `1800` | explicit bounds |
 | `CLOUDSDK_CONFIG` / `GOOGLE_APPLICATION_CREDENTIALS` | empty | optional isolated gcloud profile / ADC file |
 | `MODEL_LOCATION_<ID>` | `MODEL_LOCATION_CLAUDE_OPUS_5_5=global` | optional per-model endpoint override |
+| `DOCAI_LOCATION` / `DOCAI_PROCESSOR_ID` | `us` / short id printed by `scripts/provision_documentai.py` | Level 3 Layout Parser processor (never the full resource name) |
+| `DOCAI_PROCESSOR_VERSION` | `pretrained-layout-parser-v1.5-2025-08-25` | release candidate; returns table structure but no bounding boxes (empty = processor default) |
+| `DOCAI_TIMEOUT_SECONDS` / `VISION_MODEL` | `120` / `gemini-4-argon` | Layout Parser request bound; Gemini model that transcribes diagram pages |
 
 ### 3.2 Authenticate
 
@@ -116,7 +120,11 @@ What it does:
   the first three; the rest are for planned levels and parked engines);
 - creates `gs://$GCS_CORPUS_BUCKET` with uniform bucket-level access and public access prevention, and uploads
   `data/sample_docs/` to `sample_docs/` (Level 1 ingestion reads the local copy; the bucket is for later levels);
-- creates the `rag_arena` dataset.
+- creates the `rag_arena` dataset;
+- ensures the Level 3 Document AI processor `rag-arena-layout-parser` (`LAYOUT_PARSER_PROCESSOR`) by running
+  `scripts/provision_documentai.py`, which is idempotent (creates it only when absent, never touches other
+  processors) and prints only the short processor id — put it in `.env` as `DOCAI_PROCESSOR_ID`. It can also be
+  run on its own: `PYTHONPATH=backend .venv/bin/python scripts/provision_documentai.py`.
 
 ### 3.4 Verify model access
 
@@ -163,7 +171,11 @@ cd frontend && npm run dev
    open Level 2. Its `rerank` stage calls the Discovery Engine Ranking API (`discoveryengine.googleapis.com`,
    enabled by the bootstrap script; `RERANKER_MODEL`, `RANKING_TIMEOUT_SECONDS`, `HYBRID_CANDIDATE_K` = 50,
    `RERANK_TOP_N` = 5). A Ranking API error fails the stage — there is no fallback ranker.
-5. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
+5. **Level 3**: with `DOCAI_*` set and `level3_multimodal` in `ENABLED_LEVELS`, run the Level 3 ingestion job
+   (`multimodal` tier). `parse` calls the Layout Parser online (PDFs split into ≤ 15-page requests; $10 per
+   1,000 pages) and Gemini vision on diagram pages; pages whose transcription is unusable are listed in
+   `vision_failed_pages`. There is no PyMuPDF text fallback — a missing or failing processor fails `parse`.
+6. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
    `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted.
 
 ---

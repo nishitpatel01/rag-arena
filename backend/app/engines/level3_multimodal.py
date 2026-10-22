@@ -25,7 +25,7 @@ from typing import Any
 
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
-from app.core.models import DocumentChunk, EngineFlags, EngineResult, TokenUsage
+from app.core.models import DocumentChunk, EngineFlags, EngineResult, StageRecord, TokenUsage
 from app.core.models_catalog import ModelSpec
 from app.core.pricing import cost_from_usage, rank_billed_counts, rank_cost_usd
 from app.core.ranking import RankingClient
@@ -68,6 +68,24 @@ L3_INSTRUCTION = (
     " the components and connections a vision model transcribed from the diagram image."
 )
 _ELEMENT_TAGS = {"table": "[TABLE]", "diagram": "[DIAGRAM transcription]"}
+
+
+@dataclass(frozen=True)
+class MultimodalSearch:
+    """Outcome of ``Level3MultimodalEngine.search_multimodal`` (measured counts + the stage records it produced)."""
+
+    chunks: tuple[DocumentChunk, ...]
+    candidates: int
+    filtered_candidates: int
+    embedding_tokens: int
+    rank_billed_counts: int
+    stage_records: tuple[StageRecord, ...]
+
+    def stage_payload(self, stage: str) -> dict[str, Any]:
+        for record in self.stage_records:
+            if record.stage == stage and record.status == "completed":
+                return dict(record.payload)
+        return {}
 
 
 @dataclass(frozen=True)
@@ -260,6 +278,34 @@ class Level3MultimodalEngine(Level2HybridEngine):
             "candidates": [candidate_summary(c) for c in candidates[:_MAX_CANDIDATES_IN_PAYLOAD]],
         }
 
+    async def search_multimodal(
+        self,
+        query: str,
+        *,
+        solicitation_filter: str | None,
+        element_types: tuple[str, ...],
+        genai_client: Any,
+        bq_client: Any,
+        emitter: StageEmitter,
+    ) -> MultimodalSearch:
+        """The Level 3 retrieval pipeline without synthesis (Level 4 ``search_procurement_corpus`` tool body).
+
+        prep → multimodal embed → RRF(embedding_multimodal) → optional element_type post-filter of the RRF candidates →
+        Ranking API → top ``RERANK_TOP_N``. Stages are emitted into ``emitter`` (Level 4 passes a ``NullStageEmitter``
+        so the measured records are kept without separate SSE stages). Errors propagate (no fallback)."""
+        prepared = prepare_l3_query(query)
+        vector, embedding_tokens = await embed_query_stage(
+            self, prepared.base.prepared, genai_client, emitter, model=self.settings.multimodal_embedding_model
+        )
+        candidates = await self._retrieve(vector, prepared.base.original, solicitation_filter, bq_client, emitter)
+        kept = [c for c in candidates if not element_types or c.chunk.element_type in element_types]
+        ranked: list[RerankedCandidate] = await self._rerank(prepared.base.original, kept, emitter) if kept else []
+        top = tuple(replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: self.settings.rerank_top_n])
+        return MultimodalSearch(
+            chunks=top, candidates=len(candidates), filtered_candidates=len(kept), embedding_tokens=embedding_tokens,
+            rank_billed_counts=rank_billed_counts(len(kept)) if kept else 0, stage_records=self.stage_log_of(emitter),
+        )
+
     async def _synthesize_l3(
         self, query: str, chunks: list[DocumentChunk], emitter: StageEmitter, embedding_tokens: int
     ) -> tuple[str, TokenUsage]:
@@ -307,6 +353,7 @@ __all__ = [
     "EMBEDDING_COLUMN",
     "L3_INSTRUCTION",
     "Level3MultimodalEngine",
+    "MultimodalSearch",
     "authority_header",
     "authority_order",
     "build_authority_context",

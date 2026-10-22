@@ -321,3 +321,33 @@ WHERE c.tier_profile = '{tier}'
 ORDER BY f.rrf_score DESC, f.chunk_id
 LIMIT {top_k};
 """
+
+
+AMENDMENT_LOOKUP_LIMIT = 6
+
+
+def build_amendment_lookup_sql(project_id: str, dataset_id: str, table_id: str, *, limit: int = AMENDMENT_LOOKUP_LIMIT) -> str:
+    """Level 4 ``check_amendments``: AMENDMENT rows of tier 'multimodal' whose comma-separated ``amends_section`` names
+    ``@section_id`` (exact, or a parent/child clause such as SEC-4.2 ↔ SEC-4.2.1), latest amendment first.
+
+    User input only enters through ``@solicitation_id`` and ``@section_id`` (STRING parameters); identifiers are
+    validated; ``limit`` is bounded."""
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    if not isinstance(limit, int) or isinstance(limit, bool) or not (1 <= limit <= 20):
+        raise ValueError("limit must be an integer between 1 and 20")
+    return f"""SELECT
+  chunk_id, solicitation_id, doc_name, doc_type, element_type, section_id, amendment_number,
+  effective_date, amends_section, page_number, bbox, content, layout_source, bbox_source
+FROM `{proj}.{dataset}.{table}`
+WHERE tier_profile = 'multimodal'
+  AND solicitation_id = @solicitation_id
+  AND amendment_number > 0
+  AND EXISTS (
+    SELECT 1 FROM UNNEST(SPLIT(IFNULL(amends_section, ''), ',')) AS target
+    WHERE TRIM(target) != ''
+      AND (UPPER(TRIM(target)) = UPPER(@section_id)
+        OR STARTS_WITH(UPPER(TRIM(target)), CONCAT(UPPER(@section_id), '.'))
+        OR STARTS_WITH(UPPER(@section_id), CONCAT(UPPER(TRIM(target)), '.')))
+  )
+ORDER BY amendment_number DESC, effective_date DESC, LENGTH(content) DESC, chunk_id
+LIMIT {limit}"""

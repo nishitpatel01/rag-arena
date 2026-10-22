@@ -11,8 +11,6 @@ RRF + Discovery Engine Ranking API) have each run end-to-end on a live GCP proje
 recordings). Compare, Levels 3–5 and the Cloud Run deployment are planned and are marked as such everywhere
 below.
 
-![Level 1 page while a run is in progress: stage rail, live architecture diagram and details pane](docs/screenshots/03-level1-running.png)
-
 ---
 
 ## Why v3: measured, not simulated
@@ -79,7 +77,7 @@ flowchart LR
 The UI draws the same graph live from `GET /api/v1/levels` (design metadata only — nodes, edges, code
 references); all state on it comes from SSE events.
 
-![Level 1 architecture diagram after a completed run, each node showing its measured duration](docs/screenshots/09-architecture-done.png)
+![Level 1 run in progress: the stage rail, the live architecture diagram highlighting the active node, and the details pane following it](docs/screenshots/03-level1-running.png)
 
 ---
 
@@ -126,95 +124,31 @@ so the lineage header tells both the ranker and the synthesis model what kind of
 
 ---
 
-## Stage-by-stage walkthrough
+## What each stage shows
 
-Every value below is read from the stage event payloads emitted by the engine (and recorded verbatim in
+Every value is read from the stage event payloads the engine emits (and that recordings store verbatim in
 `data/recordings/`).
 
-### `query_prep`
-![query_prep stage detail](docs/screenshots/04-stage-query-prep.png)
-- Shows `original_query`, `prepared_query` and `expansions` (always empty at Level 1 — no acronym expansion yet).
-- Runs locally; its measured duration is typically 0 ms.
+| Stage | Level 1 | Level 2 adds |
+| :-- | :-- | :-- |
+| `query_prep` | original and prepared query (local, ~0 ms) | deterministic 16-acronym expansion (CLIN, SLA, RTO, …) with a word-level diff |
+| `embed_query` | model, `task_type=RETRIEVAL_QUERY`, 3072 dimensions, billed token count | — |
+| `retrieve` | parameterized `VECTOR_SEARCH` SQL, rows, scores, BigQuery `job_id`, bytes scanned, cache hit | one hybrid SQL statement: up to 50 candidates with `vector_rank`, `lexical_rank`, RRF score, and BigQuery's verbatim index-usage report |
+| `rerank` | — | Discovery Engine Ranking API over all candidates: RRF rank → rerank rank, scores, truncated records, billed counts, cost; an API error fails the stage (no fallback ranker) |
+| `synthesize` | prompt with top-5 chunks, selected model, prompt/output/thinking tokens from the provider's usage block | same, with `[doc · section · page]` context labels |
+| `evaluate` | judge model (must differ from synthesis), groundedness / QA relevance / context precision, rationale, judge tokens and cost | — |
 
-### `embed_query`
-![embed_query stage detail](docs/screenshots/05-stage-embed-query.png)
-- Exact request: model, `task_type=RETRIEVAL_QUERY`, the formatted `contents`, method `models.embed_content`.
-- Response: `dimensions` (3072) and the `token_count` reported by Vertex AI (billed at the embedding rate).
+Also in the UI:
 
-### `retrieve`
-![retrieve stage detail with the parameterized VECTOR_SEARCH SQL](docs/screenshots/06-stage-retrieve.png)
-- The parameterized `VECTOR_SEARCH` SQL actually sent (the query vector is a parameter; a 4-dim preview is shown).
-- `rows_returned`, similarity `scores[]`, `chunk_ids`, BigQuery `job_id`, `bytes_processed`, `slot_millis`, `cache_hit`.
-- Brute-force scans read ≈130 MB per query (129,597,081 bytes in the recordings); BigQuery cache hits show 0 bytes.
-
-### `synthesize`
-![synthesize stage detail](docs/screenshots/07-stage-synthesize.png)
-- The grounded prompt (system instruction + top-5 chunks + question) and the selected model.
-- `prompt_tokens`, `output_tokens`, `thinking_tokens` from the provider's usage block (never estimated), `stop_reason`, `attempts`.
-
-### `evaluate`
-![evaluate stage detail with judge metrics and rationale](docs/screenshots/08-stage-evaluate.png)
-- The judge returns strict JSON: groundedness, QA relevance (against the golden reference answer when the question is a golden one), context precision, rationale.
-- Judge tokens and judge cost are shown; the run cost is engine cost + judge cost.
-
-### Citations & document viewer
-![citation drawer showing the real PDF page with the cited excerpt highlighted](docs/screenshots/10-citation-drawer.png)
-- Clicking a citation opens a drawer with the real PDF page rendered by PyMuPDF (`GET /api/v1/documents/page`).
-- Highlights come from `GET /api/v1/documents/highlights` (`page.search_for` on the excerpt); `matched:false` is shown when nothing matches.
-
-### Model picker
-![synthesis and judge model picker](docs/screenshots/02-model-picker.png)
-- Choose the synthesis and judge model per run from the verified catalog (`GET /api/v1/models`).
-- Judge ≠ synthesis is enforced in the UI and again on the server (HTTP 400). In replay, only recorded pairs can run.
-
-### Ingestion job & ingest status
-![ingestion job streaming its stages](docs/screenshots/11-ingest-job-running.png)
-![ingest status with live counts and index states](docs/screenshots/12-ingest-status.png)
-- `/ingest` starts a visible job per level with its own SSE stream (stage rail, per-document progress, embed progress).
-- Status shows live `COUNT(*)` per tier and index states exactly as BigQuery reports them (e.g. a vector index `ACTIVE` with low coverage, or a search index `TEMPORARILY DISABLED` on tables below 10 GB).
-
-### Leaderboard
-![leaderboard grouped by model pair](docs/screenshots/13-leaderboard.png)
-- `GET /api/v1/leaderboard` aggregates recordings of real runs per (engine, synthesis model, judge model) — never across pairs, since different judges are different scales.
-- Every row carries provenance (`recorded_at`, `git_sha`, model ids); the Battle Score is 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency.
-
-### Dark mode & overview
-![Level 1 page in dark mode](docs/screenshots/14-level1-dark.png)
-![overview page with the level ladder](docs/screenshots/01-overview.png)
-- Light / dark / system theme (persisted locally); earthy, low-chroma design tokens.
-- The overview shows the five-level ladder; locked levels say which sign-off they are waiting for.
-
----
-
-## Level 2 walkthrough
-
-Level 2 adds a visible `rerank` stage and richer payloads for `query_prep` and `retrieve`; `embed_query`,
-`synthesize` and `evaluate` work as in Level 1 (shared stage bodies in `engines/common_stages.py`), with
-synthesis context labelled `[doc | Sec: … | p.N]` and up to 6,000 characters per chunk.
-
-### `query_prep` — acronym expansion
-![Level 2 query_prep showing the expanded query diff](docs/screenshots/17-level2-query-prep.png)
-- A deterministic 16-entry map (CLIN, SLA, RTO, RPO, QASP, PEP, SOW, RFP, MSA, ZTA, VPC, VPN, BGP, ASN, KMS,
-  GKE) expands upper-case acronyms as whole tokens (`CLIN-0004-AB` counts as CLIN).
-- The payload lists every applied expansion; the prepared query is the original plus a glossary suffix, and
-  the UI shows the word-level diff. The embedding uses the prepared query; lexical terms use the original.
-
-### `retrieve` — hybrid RRF candidates
-![Level 2 retrieve stage: 50 RRF candidates with vector and lexical ranks](docs/screenshots/15-level2-retrieve-candidates.png)
-- The exact hybrid SQL and parameters (`@query_embedding` preview, `@lexical_query`, `@lexical_terms`).
-- Up to 50 candidates, each with `vector_rank`, `lexical_rank` (null when that leg missed it),
-  `vector_distance` and `rrf_score`; `with_both_ranks` counts chunks found by both legs.
-- BigQuery job facts: `job_id`, `bytes_processed`, `slot_millis`, `cache_hit`, and `index_usage` — BigQuery's own
-  `indexUsageMode` and unused-index reasons for the search and vector indexes, verbatim.
-
-### `rerank` — Discovery Engine Ranking API
-![Level 2 rerank stage: before/after ranks and scores](docs/screenshots/16-level2-rerank.png)
-- All RRF candidates are sent in one `rankingConfigs.rank` call (title = document + section, content truncated
-  to 3,600 characters to stay under the model's per-record token limit; `records_truncated` says how many).
-- Every candidate gets a rerank score; the UI shows RRF rank → rerank rank movement, and the top
-  `RERANK_TOP_N` (5) go to synthesis, citations and the judge.
-- Measured `rank_api_ms`, `attempts`, `billed_counts` and `cost_usd`. A Ranking API error fails the stage —
-  there is no heuristic or lexical fallback ranker.
+- **Citations** open a drawer with the real PDF page (rendered by PyMuPDF) and the cited excerpt located on it
+  with `page.search_for`; when the excerpt can't be found it says so instead of guessing.
+- **Model picker**: choose the synthesis and judge models per run from the verified catalog; judge ≠ synthesis
+  is enforced in the UI and on the server.
+- **Ingestion** (`/ingest`): a visible job per level with its own stage rail, per-document and embedding
+  progress, and index states exactly as BigQuery reports them.
+- **Leaderboard**: aggregates recordings per (engine, synthesis model, judge model), never across pairs.
+- **Light / dark / system** themes, and a **Safe mode** that masks project id, bucket and project number for
+  screen sharing.
 
 ---
 

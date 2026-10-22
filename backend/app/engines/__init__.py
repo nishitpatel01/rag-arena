@@ -50,8 +50,8 @@ def _resolve(settings: ArenaSettings | None) -> ArenaSettings:
 def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | None = None) -> BaseRAGEngine:
     """Instantiate the engine for ``level_id`` for one run: live class in live/record, a replay player in replay.
 
-    ``models`` is the run's (synthesis, judge) selection. Levels 1 and 2 synthesize with ``models.synthesis``; replay
-    plays the recording of exactly that pair. Legacy levels (3–5) cannot switch models yet and reject any
+    ``models`` is the run's (synthesis, judge) selection. Levels 1–3 synthesize with ``models.synthesis``; replay
+    plays the recording of exactly that pair. Legacy levels (4–5) cannot switch models yet and reject any
     synthesis model other than ``GEMINI_FAST_MODEL`` (fail loud, never a silent substitution).
     """
     if level_id not in _ENGINE_CLASS_BY_ID:
@@ -68,7 +68,7 @@ def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | Non
             settings=settings,
             models=models,
         )
-    if cls in (Level1NaiveEngine, Level2HybridEngine):
+    if cls in (Level1NaiveEngine, Level2HybridEngine, Level3MultimodalEngine):
         return cls(settings=settings, synthesis_model=models.synthesis if models else None)
     if models is not None and models.synthesis.id != settings.gemini_fast_model:
         raise ValueError(

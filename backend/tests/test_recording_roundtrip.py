@@ -191,3 +191,21 @@ def test_pytest_run_leaves_the_committed_dev_fixture_untouched() -> None:
     before = hashlib.sha256(DEV_FIXTURE.read_bytes()).hexdigest()
     test_generate_dev_fixture_from_mocked_live_run()
     assert hashlib.sha256(DEV_FIXTURE.read_bytes()).hexdigest() == before
+
+
+def test_codec_round_trips_level3_citation_provenance_fields() -> None:
+    """Replay must keep Level 3 citation layout_source/bbox_source (they drive honest region labels in the UI)."""
+    from app.recording.codec import _citation_from_dict
+
+    raw = {
+        "chunk_id": "c1", "doc_name": "03_Technical_Exhibit_Architecture.pdf", "solicitation_id": "solicitation_01",
+        "page_number": 1, "section_id": None, "element_type": "diagram",
+        "bbox": {"page": 1, "x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0}, "excerpt": "VPC failover",
+        "layout_source": "gemini_vision", "bbox_source": "page",
+    }
+    citation = _citation_from_dict(raw)
+    assert citation.layout_source == "gemini_vision"
+    assert citation.bbox_source == "page"
+    assert citation.to_dict()["layout_source"] == "gemini_vision"
+    legacy = _citation_from_dict({k: v for k, v in raw.items() if k not in ("layout_source", "bbox_source")})
+    assert legacy.layout_source == "" and legacy.bbox_source == ""

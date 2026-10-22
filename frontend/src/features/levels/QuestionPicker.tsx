@@ -8,6 +8,7 @@ import { validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
 import type { RunGate } from "../ingest/ingestStatus";
 import { ModelPicker } from "./ModelPicker";
+import { isMockRequested } from "./useBattleStream";
 import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
 import type { ModelCatalogState } from "./useModelCatalog";
 
@@ -69,7 +70,8 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
   const idError = QUESTION_ID_PATTERN.test(questionId) ? null : "question_id may contain only letters, digits, `_ . -` (max 80).";
   const { catalog, selection } = models;
   const modelError = catalog && selection ? validateSelection(catalog, selection) : null;
-  const replay = catalog && selection ? replayGate(catalog, levelId, questionId, selection) : null;
+  // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.
+  const replay = catalog && selection && !isMockRequested() ? replayGate(catalog, levelId, questionId, selection) : null;
   const disabled =
     isStreaming || validation !== null || idError !== null || gate.blocked || modelError !== null || Boolean(replay?.blockedReason);
   const runModels = catalog && selection ? selection : null;

@@ -62,6 +62,8 @@ def _build_diagram_commands(title: str, nodes: Sequence[str]) -> list[str]:
         "0.18 0.36 0.62 RG",
         "1.5 w",
         "48 210 516 175 re S",
+        # Dark ink for text: without it the title/labels inherit the near-white box fill and are invisible when rendered.
+        "0.10 0.16 0.28 rg",
         "BT /F2 10 Tf 60 368 Td (" + _escape_pdf_text(f"VECTOR DIAGRAM: {title}") + ") Tj ET",
     ]
     for idx, node in enumerate(nodes[:6]):
@@ -75,6 +77,7 @@ def _build_diagram_commands(title: str, nodes: Sequence[str]) -> list[str]:
             "0.22 0.45 0.72 RG",
             "1.0 w",
             f"{x} {y} 145 42 re S",
+            "0.10 0.16 0.28 rg",
             f"BT /F1 8 Tf {x + 8} {y + 18} Td ({_escape_pdf_text(node)}) Tj ET",
         ])
         if col < 2 and idx + 1 < len(nodes):

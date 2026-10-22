@@ -25,6 +25,18 @@ variable "bq_dataset_id" {
   default     = "rag_arena"
 }
 
+variable "docai_location" {
+  description = "Document AI multi-region for the Level 3 Layout Parser processor (us or eu)"
+  type        = string
+  default     = "us"
+}
+
+variable "docai_layout_parser_display_name" {
+  description = "Display name of the Level 3 Layout Parser processor (the app identifies its processor by this exact name)"
+  type        = string
+  default     = "rag-arena-layout-parser"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -104,6 +116,22 @@ resource "google_bigquery_table" "document_chunks" {
     },
     { name = "content", type = "STRING", mode = "NULLABLE" },
     { name = "embedding", type = "FLOAT64", mode = "REPEATED" },
-    { name = "embedding_multimodal", type = "FLOAT64", mode = "REPEATED" }
+    { name = "embedding_multimodal", type = "FLOAT64", mode = "REPEATED" },
+    { name = "bbox_source", type = "STRING", mode = "NULLABLE" }
   ])
+}
+
+# Level 3: Document AI Layout Parser processor (tables, headings, figures). Put its short id (last path segment of
+# the resource name, never the full name) in the git-ignored .env as DOCAI_PROCESSOR_ID; the processor version used
+# per request is DOCAI_PROCESSOR_VERSION (e.g. pretrained-layout-parser-v1.5-2025-08-25).
+resource "google_document_ai_processor" "layout_parser" {
+  location     = var.docai_location
+  display_name = var.docai_layout_parser_display_name
+  type         = "LAYOUT_PARSER_PROCESSOR"
+  depends_on   = [google_project_service.rag_arena_apis]
+}
+
+output "docai_layout_parser_processor_id" {
+  description = "Short processor id for DOCAI_PROCESSOR_ID"
+  value       = element(split("/", google_document_ai_processor.layout_parser.id), length(split("/", google_document_ai_processor.layout_parser.id)) - 1)
 }

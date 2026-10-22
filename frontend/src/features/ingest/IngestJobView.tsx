@@ -9,6 +9,7 @@ import { ArchitectureDiagram } from "../levels/ArchitectureDiagram";
 import { StageRail } from "../levels/StageRail";
 import { deriveIngestProgress } from "../levels/model";
 import { INGEST_STAGE_IDS } from "../../types/arena";
+import { ingestParseItems, isReleaseCandidateChannel, parseIngestParse } from "../levels/level3Payloads";
 import type { IngestJobStream } from "./useIngestJobStream";
 
 export interface IngestJobViewProps {
@@ -27,6 +28,11 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
   const startedEvent = job.state.events.find((e) => e.event === "job_started");
   const jobTier = startedEvent && startedEvent.event === "job_started" ? startedEvent.tier_profile : null;
   const embedPct = progress.embed && progress.embed.total > 0 ? Math.round((progress.embed.done / progress.embed.total) * 100) : null;
+  // Level 3 parse stage (Document AI layout + Gemini vision); null for Levels 1–2 parse payloads.
+  const parseView = parseIngestParse(timeline?.stages.parse?.payload ?? null);
+  const showTables = progress.docs.some((d) => d.tables !== null);
+  const showDiagrams = progress.docs.some((d) => d.diagrams !== null);
+  const showVision = progress.docs.some((d) => d.visionOk !== undefined && d.visionOk !== null);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]" data-testid="ingest-job-view">
@@ -71,6 +77,52 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
       </Panel>
 
       <div className="grid min-w-0 gap-4 xl:col-span-2 xl:grid-cols-2">
+        {parseView && (
+          <Panel title="Parse summary" subtitle="parse stage payload · Document AI layout + Gemini vision" className="xl:col-span-2">
+            <div className="flex flex-col gap-3" data-testid="ingest-parse-summary">
+              {parseView.truncated && (
+                <p className="text-xs text-clay" role="status">
+                  Note: payload truncated by telemetry bounds — some rows below may be missing (see raw payload).
+                </p>
+              )}
+              {isReleaseCandidateChannel(parseView.processorVersionChannel) && (
+                <p className="text-xs text-clay" role="status">
+                  Warning: Document AI processor version is a release candidate ({parseView.processorVersionChannel}).
+                </p>
+              )}
+              <KeyValue columns={2} label="Layout parse summary" items={ingestParseItems(parseView)} />
+              {parseView.visionPageRows.length > 0 && (
+                <DataTable
+                  caption="Diagram pages transcribed by Gemini vision"
+                  rows={parseView.visionPageRows}
+                  rowKey={(r, i) => `${r.docName}-${r.page}-${i}`}
+                  columns={[
+                    { key: "doc", header: "Document · page", render: (r) => `${r.docName}${r.page !== null ? ` · p.${r.page}` : ""}`, mono: true },
+                    { key: "title", header: "Diagram title", render: (r) => r.title ?? "—" },
+                    { key: "components", header: "Components", render: (r) => r.components ?? "—", align: "right" },
+                    { key: "connections", header: "Connections", render: (r) => r.connections ?? "—", align: "right" },
+                    { key: "ms", header: "Vision", render: (r) => formatMs(r.visionMs), align: "right", mono: true },
+                  ]}
+                />
+              )}
+              {parseView.visionFailedPages.length > 0 && (
+                <div role="alert" className="rounded-md border border-err p-2">
+                  <p className="mb-1 text-xs font-semibold text-err">Gemini vision failed on {parseView.visionFailedPages.length} page(s) — no diagram chunk was created for them</p>
+                  <DataTable
+                    caption="Vision transcription failures"
+                    rows={parseView.visionFailedPages}
+                    rowKey={(r, i) => `${r.docName}-${r.page}-${i}`}
+                    columns={[
+                      { key: "doc", header: "Document · page", render: (r) => `${r.docName}${r.page !== null ? ` · p.${r.page}` : ""}`, mono: true },
+                      { key: "type", header: "Error", render: (r) => r.errorType ?? "—", mono: true },
+                      { key: "msg", header: "Message", render: (r) => r.error ?? r.reason ?? "—" },
+                    ]}
+                  />
+                </div>
+              )}
+            </div>
+          </Panel>
+        )}
         <Panel title="Embedding progress" subtitle="embed_progress events">
           {progress.embed ? (
             <div className="flex flex-col gap-1.5">
@@ -98,6 +150,18 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
               { key: "doc", header: "Document", render: (r) => r.doc_name, mono: true },
               { key: "pages", header: "Pages", render: (r) => r.pages, align: "right" },
               { key: "chunks", header: "Chunks", render: (r) => r.chunks, align: "right" },
+              ...(showTables ? [{ key: "tables", header: "Tables", render: (r: (typeof progress.docs)[number]) => r.tables ?? "—", align: "right" as const }] : []),
+              ...(showVision
+                ? [
+                    {
+                      key: "vision",
+                      header: "Vision pages",
+                      render: (r: (typeof progress.docs)[number]) => `${r.visionOk ?? 0} ok${r.visionFailed ? ` · ${r.visionFailed} failed` : ""}`,
+                      align: "right" as const,
+                    },
+                  ]
+                : []),
+              ...(showDiagrams ? [{ key: "diagrams", header: "Diagrams", render: (r: (typeof progress.docs)[number]) => r.diagrams ?? "—", align: "right" as const }] : []),
             ]}
           />
         </Panel>

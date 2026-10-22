@@ -24,9 +24,13 @@ def embedding_token_count(embed_response: Any) -> int | None:
     return int(count) if isinstance(count, (int, float)) else None
 
 
-async def embed_query_stage(engine: Any, prepared: str, genai_client: Any, emitter: StageEmitter) -> tuple[list[float], int]:
-    """Embed the query in the same gemini-embedding-2 space as the ingested documents (RETRIEVAL_QUERY side)."""
-    model = engine.settings.text_embedding_model
+async def embed_query_stage(
+    engine: Any, prepared: str, genai_client: Any, emitter: StageEmitter, model: str | None = None
+) -> tuple[list[float], int]:
+    """Embed the query in the same gemini-embedding-2 space as the ingested documents (RETRIEVAL_QUERY side).
+
+    ``model`` defaults to ``TEXT_EMBEDDING_MODEL``; Level 3 passes ``MULTIMODAL_EMBEDDING_MODEL``."""
+    model = model or engine.settings.text_embedding_model
     contents = format_query_for_embedding(prepared)
     async with engine.stage(
         emitter,
@@ -52,10 +56,17 @@ async def synthesize_stage(
     context_chunks: int,
     emitter: StageEmitter,
     embedding_tokens: int,
+    *,
+    instruction: str | None = None,
+    embedding_model: str | None = None,
+    extra_payload: dict[str, Any] | None = None,
 ) -> tuple[str, TokenUsage]:
-    """Answer with the run's selected synthesis model (Gemini or Claude) through its provider adapter."""
+    """Answer with the run's selected synthesis model (Gemini or Claude) through its provider adapter.
+
+    ``instruction`` overrides the default grounding instruction (Level 3 authority rules); ``extra_payload`` keys are
+    merged into the stage payload (e.g. Level 3 ``authority_headers`` / ``element_mix``)."""
     synthesizer = build_synthesizer(spec, engine.settings)
-    prompt = build_prompt(context_block, query)
+    prompt = build_prompt(context_block, query, instruction) if instruction else build_prompt(context_block, query)
     async with engine.stage(
         emitter,
         "synthesize",
@@ -70,7 +81,7 @@ async def synthesize_stage(
             thinking_tokens=out.thinking_tokens,
             embedding_tokens=embedding_tokens,
             model=spec.id,
-            embedding_model=engine.settings.text_embedding_model,
+            embedding_model=embedding_model or engine.settings.text_embedding_model,
         )
         ctx.payload = {
             "model": spec.id,
@@ -85,6 +96,8 @@ async def synthesize_stage(
         }
         if isinstance(synthesizer, GeminiSynthesizer):
             ctx.payload["thinking_level"] = synthesizer.thinking_level
+        if extra_payload:
+            ctx.payload.update(extra_payload)
     return out.answer, usage
 
 

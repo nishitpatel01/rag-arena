@@ -67,13 +67,22 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - D6 tests: backend `182 passed`; frontend `npm test` 63/63, `npm run build` clean.
   - D7 owner sign-off: ✅ 2026-10-21 (owner: "level 2 signed off"); Level 2 enabled by default (`DEFAULT_ENABLED_LEVELS`, `.env.example`).
 
-## Phase 3 — Level 3: Layout-Aware Multimodal RAG (`level3_multimodal`)
-- [ ] Provision Document AI Layout Parser processor (`bootstrap_gcp.sh`, `infra/main.tf`); `ingestion/layout_documentai.py` (tables → Markdown, blocks → bbox, `layout_source='documentai_layout'`).
-- [ ] `ingestion/vision_transcribe.py`: render diagram pages → `gemini-4-argon` vision transcription (components + flows), `layout_source='gemini_vision'`; single-page PDF bytes for `embedding_multimodal`.
-- [ ] Ingestion job `multimodal` tier with per-page progress; `embedding_multimodal` vector index built.
-- [ ] Stages: `query_prep`, `embed_query` (multimodal), `retrieve` (pre-filter + authority headers shown in payload), `rerank`, `synthesize`, `evaluate`.
-- [ ] UI: viewer renders page image with table/diagram bbox overlays; stage detail shows the transcription used.
-- [ ] Record + replay; gate D1–D7 evidence: `…`
+## Phase 3 — Level 3: Layout-Aware Multimodal RAG (`level3_multimodal`) — branch `phase-3/level3-multimodal`
+- [x] Provision Document AI Layout Parser processor `rag-arena-layout-parser` (`scripts/provision_documentai.py`, `bootstrap_gcp.sh`, `infra/main.tf`; ids env-only); `ingestion/layout_documentai.py` (v1.5 release candidate: tables → Markdown, ≤15-page split, element bbox located on the PDF text layer with `bbox_source`). (`43ba563`, `d1b694b`)
+- [x] `ingestion/vision_transcribe.py`: diagram pages rendered → Gemini vision component/flow transcription (`layout_source='gemini_vision'`); non-diagram figure pages recorded in `vision_failed_pages`, never invented. Corpus diagram labels redrawn in dark ink (text layer unchanged). (`a3298ef`, `d1b694b`)
+- [x] Ingestion job `multimodal` tier with per-page progress; `embedding_multimodal` vector index → `NOT CREATED` (BigQuery allows one vector index per table; reported verbatim, VECTOR_SEARCH brute-forces). (`d1b694b`)
+- [x] Stages: `query_prep` (element intent), `embed_query`, `retrieve` (multimodal RRF, element/layout/bbox fields), `rerank`, `synthesize` (authority headers, latest amendment first), `evaluate`. (`7c80822`)
+- [x] UI: element/layout/bbox-source badges, authority headers, element mix, citation drawer with full Gemini diagram transcription, ingest parse summary. (`9c44716`, `5a3058a`); replay codec keeps citation provenance (`3735c1c`).
+- [x] Record + replay (`958a7ad`); README Level 3 section with one screenshot (`19-level3.png`).
+- [x] Gate evidence D1–D7:
+  - D1 ingestion (live, 2026-10-22): job `ing_02fecff2eb91` → `job_complete`; parse 578.6 s (45 docs, 526 pages, 59 Document AI requests, 76 tables, 14 figures, 3 vision pages, 8 vision_failed_pages on logo/signature pages) · chunk 11.0 s (1,599: narrative 1520 / table 76 / diagram 3) · embed 40.9 s (1,599 × 3072-d, 3 image items) · load 34.7 s · build_indexes 60.4 s · verify 1.2 s; `counts_by_tier {"naive": 5067, "hybrid": 526, "multimodal": 1599}`. Index states verbatim: `document_chunks_v3_vec_idx` ACTIVE (coverage 77%); `document_chunks_v3_mm_vec_idx` NOT CREATED (one vector index per table); search index TEMPORARILY DISABLED.
+  - D2 stage emission: all six stages engine-emitted with measured `duration_ms`; per-candidate element_type / layout_source / bbox_source; synthesis payload lists authority headers in context order.
+  - D3 live runs (Argon + Opus): `run_0d9ea0fe93f6` q_vpc_failover_diagram 0.95 / 1.00 / 0.85 (cites the Gemini diagram chunk); `run_eaa7b7b87aea` q_zero_trust_pep_diagram 0.95 / 0.95 / 0.55; `run_f26280c0901b` q_amendment_rate_comparison 0.97 / 0.96 / 0.85 (context led by the Amendment 0002 authority header). Cold retrieve 41.3 MB scanned.
+  - D4 UI: replay of q_vpc_failover_diagram — citation drawer on the diagram with "Gemini vision diagram · whole page — region not located" and the full transcription (`docs/screenshots/19-level3.png`, safe mode + identity guard).
+  - D5 recordings: 2 pairs × 8 golden questions in `data/recordings/level3_multimodal/`. Averages G / QA / CP · latency · run cost: Argon+Opus L3 0.932 / 0.825 / 0.694 · 26.7 s · $0.0428 (L2 0.971 / 0.838 / 0.644; L1 0.956 / 0.693 / 0.715); Flash+Opus L3 0.963 / 0.825 / 0.704 · 18.4 s · $0.0271 (L2 0.984 / 0.855 / 0.637; L1 0.934 / 0.672 / 0.715). Weak spots for Level 4: soc_p1 (QA 0.55) and cross-solicitation math (0.35 / 0.25).
+  - D6 tests: backend `208 passed`; frontend `npm test` 84/84, `npm run build` clean.
+  - Cost: ≈ $11.0 of the owner-approved $12 (first full pass aborted at ≈ $4.5 before the per-page vision fix).
+  - D7 owner sign-off: ✅ 2026-10-22 (owner: "looks good"; UI tweaks deferred until all levels are done); Level 3 enabled by default.
 
 ## Phase 4 — Level 4: Agentic RAG with Google ADK (`level4_agentic`)
 - [ ] Real ADK path: `InMemoryRunner` + `session_service.create_session`, `run_async`, Vertex env (`GOOGLE_GENAI_USE_VERTEXAI`, project, location); bounded `max_turns=8`, timeout; ADK events → `agent_turn` SSE as they happen; final ADK text is the answer.
@@ -88,6 +97,7 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 - [ ] Record + replay; gate D1–D7 evidence: `…`
 
 ## Phase 6 — Compare, Leaderboard, Public Packaging
+- [ ] Owner UI changes (requested 2026-10-22, details to be provided once all levels are done).
 - [ ] `/compare`: concurrent run of enabled levels, stacked stage rails, Battle Score from `query_runs`.
 - [ ] `/leaderboard`: aggregated from `query_runs` (live) or recordings (replay); provenance shown per row; delete hand-typed `precomputed_runs.json` metrics.
 - [ ] README rewrite (v3 claims only), `publish.json` scrub check, `docker compose up` in replay.

@@ -271,6 +271,12 @@ export interface Citation {
   readonly element_type: string;
   readonly bbox: BoundingBox;
   readonly excerpt: string;
+  /** Level 3: service that produced the element ("documentai_layout" | "gemini_vision" | "pymupdf"). */
+  readonly layout_source?: string | null;
+  /** Level 3: who located `bbox` — "documentai" | "pdf_text_layer" | "page" (whole page, not located). */
+  readonly bbox_source?: string | null;
+  /** Level 3 (provisional): Document AI / vision region bbox when sent separately from `bbox`. */
+  readonly region_bbox?: BoundingBox | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -370,6 +376,14 @@ export interface AnswerCompleteEvent extends BaseEvent {
   readonly cost_usd: number;
   readonly usage: TokenUsage;
   readonly flags: EngineFlags;
+  /** Chunks the engine retrieved (full `content`; citation excerpts are capped at 240 chars). */
+  readonly retrieved_chunks?: readonly JsonObject[];
+}
+
+/** Minimal view of a retrieved chunk kept on the timeline (full text for the diagram transcription box). */
+export interface RetrievedChunkText {
+  readonly chunk_id: string;
+  readonly content: string;
 }
 
 export interface EvalCompleteEvent extends BaseEvent {
@@ -470,6 +484,12 @@ export interface DocProgressEvent extends BaseJobEvent {
   readonly doc_name: string;
   readonly pages: number;
   readonly chunks: number;
+  /** Level 3 (multimodal tier): Document AI tables / diagram pages found in this document. */
+  readonly tables?: number;
+  readonly diagrams?: number;
+  /** Level 3 parse sub-step ("documentai" | "gemini_vision") and its outcome. */
+  readonly step?: string;
+  readonly status?: string;
 }
 
 export interface EmbedProgressEvent extends BaseJobEvent {
@@ -548,6 +568,8 @@ export interface AgentTurnRecord {
 export interface EngineAnswer {
   readonly answer: string;
   readonly citations: readonly Citation[];
+  /** From `answer_complete.retrieved_chunks` (chunk_id + content only); empty when the server sent none. */
+  readonly retrievedChunks: readonly RetrievedChunkText[];
   readonly latencyMs: number;
   readonly costUsd: number;
   readonly usage: TokenUsage;

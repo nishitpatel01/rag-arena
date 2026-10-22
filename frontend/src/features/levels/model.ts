@@ -9,6 +9,7 @@ import type {
   BattleEvent,
   EngineTimeline,
   IngestEvent,
+  RetrievedChunkText,
   StageState,
   StreamInterruptedEvent,
 } from "../../types/arena";
@@ -215,6 +216,7 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
         answer: {
           answer: ev.answer,
           citations: ev.citations ?? [],
+          retrievedChunks: retrievedChunkTexts(ev.retrieved_chunks),
           latencyMs: ev.latency_ms,
           costUsd: ev.cost_usd,
           usage: ev.usage,
@@ -279,6 +281,21 @@ export function reduceStreamEvents(events: readonly TimelineEvent[]): StreamStat
   return events.reduce(reduceStreamEvent, INITIAL_STREAM_STATE);
 }
 
+/** Bound on retrieved chunks kept per answer (server sends ≤ a handful). */
+export const MAX_RETRIEVED_CHUNKS = 50;
+
+/** `retrieved_chunks[]` → {chunk_id, content} rows with non-empty strings (others dropped); bounded. */
+export function retrievedChunkTexts(raw: unknown): RetrievedChunkText[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RetrievedChunkText[] = [];
+  for (const item of raw.slice(0, MAX_RETRIEVED_CHUNKS)) {
+    if (typeof item !== "object" || item === null) continue;
+    const { chunk_id, content } = item as Record<string, unknown>;
+    if (typeof chunk_id === "string" && chunk_id.length > 0 && typeof content === "string" && content.length > 0) out.push({ chunk_id, content });
+  }
+  return out;
+}
+
 /** The stage currently `active` for an engine (first in stream order), or null. */
 export function activeStageId(tl: EngineTimeline | undefined): string | null {
   if (!tl) return null;
@@ -290,13 +307,26 @@ export function activeStageId(tl: EngineTimeline | undefined): string | null {
 
 /** Progress summary for ingest jobs, derived from doc/embed progress events. */
 export interface IngestProgress {
-  readonly docs: readonly { doc_name: string; pages: number; chunks: number }[];
+  readonly docs: readonly DocProgressRow[];
   readonly embed: { done: number; total: number; batchMs: number } | null;
   readonly countsByTier: Record<string, number> | null;
   readonly indexStates: Record<string, string> | null;
 }
 
-type DocProgressRow = { doc_name: string; pages: number; chunks: number };
+/** `tables` / `diagrams` are null unless a doc_progress event for the document reported them (Level 3). */
+export type DocProgressRow = {
+  doc_name: string;
+  pages: number;
+  chunks: number;
+  tables: number | null;
+  diagrams: number | null;
+  /** Level 3: Gemini vision page outcomes from doc_progress step="gemini_vision" (null when never reported). */
+  visionOk?: number | null;
+  visionFailed?: number | null;
+};
+
+const optCount = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
+const maxOpt = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
 
 /** One row per document: later doc_progress events (e.g. the chunk stage) update the parse-time row. */
 export function upsertDocProgress(rows: DocProgressRow[], next: DocProgressRow): void {
@@ -306,8 +336,19 @@ export function upsertDocProgress(rows: DocProgressRow[], next: DocProgressRow):
     return;
   }
   const prev = rows[idx];
-  rows[idx] = { doc_name: prev.doc_name, pages: Math.max(prev.pages, next.pages), chunks: Math.max(prev.chunks, next.chunks) };
+  rows[idx] = {
+    doc_name: prev.doc_name,
+    pages: Math.max(prev.pages, next.pages),
+    chunks: Math.max(prev.chunks, next.chunks),
+    tables: maxOpt(prev.tables, next.tables),
+    diagrams: maxOpt(prev.diagrams, next.diagrams),
+    ...(prev.visionOk !== undefined || next.visionOk !== undefined ? { visionOk: sumOpt(prev.visionOk, next.visionOk) } : {}),
+    ...(prev.visionFailed !== undefined || next.visionFailed !== undefined ? { visionFailed: sumOpt(prev.visionFailed, next.visionFailed) } : {}),
+  };
 }
+
+const sumOpt = (a: number | null | undefined, b: number | null | undefined): number | null =>
+  (a ?? null) === null && (b ?? null) === null ? null : (a ?? 0) + (b ?? 0);
 
 export function deriveIngestProgress(events: readonly TimelineEvent[]): IngestProgress {
   const docs: DocProgressRow[] = [];
@@ -315,7 +356,15 @@ export function deriveIngestProgress(events: readonly TimelineEvent[]): IngestPr
   let countsByTier: Record<string, number> | null = null;
   let indexStates: Record<string, string> | null = null;
   for (const ev of events) {
-    if (ev.event === "doc_progress") upsertDocProgress(docs, { doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks });
+    if (ev.event === "doc_progress") {
+      const row: DocProgressRow = { doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks, tables: optCount(ev.tables), diagrams: optCount(ev.diagrams) };
+      // Level 3 vision sub-step: one event per transcribed page with status ok | failed.
+      if (ev.step === "gemini_vision") {
+        row.visionOk = ev.status === "ok" ? 1 : 0;
+        row.visionFailed = ev.status === "failed" ? 1 : 0;
+      }
+      upsertDocProgress(docs, row);
+    }
     else if (ev.event === "embed_progress") embed = { done: ev.done, total: ev.total, batchMs: ev.batch_ms };
     else if (ev.event === "job_complete") {
       countsByTier = ev.counts_by_tier;

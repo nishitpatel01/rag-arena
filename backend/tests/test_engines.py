@@ -12,7 +12,7 @@ from app.core.telemetry import RecordingStageEmitter
 from app.engines import ENGINE_CLASSES, build_engine, get_engine_registry
 from app.engines.base import BaseRAGEngine
 from app.engines.level2_hybrid import Level2HybridEngine
-from app.engines.level3_multimodal import Level3MultimodalEngine
+from app.engines.managed_vertex import ManagedVertexSearchEngine
 from app.engines.level3_multimodal import format_chunk_with_authority_header
 from app.engines.level4_agentic import (
     build_adk_agent,
@@ -103,15 +103,16 @@ def test_level4_verify_citations_detects_unsupported_numeric_claims() -> None:
 
 
 def test_legacy_engines_emit_skipped_stages_then_fail_loud_under_one_legacy_stage() -> None:
-    emitter = RecordingStageEmitter(run_id="run_legacy", engine="level3_multimodal")
+    emitter = RecordingStageEmitter(run_id="run_legacy", engine="managed_vertex")
     with fake_clients():
-        engine = Level3MultimodalEngine(settings=live_settings(enabled_levels=("level3_multimodal",)))
+        engine = ManagedVertexSearchEngine(settings=live_settings(enabled_levels=("managed_vertex",)))
         with pytest.raises(Exception):
             run(engine.run_query("What is the CLIN-0004-AB rate?", question_id=None, solicitation_filter=None, emitter=emitter))
     kinds = [(e["event"], e["stage"]) for e in emitter.events]
-    assert kinds[:5] == [("stage_skipped", s) for s in ("query_prep", "embed_query", "retrieve", "rerank", "synthesize")]
-    assert kinds[5] == ("stage_started", "legacy") and kinds[6] == ("stage_failed", "legacy")
-    assert "Phase 3" in emitter.events[0]["reason"]
+    skipped = [s for s in engine.stages if s != "evaluate"]
+    assert kinds[: len(skipped)] == [("stage_skipped", s) for s in skipped]
+    assert kinds[len(skipped)] == ("stage_started", "legacy") and kinds[len(skipped) + 1] == ("stage_failed", "legacy")
+    assert "Phase 5" in emitter.events[0]["reason"]
     replay_emitter = RecordingStageEmitter(run_id="r2", engine="level2_hybrid")
     with pytest.raises(RuntimeError, match="replay"):
         run(Level2HybridEngine(settings=ArenaSettings(demo_mode="replay")).run_query("q", question_id=None, solicitation_filter=None, emitter=replay_emitter))
@@ -123,9 +124,11 @@ def test_level3_authority_header_formatting() -> None:
         doc_type="AMENDMENT", element_type="narrative_text", section_id="AMD-0001", amendment_number=1, effective_date="2026-02-15",
         amends_section="CLIN-0004-AB,SEC-4.2.1", page_number=1, bbox=_BBOX, content="Supersedes CLIN-0004-AB hourly rate to $245.00/hr.", score=0.95,
     )
-    assert "[AMENDMENT 0001 - SUPERSEDES CLIN-0004-AB,SEC-4.2.1]" in format_chunk_with_authority_header(amendment_chunk)
+    assert format_chunk_with_authority_header(amendment_chunk).startswith(
+        "[AMENDMENT 0001 · effective 2026-02-15 · SUPERSEDES CLIN-0004-AB,SEC-4.2.1] [TEXT] 06_Amendment_0001_Scope_Update.pdf · p.1 · AMD-0001\n"
+    )
     diagram_chunk = _chunk("c_diag", "Primary region us-central1, Failover region us-east4.", section_id="ARCH-TOPOLOGY-01", element_type="diagram", tier="multimodal")
-    assert "[ELEMENT: DIAGRAM | DOC: 04_Pricing_Schedule_CLINs.pdf | SEC: ARCH-TOPOLOGY-01]" in format_chunk_with_authority_header(diagram_chunk)
+    assert "[DIAGRAM transcription] 04_Pricing_Schedule_CLINs.pdf" in format_chunk_with_authority_header(diagram_chunk)
 
 
 def test_build_embedding_contents_for_multimodal_diagram_chunk() -> None:

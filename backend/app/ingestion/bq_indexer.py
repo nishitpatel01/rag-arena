@@ -68,9 +68,15 @@ CREATE TABLE IF NOT EXISTS `{fqn}` (
   content STRING NOT NULL,
   layout_source STRING,
   embedding ARRAY<FLOAT64>,
-  embedding_multimodal ARRAY<FLOAT64>
+  embedding_multimodal ARRAY<FLOAT64>,
+  bbox_source STRING
 )
 CLUSTER BY tier_profile, solicitation_id;
+
+-- 1a. Level 3 columns on tables created before Phase 3: added in place (existing rows keep NULL).
+ALTER TABLE `{fqn}`
+  ADD COLUMN IF NOT EXISTS embedding_multimodal ARRAY<FLOAT64>,
+  ADD COLUMN IF NOT EXISTS bbox_source STRING;
 
 -- 1b. Ingestion provenance: one row per visible ingestion job (spec §5).
 CREATE TABLE IF NOT EXISTS `{proj}.{dataset}.ingest_runs` (
@@ -301,6 +307,8 @@ SELECT
   c.page_number,
   c.bbox,
   c.content,
+  c.layout_source,
+  c.bbox_source,
   f.vector_rank,
   f.vector_distance,
   f.lexical_rank,

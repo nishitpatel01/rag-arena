@@ -176,7 +176,7 @@ def _row(chunk_id: str, tier: str = "naive", run: str = "ing_abc123def456") -> d
         "doc_name": "a.pdf", "doc_type": "RFP", "element_type": "narrative_text", "section_id": None,
         "amendment_number": 0, "effective_date": None, "amends_section": None, "page_number": 1,
         "bbox": {"page": 1, "x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0}, "content": "text", "layout_source": "pdf_stream_regex",
-        "embedding": [0.1, 0.2], "embedding_multimodal": [],
+        "embedding": [0.1, 0.2], "embedding_multimodal": [], "bbox_source": None,
     }
 
 

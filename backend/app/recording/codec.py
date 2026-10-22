@@ -66,6 +66,8 @@ def _citation_from_dict(raw: Any) -> Citation:
         element_type=str(d["element_type"]),
         bbox=_bbox_from_dict(d["bbox"]),
         excerpt=str(d.get("excerpt", "")),
+        layout_source=str(d.get("layout_source") or ""),
+        bbox_source=str(d.get("bbox_source") or ""),
     )
 
 

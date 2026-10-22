@@ -1,6 +1,6 @@
 # The RAG Arena v3 — System Architecture
 
-This document describes the architecture **as implemented** with Levels 1 and 2 live. Anything not yet built is
+This document describes the architecture **as implemented** with Levels 1–3 live. Anything not yet built is
 marked 🔒 *planned*. The product rule behind every decision: **nothing is shown that was not measured**
 (principles P1–P6 in the [README](../README.md#why-v3-measured-not-simulated)).
 
@@ -19,6 +19,7 @@ flowchart LR
         REG["engines registry<br/>gated by ENABLED_LEVELS"]
         L1["engines/level1_naive.py"]
         L2["engines/level2_hybrid.py"]
+        L3["engines/level3_multimodal.py"]
         RP["engines/replay_engine.py"]
         EV["evaluation/evaluator.py + judges.py"]
         IJ["ingestion/jobs.py<br/>IngestJobRunner"]
@@ -27,6 +28,7 @@ flowchart LR
     subgraph GCP["Google Cloud (live / record modes)"]
         VX["Vertex AI<br/>gemini-embedding-2 · Gemini · Claude rawPredict"]
         RA["Discovery Engine<br/>Ranking API (global)"]
+        DA["Document AI<br/>Layout Parser"]
         BQ["BigQuery rag_arena<br/>chunks table · ingest_runs · query_runs"]
     end
     FS[("data/recordings/**<br/>data/sample_docs/**")]
@@ -34,11 +36,12 @@ flowchart LR
     UI -- "POST /api/v1/battle/stream (SSE)" --> R
     UI -- "GET /api/v1/ingest/jobs/{id}/stream (SSE)" --> R
     UI -- "GET /api/v1/documents/*" --> D
-    R --> REG --> L1 & L2 & RP
+    R --> REG --> L1 & L2 & L3 & RP
     L1 --> VX & BQ
     L2 --> VX & BQ & RA
+    L3 --> VX & BQ & RA
     EV --> VX
-    IJ --> VX & BQ
+    IJ --> VX & BQ & DA
     R --> REC --> FS
     RP --> FS
     D --> FS
@@ -47,7 +50,7 @@ flowchart LR
 | Mode (`DEMO_MODE`) | Engines | Judge | Writes |
 | :-- | :-- | :-- | :-- |
 | `replay` (default) | `ReplayRAGEngine` per enabled level, streaming recorded events with original relative timing × `REPLAY_SPEED` | recorded judge outcome of the selected pair | nothing; no credentials needed |
-| `live` | real engines (Levels 1–2) | selected judge model, live | `query_runs` row per run; `ingest_runs` row per ingestion job |
+| `live` | real engines (Levels 1–3) | selected judge model, live | `query_runs` row per run; `ingest_runs` row per ingestion job |
 | `record` | `live` + recorder | live | `live` writes + `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` |
 
 Settings are validated once at startup (`core/config.py`); invalid configuration fails the process, and
@@ -133,6 +136,17 @@ LIMIT 5;
 | `synthesize` | Vertex AI · *selected model* | shared `common_stages.synthesize_stage` over the top `RERANK_TOP_N` (5) reranked chunks, context labelled `[doc \| Sec: … \| p.N]`, ≤ 6,000 chars each | as Level 1 |
 | `evaluate` | Vertex AI · *selected judge* | as Level 1 | as Level 1 |
 
+Full Level 2 payload fields (Level 3 adds the fields listed in §3c):
+
+| Stage | `stage_completed.payload` fields |
+| :-- | :-- |
+| `query_prep` | `original_query`, `prepared_query`, `expansions[]` (`term`, `expansion`) |
+| `retrieve` | `rows_returned`, `candidate_k`, `rrf_k`, `vector_k`, `lexical_k`, `with_both_ranks`, `candidates[]` (`chunk_id`, `doc_name`, `page_number`, `section_id`, `vector_rank`, `lexical_rank`, `vector_distance`, `rrf_score`), `job_id`, `bytes_processed`, `slot_millis`, `cache_hit`, `index_usage` (`search` / `vector_search`: `index_usage_mode`, `index_unused_reasons[]`) |
+| `rerank` | `service_used`, `model`, `candidates_in`, `candidates_out`, `results[]` (`chunk_id`, `doc_name`, `page_number`, `rrf_rank`, `rrf_score`, `rerank_rank`, `rerank_score`), `rank_api_ms`, `attempts`, `records_truncated`, `billed_counts`, `cost_usd` |
+
+The `rerank` request records `service`, `model`, `top_n`, `records_sent`, `query`, `method`
+(`rankingConfigs.rank`), `ranking_config`, `record_content_max_chars` and `context_k`.
+
 Hybrid statement (shape; user input enters only as `@query_embedding`, `@lexical_query`, `@lexical_terms` and
 optional `@solicitation_id`; the tier literal is validated against `('hybrid', 'multimodal')`):
 
@@ -159,6 +173,26 @@ the vector index is `PARTIALLY_USED`.
 
 ---
 
+## 3c. Level 3 query path (`engines/level3_multimodal.py`)
+
+Level 3 reuses the Level 2 stage shapes (hybrid RRF + Ranking API) over the `multimodal` tier and changes what the
+stages carry:
+
+| Stage | Level 3 behaviour (measured payload) |
+| :-- | :-- |
+| `query_prep` | Level 2 acronym expansion + `element_intent` from a deterministic keyword map (table / diagram / amendment), with `intent_matches` |
+| `embed_query` | `MULTIMODAL_EMBEDDING_MODEL` (`gemini-embedding-2`), `RETRIEVAL_QUERY`, same space as the ingested `embedding_multimodal` vectors |
+| `retrieve` | `build_hybrid_rrf_sql(..., embedding_column='embedding_multimodal', tier_profile='multimodal')`; candidates carry `element_type`, `layout_source`, `bbox_source`, amendment fields; payload adds `element_types`, `layout_sources`, `amendment_candidates` |
+| `rerank` | Ranking API, Level 2 contract (no fallback ranker) |
+| `synthesize` | top-5 ordered by authority — latest amendment first (`amendment_number`, then `effective_date`), then rerank order — each with a header such as `[AMENDMENT 0001 · effective … · SUPERSEDES SEC-4.2]` or `[BASE · <doc type> · effective …]` plus `[TABLE]` / `[DIAGRAM transcription]` / `[TEXT]` tags; payload `authority_headers`, `element_mix`, `context_order` |
+
+Known limitation: BigQuery allows one vector index per table, and the `embedding` index exists, so the
+`embedding_multimodal` index is not created and `VECTOR_SEARCH` on that column brute-forces (the retrieve payload
+reports `UNINDEXED_SEARCH_FIELDS`: the vector index "does not cover the column to search"). At scale the
+multimodal tier needs its own table.
+
+---
+
 ## 4. Model selection and evaluation
 
 - **Catalog** (`core/models_catalog.py`): `gemini-4-argon`, `gemini-3.8-flash` (provider `vertex_gemini`),
@@ -181,6 +215,13 @@ the vector index is `PARTIALLY_USED`.
   `RANKING_TIMEOUT_SECONDS` (default 30); a response that does not score exactly the records sent raises. No
   fallback ranker. Price: $1.00 per 1,000 counts, one count = one query of ≤ 100 documents
   (`pricing.rank_billed_counts`, `price_as_of` 2026-10-21).
+- **Document AI Layout Parser** (Level 3 ingestion only): $10 per 1,000 pages (`DOCAI_USD_PER_PAGE` in
+  `ingestion/multimodal_job.py`, source `https://cloud.google.com/document-ai/pricing`, read 2026-10-22); online
+  `:process` requests are limited to 15 pages, so PDFs are split into ≤ 15-page ranges (≤ 30 pages per document,
+  concurrency 4). Vision transcription cost is computed from the `VISION_MODEL` token usage at `pricing.py` rates.
+- **Price notes** (`pricing.py`): Gemini 4 Argon is an introductory global rate through 2026-11-30; Gemini 3.8
+  Flash is introductory through 2026-12-31 ($1.50 / $7.50 from 2027-01-01); output rates include thinking tokens;
+  Claude Opus 5.5 is the global rate for ≤ 200K input tokens; Claude Fable 5.1 regional endpoints are $11 / $55.
 - **Judge** (`evaluation/judges.py`): strict parse of one JSON object
   `{groundedness, qa_relevance, context_precision, rationale}` with values in [0, 1]. QA relevance is graded
   against the golden `ground_truth_answer` when the run has a known `question_id`. Claude judges are called
@@ -197,15 +238,15 @@ the vector index is `PARTIALLY_USED`.
 
 ## 5. Ingestion (`ingestion/jobs.py`, `ingestion/live_backends.py`)
 
-`POST /api/v1/ingest/jobs {"level": "level1_naive" | "level2_hybrid"}` starts an `IngestJobRunner` job (≤ 20 jobs held, bounded
+`POST /api/v1/ingest/jobs {"level": "level1_naive" | "level2_hybrid" | "level3_multimodal"}` starts an `IngestJobRunner` job (≤ 20 jobs held, bounded
 by `INGEST_JOB_TIMEOUT_SECONDS`). Stages:
 
 | Stage | Implementation |
 | :-- | :-- |
 | `discover_docs` | PDFs under `data/sample_docs/procurement_corpus/` (local corpus; 3 solicitations, 45 PDFs) |
-| `parse` | PyMuPDF text + bounding boxes per page; genuinely blank PDFs are classified, not silently skipped |
-| `chunk` | `naive` profile (Level 1): 360-character windows with 60-character overlap. `hybrid` profile (Level 2): one chunk per page, content prefixed with `[Contextual Lineage: Solicitation=… \| Document=… \| DocType=… \| Section=…]`; CUAD agreements carry `doc_type = COMMERCIAL_AGREEMENT` |
-| `embed` | `VertexEmbedder`: one `embed_content` call per text (`RETRIEVAL_DOCUMENT`), ≤ 32 texts per batch, ≤ 8 worker threads, ≤ 3 attempts on 429/5xx; dimension drift fails the job |
+| `parse` | Levels 1–2: PyMuPDF text + bounding boxes per page; genuinely blank PDFs are classified, not silently skipped. Level 3: Document AI Layout Parser online `:process` (≤ 15-page splits, concurrency 4; headings, paragraphs/lists, tables → Markdown, `imageBlock` → figure) then Gemini vision (`VISION_MODEL`) on diagram pages — pages with a Layout Parser figure or a box-and-connector drawing — returning strict JSON components/connections; unusable answers are listed in `vision_failed_pages`. No PyMuPDF text fallback; payload reports `processor_version` and its channel (release candidate vs stable) |
+| `chunk` | `naive` profile (Level 1): 360-character windows with 60-character overlap. `hybrid` profile (Level 2): one chunk per page, content prefixed with `[Contextual Lineage: Solicitation=… \| Document=… \| DocType=… \| Section=…]`; CUAD agreements carry `doc_type = COMMERCIAL_AGREEMENT`. `multimodal` profile (Level 3): tables atomic, one diagram chunk per transcribed page (`layout_source='gemini_vision'`), text grouped under headings (≤ 1,800 chars, never across pages); bbox from Document AI when returned, else located on the PDF text layer, else the page (`bbox_source`) — v1.5 returns no boxes |
+| `embed` | `VertexEmbedder`: one `embed_content` call per text (`RETRIEVAL_DOCUMENT`), ≤ 32 texts per batch, ≤ 8 worker threads, ≤ 3 attempts on 429/5xx; dimension drift fails the job. Level 3 writes `embedding_multimodal`; a diagram chunk is embedded as text + its rendered page image in one call |
 | `load_bigquery` | load jobs only (no streaming inserts), 1,000 rows per load into a per-job staging table (2 h TTL), then one transaction: `DELETE` the tier's rows, `INSERT` from staging; staging dropped |
 | `build_indexes` | `CREATE VECTOR INDEX IF NOT EXISTS` (IVF, COSINE; BigQuery rejects IVF below 5,000 rows — reported as state) and `CREATE SEARCH INDEX IF NOT EXISTS`, then poll `INFORMATION_SCHEMA.VECTOR_INDEXES` / `SEARCH_INDEXES` for ≤ 60 s |
 | `verify_counts` | `COUNT(*)` by `tier_profile` read back from BigQuery; `ingest_runs` row written with `git_sha` and stage log |
@@ -288,8 +329,7 @@ one node.
 
 | Item | Phase |
 | :-- | :-- |
-| Level 3 (next): Document AI Layout Parser, Gemini vision transcription of diagram pages, multimodal embeddings | 3 🔒 |
-| Level 4: real Google ADK runner, tools over real data, `agent_turn` events | 4 🔒 |
+| Level 4 (next): real Google ADK runner, tools over real data, `agent_turn` events | 4 🔒 |
 | Level 5: Vertex AI Search data store baseline | 5 🔒 |
 | Compare page; leaderboard from `query_runs`; updated `docker-compose.yml` | 6 🔒 |
 | Cloud Run: single multi-stage container serving API + SPA, least-privilege runtime service account with no key files, env-only config, IAP-protected live service, optional public replay service, Cloud Run Job for long ingestion | 6 🔒 |

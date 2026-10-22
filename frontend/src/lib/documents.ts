@@ -73,15 +73,23 @@ export function rectToPercent(r: NormalizedRect | BoundingBox | null | undefined
 
 export type HighlightSource = "text_match" | "stored_bbox" | "lookup_failed" | "other_page" | "loading";
 
-/** Honest provenance label for what the overlay shows (spec P5). */
-export function highlightLabel(source: HighlightSource): string {
+/**
+ * Honest provenance label for what the overlay shows (spec P5). `regionLabel` (Level 3 table / diagram
+ * citations, e.g. "Gemini vision diagram region") names the layout region drawn instead of the generic
+ * stored chunk bbox; with a text match the region outline is drawn in addition and named too.
+ */
+export function highlightLabel(source: HighlightSource, regionLabel: string | null = null): string {
   switch (source) {
     case "text_match":
-      return "Highlighted by text match (PyMuPDF search_for)";
+      return regionLabel
+        ? `Highlighted by text match (PyMuPDF search_for) · dashed outline: ${regionLabel}`
+        : "Highlighted by text match (PyMuPDF search_for)";
     case "stored_bbox":
-      return "Excerpt not located on page — showing stored chunk bbox";
+      return regionLabel
+        ? `Excerpt not located on page by text match — showing ${regionLabel}`
+        : "Excerpt not located on page — showing stored chunk bbox";
     case "lookup_failed":
-      return "Highlight lookup failed — showing stored chunk bbox";
+      return regionLabel ? `Highlight lookup failed — showing ${regionLabel}` : "Highlight lookup failed — showing stored chunk bbox";
     case "other_page":
       return "Highlights are shown only on the cited page";
     case "loading":

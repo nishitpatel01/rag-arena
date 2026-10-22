@@ -83,3 +83,68 @@ export function teaserMetrics(view: BaselineView, current: CurrentRunMetrics): T
     { key: "latency", label: "Latency", unit: "ms", current: current.latencyMs, baseline: avg("avg_latency_ms") },
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Generalised teaser (Level N vs every lower enabled level)
+// ---------------------------------------------------------------------------
+
+export interface LowerLevel {
+  readonly engine: string;
+  /** "Level 1", "Level 2", … (from the descriptor order). */
+  readonly short: string;
+  readonly order: number;
+}
+
+/** Bound on teaser columns (there are at most 5 levels). */
+const MAX_LOWER_LEVELS = 10;
+
+/** Enabled levels strictly below `current` (by `order`), ascending; empty for Level 1. */
+export function lowerEnabledLevels(
+  levels: readonly { readonly level_id: string; readonly order: number; readonly enabled: boolean }[],
+  current: { readonly order: number }
+): LowerLevel[] {
+  return levels
+    .filter((l) => l.enabled && Number.isFinite(l.order) && l.order < current.order)
+    .sort((a, b) => a.order - b.order)
+    .slice(0, MAX_LOWER_LEVELS)
+    .map((l) => ({ engine: l.level_id, short: `Level ${l.order}`, order: l.order }));
+}
+
+/** "Same question on Level 1" / "Same question on Levels 1–2" / "… on Levels 1, 3". */
+export function teaserTitle(lower: readonly LowerLevel[]): string {
+  if (lower.length === 0) return "Same question on lower levels";
+  if (lower.length === 1) return `Same question on ${lower[0].short}`;
+  const orders = lower.map((l) => l.order);
+  const contiguous = orders.every((o, i) => i === 0 || o === orders[i - 1] + 1);
+  return `Same question on Levels ${contiguous ? `${orders[0]}–${orders[orders.length - 1]}` : orders.join(", ")}`;
+}
+
+export interface BaselineEntry {
+  readonly level: LowerLevel;
+  readonly view: BaselineView;
+}
+
+export function baselinesFor(
+  catalog: ModelsResponse | null,
+  leaderboard: LeaderboardResponse | null,
+  lower: readonly LowerLevel[],
+  lookup: Omit<BaselineLookup, "engine">
+): BaselineEntry[] {
+  return lower.map((level) => ({ level, view: baselineFor(catalog, leaderboard, { ...lookup, engine: level.engine }) }));
+}
+
+export interface TeaserMatrixRow {
+  readonly key: string;
+  readonly label: string;
+  readonly unit: "score" | "ms";
+  readonly current: number | null;
+  /** One value per entry of `baselinesFor` (same order); null when that level has no row / metric. */
+  readonly baselines: readonly (number | null)[];
+}
+
+/** Metric rows: this run vs each lower level's server-side pair average. */
+export function teaserMatrix(entries: readonly BaselineEntry[], current: CurrentRunMetrics): TeaserMatrixRow[] {
+  const perLevel = entries.map((e) => teaserMetrics(e.view, current));
+  const template = teaserMetrics({ pairKnown: false, pairRecorded: false, questionRecorded: false, row: null, runs: null, syntheticRuns: 0 }, current);
+  return template.map((m, i) => ({ key: m.key, label: m.label, unit: m.unit, current: m.current, baselines: perLevel.map((rows) => rows[i].baseline) }));
+}

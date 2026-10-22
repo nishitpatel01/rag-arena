@@ -86,6 +86,8 @@ class BaseRAGEngine(ABC):
                     element_type=chunk.element_type,
                     bbox=chunk.bbox,
                     excerpt=excerpt,
+                    layout_source=chunk.layout_source,
+                    bbox_source=chunk.bbox_source,
                 )
             )
         return citations

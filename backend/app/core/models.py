@@ -59,6 +59,10 @@ class DocumentChunk(_SerializableMixin):
     bbox: BoundingBox
     content: str
     score: float = 0.0
+    # Level 3+: 'documentai_layout' | 'gemini_vision' (empty for tiers that do not record a per-chunk source).
+    layout_source: str = ""
+    # Level 3+: where ``bbox`` came from — 'documentai' | 'pdf_text_layer' | 'page' (empty for older tiers).
+    bbox_source: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.chunk_id, str) or not self.chunk_id.strip():
@@ -104,6 +108,8 @@ class Citation(_SerializableMixin):
     element_type: str
     bbox: BoundingBox
     excerpt: str
+    layout_source: str = ""
+    bbox_source: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.chunk_id, str) or not self.chunk_id.strip():
@@ -112,6 +118,16 @@ class Citation(_SerializableMixin):
             raise ValueError("Citation doc_name must be a non-empty string")
         if not isinstance(self.bbox, BoundingBox):
             raise TypeError("Citation bbox must be a BoundingBox instance")
+        if not isinstance(self.layout_source, str) or not isinstance(self.bbox_source, str):
+            raise TypeError("Citation layout_source and bbox_source must be strings")
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize; ``layout_source``/``bbox_source`` are emitted only when the level records them (Level 3+)."""
+        out = asdict(self)
+        for key in ("layout_source", "bbox_source"):
+            if not out[key]:
+                out.pop(key)
+        return out
 
 
 @dataclass(frozen=True)
@@ -166,7 +182,9 @@ class TokenUsage(_SerializableMixin):
             raise TypeError("model and embedding_model must be strings")
 
 
-_VALID_LAYOUT_SOURCES: tuple[str, ...] = ("", "pymupdf", "pdf_stream_regex", "documentai_layout", "gemini_vision")
+_VALID_LAYOUT_SOURCES: tuple[str, ...] = (
+    "", "pymupdf", "pdf_stream_regex", "documentai_layout", "gemini_vision", "documentai_layout+gemini_vision",
+)
 
 
 @dataclass(frozen=True)

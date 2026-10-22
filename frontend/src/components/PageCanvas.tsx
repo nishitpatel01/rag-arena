@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { BoundingBox } from "../types/arena";
 import { useSafeMode } from "../app/SafeMode";
 import { fetchPageImage, rectToPercent, type HighlightSource, type NormalizedRect } from "../lib/documents";
+import type { CitationRegion } from "../lib/elements";
 
 export interface PageCanvasProps {
   /** URL of /api/v1/documents/page for the page to show. */
@@ -12,6 +13,11 @@ export interface PageCanvasProps {
   readonly source: HighlightSource;
   readonly rects: readonly NormalizedRect[];
   readonly storedBbox: BoundingBox | null;
+  /**
+   * Level 3 table / diagram region (Document AI / Gemini vision). Drawn whenever the cited page is shown
+   * (with or without a text match) and replaces the generic "stored chunk bbox" fallback.
+   */
+  readonly region?: CitationRegion | null;
   readonly onPageCount?: (count: number) => void;
   readonly compact?: boolean;
 }
@@ -25,9 +31,13 @@ const STORED_STYLE: React.CSSProperties = {
   border: "2px dashed var(--accent-slate)",
   backgroundColor: "color-mix(in srgb, var(--accent-slate) 10%, transparent)",
 };
+const REGION_STYLE: React.CSSProperties = {
+  border: "2px dashed var(--accent-clay)",
+  backgroundColor: "color-mix(in srgb, var(--accent-clay) 8%, transparent)",
+};
 
 /** Real rendered page (PNG from the backend) with absolutely positioned highlight overlays in % units. */
-export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHint, source, rects, storedBbox, onPageCount, compact = false }) => {
+export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHint, source, rects, storedBbox, region = null, onPageCount, compact = false }) => {
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aspect, setAspect] = useState<number | null>(aspectHint);
@@ -63,7 +73,9 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHin
   }, [aspectHint, image]);
 
   const showMatch = source === "text_match";
-  const showStored = source === "stored_bbox" || source === "lookup_failed";
+  const onCitedPage = source !== "other_page" && source !== "loading";
+  const regionBox = region && onCitedPage ? rectToPercent(region.box) : null;
+  const showStored = !regionBox && (source === "stored_bbox" || source === "lookup_failed");
   const stored = showStored ? rectToPercent(storedBbox) : null;
 
   return (
@@ -71,6 +83,7 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHin
       className="relative w-full overflow-hidden rounded-md border border-line bg-surface-0"
       style={{ aspectRatio: aspect ? String(aspect) : "612 / 792" }}
       data-highlight-source={source}
+      data-region={regionBox && region ? region.kind : undefined}
     >
       {image && (
         <img
@@ -100,6 +113,19 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHin
           const box = rectToPercent(r);
           return box ? <div key={i} aria-hidden className="pointer-events-none absolute rounded-sm" style={{ ...box, ...MATCH_STYLE }} /> : null;
         })}
+      {image && regionBox && region && (
+        <div aria-hidden className="pointer-events-none absolute rounded-sm" style={{ ...regionBox, ...REGION_STYLE }} data-testid="region-overlay">
+          {!compact && (
+            <span
+              className={`absolute left-0 top-0 max-w-full truncate whitespace-nowrap rounded-sm border border-clay bg-surface-1 px-1 font-mono text-xs text-clay ${
+                region.box.y0 < 0.04 ? "m-1" : "-translate-y-full"
+              }`}
+            >
+              {region.label}
+            </span>
+          )}
+        </div>
+      )}
       {image && stored && (
         <div aria-hidden className="pointer-events-none absolute rounded-sm" style={{ ...stored, ...STORED_STYLE }}>
           {!compact && (

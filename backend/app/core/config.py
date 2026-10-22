@@ -53,7 +53,7 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid")
+DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal")
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
@@ -63,6 +63,13 @@ DEFAULT_RANKING_TIMEOUT_SECONDS: int = 30
 _HYBRID_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
 _RERANK_TOP_N_RANGE: tuple[int, int] = (1, 20)
 _RANKING_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
+# Level 3 Document AI Layout Parser + Gemini vision transcription.
+DEFAULT_DOCAI_LOCATION: str = "us"
+DEFAULT_DOCAI_TIMEOUT_SECONDS: int = 120
+_DOCAI_TIMEOUT_RANGE: tuple[int, int] = (10, 600)
+_DOCAI_LOCATION_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
+_DOCAI_PROCESSOR_ID_RE = re.compile(r"[a-z0-9]{1,64}")
+_DOCAI_VERSION_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -140,7 +147,12 @@ class ArenaSettings:
     hybrid_candidate_k: int = DEFAULT_HYBRID_CANDIDATE_K
     rerank_top_n: int = DEFAULT_RERANK_TOP_N
     ranking_timeout_seconds: int = DEFAULT_RANKING_TIMEOUT_SECONDS
-
+    # Level 3 (env: DOCAI_LOCATION, DOCAI_PROCESSOR_ID, DOCAI_PROCESSOR_VERSION, DOCAI_TIMEOUT_SECONDS, VISION_MODEL).
+    docai_location: str = DEFAULT_DOCAI_LOCATION
+    docai_processor_id: str = ""
+    docai_processor_version: str = ""
+    docai_timeout_seconds: int = DEFAULT_DOCAI_TIMEOUT_SECONDS
+    vision_model: str = DEFAULT_GEMINI_FAST_MODEL
     @property
     def model_verification_path(self) -> Path:
         """``data/model_verification.json`` written by ``scripts/verify_models.py`` (override: MODEL_VERIFICATION_FILE)."""
@@ -191,6 +203,24 @@ class ArenaSettings:
         self._validate_judge()
         self._validate_synthesis()
         self._validate_hybrid()
+        self._validate_level3()
+
+    def _validate_level3(self) -> None:
+        """Document AI location/processor/version identifiers and the Gemini vision model (empty processor id = unset)."""
+        if not isinstance(self.docai_location, str) or not _DOCAI_LOCATION_RE.fullmatch(self.docai_location):
+            raise ValueError(f"DOCAI_LOCATION is not a valid Document AI location: {self.docai_location!r}")
+        if self.docai_processor_id and not _DOCAI_PROCESSOR_ID_RE.fullmatch(self.docai_processor_id):
+            raise ValueError("DOCAI_PROCESSOR_ID must be the short processor id (lowercase letters/digits, ≤ 64 chars)")
+        if self.docai_processor_version and not _DOCAI_VERSION_RE.fullmatch(self.docai_processor_version):
+            raise ValueError(f"DOCAI_PROCESSOR_VERSION is not a valid processor version id: {self.docai_processor_version!r}")
+        low, high = _DOCAI_TIMEOUT_RANGE
+        if not isinstance(self.docai_timeout_seconds, int) or isinstance(self.docai_timeout_seconds, bool) or not (
+            low <= self.docai_timeout_seconds <= high
+        ):
+            raise ValueError(f"DOCAI_TIMEOUT_SECONDS must be an integer between {low} and {high}")
+        _validate_gemini_model_name(self.vision_model, "vision_model")
+        if not self.vision_model.startswith("gemini-"):
+            raise ValueError(f"VISION_MODEL must be a gemini-* model with image input, got {self.vision_model!r}")
 
     def _validate_hybrid(self) -> None:
         """Bounds for Level 2 RRF candidates, reranked context size and the Ranking API wall-clock budget."""
@@ -378,7 +408,21 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         ),
         **_judge_kwargs(source),
         **_synthesis_kwargs(source),
+        **_level3_kwargs(source),
     )
+
+
+def _level3_kwargs(source: Mapping[str, str]) -> dict[str, object]:
+    """DOCAI_* / VISION_MODEL keys → ArenaSettings Level 3 fields (validated in ``ArenaSettings._validate_level3``)."""
+    return {
+        "docai_location": source.get("DOCAI_LOCATION", DEFAULT_DOCAI_LOCATION).strip(),
+        "docai_processor_id": source.get("DOCAI_PROCESSOR_ID", "").strip(),
+        "docai_processor_version": source.get("DOCAI_PROCESSOR_VERSION", "").strip(),
+        "docai_timeout_seconds": _parse_int(
+            source.get("DOCAI_TIMEOUT_SECONDS", str(DEFAULT_DOCAI_TIMEOUT_SECONDS)), "DOCAI_TIMEOUT_SECONDS"
+        ),
+        "vision_model": source.get("VISION_MODEL", DEFAULT_GEMINI_FAST_MODEL).strip(),
+    }
 
 
 def _synthesis_kwargs(source: Mapping[str, str]) -> dict[str, object]:

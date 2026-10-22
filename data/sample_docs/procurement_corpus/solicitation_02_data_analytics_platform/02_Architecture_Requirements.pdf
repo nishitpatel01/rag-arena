@@ -16,7 +16,7 @@ stream
 endstream
 endobj
 5 0 obj
-<< /Length 2508 >>
+<< /Length 2634 >>
 stream
 q
 0.12 0.22 0.38 rg
@@ -41,12 +41,14 @@ q
 0.18 0.36 0.62 RG
 1.5 w
 48 210 516 175 re S
+0.10 0.16 0.28 rg
 BT /F2 10 Tf 60 368 Td (VECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture) Tj ET
 0.98 0.99 1.00 rg
 64 305 145 42 re f
 0.22 0.45 0.72 RG
 1.0 w
 64 305 145 42 re S
+0.10 0.16 0.28 rg
 BT /F1 8 Tf 72 323 Td (Cloud Pub/Sub Ingest) Tj ET
 209 326 m 229 326 l S
 0.98 0.99 1.00 rg
@@ -54,6 +56,7 @@ BT /F1 8 Tf 72 323 Td (Cloud Pub/Sub Ingest) Tj ET
 0.22 0.45 0.72 RG
 1.0 w
 229 305 145 42 re S
+0.10 0.16 0.28 rg
 BT /F1 8 Tf 237 323 Td (Dataflow + Cloud DLP) Tj ET
 374 326 m 394 326 l S
 0.98 0.99 1.00 rg
@@ -61,12 +64,14 @@ BT /F1 8 Tf 237 323 Td (Dataflow + Cloud DLP) Tj ET
 0.22 0.45 0.72 RG
 1.0 w
 394 305 145 42 re S
+0.10 0.16 0.28 rg
 BT /F1 8 Tf 402 323 Td (BigQuery Bronze \(Raw\)) Tj ET
 0.98 0.99 1.00 rg
 64 237 145 42 re f
 0.22 0.45 0.72 RG
 1.0 w
 64 237 145 42 re S
+0.10 0.16 0.28 rg
 BT /F1 8 Tf 72 255 Td (BigQuery Silver \(Curated\)) Tj ET
 209 258 m 229 258 l S
 0.98 0.99 1.00 rg
@@ -74,6 +79,7 @@ BT /F1 8 Tf 72 255 Td (BigQuery Silver \(Curated\)) Tj ET
 0.22 0.45 0.72 RG
 1.0 w
 229 237 145 42 re S
+0.10 0.16 0.28 rg
 BT /F1 8 Tf 237 255 Td (BigQuery Gold \(Governed\)) Tj ET
 374 258 m 394 258 l S
 0.98 0.99 1.00 rg
@@ -81,6 +87,7 @@ BT /F1 8 Tf 237 255 Td (BigQuery Gold \(Governed\)) Tj ET
 0.22 0.45 0.72 RG
 1.0 w
 394 237 145 42 re S
+0.10 0.16 0.28 rg
 BT /F1 8 Tf 402 255 Td (Vertex AI Feature Store) Tj ET
 Q
 BT /F1 8 Tf 46 32 Td (Page 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record) Tj ET
@@ -104,11 +111,11 @@ xref
 0000000160 00000 n 
 0000000228 00000 n 
 0000000344 00000 n 
-0000002904 00000 n 
-0000003081 00000 n 
-0000003138 00000 n 
+0000003030 00000 n 
+0000003207 00000 n 
+0000003264 00000 n 
 trailer
 << /Size 9 /Root 8 0 R >>
 startxref
-3187
+3313
 %%EOF

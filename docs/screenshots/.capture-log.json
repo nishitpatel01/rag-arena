@@ -31,6 +31,20 @@
       "guard_passed": true,
       "captured_at": "2026-10-21T19:49:20Z",
       "bytes": 107332
+    },
+    {
+      "file": "19-level3.png",
+      "path": "/levels/level3_multimodal",
+      "viewport": "1600x1300",
+      "theme": "light",
+      "capture": "viewport (run complete; citation drawer open on the DIAGRAM citation 03_Technical_Exhibit_Architecture.pdf p.1: page image, region overlay labelled from bbox_source \"page\" = whole page, PyMuPDF text-match highlight, \"Diagram transcription (Gemini vision)\" box with the full stored chunk text from answer_complete.retrieved_chunks, scrollable)",
+      "source_run": "replay of recording run_1770b05d92c0 (q_vpc_failover_diagram, recorded 2026-10-22T14:54:49.897Z; synthesis gemini-4-argon, judge claude-opus-5-5)",
+      "source": "replay",
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal; port 8019; backend 4ad7e8b incl. codec fix 3735c1c)",
+      "safe_mode": true,
+      "guard_passed": true,
+      "captured_at": "2026-10-22T15:20:40Z",
+      "bytes": 385322
     }
   ]
 }

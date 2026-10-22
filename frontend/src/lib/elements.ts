@@ -195,6 +195,27 @@ export function citationRegion(c: CitationLike): CitationRegion | null {
   return { kind, label: regionLabel(kind, nonEmpty(c.layout_source), bboxSource), box, bboxSource };
 }
 
+export interface DiagramTranscriptionText {
+  readonly text: string;
+  /** True when the full stored chunk text was found in `retrieved_chunks`; false = capped citation excerpt. */
+  readonly full: boolean;
+}
+
+/** Note shown when only the capped citation excerpt is available. */
+export const EXCERPT_FALLBACK_NOTE = "(excerpt — full text not in stream)";
+
+/**
+ * Full stored transcription for a diagram citation: the `content` of the retrieved chunk with the same
+ * chunk_id (citation excerpts are capped at 240 chars); falls back to the excerpt (`full: false`).
+ */
+export function diagramTranscription(
+  citation: { readonly chunk_id: string; readonly excerpt: string },
+  retrievedChunks: readonly { readonly chunk_id: string; readonly content: string }[] | null | undefined
+): DiagramTranscriptionText {
+  const match = (retrievedChunks ?? []).find((c) => c.chunk_id === citation.chunk_id && c.content.trim().length > 0);
+  return match ? { text: match.content, full: true } : { text: citation.excerpt, full: false };
+}
+
 /** Title of the transcription box for diagram citations; null for non-diagram citations. */
 export function transcriptionTitle(c: CitationLike): string | null {
   if (c.element_type !== "diagram") return null;

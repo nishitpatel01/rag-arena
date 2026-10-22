@@ -116,7 +116,7 @@ export const LEVEL3_DEV_FIXTURE: readonly TimedFixtureEvent[] = [
     t_rel: 300,
     event: ev({
       ...base, event: "stage_completed", stage: "query_prep", duration_ms: 3,
-      payload: { original_query: QUERY, prepared_query: PREPARED, expansions: [{ term: "RTO", expansion: "Recovery Time Objective" }, { term: "RPO", expansion: "Recovery Point Objective" }], element_intent: ["diagram", "table"] },
+      payload: { original_query: QUERY, prepared_query: PREPARED, expansions: [{ term: "RTO", expansion: "Recovery Time Objective" }, { term: "RPO", expansion: "Recovery Point Objective" }], element_intent: ["diagram", "table"], intent_matches: { diagram: ["diagram", "topology"], table: ["targets"] } },
       ts: ts(450),
     }),
   },
@@ -134,7 +134,7 @@ export const LEVEL3_DEV_FIXTURE: readonly TimedFixtureEvent[] = [
     t_rel: 1400,
     event: ev({
       ...base, event: "stage_completed", stage: "retrieve", duration_ms: 1370,
-      payload: { rows_returned: CANDIDATES.length, candidate_k: CANDIDATE_K, bytes_processed: 98_566_144, slot_millis: 4410, cache_hit: false, job_id: "devfixture_job_l3_0001", rrf_k: RRF_K, vector_k: 50, lexical_k: 25, with_both_ranks: 13, candidates: CANDIDATES },
+      payload: { rows_returned: CANDIDATES.length, candidate_k: CANDIDATE_K, bytes_processed: 98_566_144, slot_millis: 4410, cache_hit: false, job_id: "devfixture_job_l3_0001", rrf_k: RRF_K, vector_k: 50, lexical_k: 25, with_both_ranks: 13, embedding_column: "embedding_multimodal", element_types: { diagram: 9, narrative_text: 25, table: 16 }, layout_sources: { gemini_vision: 9, documentai_layout: 33, pymupdf: 8 }, amendment_candidates: 17, candidates: CANDIDATES },
       ts: ts(2760),
     }),
   },
@@ -148,11 +148,12 @@ export const LEVEL3_DEV_FIXTURE: readonly TimedFixtureEvent[] = [
       payload: {
         model: "gemini-4-argon", thinking_level: "high", prompt_tokens: 3120, output_tokens: 164,
         authority_headers: [
-          "[AUTHORITY 1] 06_Amendment_0001_Scope_Update.pdf · Amendment 0001 · supersedes SEC-4.2.1",
-          "[AUTHORITY 2] 03_Technical_Exhibit_Architecture.pdf · ARCH-TOPOLOGY-01 · base solicitation",
-          "[AUTHORITY 3] 05_SLA_and_QASP_Requirements.pdf · SLA-2 · base solicitation",
+          { chunk_id: cand(2).chunk_id as string, header: "[DEV FIXTURE · AMENDMENT 0001 · effective 2026-03-15 · SUPERSEDES SEC-4.2.1] [TEXT] 06_Amendment_0001_Scope_Update.pdf · p.1 · AMD-0001", amendment_number: 1, effective_date: "2026-03-15", supersedes: ["SEC-4.2.1"], superseded_by: [], element_type: "narrative_text", layout_source: "documentai_layout" },
+          { chunk_id: cand(1).chunk_id as string, header: "[DEV FIXTURE · BASE · TECHNICAL_EXHIBIT] [DIAGRAM transcription] 03_Technical_Exhibit_Architecture.pdf · p.1 · ARCH-TOPOLOGY-01", amendment_number: 0, effective_date: "2026-01-15", supersedes: [], superseded_by: [], element_type: "diagram", layout_source: "gemini_vision" },
+          { chunk_id: cand(4).chunk_id as string, header: "[DEV FIXTURE · BASE] [TEXT] 01_RFP_Base_Solicitation.pdf · p.1 · SEC-4.2.1", amendment_number: 0, effective_date: "2026-01-15", supersedes: [], superseded_by: ["AMD-0001"], element_type: "narrative_text", layout_source: "documentai_layout" },
         ],
         element_mix: { table: 1, diagram: 2, narrative_text: 2 },
+        context_order: "latest amendment first, then rerank order",
       },
       ts: ts(5650),
     }),

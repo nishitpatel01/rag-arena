@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
-import type { Citation } from "../types/arena";
+import type { Citation, RetrievedChunkText } from "../types/arena";
 import {
   ZOOM_LEVELS,
   clampPage,
@@ -13,7 +13,7 @@ import {
   type HighlightResponse,
   type ZoomLevel,
 } from "../lib/documents";
-import { citationRegion, layoutSourceLabel, transcriptionTitle } from "../lib/elements";
+import { EXCERPT_FALLBACK_NOTE, citationRegion, diagramTranscription, layoutSourceLabel, transcriptionTitle } from "../lib/elements";
 import { KeyValue } from "./ui/KeyValue";
 import { ElementTypeBadge, LayoutSourceBadge } from "./ElementBadges";
 import { useSafeMode } from "../app/SafeMode";
@@ -50,12 +50,14 @@ export interface DocumentDrawerProps {
   readonly citation: Citation | null;
   readonly open: boolean;
   readonly onClose: () => void;
+  /** `answer_complete.retrieved_chunks` of the run: full chunk text for the diagram transcription box. */
+  readonly retrievedChunks?: readonly RetrievedChunkText[];
 }
 
 /** Right-side slide-over dialog with the real cited page, honest highlight provenance, page nav and zoom. */
-export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({ citation, open, onClose }) => {
+export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({ citation, open, onClose, retrievedChunks }) => {
   if (!open || !citation) return null;
-  return <DrawerBody key={citation.chunk_id} citation={citation} onClose={onClose} />;
+  return <DrawerBody key={citation.chunk_id} citation={citation} onClose={onClose} retrievedChunks={retrievedChunks} />;
 };
 
 function useFocusTrap(ref: React.RefObject<HTMLElement>, onClose: () => void): void {
@@ -93,7 +95,11 @@ function useFocusTrap(ref: React.RefObject<HTMLElement>, onClose: () => void): v
   }, [ref, onClose]);
 }
 
-const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () => void }> = ({ citation, onClose }) => {
+const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () => void; readonly retrievedChunks?: readonly RetrievedChunkText[] }> = ({
+  citation,
+  onClose,
+  retrievedChunks,
+}) => {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(citation.page_number);
@@ -115,6 +121,7 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
   // Level 3: table / diagram citations carry a Document AI / Gemini vision region (honestly labelled).
   const region = citationRegion(citation);
   const transcription = transcriptionTitle(citation);
+  const transcriptionText = transcription ? diagramTranscription(citation, retrievedChunks) : null;
   const regionLabel = region && page === citation.page_number ? region.label : null;
 
   return (
@@ -227,8 +234,16 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
                 <summary className="cursor-pointer font-semibold text-ink-1">{transcription}</summary>
                 <p className="mt-1 text-ink-3">
                   Stored at ingestion{citation.layout_source ? ` by ${layoutSourceLabel(citation.layout_source)}` : ""}; this is the text the retriever indexed and the model was given.
+                  {transcriptionText && !transcriptionText.full && <span className="block text-clay">{EXCERPT_FALLBACK_NOTE}</span>}
                 </p>
-                <p className="mt-2 whitespace-pre-wrap break-words font-mono leading-relaxed text-ink-1">{citation.excerpt}</p>
+                <p
+                  className="mt-2 max-h-[min(36rem,60vh)] overflow-y-auto whitespace-pre-wrap break-words rounded-sm font-mono leading-relaxed text-ink-1"
+                  tabIndex={0}
+                  aria-label={`${transcription} text${transcriptionText?.full ? "" : " (excerpt)"}`}
+                  data-transcription-source={transcriptionText?.full ? "retrieved_chunk" : "excerpt"}
+                >
+                  {transcriptionText?.text ?? citation.excerpt}
+                </p>
               </details>
             )}
           </div>

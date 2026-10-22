@@ -7,9 +7,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  EXCERPT_FALLBACK_NOTE,
   amendmentLabel,
   bboxSourceLabel,
   citationRegion,
+  diagramTranscription,
   countElementTypes,
   elementFilterOptions,
   elementLabel,
@@ -24,14 +26,18 @@ import {
   elementMixSegments,
   ingestParseItems,
   ingestParseSummary,
+  isReleaseCandidateChannel,
   parseElementIntent,
   parseIngestParse,
+  parseIntentMatches,
+  parseRetrieveL3Summary,
   parseSynthesizeL3,
+  retrieveL3Lines,
 } from "../src/features/levels/level3Payloads";
 import { anyElementMeta, joinElementMeta, parseHybridRetrieve, parseRerank, retrieveMetaByChunk, summarizeStage } from "../src/features/levels/stagePayloads";
 import { highlightLabel } from "../src/lib/documents";
 import { baselinesFor, lowerEnabledLevels, teaserMatrix, teaserTitle } from "../src/features/levels/compareTeaserModel";
-import { deriveIngestProgress, reduceStreamEvents, type TimelineEvent } from "../src/features/levels/model";
+import { MAX_RETRIEVED_CHUNKS, deriveIngestProgress, reduceStreamEvents, retrievedChunkTexts, type TimelineEvent } from "../src/features/levels/model";
 import { maskDeep, MASK_BUCKET, MASK_PROJECT_ID, MASK_PROJECT_NUMBER } from "../src/lib/safeMode";
 import { LEVEL3_DEV_FIXTURE } from "../src/dev/fixtures/level3_run";
 import type { Citation, JsonObject, LeaderboardResponse, ModelsResponse } from "../src/types/arena";
@@ -129,6 +135,30 @@ test("transcription box title is honest about the layout source", () => {
   assert.equal(transcriptionTitle({ element_type: "table", layout_source: "gemini_vision" }), null);
 });
 
+test("diagram transcription: full text from retrieved_chunks by chunk_id; excerpt fallback flagged", () => {
+  const citation = { chunk_id: "c_diag", excerpt: "Architecture Specification … [DIAGRAM transcription] Diagram: VECTOR DIAGRAM …" };
+  const full = "Architecture Specification ARCH-TOPOLOGY-01\n[DIAGRAM transcription · gemini-4-argon]\n" + "- component (box)\n".repeat(80);
+  const chunks = [{ chunk_id: "other", content: "nope" }, { chunk_id: "c_diag", content: full }];
+  assert.deepEqual(diagramTranscription(citation, chunks), { text: full, full: true });
+  assert.deepEqual(diagramTranscription(citation, [{ chunk_id: "other", content: "nope" }]), { text: citation.excerpt, full: false }, "no match → excerpt");
+  assert.deepEqual(diagramTranscription(citation, [{ chunk_id: "c_diag", content: "   " }]), { text: citation.excerpt, full: false }, "blank content → excerpt");
+  assert.deepEqual(diagramTranscription(citation, undefined), { text: citation.excerpt, full: false });
+  assert.equal(EXCERPT_FALLBACK_NOTE, "(excerpt — full text not in stream)");
+});
+
+test("answer_complete.retrieved_chunks kept on the timeline as {chunk_id, content}; malformed rows dropped; bounded", () => {
+  assert.deepEqual(retrievedChunkTexts([{ chunk_id: "a", content: "x", score: 1 }, { chunk_id: "", content: "y" }, { chunk_id: "b" }, null, "s"]), [{ chunk_id: "a", content: "x" }]);
+  assert.deepEqual(retrievedChunkTexts(undefined), []);
+  assert.equal(retrievedChunkTexts(Array.from({ length: MAX_RETRIEVED_CHUNKS + 5 }, (_, i) => ({ chunk_id: `c${i}`, content: "t" }))).length, MAX_RETRIEVED_CHUNKS);
+  const R = "run_x";
+  const T = "2026-10-22T00:00:00Z";
+  const state = reduceStreamEvents([
+    { event: "run_started", run_id: R, engines: ["level3_multimodal"], ts: T },
+    { event: "answer_complete", run_id: R, engine: "level3_multimodal", answer: "a", citations: [], latency_ms: 1, cost_usd: 0, usage: { prompt_tokens: 0, output_tokens: 0, embedding_tokens: 0 }, flags: { reranker_used: true, adk_runner_used: false }, retrieved_chunks: [{ chunk_id: "d", content: "full diagram text" }], ts: T },
+  ] as unknown as TimelineEvent[]);
+  assert.deepEqual(state.timelines.level3_multimodal?.answer?.retrievedChunks, [{ chunk_id: "d", content: "full diagram text" }]);
+});
+
 test("highlight label names the region instead of the generic stored bbox; text match still preferred", () => {
   const r = "Gemini vision diagram · located on PDF text layer";
   assert.equal(highlightLabel("text_match", r), `Highlighted by text match (PyMuPDF search_for) · dashed outline: ${r}`);
@@ -149,53 +179,95 @@ test("element_intent: verbatim list, blanks dropped, null when absent", () => {
   assert.equal(parseElementIntent(null), null);
 });
 
-test("synthesize: authority headers keep server order; element mix → segments, line and fractions", () => {
-  const v = parseSynthesizeL3({ authority_headers: ["[A1] Amendment 0001", "[A2] Base"], element_mix: { table: 1, diagram: 2, narrative_text: 2 } });
+test("query_prep intent_matches: keywords per intent; empty map when absent", () => {
+  const m = parseIntentMatches({ element_intent: ["diagram"], intent_matches: { diagram: ["diagram", "topology", 4], table: "bad" } });
+  assert.deepEqual([...m.entries()], [["diagram", ["diagram", "topology"]]]);
+  assert.equal(parseIntentMatches({}).size, 0);
+});
+
+test("retrieve Level 3 summary: embedding column, element/layout counts, amendment candidates; null on Level 2", () => {
+  const v = parseRetrieveL3Summary({ embedding_column: "embedding_multimodal", element_types: { diagram: 3, narrative_text: 39, table: 8 }, layout_sources: { gemini_vision: 3, documentai_layout: 47 }, amendment_candidates: 8 });
   assert.ok(v);
-  assert.deepEqual(v.authorityHeaders, ["[A1] Amendment 0001", "[A2] Base"]);
+  assert.deepEqual(retrieveL3Lines(v), [
+    "embedding column: embedding_multimodal",
+    "element types: TABLE 8 · DIAGRAM 3 · TEXT 39",
+    "layout sources: Gemini vision 3 · Document AI layout 47",
+    "amendment candidates: 8",
+  ]);
+  assert.equal(parseRetrieveL3Summary({ rows_returned: 50, candidates: [] }), null);
+});
+
+test("synthesize: authority header objects keep context order with supersedes chips; element mix → segments", () => {
+  const v = parseSynthesizeL3({
+    authority_headers: [
+      { chunk_id: "a1", header: "[AMENDMENT 0001 · SUPERSEDES SEC-4.2.1] [TEXT] 06.pdf", amendment_number: 1, effective_date: "2026-03-15", supersedes: ["SEC-4.2.1", "CLIN-0004-AB"], superseded_by: [], element_type: "narrative_text", layout_source: "documentai_layout" },
+      { chunk_id: "b1", header: "[BASE] [DIAGRAM transcription] 03.pdf", amendment_number: 0, supersedes: [], superseded_by: ["AMD-0001"], element_type: "diagram", layout_source: "gemini_vision" },
+      { chunk_id: "bad" },
+      "[legacy string header]",
+    ],
+    element_mix: { narrative_text: 4, diagram: 1 },
+    context_order: "latest amendment first, then rerank order",
+  });
+  assert.ok(v?.authorityHeaders);
+  assert.deepEqual(v.authorityHeaders.map((h) => h.header), ["[AMENDMENT 0001 · SUPERSEDES SEC-4.2.1] [TEXT] 06.pdf", "[BASE] [DIAGRAM transcription] 03.pdf", "[legacy string header]"]);
+  assert.deepEqual(v.authorityHeaders[0].supersedes, ["SEC-4.2.1", "CLIN-0004-AB"]);
+  assert.deepEqual(v.authorityHeaders[1].supersededBy, ["AMD-0001"]);
+  assert.equal(v.authorityHeaders[0].amendmentNumber, 1);
+  assert.equal(v.invalidHeaders, 1, "header-less object counted, not shown");
+  assert.equal(v.contextOrder, "latest amendment first, then rerank order");
   assert.ok(v.elementMix);
-  assert.equal(elementMixLine(v.elementMix), "TABLE 1 · DIAGRAM 2 · TEXT 2");
-  assert.deepEqual(
-    elementMixSegments(v.elementMix).map((s) => [s.type, s.count, s.fraction]),
-    [["table", 1, 0.2], ["diagram", 2, 0.4], ["narrative_text", 2, 0.4]]
-  );
+  assert.equal(elementMixLine(v.elementMix), "DIAGRAM 1 · TEXT 4", "known order, only reported types");
+  assert.deepEqual(elementMixSegments(v.elementMix).map((s) => [s.type, s.fraction]), [["diagram", 0.2], ["narrative_text", 0.8]]);
   assert.equal(parseSynthesizeL3({ model: "gemini-4-argon", prompt_tokens: 10 }), null, "Level 1–2 synthesize payload → generic view");
-  const partial = parseSynthesizeL3({ element_mix: { diagram: 0, table: -1 } });
-  assert.ok(partial?.elementMix);
-  assert.equal(partial.authorityHeaders, null);
-  assert.deepEqual(elementMixSegments(partial.elementMix).map((s) => [s.type, s.fraction]), [["diagram", 0]], "invalid/missing counts hidden, zero total safe");
+  const odd = parseSynthesizeL3({ element_mix: { figure: 2, table: -1 } });
+  assert.deepEqual(odd?.elementMix, [["figure", 2]], "unknown types verbatim, invalid counts dropped");
+  assert.equal(elementMixLine(odd?.elementMix ?? []), "FIGURE 2");
   assert.equal(summarizeStage("synthesize", { element_mix: { table: 1, diagram: 2, narrative_text: 2 } }), "TABLE 1 · DIAGRAM 2 · TEXT 2");
 });
 
-test("ingest parse summary: Level 3 keys parsed, absent values omitted (never zero), L1–2 payload → null", () => {
-  const v = parseIngestParse({ pages: 526, tables: 41, diagrams: 9, vision_pages: 9, layout_source_counts: { documentai_layout: 517, gemini_vision: 9, bad: "x" }, docai_ms: 61234, vision_ms: 18450 });
+test("ingest parse summary: published contract (vision_pages[], failures, processor channel, truncated)", () => {
+  const v = parseIngestParse({
+    docs: 45, pages: 526, tables: 41, diagrams: 2, figures: 5,
+    vision_pages: [
+      { doc_name: "03.pdf", page: 1, title: "Multi-Region VPC", components: 6, connections: 5, regions: 2, vision_ms: 9100, transcription: { title: "x", components: [] } },
+      { doc_name: "02.pdf", page: 2, title: null, components: 4, connections: 3, regions: 0, vision_ms: 8000 },
+    ],
+    vision_failed_pages: [{ doc_name: "07.pdf", page: 3, reason: "vector drawings", status: "failed", error_type: "VisionTranscriptionError", error: "no labelled components" }],
+    layout_source_counts: { documentai_layout: 517, gemini_vision: 2, bad: "x" },
+    docai_ms: 61234, vision_ms: 17100,
+    processor_version: "pretrained-layout-parser-v1.5-2025-08-25", processor_version_channel: "release candidate (preview)", vision_model: "gemini-4-argon",
+    truncated: true,
+  });
   assert.ok(v);
-  assert.deepEqual(v.layoutSourceCounts, [["documentai_layout", 517], ["gemini_vision", 9]]);
-  const items = ingestParseItems(v);
-  assert.deepEqual(items.map(([k]) => k), [
+  assert.equal(v.visionPages, 2);
+  assert.equal(v.visionPageRows[0].title, "Multi-Region VPC");
+  assert.equal(v.visionFailedPages[0].errorType, "VisionTranscriptionError");
+  assert.equal(v.truncated, true);
+  assert.ok(isReleaseCandidateChannel(v.processorVersionChannel));
+  assert.ok(!isReleaseCandidateChannel("stable"));
+  assert.deepEqual(v.layoutSourceCounts, [["documentai_layout", 517], ["gemini_vision", 2]]);
+  assert.deepEqual(ingestParseItems(v).map(([k]) => k), [
     "pages",
     "tables (Document AI)",
-    "diagrams",
-    "vision pages (Gemini)",
+    "figures (Document AI)",
+    "diagrams (Gemini vision)",
+    "vision pages transcribed",
+    "vision pages failed",
     "Document AI time",
     "vision time",
+    "Document AI processor_version",
+    "processor_version_channel",
+    "vision model",
     "layout_source · Document AI layout",
     "layout_source · Gemini vision",
   ]);
-  assert.equal(ingestParseSummary(v), "pages=526 · tables=41 · diagrams=9");
+  assert.equal(ingestParseSummary(v), "pages=526 · tables=41 · diagrams=2");
   assert.equal(summarizeStage("parse", { pages: 526, tables: 41, diagrams: 9 }), "pages=526 · tables=41 · diagrams=9");
-  assert.equal(parseIngestParse({ docs: 45, pages: 526, parser: "pymupdf" }), null);
-  const rc = parseIngestParse({ tables: 2, processor_version: "pretrained-layout-parser-v1.5-2025-08-25", release_candidate: true });
-  assert.ok(rc);
-  assert.deepEqual(ingestParseItems(rc).slice(1), [
-    ["Document AI processor_version", "pretrained-layout-parser-v1.5-2025-08-25"],
-    ["release candidate", "yes — release-candidate processor version"],
-  ]);
-  assert.equal(parseIngestParse({ processor_version: "v1", is_release_candidate: false })?.releaseCandidate, false);
-  assert.equal(parseIngestParse({ processor_version: "v1" })?.releaseCandidate, null, "flag not reported → hidden");
+  assert.equal(parseIngestParse({ docs: 45, pages: 526, parser: "pymupdf" }), null, "Level 1–2 parse payload → generic view");
   const sparse = parseIngestParse({ tables: 3 });
   assert.ok(sparse);
   assert.deepEqual(ingestParseItems(sparse), [["tables (Document AI)", "3"]]);
+  assert.equal(sparse.truncated, false);
 });
 
 test("doc_progress tables/diagrams merge per document; null when never reported", () => {
@@ -205,9 +277,12 @@ test("doc_progress tables/diagrams merge per document; null when never reported"
     { event: "doc_progress", job_id: J, doc_name: "a.pdf", pages: 3, chunks: 0, tables: 2, diagrams: 1, ts: T },
     { event: "doc_progress", job_id: J, doc_name: "a.pdf", pages: 3, chunks: 9, ts: T },
     { event: "doc_progress", job_id: J, doc_name: "b.pdf", pages: 1, chunks: 4, ts: T },
+    { event: "doc_progress", job_id: J, stage: "parse", step: "gemini_vision", doc_name: "a.pdf", pages: 0, chunks: 0, status: "ok", ts: T },
+    { event: "doc_progress", job_id: J, stage: "parse", step: "gemini_vision", doc_name: "a.pdf", pages: 0, chunks: 0, status: "failed", error: "x", ts: T },
+    { event: "doc_progress", job_id: J, stage: "parse", step: "gemini_vision", doc_name: "a.pdf", pages: 0, chunks: 0, status: "ok", ts: T },
   ] as unknown as TimelineEvent[];
   assert.deepEqual(deriveIngestProgress(events).docs, [
-    { doc_name: "a.pdf", pages: 3, chunks: 9, tables: 2, diagrams: 1 },
+    { doc_name: "a.pdf", pages: 3, chunks: 9, tables: 2, diagrams: 1, visionOk: 2, visionFailed: 1 },
     { doc_name: "b.pdf", pages: 1, chunks: 4, tables: null, diagrams: null },
   ]);
 });
@@ -317,9 +392,12 @@ test("Level 3 DEV fixture: every frame flagged synthetic, stages complete, diagr
 
 test("safe mode masks identities inside Level 3 payload strings and citations", () => {
   const health = { project_id: "acme-proj-42", gcs_bucket: "acme-proj-42-rag-arena-corpus" };
-  const synth = maskDeep({ authority_headers: ["gs://acme-proj-42-rag-arena-corpus/03.pdf · acme-proj-42"], element_mix: { table: 1, diagram: 0, narrative_text: 0 } }, health);
+  const synth = maskDeep({ authority_headers: [{ chunk_id: "acme-proj-42_c", header: "gs://acme-proj-42-rag-arena-corpus/03.pdf · acme-proj-42", supersedes: ["projects/123456789"] }], element_mix: { table: 1 } }, health);
   const v = parseSynthesizeL3(synth);
-  assert.deepEqual(v?.authorityHeaders, [`gs://${MASK_BUCKET}/03.pdf · ${MASK_PROJECT_ID}`]);
+  assert.equal(v?.authorityHeaders?.[0].header, `gs://${MASK_BUCKET}/03.pdf · ${MASK_PROJECT_ID}`);
+  assert.deepEqual(v?.authorityHeaders?.[0].supersedes, [`projects/${MASK_PROJECT_NUMBER}`]);
+  const failed = parseIngestParse(maskDeep({ vision_failed_pages: [{ doc_name: "03.pdf", page: 1, error: "403 on projects/123456789 bucket acme-proj-42-rag-arena-corpus" }] }, health));
+  assert.equal(failed?.visionFailedPages[0].error, `403 on projects/${MASK_PROJECT_NUMBER} bucket ${MASK_BUCKET}`);
   const parse = parseIngestParse(maskDeep({ tables: 1, layout_source_counts: { "acme-proj-42/documentai_layout": 4 } }, health));
   assert.deepEqual(parse?.layoutSourceCounts, [[`${MASK_PROJECT_ID}/documentai_layout`, 4]], "keys masked too");
   const intent = parseElementIntent(maskDeep({ element_intent: ["projects/123456789/diagram"] }, health));

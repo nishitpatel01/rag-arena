@@ -116,7 +116,11 @@ export const PageCanvas: React.FC<PageCanvasProps> = ({ imageUrl, alt, aspectHin
       {image && regionBox && region && (
         <div aria-hidden className="pointer-events-none absolute rounded-sm" style={{ ...regionBox, ...REGION_STYLE }} data-testid="region-overlay">
           {!compact && (
-            <span className="absolute left-0 top-0 -translate-y-full whitespace-nowrap rounded-sm border border-clay bg-surface-1 px-1 font-mono text-xs text-clay">
+            <span
+              className={`absolute left-0 top-0 max-w-full truncate whitespace-nowrap rounded-sm border border-clay bg-surface-1 px-1 font-mono text-xs text-clay ${
+                region.box.y0 < 0.04 ? "m-1" : "-translate-y-full"
+              }`}
+            >
               {region.label}
             </span>
           )}

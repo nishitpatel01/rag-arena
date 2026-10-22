@@ -1,9 +1,20 @@
 import React, { useState } from "react";
 import { ArrowDown, ArrowUp, Equal, GitMerge, Sparkles, Spline, Type } from "lucide-react";
 import type { JsonObject } from "../../types/arena";
-import { ElementFilterChips, ElementMetaCell, ElementTypeBadge } from "../../components/ElementBadges";
+import { AmendmentChip, ElementFilterChips, ElementMetaCell, ElementTypeBadge, LayoutSourceBadge } from "../../components/ElementBadges";
+import { Pill as Chip } from "../../components/ui/Pill";
 import { countElementTypes, matchesElementFilter, type ElementFilter, type ElementMeta } from "../../lib/elements";
-import { elementMixSegments, parseElementIntent, parseSynthesizeL3, type ElementMix, type SynthesizeL3View } from "./level3Payloads";
+import {
+  elementMixSegments,
+  parseElementIntent,
+  parseIntentMatches,
+  parseRetrieveL3Summary,
+  parseSynthesizeL3,
+  retrieveL3Lines,
+  type ElementMix,
+  type RetrieveL3Summary,
+  type SynthesizeL3View,
+} from "./level3Payloads";
 import { DataTable } from "../../components/ui/DataTable";
 import { KeyValue } from "../../components/ui/KeyValue";
 import { Pill, type PillTone } from "../../components/ui/Pill";
@@ -47,7 +58,11 @@ const InvalidRowsNote: React.FC<{ readonly count: number; readonly what: string 
 // query_prep
 // ---------------------------------------------------------------------------
 
-export const QueryPrepDetail: React.FC<{ readonly view: QueryPrepView; readonly elementIntent?: readonly string[] | null }> = ({ view, elementIntent = null }) => {
+export const QueryPrepDetail: React.FC<{
+  readonly view: QueryPrepView;
+  readonly elementIntent?: readonly string[] | null;
+  readonly intentMatches?: ReadonlyMap<string, readonly string[]>;
+}> = ({ view, elementIntent = null, intentMatches }) => {
   const ops = diffWords(view.originalQuery, view.preparedQuery);
   const changed = ops.some((o) => o.kind !== "same");
   return (
@@ -58,7 +73,16 @@ export const QueryPrepDetail: React.FC<{ readonly view: QueryPrepView; readonly 
           {elementIntent.length === 0 ? (
             <span className="text-xs text-ink-3">none detected (no element-type pre-filter)</span>
           ) : (
-            elementIntent.map((t) => <ElementTypeBadge key={t} elementType={t} />)
+            elementIntent.map((t) => (
+              <span key={t} className="inline-flex items-center gap-1">
+                <ElementTypeBadge elementType={t} />
+                {intentMatches?.get(t)?.length ? (
+                  <span className="font-mono text-xs text-ink-2" title="intent_matches: query keywords that triggered this intent">
+                    ← {intentMatches.get(t)?.join(", ")}
+                  </span>
+                ) : null}
+              </span>
+            ))
           )}
         </div>
       )}
@@ -156,7 +180,7 @@ const DocCell: React.FC<{ readonly chunkId: string; readonly docName: string | n
   </div>
 );
 
-export const HybridRetrieveDetail: React.FC<{ readonly view: HybridRetrieveView }> = ({ view }) => {
+export const HybridRetrieveDetail: React.FC<{ readonly view: HybridRetrieveView; readonly l3?: RetrieveL3Summary | null }> = ({ view, l3 = null }) => {
   const [filter, setFilter] = useState<ElementFilter>("all");
   const counts = countCategories(view.candidates);
   const withMeta = anyElementMeta(view.candidates);
@@ -195,6 +219,13 @@ export const HybridRetrieveDetail: React.FC<{ readonly view: HybridRetrieveView 
       />
       {rankCountsLine(view) && (
         <p className="font-mono text-xs text-ink-1" data-testid="retrieve-rank-counts">{rankCountsLine(view)}</p>
+      )}
+      {l3 && (
+        <ul className="flex flex-col gap-0.5 rounded-md border border-line bg-surface-0 p-2" data-testid="retrieve-l3-summary" aria-label="Multimodal retrieval summary">
+          {retrieveL3Lines(l3).map((line) => (
+            <li key={line} className="break-words font-mono text-xs text-ink-1">{line}</li>
+          ))}
+        </ul>
       )}
       {indexUsageLines(view).length > 0 && (
         <div className="rounded-md border border-line bg-surface-0 p-2" data-testid="retrieve-index-usage">
@@ -324,6 +355,7 @@ export const RerankDetail: React.FC<{ readonly view: RerankView; readonly retrie
 // ---------------------------------------------------------------------------
 
 const MIX_BAR_CLASS: Readonly<Record<string, string>> = { table: "bg-moss", diagram: "bg-slate", narrative_text: "bg-ochre" };
+const mixClass = (type: string): string => MIX_BAR_CLASS[type] ?? "bg-ink-3";
 
 export const ElementMixBar: React.FC<{ readonly mix: ElementMix }> = ({ mix }) => {
   const segments = elementMixSegments(mix);
@@ -332,13 +364,13 @@ export const ElementMixBar: React.FC<{ readonly mix: ElementMix }> = ({ mix }) =
     <div className="flex flex-col gap-1.5" data-testid="element-mix">
       <div className="flex h-3 w-full max-w-md overflow-hidden rounded border border-line bg-surface-2" aria-hidden>
         {segments.map((s) =>
-          s.fraction > 0 ? <span key={s.type} className={`block h-full ${MIX_BAR_CLASS[s.type]}`} style={{ width: `${(s.fraction * 100).toFixed(2)}%` }} /> : null
+          s.fraction > 0 ? <span key={s.type} className={`block h-full ${mixClass(s.type)}`} style={{ width: `${(s.fraction * 100).toFixed(2)}%` }} /> : null
         )}
       </div>
       <ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label={`Element mix of the ${total} context chunks sent to synthesis`}>
         {segments.map((s) => (
           <li key={s.type} className="inline-flex items-center gap-1.5 text-xs text-ink-1">
-            <span className={`inline-block h-2.5 w-2.5 rounded-sm ${MIX_BAR_CLASS[s.type]}`} aria-hidden />
+            <span className={`inline-block h-2.5 w-2.5 rounded-sm ${mixClass(s.type)}`} aria-hidden />
             <span className="font-medium">{s.label}</span>
             <span className="font-mono tabular-nums">{s.count}</span>
             <span className="text-ink-3">({Math.round(s.fraction * 100)}%)</span>
@@ -354,17 +386,31 @@ export const SynthesizeDetail: React.FC<{ readonly view: SynthesizeL3View }> = (
     {view.authorityHeaders !== null && (
       <>
         <h4 className={sectionTitle}>Authority headers used</h4>
+        {view.contextOrder && <p className="text-xs text-ink-2">Context order: {view.contextOrder}</p>}
         {view.authorityHeaders.length === 0 ? (
           <p className="text-xs text-ink-3">The synthesis prompt carried no authority headers.</p>
         ) : (
-          <ol className="flex list-decimal flex-col gap-1 pl-5" data-testid="authority-headers">
+          <ol className="flex list-decimal flex-col gap-1.5 pl-5" data-testid="authority-headers">
             {view.authorityHeaders.map((h, i) => (
-              <li key={`${i}-${h}`} className="break-words font-mono text-xs text-ink-1">
-                {h}
+              <li key={`${i}-${h.chunkId ?? h.header}`} className="text-xs text-ink-1">
+                <p className="break-words font-mono" title={h.chunkId ?? undefined}>{h.header}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                  {h.elementType && <ElementTypeBadge elementType={h.elementType} />}
+                  {h.layoutSource && <LayoutSourceBadge layoutSource={h.layoutSource} />}
+                  {(h.amendmentNumber ?? 0) > 0 && <AmendmentChip amendmentNumber={h.amendmentNumber} amendsSection={null} />}
+                  {h.supersedes.map((x) => (
+                    <Chip key={`s-${x}`} tone="warn" title="this chunk supersedes">supersedes {x}</Chip>
+                  ))}
+                  {h.supersededBy.map((x) => (
+                    <Chip key={`b-${x}`} tone="locked" title="this chunk is superseded by">superseded by {x}</Chip>
+                  ))}
+                  {h.effectiveDate && <span className="font-mono text-ink-3">effective {h.effectiveDate}</span>}
+                </div>
               </li>
             ))}
           </ol>
         )}
+        <InvalidRowsNote count={view.invalidHeaders} what="authority header rows" />
       </>
     )}
     {view.elementMix !== null && (
@@ -382,8 +428,8 @@ export const SynthesizeDetail: React.FC<{ readonly view: SynthesizeL3View }> = (
 
 /** Payload keys rendered by a dedicated view (omitted from the generic code blocks; still in raw JSON). */
 export const DEDICATED_KEYS: Readonly<Record<string, readonly string[]>> = {
-  query_prep: ["expansions", "element_intent"],
-  retrieve: ["candidates"],
+  query_prep: ["expansions", "element_intent", "intent_matches"],
+  retrieve: ["candidates", "element_types", "layout_sources"],
   rerank: ["results"],
   synthesize: ["authority_headers", "element_mix"],
 };
@@ -397,7 +443,7 @@ export interface StageViewContext {
 export function dedicatedStageView(stageId: string, payload: JsonObject | null, ctx: StageViewContext = {}): React.ReactElement | null {
   if (stageId === "query_prep") {
     const v = parseQueryPrep(payload);
-    return v ? <QueryPrepDetail view={v} elementIntent={parseElementIntent(payload)} /> : null;
+    return v ? <QueryPrepDetail view={v} elementIntent={parseElementIntent(payload)} intentMatches={parseIntentMatches(payload)} /> : null;
   }
   if (stageId === "synthesize") {
     const v = parseSynthesizeL3(payload);
@@ -405,7 +451,7 @@ export function dedicatedStageView(stageId: string, payload: JsonObject | null, 
   }
   if (stageId === "retrieve") {
     const v = parseHybridRetrieve(payload);
-    return v ? <HybridRetrieveDetail view={v} /> : null;
+    return v ? <HybridRetrieveDetail view={v} l3={parseRetrieveL3Summary(payload)} /> : null;
   }
   if (stageId === "rerank") {
     const v = parseRerank(payload);

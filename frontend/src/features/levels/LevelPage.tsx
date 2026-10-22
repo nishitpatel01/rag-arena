@@ -191,7 +191,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
           />
         </Panel>
       )}
-      <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} />
+      <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} retrievedChunks={timeline?.answer?.retrievedChunks} />
     </div>
   );
 };

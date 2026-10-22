@@ -16,14 +16,7 @@ from app.engines.level3_multimodal import (
     Level3MultimodalEngine,
     format_chunk_with_authority_header,
 )
-from app.engines.level4_agentic import (
-    Level4AgenticEngine,
-    build_adk_agent,
-    calculate_contract_pricing,
-    check_amendments,
-    search_procurement_corpus,
-    verify_citations,
-)
+from app.engines.level4_agentic import Level4AgenticEngine
 from app.engines.managed_vertex import ManagedVertexSearchEngine
 from app.engines.replay_engine import ReplayRAGEngine
 
@@ -50,8 +43,9 @@ def _resolve(settings: ArenaSettings | None) -> ArenaSettings:
 def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | None = None) -> BaseRAGEngine:
     """Instantiate the engine for ``level_id`` for one run: live class in live/record, a replay player in replay.
 
-    ``models`` is the run's (synthesis, judge) selection. Levels 1–3 synthesize with ``models.synthesis``; replay
-    plays the recording of exactly that pair. Legacy levels (4–5) cannot switch models yet and reject any
+    ``models`` is the run's (synthesis, judge) selection. Levels 1–3 synthesize with ``models.synthesis``; Level 4 runs
+    its ADK agent on ``models.synthesis`` (Gemini only — a Claude selection raises ``ValueError`` → HTTP 400); replay
+    plays the recording of exactly that pair. The legacy level (5) cannot switch models yet and rejects any
     synthesis model other than ``GEMINI_FAST_MODEL`` (fail loud, never a silent substitution).
     """
     if level_id not in _ENGINE_CLASS_BY_ID:
@@ -68,7 +62,7 @@ def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | Non
             settings=settings,
             models=models,
         )
-    if cls in (Level1NaiveEngine, Level2HybridEngine, Level3MultimodalEngine):
+    if cls in (Level1NaiveEngine, Level2HybridEngine, Level3MultimodalEngine, Level4AgenticEngine):
         return cls(settings=settings, synthesis_model=models.synthesis if models else None)
     if models is not None and models.synthesis.id != settings.gemini_fast_model:
         raise ValueError(
@@ -117,16 +111,11 @@ __all__ = [
     "Level4AgenticEngine",
     "ManagedVertexSearchEngine",
     "ReplayRAGEngine",
-    "build_adk_agent",
     "build_engine",
     "build_vector_search_sql",
-    "calculate_contract_pricing",
-    "check_amendments",
     "expand_procurement_acronyms",
     "format_chunk_with_authority_header",
     "get_engine_registry",
     "list_levels",
     "prepare_query",
-    "search_procurement_corpus",
-    "verify_citations",
 ]

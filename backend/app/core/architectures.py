@@ -50,8 +50,12 @@ class ArchNode:
     stage_ids: tuple[str, ...] = ()
     region: str = ""
     code_ref: str = ""
+    # Level 4: the ADK tool name(s) whose calls light this node up inside the ``agent_turn`` stage.
+    tool_names: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        if not isinstance(self.tool_names, tuple) or not all(isinstance(t, str) and t for t in self.tool_names):
+            raise TypeError("tool_names must be a tuple of non-empty strings")
         if not self.id or not self.label or not self.service:
             raise ValueError("ArchNode id, label and service must be non-empty")
         if not isinstance(self.region, str) or not isinstance(self.code_ref, str):
@@ -76,6 +80,8 @@ class ArchNode:
             out["region"] = self.region
         if self.code_ref:
             out["code_ref"] = self.code_ref
+        if self.tool_names:
+            out["tool_names"] = list(self.tool_names)
         return out
 
 
@@ -350,41 +356,61 @@ def _level3() -> ArchitectureDescriptor:
     )
 
 
+_L4_REF = "app.engines.level4_agentic:Level4AgenticEngine"
+_L4_TOOLS_REF = "app.engines.agent_tools"
+
+
+def _level4_tool_nodes() -> tuple[ArchNode, ...]:
+    """The four ADK tools and the services they call; all light up during ``agent_turn`` (per tool via ``tool_names``)."""
+    turn, search, amend = ("agent_turn",), ("search_procurement_corpus",), ("check_amendments",)
+    return (
+        ArchNode("tool_search", "search_procurement_corpus", "Level 3 retrieval (embed → RRF → rerank)", "process", 2, 0, turn,
+                 code_ref=f"{_L4_TOOLS_REF}:run_search", tool_names=search),
+        ArchNode("tool_amend", "check_amendments", "BigQuery parameterized amends_section lookup", "process", 2, 1, turn,
+                 code_ref=f"{_L4_TOOLS_REF}:run_check_amendments", tool_names=amend),
+        ArchNode("tool_calc", "calculate_contract_pricing", "Local AST-validated arithmetic", "process", 2, 2, turn,
+                 code_ref="app.engines.agent_calculator:evaluate_expression", tool_names=("calculate_contract_pricing",)),
+        ArchNode("tool_verify", "verify_citations", "Local claim ↔ cited-chunk check", "process", 2, 3, turn,
+                 code_ref="app.engines.agent_verify:check_claims", tool_names=("verify_citations",)),
+        ArchNode("embed", "Query embedding (multimodal space)", MM_EMBED_SERVICE_PLACEHOLDER, "model", 3, 0, turn,
+                 region=_GENAI_REGION, code_ref="app.engines.common_stages:embed_query_stage", tool_names=search),
+        ArchNode("bq", "document_chunks (tier multimodal)", "BigQuery VECTOR_SEARCH + SEARCH() → RRF · amendment lookup", "store", 3, 1,
+                 turn, region=_BQ_REGION, code_ref=f"{_L3_REF}._retrieve", tool_names=search + amend),
+        ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 4, 0, turn, region="global",
+                 code_ref=f"{_L3_REF}._rerank", tool_names=search),
+    )
+
+
 def _level4() -> ArchitectureDescriptor:
-    ingest_nodes, ingest_edges = _bq_ingest(
-        "Layout parser + vision", "Document AI Layout Parser · gemini-4-argon vision", "embedding_multimodal", ""
-    )
-    agent = ArchNode(
-        "agent", "ADK agent loop", "Google ADK Runner · gemini-4-argon", "agent", 1, 1, ("query_prep", "agent_turn")
-    )
-    tools = ArchNode(
-        "tools",
-        "Tools: search · amendments · pricing · verify",
-        "BigQuery + Level 3 retrieval",
-        "api",
-        2,
-        1,
-        ("agent_turn",),
-    )
-    embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 2, 0, ("embed_query",))
-    bq = ArchNode("bq", "document_chunks", "BigQuery VECTOR_SEARCH + SEARCH()", "store", 3, 1, ("retrieve",))
-    rank = ArchNode("rank", "Cross-encoder rerank", "Discovery Engine Ranking API", "api", 3, 0, ("rerank",))
-    llm = ArchNode("llm", "Final response", "Google ADK · gemini-4-argon", "model", 4, 1, ("synthesize",))
-    user = ArchNode("user", "User question", "Browser", "actor", 0, 1, ())
+    """User → query_prep → ADK agent (Gemini) ⇄ tools → final response → judge (reuses the Level 3 multimodal tier)."""
+    ingest_nodes, ingest_edges = _level3_ingest()
+    user = ArchNode("user", "User question + query prep", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_L4_REF}._query_prep")
+    agent = ArchNode("agent", "ADK LlmAgent loop", "Google ADK InMemoryRunner · Vertex AI Gemini", "agent", 1, 1, ("agent_turn",),
+                     region=_GENAI_REGION, code_ref="app.engines.agent_runtime:run_agent")
+    final = ArchNode("llm", "Final response (ADK)", "Google ADK · final model turn", "model", 4, 2, ("synthesize",),
+                     region=_GENAI_REGION, code_ref=f"{_L4_REF}._synthesize")
+    judge = replace(_JUDGE, col=5, row=2)
     return ArchitectureDescriptor(
         level_id="level4_agentic",
-        nodes=(user, agent, tools, embed, bq, rank, llm, _JUDGE),
+        nodes=(user, agent, *_level4_tool_nodes(), final, judge),
         edges=(
-            ArchEdge("user", "agent", "text"),
-            ArchEdge("agent", "tools", "tool call"),
-            ArchEdge("tools", "embed", "query"),
-            ArchEdge("embed", "bq", "vector"),
-            ArchEdge("tools", "bq", "amends_section lookup"),
-            ArchEdge("bq", "rank", "candidates"),
-            ArchEdge("rank", "tools", "chunks"),
-            ArchEdge("tools", "agent", "tool result"),
+            ArchEdge("user", "agent", "question + expansions + intent"),
+            ArchEdge("agent", "tool_search", "tool call"),
+            ArchEdge("agent", "tool_amend", "tool call"),
+            ArchEdge("agent", "tool_calc", "tool call"),
+            ArchEdge("agent", "tool_verify", "tool call"),
+            ArchEdge("tool_search", "embed", "query"),
+            ArchEdge("embed", "bq", "3072-d vector"),
+            ArchEdge("bq", "rank", "RRF candidates (≤ 50)"),
+            ArchEdge("rank", "tool_search", "top-5 chunks"),
+            ArchEdge("tool_amend", "bq", "@solicitation_id · @section_id"),
+            ArchEdge("tool_search", "agent", "chunks"),
+            ArchEdge("tool_amend", "agent", "superseding text"),
+            ArchEdge("tool_calc", "agent", "value"),
+            ArchEdge("tool_verify", "agent", "unsupported claims"),
             ArchEdge("agent", "llm", "final turn"),
-            ArchEdge("llm", "judge", "answer + context"),
+            ArchEdge("llm", "judge", "answer + tool-returned chunks"),
         ),
         ingest_nodes=ingest_nodes,
         ingest_edges=ingest_edges,

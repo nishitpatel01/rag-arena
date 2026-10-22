@@ -306,10 +306,11 @@ def test_query_runs_schema_gains_model_columns_in_place() -> None:
 
 
 def test_legacy_levels_reject_a_non_default_synthesis_model() -> None:
-    settings = live_settings(enabled_levels=("level1_naive", "level4_agentic"))
+    settings = live_settings(enabled_levels=("level1_naive", "level4_agentic", "managed_vertex"))
     models = load_catalog(settings).select("gemini-3.8-flash", "claude-opus-5-5")
     with pytest.raises(ValueError):
-        build_engine("level4_agentic", settings, models)
+        build_engine("managed_vertex", settings, models)
+    assert build_engine("level4_agentic", settings, models).synthesis_model.id == "gemini-3.8-flash"  # Phase 4: ADK agent model
     level3 = build_engine("level3_multimodal", live_settings(enabled_levels=("level3_multimodal",)), models)
     assert level3.synthesis_model.id == "gemini-3.8-flash"  # Phase 3: Level 3 accepts any catalog synthesis model
 

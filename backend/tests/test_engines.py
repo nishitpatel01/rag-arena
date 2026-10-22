@@ -1,4 +1,4 @@
-"""Engine-level tests for v3: registry gating, pure tool helpers, and legacy engines failing loud."""
+"""Engine-level tests for v3: registry gating, pure helpers, and legacy engines failing loud (Level 4 tools: test_level4_agentic.py)."""
 
 from __future__ import annotations
 
@@ -14,13 +14,6 @@ from app.engines.base import BaseRAGEngine
 from app.engines.level2_hybrid import Level2HybridEngine
 from app.engines.managed_vertex import ManagedVertexSearchEngine
 from app.engines.level3_multimodal import format_chunk_with_authority_header
-from app.engines.level4_agentic import (
-    build_adk_agent,
-    calculate_contract_pricing,
-    check_amendments,
-    search_procurement_corpus,
-    verify_citations,
-)
 from app.engines.replay_engine import ReplayRAGEngine
 from fakes import fake_clients, live_settings, run
 
@@ -59,47 +52,6 @@ def test_parked_engines_are_not_importable_from_the_registry_module() -> None:
     parked = Path(engines.__file__).parent / "parked"
     assert (parked / "vertex_vector_v2.py").is_file() and (parked / "alloydb_scann.py").is_file()
     assert "PARKED" in (parked / "alloydb_scann.py").read_text(encoding="utf-8")[:200]
-
-
-def test_level4_safe_calculator_tool_evaluates_math_and_blocks_unsafe_expr() -> None:
-    res = calculate_contract_pricing(
-        expression="base_hours * amended_rate * (1 - discount)",
-        variables={"base_hours": 2000, "amended_rate": 245.0, "discount": 0.05},
-    )
-    assert res["status"] == "success" and res["result"] == pytest.approx(465500.0)
-    assert calculate_contract_pricing(expression="__import__('os').system('ls')", variables={})["status"] == "error"
-    assert calculate_contract_pricing(expression="(1).__class__.__base__", variables={})["status"] == "error"
-    assert calculate_contract_pricing(expression="unknown_var * 10", variables={"known_var": 5.0})["status"] == "error"
-
-
-def test_level4_tools_are_honest_about_what_is_not_wired_yet() -> None:
-    res = check_amendments(solicitation_id="solicitation_01", section_or_clin_id="CLIN-0004-AB")
-    assert res["status"] == "success" and res["has_amendment"] is True and "$245" in res["superseding_summary"]
-    assert check_amendments("solicitation_09", "CLIN-0001")["has_amendment"] is False
-    corpus_res = search_procurement_corpus(query="CLIN-0004-AB", solicitation_id="solicitation_01")
-    assert corpus_res["status"] == "error" and "Phase 4" in corpus_res["error"]
-    verify_ok = verify_citations(draft_answer="CLIN-0004-AB is amended to $245.00/hr.", cited_chunk_ids=["sol01_amd1_p1_c1"])
-    assert verify_ok["status"] == "success" and verify_ok["verified"] is True
-    try:
-        import google.adk  # noqa: F401
-    except ImportError:
-        with pytest.raises(RuntimeError, match="google-adk"):
-            build_adk_agent(model_name="gemini-4-argon")
-
-
-def test_level4_verify_citations_detects_unsupported_numeric_claims() -> None:
-    source_texts = ["Amendment 0001 supersedes CLIN-0004-AB base rate ($210.00/hr) to $245.00/hr under SEC-4.2.1."]
-    supported = verify_citations(
-        draft_answer="Under Amendment 0001 and SEC-4.2.1, CLIN-0004-AB rate is $245.00/hr (up from $210.00/hr).",
-        cited_chunk_ids=["sol01_amd1_p1_c1"], source_texts=source_texts,
-    )
-    assert supported["verified"] is True and supported["unsupported_claims"] == []
-    hallucinated = verify_citations(
-        draft_answer="Under CLIN-0004-AB and CLIN-9999, the rate is $245.00/hr with a cap of $999.00.",
-        cited_chunk_ids=["sol01_amd1_p1_c1"], source_texts=source_texts,
-    )
-    assert hallucinated["verified"] is False
-    assert "$999.00" in hallucinated["unsupported_claims"] and "CLIN-9999" in hallucinated["unsupported_claims"]
 
 
 def test_legacy_engines_emit_skipped_stages_then_fail_loud_under_one_legacy_stage() -> None:

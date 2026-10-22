@@ -66,11 +66,14 @@ class Synthesizer(Protocol):
     def generate(self, prompt: SynthesisPrompt) -> SynthesisOutput: ...
 
 
-def build_prompt(context_block: str, query: str) -> SynthesisPrompt:
-    """Level 1 grounded prompt: instruction (system) + retrieved context and question (user)."""
+def build_prompt(context_block: str, query: str, instruction: str = SYNTHESIS_INSTRUCTION) -> SynthesisPrompt:
+    """Grounded prompt: instruction (system) + retrieved context and question (user). Levels 1–2 use the default
+    instruction unchanged; Level 3 appends its authority/element rules."""
     if not isinstance(query, str) or not query.strip():
         raise ValueError("query must be a non-empty string")
-    return SynthesisPrompt(system=SYNTHESIS_INSTRUCTION, user=f"Context:\n{context_block}\n\nQuestion: {query}")
+    if not isinstance(instruction, str) or not instruction.strip():
+        raise ValueError("instruction must be a non-empty string")
+    return SynthesisPrompt(system=instruction, user=f"Context:\n{context_block}\n\nQuestion: {query}")
 
 
 class GeminiSynthesizer:

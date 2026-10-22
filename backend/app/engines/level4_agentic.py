@@ -16,7 +16,7 @@ from typing import Any, Callable
 
 from app.core.config import ArenaSettings, _validate_gemini_model_name
 from app.core.models import AgentStep, DocumentChunk, EngineFlags, EngineResult
-from app.core.telemetry import StageEmitter
+from app.core.telemetry import NullStageEmitter, StageEmitter
 from app.engines._legacy import run_legacy_body
 from app.engines.base import BaseRAGEngine
 from app.engines.level3_multimodal import Level3MultimodalEngine
@@ -483,7 +483,10 @@ class Level4AgenticEngine(BaseRAGEngine):
         adk_outcome = await self.blocking(_try_run_adk_in_memory, adk_agent, cleaned_query)
         step1_t0 = time.perf_counter()
         l3_engine = Level3MultimodalEngine(settings=self.settings)
-        l3_res = await l3_engine._legacy_live(cleaned_query, solicitation_filter)
+        l3_res = await l3_engine.run_query(
+            cleaned_query, question_id=None, solicitation_filter=solicitation_filter,
+            emitter=NullStageEmitter(run_id="l4_inner_l3", engine="level3_multimodal"),
+        )
         step1_ms = max(1, int((time.perf_counter() - step1_t0) * 1000))
         sol_id = solicitation_filter or (
             l3_res.retrieved_chunks[0].solicitation_id if l3_res.retrieved_chunks else "solicitation_01"

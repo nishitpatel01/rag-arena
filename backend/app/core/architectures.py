@@ -129,14 +129,23 @@ class ArchitectureDescriptor:
         vertex_genai_location: str,
         judge_location: str = "",
         judge_model: str = "",
+        docai_location: str = "",
+        vision_model: str = "",
+        multimodal_embedding_model: str = "",
     ) -> "ArchitectureDescriptor":
-        """Resolve region + judge placeholders from settings (regions/judge model are never hardcoded)."""
+        """Resolve region + model placeholders from settings (regions/models are never hardcoded)."""
         if not gcp_location or not vertex_genai_location:
             raise ValueError("gcp_location and vertex_genai_location must be non-empty")
         mapping = {GCP_LOCATION_PLACEHOLDER: gcp_location, GENAI_LOCATION_PLACEHOLDER: vertex_genai_location}
         if judge_location:
             mapping[JUDGE_LOCATION_PLACEHOLDER] = judge_location
+        if docai_location:
+            mapping[DOCAI_LOCATION_PLACEHOLDER] = docai_location
         services = {JUDGE_SERVICE_PLACEHOLDER: f"Vertex AI · {judge_model}"} if judge_model else {}
+        if vision_model:
+            services[VISION_SERVICE_PLACEHOLDER] = f"Vertex AI · {vision_model} (vision)"
+        if multimodal_embedding_model:
+            services[MM_EMBED_SERVICE_PLACEHOLDER] = f"Vertex AI · {multimodal_embedding_model} (multimodal)"
 
         def _resolve(nodes: tuple[ArchNode, ...]) -> tuple[ArchNode, ...]:
             return tuple(
@@ -153,6 +162,9 @@ class ArchitectureDescriptor:
             vertex_genai_location=settings.vertex_genai_location,
             judge_location=settings.judge_location,
             judge_model=settings.judge_model,
+            docai_location=getattr(settings, "docai_location", ""),
+            vision_model=getattr(settings, "vision_model", ""),
+            multimodal_embedding_model=getattr(settings, "multimodal_embedding_model", ""),
         )
 
 
@@ -160,6 +172,9 @@ GCP_LOCATION_PLACEHOLDER = "{GCP_LOCATION}"
 GENAI_LOCATION_PLACEHOLDER = "{VERTEX_GENAI_LOCATION}"
 JUDGE_LOCATION_PLACEHOLDER = "{JUDGE_LOCATION}"
 JUDGE_SERVICE_PLACEHOLDER = "Vertex AI · {JUDGE_MODEL}"
+DOCAI_LOCATION_PLACEHOLDER = "{DOCAI_LOCATION}"
+VISION_SERVICE_PLACEHOLDER = "Vertex AI · {VISION_MODEL} (vision)"
+MM_EMBED_SERVICE_PLACEHOLDER = "Vertex AI · {MULTIMODAL_EMBEDDING_MODEL} (multimodal)"
 _GENAI_REGION = GENAI_LOCATION_PLACEHOLDER
 _BQ_REGION = GCP_LOCATION_PLACEHOLDER
 _USER = ArchNode("user", "User question", "Browser", "actor", 0, 1, ("query_prep",))
@@ -261,22 +276,73 @@ def _level2() -> ArchitectureDescriptor:
     )
 
 
+_L3_REF = "app.engines.level3_multimodal:Level3MultimodalEngine"
+_L3_INGEST_REF = "app.ingestion.multimodal_job"
+
+
+def _level3_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """corpus → Document AI Layout Parser → Gemini vision (diagram pages) → element chunker → embeddings → BigQuery → index."""
+    nodes = (
+        ArchNode("corpus", "Procurement corpus (local)", "Local corpus · data/sample_docs", "store", 0, 0, ("discover_docs",)),
+        ArchNode(
+            "docai", "Layout Parser (tables · headings · figures)", "Document AI Layout Parser", "api", 1, 0, ("parse",),
+            region=DOCAI_LOCATION_PLACEHOLDER, code_ref="app.ingestion.layout_documentai:LayoutParser.parse",
+        ),
+        ArchNode(
+            "vision", "Diagram transcription (diagram pages)", VISION_SERVICE_PLACEHOLDER, "model", 1, 1, ("parse",),
+            region=_GENAI_REGION, code_ref="app.ingestion.vision_transcribe:GeminiVisionTranscriber.transcribe",
+        ),
+        ArchNode(
+            "chunker", "Element chunker (tables · diagrams · heading groups)", "Ingestion job", "process", 2, 0, ("chunk",),
+            code_ref="app.ingestion.multimodal:ChunkBuilder.build",
+        ),
+        ArchNode(
+            "embedder", "Chunk embeddings (text · text+image)", MM_EMBED_SERVICE_PLACEHOLDER, "model", 3, 0, ("embed",),
+            region=_GENAI_REGION, code_ref="app.ingestion.multimodal:VertexMultimodalEmbedder.embed_items",
+        ),
+        ArchNode("bq_load", "document_chunks (tier multimodal)", "BigQuery", "store", 4, 0, ("load_bigquery", "verify_counts"), region=_BQ_REGION),
+        ArchNode("index", "Vector (embedding_multimodal) + search index", "BigQuery", "store", 5, 0, ("build_indexes",), region=_BQ_REGION),
+    )
+    edges = (
+        ArchEdge("corpus", "docai", "PDF bytes (≤15-page ranges)"),
+        ArchEdge("corpus", "vision", "diagram page PNG"),
+        ArchEdge("docai", "chunker", "layout elements"),
+        ArchEdge("vision", "chunker", "component/flow spec"),
+        ArchEdge("chunker", "embedder", "chunk text (+ page image)"),
+        ArchEdge("embedder", "bq_load", "embedding_multimodal"),
+        ArchEdge("bq_load", "index", "CREATE INDEX"),
+    )
+    return nodes, edges
+
+
 def _level3() -> ArchitectureDescriptor:
-    ingest_nodes, ingest_edges = _bq_ingest(
-        "Layout parser + vision", "Document AI Layout Parser · gemini-4-argon vision", "embedding_multimodal", ""
+    ingest_nodes, ingest_edges = _level3_ingest()
+    user = ArchNode(
+        "user", "User question + element intent", "Engine (local)", "actor", 0, 1, ("query_prep",),
+        code_ref=f"{_L3_REF}._query_prep_l3",
+    )
+    embed = ArchNode(
+        "embed", "Query embedding", MM_EMBED_SERVICE_PLACEHOLDER, "model", 1, 0, ("embed_query",),
+        region=_GENAI_REGION, code_ref="app.engines.common_stages:embed_query_stage",
     )
     bq = ArchNode(
-        "bq", "document_chunks (multimodal)", "BigQuery VECTOR_SEARCH + SEARCH()", "store", 2, 1, ("retrieve",)
+        "bq", "document_chunks (tier multimodal)", "BigQuery VECTOR_SEARCH(embedding_multimodal) + SEARCH() → RRF", "store",
+        2, 1, ("retrieve",), region=_BQ_REGION, code_ref=f"{_L3_REF}._retrieve",
     )
-    rank = ArchNode("rank", "Cross-encoder rerank", "Discovery Engine Ranking API", "api", 3, 1, ("rerank",))
+    rank = ArchNode(
+        "rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 3, 1, ("rerank",),
+        region="global", code_ref=f"{_L2_REF}._rerank",
+    )
+    llm = replace(_LLM, label="Authority-headed synthesis", code_ref=f"{_L3_REF}._synthesize_l3")
     return ArchitectureDescriptor(
         level_id="level3_multimodal",
-        nodes=(_USER, _EMBED, bq, rank, _LLM, _JUDGE),
+        nodes=(user, embed, bq, rank, llm, _JUDGE),
         edges=(
-            ArchEdge("user", "embed", "text"),
-            ArchEdge("embed", "bq", "multimodal vector"),
-            ArchEdge("bq", "rank", "pre-filtered candidates"),
-            ArchEdge("rank", "llm", "authority-headed chunks"),
+            ArchEdge("user", "embed", "prepared query"),
+            ArchEdge("embed", "bq", "3072-d vector"),
+            ArchEdge("user", "bq", "lexical terms + pre-filter"),
+            ArchEdge("bq", "rank", "RRF candidates (≤ 50)"),
+            ArchEdge("rank", "llm", "top-5 · amendments first"),
             ArchEdge("llm", "judge", "answer + context"),
         ),
         ingest_nodes=ingest_nodes,

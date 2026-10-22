@@ -30,9 +30,12 @@ def format_query_for_embedding(text: str) -> str:
     return QUERY_PREFIX + _require_text(text)
 
 
-def format_document_for_embedding(text: str) -> str:
-    """Asymmetric retrieval document format for gemini-embedding-2 (model card; no title available)."""
-    return DOCUMENT_PREFIX + _require_text(text)
+def format_document_for_embedding(text: str, title: str | None = None) -> str:
+    """Asymmetric retrieval document format for gemini-embedding-2 (model card); ``title`` defaults to ``none``."""
+    if title is None:
+        return DOCUMENT_PREFIX + _require_text(text)
+    clean_title = " ".join(str(title).replace("|", " ").split())[:200] or "none"
+    return f"title: {clean_title} | text: " + _require_text(text)
 
 
 def embed_config(task_type: str) -> Any:

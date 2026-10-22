@@ -45,6 +45,8 @@ VECTOR_INDEX_MIN_BYTES = 10 * 1024 * 1024
 SEARCH_INDEX_MIN_BYTES = 10 * 1024 * 1024 * 1024
 IVF_MIN_ROWS = 5000  # BigQuery: "Total rows N is smaller than min allowed 5000 for CREATE VECTOR INDEX ... IVF"
 _IVF_MIN_ROWS_RE = re.compile(r"Total rows (\d+) is smaller than min allowed (\d+) for CREATE VECTOR INDEX")
+# BigQuery allows ONE vector index per table (measured 2026-10-22: 409 ALREADY_EXISTS on a second CREATE VECTOR INDEX).
+_ONE_VECTOR_INDEX_RE = re.compile(r"Table '[^']*' already has a vector index on it, so can't create a new vector index\.")
 _MAX_CHILD_JOBS = 20
 _MAX_RECENT_RUNS = 50
 _BQ_TABLE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,1023}$")
@@ -59,6 +61,7 @@ _CHUNK_SCHEMA: tuple[tuple[str, str, str], ...] = (
     ("effective_date", "DATE", "NULLABLE"), ("amends_section", "STRING", "NULLABLE"), ("page_number", "INT64", "REQUIRED"),
     ("bbox", "STRUCT", "NULLABLE"), ("content", "STRING", "REQUIRED"), ("layout_source", "STRING", "NULLABLE"),
     ("embedding", "FLOAT64", "REPEATED"), ("embedding_multimodal", "FLOAT64", "REPEATED"),
+    ("bbox_source", "STRING", "NULLABLE"),
 )
 _INGEST_RUN_SCHEMA: tuple[tuple[str, str, str], ...] = (
     ("run_id", "STRING", "REQUIRED"), ("level", "STRING", "REQUIRED"), ("tier_profile", "STRING", "REQUIRED"),
@@ -193,6 +196,7 @@ class BigQueryLiveLoader:
         self._client = client if client is not None else get_bigquery_client(settings)
         self._sleep = sleep
         self._monotonic = monotonic
+        self._index_errors: dict[str, str] = {}
 
     def _fq(self, table: str) -> str:
         return f"{self._project}.{self._dataset}.{_validate_table_name(table, 'table')}"
@@ -282,9 +286,13 @@ class BigQueryLiveLoader:
             raise RuntimeError(f"could not read INSERT dml_stats from transaction job {job.job_id} ({len(children)} child jobs)")
         return int(inserts[0].dml_stats.inserted_row_count)
 
-    def build_indexes(self) -> dict[str, str]:
-        """Issue CREATE ... INDEX IF NOT EXISTS, then poll INFORMATION_SCHEMA (≤ 60 s) and report real states."""
-        self._create_vector_index()
+    def build_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> dict[str, str]:
+        """Issue CREATE ... INDEX IF NOT EXISTS (one vector index per embedding column + the search index), then poll
+        INFORMATION_SCHEMA (≤ 60 s) and report real states."""
+        if not embedding_columns or any(c not in ("embedding", "embedding_multimodal") for c in embedding_columns):
+            raise ValueError(f"embedding_columns must be a non-empty subset of ('embedding', 'embedding_multimodal'), got {embedding_columns}")
+        for column in embedding_columns:
+            self._create_vector_index(column)
         self._query(build_search_index_ddl(self._project, self._dataset, self._table))
         deadline = self._monotonic() + INDEX_POLL_MAX_SECONDS
         max_polls = int(INDEX_POLL_MAX_SECONDS / INDEX_POLL_INTERVAL_SECONDS) + 1
@@ -294,20 +302,36 @@ class BigQueryLiveLoader:
                 break
             self._sleep(INDEX_POLL_INTERVAL_SECONDS)
             rows, stats = self._read_index_rows(), self._table_stats()
-        return self._describe(rows, stats)
+        return self._describe(rows, stats, embedding_columns)
 
-    def _create_vector_index(self) -> None:
-        """CREATE VECTOR INDEX; BigQuery's IVF minimum-row rejection is the only tolerated error (reported via state)."""
-        from google.api_core.exceptions import BadRequest
+    def _create_vector_index(self, column: str = "embedding") -> None:
+        """CREATE VECTOR INDEX; BigQuery's IVF minimum-row rejection is the only tolerated error — its message is kept
+        verbatim and reported in the index state (``NOT CREATED (BigQuery: …)``)."""
+        from google.api_core.exceptions import BadRequest, Conflict
 
         try:
-            self._query(build_vector_index_ddl(self._project, self._dataset, self._table, "embedding"))
+            self._query(build_vector_index_ddl(self._project, self._dataset, self._table, column))
         except BadRequest as exc:
-            if not _IVF_MIN_ROWS_RE.search(str(exc)):
+            match = _IVF_MIN_ROWS_RE.search(str(exc))
+            if not match:
                 raise
+            rows, minimum = match.group(1), match.group(2)
+            self._index_errors[vector_index_name(self._table, column)] = (
+                f"{rows} rows on {column}; BigQuery IVF vector index needs >= {minimum} — BigQuery: '{match.group(0)}'"
+            )
+        except Conflict as exc:
+            match = _ONE_VECTOR_INDEX_RE.search(str(exc))
+            if column == "embedding" or not match:
+                raise
+            verbatim = match.group(0).replace(self._project, "${GCP_PROJECT_ID}")
+            self._index_errors[vector_index_name(self._table, column)] = (
+                f"BigQuery allows one vector index per table and {vector_index_name(self._table)} (embedding) exists — "
+                f"BigQuery: \"{verbatim}\""
+            )
 
     def index_states(self) -> dict[str, str]:
-        return self._describe(self._read(self._read_index_rows), self._read(self._table_stats))
+        columns = ("embedding", "embedding_multimodal")
+        return self._describe(self._read(self._read_index_rows), self._read(self._table_stats), columns)
 
     def _read_index_rows(self) -> dict[str, tuple[str, str | None, float | None]]:
         from google.cloud import bigquery
@@ -330,11 +354,21 @@ class BigQueryLiveLoader:
         rows = getattr(table, "num_rows", None)
         return int(getattr(table, "num_bytes", 0) or 0), None if rows is None else int(rows)
 
-    def _describe(self, rows: dict[str, tuple[str, str | None, float | None]], stats: tuple[int, int | None]) -> dict[str, str]:
-        expected = {vector_index_name(self._table): "vector", search_index_name(self._table): "search"}
+    def _describe(
+        self, rows: dict[str, tuple[str, str | None, float | None]], stats: tuple[int, int | None],
+        embedding_columns: tuple[str, ...] = ("embedding",),
+    ) -> dict[str, str]:
+        expected = {vector_index_name(self._table, c): "vector" for c in embedding_columns}
+        expected[search_index_name(self._table)] = "search"
         states: dict[str, str] = {}
         for name, kind in expected.items():
             _, status, cov = rows.get(name, (kind, None, None))
+            if status is None and name in self._index_errors:
+                states[name] = f"NOT CREATED ({self._index_errors[name]}) — VECTOR_SEARCH uses exact brute-force"
+                continue
+            if status is None and name == vector_index_name(self._table, "embedding_multimodal"):
+                states[name] = "NOT CREATED (not listed in INFORMATION_SCHEMA.VECTOR_INDEXES) — VECTOR_SEARCH on embedding_multimodal uses exact brute-force"
+                continue
             states[name] = describe_index_state(kind, status, cov, table_bytes=stats[0], table_rows=stats[1])
         return states
 
@@ -434,7 +468,30 @@ def live_backends(settings: ArenaSettings) -> IngestBackends:
             "BQ_TABLE=document_chunks is the frozen v2 table; v3 ingestion writes only to a v3 table (e.g. document_chunks_v3)"
         )
     embedder = VertexEmbedder(client=get_genai_client(settings), model=settings.text_embedding_model)
-    return IngestBackends(embedder=embedder, loader=BigQueryLiveLoader(settings, client=get_bigquery_client(settings)))
+    loader = BigQueryLiveLoader(settings, client=get_bigquery_client(settings))
+    if not settings.docai_processor_id:
+        return IngestBackends(embedder=embedder, loader=loader)
+    return IngestBackends(embedder=embedder, loader=loader, **level3_backends(settings))
+
+
+def level3_backends(settings: ArenaSettings) -> dict[str, Any]:
+    """Document AI Layout Parser + Gemini vision transcriber + multimodal embedder for the multimodal tier."""
+    from app.core.gcp_clients import get_access_token
+    from app.ingestion.documentai_client import DocumentAIClient
+    from app.ingestion.layout_documentai import LayoutParser
+    from app.ingestion.multimodal import VertexMultimodalEmbedder
+    from app.ingestion.vision_transcribe import GeminiVisionTranscriber
+
+    client = DocumentAIClient(
+        project_id=settings.gcp_project_id, location=settings.docai_location,
+        token_provider=lambda: get_access_token(settings), timeout_seconds=float(settings.docai_timeout_seconds),
+    )
+    genai = get_genai_client(settings)
+    return {
+        "layout_parser": LayoutParser(client=client, processor_id=settings.docai_processor_id, processor_version=settings.docai_processor_version),
+        "vision": GeminiVisionTranscriber(client=genai, model=settings.vision_model),
+        "mm_embedder": VertexMultimodalEmbedder(client=genai, model=settings.multimodal_embedding_model),
+    }
 
 
 

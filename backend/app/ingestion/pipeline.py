@@ -68,6 +68,9 @@ def chunk_to_bigquery_row(
         raise TypeError("ingest_run_id and layout_source must be strings")
 
     clean_embedding = [float(v) for v in embedding] if embedding is not None else []
+    # Multimodal rows carry their (text or text+image) gemini-embedding-2 vector in BOTH columns: the Level 3 engine
+    # queries ``embedding_multimodal``; keeping ``embedding`` populated keeps that column's dimensions uniform for the
+    # table-wide ``embedding`` vector index used by Levels 1–2 (which never read tier 'multimodal').
     mm_embedding = clean_embedding if chunk.tier_profile == "multimodal" else []
     return {
         "chunk_id": chunk.chunk_id,
@@ -84,9 +87,10 @@ def chunk_to_bigquery_row(
         "page_number": int(chunk.page_number),
         "bbox": chunk.bbox.to_dict(),
         "content": chunk.content,
-        "layout_source": layout_source,
+        "layout_source": chunk.layout_source or layout_source,
         "embedding": clean_embedding,
         "embedding_multimodal": mm_embedding,
+        "bbox_source": chunk.bbox_source or None,
     }
 
 

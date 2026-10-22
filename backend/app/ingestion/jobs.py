@@ -93,6 +93,24 @@ class BigQueryLoader(Protocol):
 class IngestBackends:
     embedder: Embedder
     loader: BigQueryLoader
+    # Level 3 (multimodal tier) only; None for tiers that do not use them. Missing in a multimodal job → fail loud.
+    layout_parser: Any = None
+    vision: Any = None
+    mm_embedder: Any = None
+
+
+@dataclass(frozen=True)
+class TierOutcome:
+    """What a tier's parse/chunk/embed stages produced; consumed by the shared load → index → verify tail."""
+
+    backends: IngestBackends
+    docs: int
+    pages: int
+    chunks: list[Any]
+    vectors: list[list[float]]
+    layout_source: str
+    index_columns: tuple[str, ...]
+    embedding_model: str = ""
 
 
 BackendFactory = Callable[[ArenaSettings], IngestBackends]
@@ -236,12 +254,31 @@ class IngestJobRunner:
         async with tracker.scope(emitter, "discover_docs", "Discover corpus documents", "Local corpus", {"corpus_dir": str(self.corpus_dir)}) as sc:
             docs = await asyncio.to_thread(discover_corpus_docs, self.corpus_dir)
             sc.payload = {"docs": len(docs), "solicitations": len({d.solicitation_id for d in docs}), "doc_names": [d.path.name for d in docs[:50]]}
+        if job.tier_profile == "multimodal":
+            from app.ingestion.multimodal_job import run_multimodal_stages
+
+            outcome = await run_multimodal_stages(self, job, emitter, tracker, docs)
+            await self._finish(job, emitter, tracker, outcome)
+            return
         pages_by_doc = await self._parse(job, emitter, tracker, docs)
         chunks = await self._chunk(job, emitter, tracker, docs, pages_by_doc)
         backends, vectors = await self._embed(emitter, tracker, chunks)
-        await self._load(emitter, tracker, job, backends, chunks, vectors)
-        async with tracker.scope(emitter, "build_indexes", "Build vector/search indexes", "BigQuery", {"table": backends.loader.table_fqn}) as sc:
-            sc.payload = {"index_states": await asyncio.to_thread(backends.loader.build_indexes)}
+        outcome = TierOutcome(
+            backends=backends, docs=len(docs), pages=sum(len(p) for p in pages_by_doc.values()), chunks=chunks,
+            vectors=vectors, layout_source=parser_backend_name(), index_columns=("embedding",),
+        )
+        await self._finish(job, emitter, tracker, outcome)
+
+    async def _finish(self, job: IngestJob, emitter: "_JobEmitter", tracker: "_StageTracker", outcome: "TierOutcome") -> None:
+        """Shared tail for every tier: load → build_indexes → verify_counts → ingest_runs row → job_complete."""
+        backends, chunks = outcome.backends, outcome.chunks
+        await self._load(emitter, tracker, job, backends, chunks, outcome.vectors)
+        async with tracker.scope(emitter, "build_indexes", "Build vector/search indexes", "BigQuery", {"table": backends.loader.table_fqn, "embedding_columns": list(outcome.index_columns)}) as sc:
+            if outcome.index_columns == ("embedding",):
+                states = await asyncio.to_thread(backends.loader.build_indexes)
+            else:
+                states = await asyncio.to_thread(backends.loader.build_indexes, outcome.index_columns)
+            sc.payload = {"index_states": states}
         async with tracker.scope(emitter, "verify_counts", "Verify row counts", "BigQuery", {"table": backends.loader.table_fqn}) as sc:
             counts = await asyncio.to_thread(backends.loader.count_by_tier)
             sc.payload = {"counts_by_tier": counts}
@@ -252,9 +289,9 @@ class IngestJobRunner:
             {
                 "run_id": job.job_id, "level": job.level, "tier_profile": job.tier_profile,
                 "started_at": job.created_at, "finished_at": utc_now_iso(), "status": "completed",
-                "docs": len(docs), "pages": sum(len(p) for p in pages_by_doc.values()), "chunks": len(chunks),
-                "embedded": len(vectors), "loaded": len(chunks), "embedding_model": backends.embedder.model,
-                "layout_source": parser_backend_name(), "git_sha": read_git_sha(),
+                "docs": outcome.docs, "pages": outcome.pages, "chunks": len(chunks),
+                "embedded": len(outcome.vectors), "loaded": len(chunks), "embedding_model": outcome.embedding_model or backends.embedder.model,
+                "layout_source": outcome.layout_source, "git_sha": read_git_sha(),
                 "stage_log": [r.to_dict() for r in emitter.records],
             },
         )

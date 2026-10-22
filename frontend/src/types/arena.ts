@@ -369,7 +369,7 @@ export interface AgentTurnEvent extends BaseEvent, ReplayMarkers {
   readonly turn_index?: number;
   readonly kind?: "model" | "tool_call" | "tool_result";
   readonly tool_name?: string | null;
-  readonly tool_args?: JsonObject | null;
+  readonly tool_args?: JsonObject | string | null;
   readonly tool_result_summary?: string | null;
   /** Structured tool result (e.g. calculator value, verify_citations claims) when the backend sends it. */
   readonly tool_result?: JsonObject | null;
@@ -581,6 +581,8 @@ export interface AgentTurnRecord {
   readonly kind: AgentTurnKind;
   readonly toolName: string | null;
   readonly toolArgs: JsonObject | null;
+  /** Raw `tool_args` text when it was a string that is not a complete JSON object (e.g. truncated at 1200 chars). */
+  readonly toolArgsText: string | null;
   readonly resultSummary: string | null;
   readonly result: JsonObject | null;
   readonly durationMs: number | null;

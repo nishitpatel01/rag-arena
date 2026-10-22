@@ -11,6 +11,7 @@ import {
   agentStageSummary,
   claimsDiff,
   deriveToolNodeView,
+  finalCheckLine,
   formatTokens,
   groupAgentTurns,
   headerLine,
@@ -288,6 +289,15 @@ test("backend shape: text_preview, tool_result status=error, count-valued claims
   assert.equal(p?.afterCount, 0);
   assert.equal(p?.verifyCalls, 2);
   assert.deepEqual(claimsDiff(p!.before!, p!.after!).map((r) => r.status), ["resolved", "resolved"]);
+  assert.equal(finalCheckLine(parseAgentStagePayload({ final_answer_check: { checked_claims: 31, unsupported_claims: 0, unsupported_list: [] } })), "final answer check: 31 claims checked · 0 unsupported");
+  assert.equal(normalizeAgentTurn({ kind: "tool_call", tool_name: "verify_citations", tool_args: '{"cited_chunk_ids": ["a", "b"]}', ts: "" }, 0).toolArgs?.cited_chunk_ids?.toString(), "a,b");
+  const truncated = normalizeAgentTurn({ kind: "tool_call", tool_name: "verify_citations", tool_args: '{"cited_chunk_ids": ["a", "b', ts: "" }, 0);
+  assert.equal(truncated.toolArgs, null);
+  assert.equal(truncated.toolArgsText, '{"cited_chunk_ids": ["a", "b', "truncated JSON string kept verbatim");
+  assert.equal(pricingView(groupAgentTurns([
+    normalizeAgentTurn({ kind: "tool_call", tool_name: "calculate_contract_pricing", call_id: "z", tool_args: { expression: "h * r * (1 - d)" }, ts: "" }, 0),
+    normalizeAgentTurn({ kind: "tool_result", tool_name: "calculate_contract_pricing", call_id: "z", tool_result_summary: "2000.0 * 245.0 * (1 - 0.05) = 465500.0", ts: "" }, 1),
+  ])[0] as ToolRow)?.line, "2000.0 × 245.0 × (1 − 0.05) = 465,500.00", "real replay calculator summary");
   const countsOnly = parseAgentStagePayload({ unsupported_claims_before: 1, unsupported_claims_after: 1 });
   assert.equal(countsOnly?.before, null);
   assert.equal(countsOnly?.beforeCount, 1);
@@ -330,4 +340,33 @@ test("DEV fixture: synthetic flag on every frame, a repair turn, calculator + ve
   assert.equal(tl.answer?.flags.adk_runner_used, true);
   const p = parseAgentStagePayload(tl.stages.agent_turn.payload);
   assert.deepEqual(claimsDiff(p!.before!, p!.after!).map((r) => r.status), ["resolved"]);
+});
+
+test("diagram: paired agent ⇄ tool edges run parallel; return edges start at the source's left side", async () => {
+  const { buildEdgePaths, layoutNodes, visibleEdgeLabels, NODE_W } = await import("../src/features/levels/diagramModel");
+  const nodes: ArchNode[] = [
+    { id: "agent", label: "a", service: "s", kind: "agent", col: 1, row: 1, stage_ids: ["agent_turn"] },
+    { id: "tool", label: "t", service: "s", kind: "process", col: 2, row: 0, stage_ids: ["agent_turn"], tool_names: ["x"] },
+    { id: "mid", label: "m", service: "s", kind: "model", col: 3, row: 1, stage_ids: [] },
+    { id: "far", label: "f", service: "s", kind: "api", col: 4, row: 0, stage_ids: ["agent_turn"], tool_names: ["x"] },
+  ];
+  const layout = layoutNodes(nodes);
+  const box = (id: string) => layout.boxes.find((b) => b.node.id === id)!;
+  const idle = { status: "idle" as const, stageId: null, durationMs: null, startedAt: null };
+  const paths = buildEdgePaths(
+    [{ from: "agent", to: "tool", label: "tool call" }, { from: "tool", to: "agent", label: "top-5 chunks" }, { from: "far", to: "tool", label: "top-5" }],
+    layout.boxes,
+    { agent: idle, tool: idle, mid: idle, far: idle }
+  );
+  const [fwd, back, arc] = paths;
+  assert.ok(fwd.d.startsWith(`M ${box("agent").x + NODE_W} `), fwd.d);
+  assert.ok(back.d.startsWith(`M ${box("tool").x} `), `return edge leaves from the tool's left side: ${back.d}`);
+  assert.ok(back.d.endsWith(`${box("agent").x + NODE_W} ${box("agent").y + 92 / 2 + 7}`), back.d);
+  assert.ok(back.paired && fwd.paired && !arc.paired);
+  assert.ok(back.labelRoom < 60 && fwd.labelRoom < 60, "narrow column gap");
+  assert.ok(arc.labelRoom > 2 * NODE_W, "under-box arc has room for its label");
+  assert.deepEqual([...visibleEdgeLabels(paths)], [2], "paired labels without room are hover-only; the arc label is drawn");
+  const dup = buildEdgePaths([{ from: "agent", to: "mid", label: "x" }, { from: "agent", to: "mid", label: "y" }], layout.boxes, { agent: idle, tool: idle, mid: idle, far: idle });
+  assert.deepEqual([...visibleEdgeLabels(dup)], [0], "overlapping label skipped");
+    assert.ok(arc.d.startsWith(`M ${box("far").x + NODE_W / 2} ${box("far").y + 92}`), `same-row non-adjacent return arcs under the boxes: ${arc.d}`);
 });

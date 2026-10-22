@@ -30,6 +30,23 @@ function kindOf(raw: JsonObject): AgentTurnKind {
   return str(raw.tool_name) ? "tool" : "model";
 }
 
+/** Bound on tool_args text kept verbatim (backend truncates at 1200 chars). */
+export const MAX_TOOL_ARGS_TEXT = 4000;
+
+/** `tool_args` may be an object or a JSON string (possibly truncated): parsed object when valid, else the raw text. */
+export function toolArgsOf(v: unknown): { readonly toolArgs: JsonObject | null; readonly toolArgsText: string | null } {
+  if (isObj(v)) return { toolArgs: v, toolArgsText: null };
+  if (typeof v !== "string" || v.trim().length === 0) return { toolArgs: null, toolArgsText: null };
+  const text = v.slice(0, MAX_TOOL_ARGS_TEXT);
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (isObj(parsed)) return { toolArgs: parsed, toolArgsText: null };
+  } catch {
+    // Truncated / non-JSON args are shown verbatim (never repaired or guessed).
+  }
+  return { toolArgs: null, toolArgsText: text };
+}
+
 /** One `agent_turn` SSE frame → timeline record. `seq` is the arrival index (the only ordering ever used). */
 export function normalizeAgentTurn(raw: JsonObject, seq: number): AgentTurnRecord {
   const kind = kindOf(raw);
@@ -39,7 +56,7 @@ export function normalizeAgentTurn(raw: JsonObject, seq: number): AgentTurnRecor
     turnIndex: num(raw.turn_index),
     kind,
     toolName: str(raw.tool_name),
-    toolArgs: isObj(raw.tool_args) ? raw.tool_args : null,
+    ...toolArgsOf(raw.tool_args),
     resultSummary: typeof raw.tool_result_summary === "string" ? raw.tool_result_summary : null,
     result: isObj(raw.tool_result) ? raw.tool_result : null,
     durationMs: num(raw.duration_ms),
@@ -211,6 +228,8 @@ export interface AgentStagePayload {
   readonly beforeCount: number | null;
   readonly afterCount: number | null;
   readonly verifyCalls: number | null;
+  /** `final_answer_check{checked_claims, unsupported_claims, unsupported_list}` on the final answer. */
+  readonly finalCheck: { readonly checked: number | null; readonly unsupported: number | null; readonly list: Claim[] | null } | null;
   readonly repairTurns: number | null;
   readonly finalAnswerSource: string | null;
 }
@@ -232,6 +251,13 @@ export function parseAgentStagePayload(payload: JsonObject | null): AgentStagePa
     beforeCount: num(payload.unsupported_claims_before) ?? before?.length ?? null,
     afterCount: num(payload.unsupported_claims_after) ?? after?.length ?? null,
     verifyCalls: num(payload.verify_calls),
+    finalCheck: isObj(payload.final_answer_check)
+      ? {
+          checked: num(payload.final_answer_check.checked_claims),
+          unsupported: num(payload.final_answer_check.unsupported_claims),
+          list: parseClaims(payload.final_answer_check.unsupported_list),
+        }
+      : null,
     repairTurns: num(payload.repair_turns),
     finalAnswerSource: str(payload.final_answer_source),
   };
@@ -264,6 +290,13 @@ export function timelineHeader(rows: readonly TimelineRow[], payload: AgentStage
     repairs: payload?.repairTurns ?? evRepairs,
     source: fromPayload ? "payload" : "events",
   };
+}
+
+/** "final answer check: 31 claims checked · 0 unsupported" (null when not reported). */
+export function finalCheckLine(p: AgentStagePayload | null): string | null {
+  const f = p?.finalCheck;
+  if (!f || (f.checked === null && f.unsupported === null)) return null;
+  return `final answer check: ${f.checked ?? "—"} claims checked · ${f.unsupported ?? "—"} unsupported`;
 }
 
 export function headerLine(h: TimelineHeader): string {
@@ -497,8 +530,8 @@ export function toolFlowEdges(
 }
 
 /** Short one-line preview of tool args ("query=…, solicitation=…"), bounded. */
-export function argsPreview(args: JsonObject | null, maxChars = 90): string {
-  if (!args) return "";
+export function argsPreview(args: JsonObject | null, maxChars = 90, rawText: string | null = null): string {
+  if (!args) return rawText ? (rawText.length > maxChars ? `${rawText.slice(0, maxChars - 1)}…` : rawText) : "";
   const parts = Object.entries(args)
     .slice(0, 6)
     .map(([k, v]) => `${k}=${typeof v === "string" ? JSON.stringify(v) : JSON.stringify(v) ?? String(v)}`);

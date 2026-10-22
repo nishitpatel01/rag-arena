@@ -3,7 +3,7 @@ import { Pin, PinOff } from "lucide-react";
 import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
 import { DiagramNode } from "./DiagramNode";
-import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
+import { buildEdgePaths, deriveNodeView, visibleEdgeLabels, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
 import { deriveToolNodeView, toolFlowEdges, toolNodeBindings, toolNodeSummary, type ToolBinding } from "./agentTimelineModel";
 import { NodeDetails } from "./NodeDetails";
 import { summarizeStage } from "./stagePayloads";
@@ -91,6 +91,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   );
   const toolFlow = useMemo(() => toolFlowEdges(edges, nodes, timeline), [edges, nodes, timeline]);
   const paths = useMemo(() => buildEdgePaths(edges, layout.boxes, views, toolFlow), [edges, layout.boxes, views, toolFlow]);
+  const shownLabels = useMemo(() => visibleEdgeLabels(paths), [paths]);
   const followed = useMemo(() => followTarget(nodes, timeline), [nodes, timeline]);
 
   // Rail → diagram sync: when the parent selects a stage, highlight the node that maps it.
@@ -141,11 +142,13 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-3)" />
             </marker>
           </defs>
-          {paths.map((p) => (
+          {paths.map((p, i) => (
             <g key={`${p.edge.from}->${p.edge.to}`}>
-              <path d={p.d} fill="none" stroke="var(--line)" strokeWidth={2} markerEnd="url(#arena-arrow)" />
+              <path d={p.d} fill="none" stroke="var(--line)" strokeWidth={2} markerEnd="url(#arena-arrow)">
+                {p.edge.label && <title>{`${p.edge.from} → ${p.edge.to}: ${p.edge.label}`}</title>}
+              </path>
               {p.flowing && <path d={p.d} fill="none" stroke="var(--accent-moss)" strokeWidth={2.5} className="edge-flowing" />}
-              {p.edge.label && (
+              {p.edge.label && shownLabels.has(i) && (
                 <text x={p.labelX} y={p.labelY} textAnchor="middle" fontSize={11} fill="var(--ink-3)">
                   {p.edge.label.length > 12 ? `${p.edge.label.slice(0, 11)}…` : p.edge.label}
                 </text>

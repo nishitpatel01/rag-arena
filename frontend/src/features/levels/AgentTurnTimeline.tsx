@@ -25,6 +25,7 @@ import {
   CLAIM_DIFF_LABEL,
   argsPreview,
   claimsDiff,
+  finalCheckLine,
   formatTokens,
   groupAgentTurns,
   headerLine,
@@ -197,6 +198,7 @@ const ToolCallRow: React.FC<ToolCallRowProps> = ({ row, stageStatus, defaultOpen
   const elapsed = useElapsedMs(parseTs(row.call?.ts), state === "running");
   const turnIndex = row.call?.turnIndex ?? row.result?.turnIndex ?? null;
   const args: JsonObject | null = row.call?.toolArgs ?? null;
+  const argsText: string | null = row.call?.toolArgsText ?? null;
   const pricing = row.toolName === "calculate_contract_pricing" ? pricingView(row) : null;
   const ownClaims = row.toolName === "verify_citations" ? verifyResultClaims(row) : null;
   const Chevron = open ? ChevronDown : ChevronRight;
@@ -219,7 +221,7 @@ const ToolCallRow: React.FC<ToolCallRowProps> = ({ row, stageStatus, defaultOpen
         <span className="font-mono text-xs text-ink-3">#{turnIndex ?? "?"}</span>
         <ToolBadge name={row.toolName} />
         {row.repair && <RepairPill />}
-        {!compact && args && <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2"><Masked>{argsPreview(args)}</Masked></span>}
+        {!compact && (args || argsText) && <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2"><Masked>{argsPreview(args, 90, argsText)}</Masked></span>}
         <span className={`ml-auto inline-flex items-center gap-1 text-xs ${meta.cls}`}>
           <meta.Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {meta.text}
@@ -230,8 +232,16 @@ const ToolCallRow: React.FC<ToolCallRowProps> = ({ row, stageStatus, defaultOpen
       </button>
       {(row.result?.resultSummary || pricing) && (
         <div className="flex flex-col gap-1.5 border-t border-line px-3 py-2">
-          {pricing && <CodeBlock label="calculate_contract_pricing" language="text" code={pricing.line} />}
-          {row.result?.resultSummary && (
+          {pricing && (
+            <pre
+              className="overflow-x-auto whitespace-pre-wrap break-words rounded border border-line bg-surface-0 px-2 py-1 font-mono text-xs text-ink-1"
+              aria-label={`calculate_contract_pricing: ${pricing.line}`}
+              data-testid="pricing-line"
+            >
+              <code><Masked>{pricing.line}</Masked></code>
+            </pre>
+          )}
+          {row.result?.resultSummary && (!pricing || open) && (
             <p className={`whitespace-pre-wrap break-words text-xs text-ink-1 ${open ? "" : "line-clamp-2"}`}>
               <span className="mr-1 font-semibold text-ink-3">result:</span>
               <Masked>{row.result.resultSummary}</Masked>
@@ -254,7 +264,7 @@ const ToolCallRow: React.FC<ToolCallRowProps> = ({ row, stageStatus, defaultOpen
       )}
       {open && (
         <div className={`grid gap-2 border-t border-line p-3 ${compact ? "" : "xl:grid-cols-2"}`}>
-          <CodeBlock label="tool_args" language="json" code={args ? stringifyJson(args) : "— (no tool_call event)"} maxHeightClass="max-h-48" />
+          <CodeBlock label="tool_args" language="json" code={args ? stringifyJson(args) : argsText ?? (row.call ? "— (no tool_args)" : "— (no tool_call event)")} maxHeightClass="max-h-48" />
           <CodeBlock
             label={row.result?.result ? "tool_result" : "tool_result_summary"}
             language="json"
@@ -283,10 +293,12 @@ export interface AgentTurnTimelineProps {
   readonly binding?: ToolBinding;
   /** Expand calculator / verify rows initially. */
   readonly expandKeyRows?: boolean;
+  /** Tailwind max-height class for a scrollable row list (header stays visible), e.g. "max-h-[34rem]". */
+  readonly maxHeightClass?: string;
 }
 
 /** Level 4: `agent_turn` events as an expanding timeline — one row per model turn or tool call (arrival order). */
-export const AgentTurnTimeline: React.FC<AgentTurnTimelineProps> = ({ turns, stageStatus, payload = null, compact = false, binding, expandKeyRows = false }) => {
+export const AgentTurnTimeline: React.FC<AgentTurnTimelineProps> = ({ turns, stageStatus, payload = null, compact = false, binding, expandKeyRows = false, maxHeightClass }) => {
   const allRows = useMemo(() => groupAgentTurns(turns), [turns]);
   const rows = useMemo(() => (binding ? rowsForBinding(allRows, binding) : allRows), [allRows, binding]);
   const stagePayload = useMemo(() => parseAgentStagePayload(payload), [payload]);
@@ -315,6 +327,11 @@ export const AgentTurnTimeline: React.FC<AgentTurnTimelineProps> = ({ turns, sta
           <p className="font-mono text-xs font-semibold text-ink-1" data-testid="agent-timeline-header" title={header.source === "payload" ? "Counts from the agent_turn stage payload" : "Counted from agent_turn events so far"}>
             {headerLine(header)}
           </p>
+          {finalCheckLine(stagePayload) && (
+            <Pill tone={stagePayload?.finalCheck?.unsupported === 0 ? "ok" : "warn"} mono title="agent_turn payload final_answer_check">
+              {finalCheckLine(stagePayload)}
+            </Pill>
+          )}
           {stagePayload?.toolCallsByName && !compact && (
             <span className="flex flex-wrap items-center gap-1">
               {[...stagePayload.toolCallsByName.entries()].map(([name, n]) => (
@@ -327,7 +344,12 @@ export const AgentTurnTimeline: React.FC<AgentTurnTimelineProps> = ({ turns, sta
           )}
         </div>
       )}
-      <ol className="flex flex-col gap-1.5">
+      <ol
+        className={`flex flex-col gap-1.5 ${maxHeightClass ? `${maxHeightClass} overflow-y-auto pr-1` : ""}`}
+        data-testid="agent-timeline-rows"
+        aria-label={`${rows.length} timeline rows`}
+        tabIndex={maxHeightClass ? 0 : undefined}
+      >
         {rows.map((row) =>
           row.type === "model" ? (
             <ModelTurnRow key={row.key} row={row} />

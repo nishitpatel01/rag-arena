@@ -45,6 +45,20 @@
       "guard_passed": true,
       "captured_at": "2026-10-22T15:20:40Z",
       "bytes": 385322
+    },
+    {
+      "file": "20-level4.png",
+      "path": "/levels/level4_agentic",
+      "viewport": "1600x1120",
+      "theme": "light",
+      "capture": "element [data-panel=Architecture] (run complete; 10-node ADK architecture diagram with 4 tool nodes + Node details pane showing 4 turns · 14 tool calls · repairs 0, final answer check 31 claims checked · 0 unsupported, calculate_contract_pricing 465500.0 + 1224000.0 + 576000.0 + 500000.0 = 2,765,500.00, verify_citations, and per-turn token counts)",
+      "source_run": "replay of recording run_cf9d38ff6468 (q_cross_solicitation_total_cost, recorded 2026-10-22T16:36:30.595Z; synthesis gemini-4-argon, judge claude-opus-5-5)",
+      "source": "replay",
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic; port 8021)",
+      "safe_mode": true,
+      "guard_passed": true,
+      "captured_at": "2026-10-22T17:25:58Z",
+      "bytes": 175755
     }
   ]
 }

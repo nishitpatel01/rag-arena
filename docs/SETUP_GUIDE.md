@@ -7,8 +7,7 @@ Two ways to run it:
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-**Levels 1–3** are live. Levels 1 and 2 are enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid`);
-add `level3_multimodal` (in `.env` or the environment) for Level 3. Levels 4–5, the Compare page and the Cloud
+**Levels 1–3** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal`; override in `.env` or the environment). Levels 4–5, the Compare page and the Cloud
 Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 ---
@@ -166,12 +165,12 @@ cd frontend && npm run dev
    row. The Level 1 Run button stays disabled while the `naive` tier has 0 rows.
 3. Open Level 1, pick a synthesis and a judge model (different models), ask a golden or custom question.
    Each run writes a `query_runs` row.
-4. **Level 2**: with `ENABLED_LEVELS=level1_naive,level2_hybrid`, run the Level 2 ingestion job from `/ingest`
+4. **Level 2**: run the Level 2 ingestion job from `/ingest`
    (`hybrid` tier: one chunk per page with a contextual-lineage header, plus vector and search indexes), then
    open Level 2. Its `rerank` stage calls the Discovery Engine Ranking API (`discoveryengine.googleapis.com`,
    enabled by the bootstrap script; `RERANKER_MODEL`, `RANKING_TIMEOUT_SECONDS`, `HYBRID_CANDIDATE_K` = 50,
    `RERANK_TOP_N` = 5). A Ranking API error fails the stage — there is no fallback ranker.
-5. **Level 3**: with `DOCAI_*` set and `level3_multimodal` in `ENABLED_LEVELS`, run the Level 3 ingestion job
+5. **Level 3**: with `DOCAI_*` set, run the Level 3 ingestion job
    (`multimodal` tier). `parse` calls the Layout Parser online (PDFs split into ≤ 15-page requests; $10 per
    1,000 pages) and Gemini vision on diagram pages; pages whose transcription is unusable are listed in
    `vision_failed_pages`. There is no PyMuPDF text fallback — a missing or failing processor fails `parse`.

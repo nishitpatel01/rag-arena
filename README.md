@@ -42,8 +42,7 @@ hardcoded evaluation scores. v3 rebuilds the product around six rules:
 
 Levels 4–5 still contain their v2 bodies in `backend/app/engines/` but are **not enabled**: they run under one
 measured `legacy` stage and emit `stage_skipped` for the canonical stages until their phase rebuilds them.
-`ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid` (the signed-off levels); add `level3_multimodal` to
-enable Level 3.
+`ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid,level3_multimodal` (the signed-off levels).
 Vertex AI Vector Search 2.0 and AlloyDB ScaNN engines are parked in `backend/app/engines/parked/` (excluded
 from the registry).
 
@@ -258,8 +257,7 @@ cd frontend && npm install && npm run dev
 
 Open `http://localhost:5173`, pick a level, a golden question and a recorded pair (`gemini-4-argon` or
 `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run; events replay with their recorded timing and
-ad-hoc questions return `engine_error`. Levels 1–2 are enabled by default; add `level3_multimodal` to
-`ENABLED_LEVELS` to replay Level 3. (`docker-compose.yml` predates v3 — use the two commands above.)
+ad-hoc questions return `engine_error`. Levels 1–3 are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
 
 ### (b) Live on your own GCP project
 
@@ -284,7 +282,7 @@ ad-hoc questions return `engine_error`. Levels 1–2 are enabled by default; add
 4. **Verify models** (writes `data/model_verification.json`; failing models are disabled with the error):
    `PYTHONPATH=backend .venv/bin/python scripts/verify_models.py`
 5. **Run** the backend and UI as in (a), open `/ingest`, and run the ingestion job of each level you enable
-   (Level 3 needs the `DOCAI_*` keys and `level3_multimodal` in `ENABLED_LEVELS`). A level's Run button stays
+   (Level 3 needs the `DOCAI_*` keys). A level's Run button stays
    disabled while its tier has 0 rows.
 
 IAM for the backend principal: `roles/aiplatform.user`, `roles/bigquery.jobUser`, `roles/bigquery.dataEditor` on

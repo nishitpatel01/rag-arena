@@ -4,6 +4,7 @@ import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
 import { DiagramNode } from "./DiagramNode";
 import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
+import { deriveToolNodeView, toolFlowEdges, toolNodeBindings, toolNodeSummary, type ToolBinding } from "./agentTimelineModel";
 import { NodeDetails } from "./NodeDetails";
 import { summarizeStage } from "./stagePayloads";
 
@@ -65,15 +66,31 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   // Inner width of the figure (minus its p-2 padding); the layout shrinks column gaps to fit it.
   const innerWidth = containerWidth > 0 ? containerWidth - FIGURE_PADDING_X : undefined;
   const layout = useMemo(() => layoutNodes(nodes, innerWidth), [nodes, innerWidth]);
+  // Level 4: tool nodes light up from open tool calls (agent_turn events), not from stage status.
+  const toolBindings = useMemo(() => (timeline?.agentTurns.length || nodes.some((n) => n.tool_names?.length) ? toolNodeBindings(nodes) : new Map<string, ToolBinding>()), [nodes, timeline?.agentTurns.length]);
   const views = useMemo<Record<string, NodeView>>(
-    () => Object.fromEntries(nodes.map((n) => [n.id, deriveNodeView(n, timeline)])),
-    [nodes, timeline]
+    () =>
+      Object.fromEntries(
+        nodes.map((n) => {
+          const binding = toolBindings.get(n.id);
+          return [n.id, binding ? deriveToolNodeView(binding, timeline) : deriveNodeView(n, timeline)];
+        })
+      ),
+    [nodes, timeline, toolBindings]
   );
   const services = useMemo<Record<string, NodeServiceView>>(
-    () => Object.fromEntries(nodes.map((n) => [n.id, resolveNodeService(n, timeline, runServiceByStage)])),
-    [nodes, timeline, runServiceByStage]
+    () =>
+      Object.fromEntries(
+        nodes.map((n) => [
+          n.id,
+          // Tool nodes share the agent_turn stage, whose service is the ADK Runner; tools report no service of their own.
+          toolBindings.has(n.id) ? { text: n.service, source: "default" as const } : resolveNodeService(n, timeline, runServiceByStage),
+        ])
+      ),
+    [nodes, timeline, runServiceByStage, toolBindings]
   );
-  const paths = useMemo(() => buildEdgePaths(edges, layout.boxes, views), [edges, layout.boxes, views]);
+  const toolFlow = useMemo(() => toolFlowEdges(edges, nodes, timeline), [edges, nodes, timeline]);
+  const paths = useMemo(() => buildEdgePaths(edges, layout.boxes, views, toolFlow), [edges, layout.boxes, views, toolFlow]);
   const followed = useMemo(() => followTarget(nodes, timeline), [nodes, timeline]);
 
   // Rail → diagram sync: when the parent selects a stage, highlight the node that maps it.
@@ -138,6 +155,10 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
           {layout.boxes.map(({ node, x, y }) => {
             const view = views[node.id];
             const st = view.stageId ? timeline?.stages[view.stageId] : undefined;
+            const binding = toolBindings.get(node.id);
+            const summary = binding
+              ? view.status === "done" || view.status === "active" ? toolNodeSummary(binding, timeline) : ""
+              : view.status === "done" ? summarizeStage(view.stageId, st?.payload ?? null) : "";
             return (
               <DiagramNode
                 key={node.id}
@@ -147,7 +168,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
                 view={view}
                 service={services[node.id]}
                 selected={shownId === node.id}
-                summary={view.status === "done" ? summarizeStage(view.stageId, st?.payload ?? null) : ""}
+                summary={summary}
                 onSelect={select}
               />
             );
@@ -164,7 +185,12 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
             {pinnedId ? "Unpin" : "Pin"}
           </Button>
         </div>
-        <NodeDetails node={shownNode} timeline={timeline} service={shownNode ? services[shownNode.id] ?? null : null} />
+        <NodeDetails
+          node={shownNode}
+          timeline={timeline}
+          service={shownNode ? services[shownNode.id] ?? null : null}
+          toolBinding={shownNode ? toolBindings.get(shownNode.id) ?? null : null}
+        />
       </aside>
     </div>
   );

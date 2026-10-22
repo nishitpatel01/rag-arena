@@ -5,6 +5,8 @@ import { KeyValue } from "../../components/ui/KeyValue";
 import { Pill } from "../../components/ui/Pill";
 import { formatMs } from "../../lib/format";
 import { IDLE_STAGE } from "./model";
+import { AgentTurnTimeline } from "./AgentTurnTimeline";
+import type { ToolBinding } from "./agentTimelineModel";
 import { SERVICE_SOURCE_LABEL, type NodeServiceView } from "./diagramModel";
 import { splitPayload } from "./StageDetail";
 import { summarizeStage } from "./stagePayloads";
@@ -15,10 +17,12 @@ export interface NodeDetailsProps {
   readonly timeline: EngineTimeline | undefined;
   /** Resolved service (actual stage service, run model, or labelled descriptor default). */
   readonly service: NodeServiceView | null;
+  /** Level 4: the node represents these ADK tools (its timeline shows only their calls). */
+  readonly toolBinding?: ToolBinding | null;
 }
 
 /** Details pane next to the diagram: service/region, request, response summary, code ref, duration. */
-export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline, service }) => {
+export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline, service, toolBinding = null }) => {
   if (!node) {
     return <p className="text-xs text-ink-3">Run the level or click a node to see what that service received and returned.</p>;
   }
@@ -50,7 +54,6 @@ export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline, servic
         const req = splitPayload(st.request);
         const summary = summarizeStage(stageId, st.payload);
         const turns = stageId === "agent_turn" ? timeline?.agentTurns ?? [] : [];
-        const lastTurn = turns[turns.length - 1];
         return (
           <section key={stageId} className="rounded-md border border-line bg-surface-0 p-2.5" aria-label={`Stage ${stageId}`}>
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
@@ -73,10 +76,10 @@ export const NodeDetails: React.FC<NodeDetailsProps> = ({ node, timeline, servic
                 <CodeBlock label={k} language={k === "sql" ? "sql" : "json"} code={v} maxHeightClass="max-h-40" />
               </div>
             ))}
-            {lastTurn && (
-              <p className="mt-1.5 text-xs text-ink-2">
-                Current tool turn: <span className="font-mono">#{lastTurn.turnIndex} {lastTurn.toolName}</span> ({formatMs(lastTurn.durationMs)})
-              </p>
+            {stageId === "agent_turn" && (turns.length > 0 || st.status !== "idle") && (
+              <div className="mt-2" data-testid="node-agent-timeline">
+                <AgentTurnTimeline turns={turns} stageStatus={st.status} payload={st.payload} compact binding={toolBinding ?? undefined} />
+              </div>
             )}
           </section>
         );

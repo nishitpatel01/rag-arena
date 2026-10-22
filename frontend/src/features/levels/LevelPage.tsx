@@ -8,13 +8,13 @@ import { Panel } from "../../components/ui/Panel";
 import { Pill } from "../../components/ui/Pill";
 import type { Citation, LevelDescriptor } from "../../types/arena";
 import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
-import { AgentTurnTimeline } from "./AgentTurnTimeline";
+import { parseAgentStagePayload } from "./agentTimelineModel";
 import { AnswerPanel, MetricsPanel } from "./AnswerPanels";
 import { CompareTeaser } from "./CompareTeaser";
 import { lowerEnabledLevels, teaserTitle, type LowerLevel } from "./compareTeaserModel";
 import { ArchitectureDiagram } from "./ArchitectureDiagram";
 import { QuestionPicker } from "./QuestionPicker";
-import { StageDetail } from "./StageDetail";
+import { StageDetail, type AnswerSource } from "./StageDetail";
 import { StageRail } from "./StageRail";
 import { activeStageId } from "./model";
 import { modelLabel, type ModelSelection } from "./modelSelection";
@@ -88,7 +88,13 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     () => (timeline?.stageOrder.length ? mergeOrder(level.stages, timeline.stageOrder) : level.stages),
     [level.stages, timeline?.stageOrder]
   );
-  const isAgentic = level.stages.includes("agent_turn");
+  const isAgentic = level.stages.includes("agent_turn") || Boolean(timeline?.stages.agent_turn) || (timeline?.agentTurns.length ?? 0) > 0;
+  const answerSource = useMemo<AnswerSource | null>(() => {
+    if (!isAgentic) return null;
+    const p = parseAgentStagePayload(timeline?.stages.agent_turn?.payload ?? null);
+    const flag = timeline?.answer?.flags?.adk_runner_used;
+    return { adkRunnerUsed: typeof flag === "boolean" ? flag : null, finalAnswerSource: p?.finalAnswerSource ?? null };
+  }, [isAgentic, timeline?.stages.agent_turn?.payload, timeline?.answer?.flags]);
   // Teaser only after a finished run with judge metrics, on a level that has lower enabled levels.
   const showTeaser = lowerLevels.length > 0 && stream.state.complete && Boolean(timeline?.evaluation);
   const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
@@ -151,12 +157,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
           stageId={selectedStage}
           state={selectedStage ? timeline?.stages[selectedStage] ?? null : null}
           retrievePayload={timeline?.stages.retrieve?.payload ?? null}
+          agentTurns={isAgentic ? timeline?.agentTurns ?? [] : null}
+          answerSource={answerSource}
         />
-        {isAgentic && selectedStage === "agent_turn" && (
-          <div className="mt-3">
-            <AgentTurnTimeline turns={timeline?.agentTurns ?? []} active={active === "agent_turn"} />
-          </div>
-        )}
       </Panel>
 
       <Panel title="Architecture" subtitle="Live diagram — nodes light up on stage_started; details follow the active node" className="xl:col-span-3">

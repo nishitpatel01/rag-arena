@@ -135,11 +135,15 @@ export interface EdgePath {
   readonly flowing: boolean;
 }
 
-/** Edge geometry; `flowing` only when source is `done` and target is `active` (spec §7.2.1). */
+/**
+ * Edge geometry; `flowing` when source is `done` and target is `active` (spec §7.2.1), or when the edge key
+ * "from->to" is in `extraFlowing` (Level 4: agent ⇄ tool while a tool call is open).
+ */
 export function buildEdgePaths(
   edges: readonly ArchEdge[],
   boxes: readonly NodeBox[],
-  views: Readonly<Record<string, NodeView>>
+  views: Readonly<Record<string, NodeView>>,
+  extraFlowing: ReadonlySet<string> = new Set()
 ): EdgePath[] {
   const byId = new Map(boxes.map((b) => [b.node.id, b]));
   const out: EdgePath[] = [];
@@ -164,7 +168,8 @@ export function buildEdgePaths(
       d,
       labelX: (x1 + x2) / 2,
       labelY: sameRow ? y1 + NODE_H / 2 + 14 : (y1 + y2) / 2 - 8,
-      flowing: views[edge.from]?.status === "done" && views[edge.to]?.status === "active",
+      flowing:
+        extraFlowing.has(`${edge.from}->${edge.to}`) || (views[edge.from]?.status === "done" && views[edge.to]?.status === "active"),
     });
   }
   return out;

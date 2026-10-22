@@ -103,4 +103,11 @@ ON \`${PROJECT_ID}.${BQ_DATASET}.${BQ_TABLE}\`(embedding_multimodal)
 OPTIONS(distance_type = 'COSINE', index_type = 'IVF');
 " || echo "WARN: Skipping IVF vector index creation until table has >= 5,000 non-null embedding rows (BigQuery VECTOR_SEARCH uses exact search automatically on smaller tables)."
 
+echo "==> Level 3: ensuring the Document AI Layout Parser processor 'rag-arena-layout-parser' (location ${DOCAI_LOCATION:-us})..."
+# Idempotent: lists processors and creates ours only when absent; never touches other processors. Prints only the
+# short processor id — add it to the git-ignored .env as DOCAI_PROCESSOR_ID.
+DOCAI_PROCESSOR_ID_OUT="$(GCP_PROJECT_ID="${PROJECT_ID}" DOCAI_LOCATION="${DOCAI_LOCATION:-us}" PYTHONPATH=backend \
+  "${PYTHON:-.venv/bin/python}" scripts/provision_documentai.py)"
+echo "    DOCAI_PROCESSOR_ID=${DOCAI_PROCESSOR_ID_OUT}  (add to .env together with DOCAI_LOCATION=${DOCAI_LOCATION:-us})"
+
 echo "==> Bootstrap complete for ${PROJECT_ID}:${BQ_DATASET}.${BQ_TABLE}"

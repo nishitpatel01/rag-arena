@@ -8,6 +8,8 @@
  *    vector_distance|null, rrf_score}]}` (Level 1 has no `candidates` → generic view)
  * - `rerank` payload `{service_used, model, candidates_in, candidates_out,
  *    results:[{chunk_id, doc_name, page_number, rrf_rank, rrf_score, rerank_rank, rerank_score}], rank_api_ms}`
+ * - Level 3 adds per-row `element_type`, `layout_source`, `amendment_number`, `amends_section` to retrieve
+ *   candidates (and optionally rerank results); parsed into `meta` (all fields optional).
  *
  * Parsers never invent values: missing scalars become `null`, malformed rows are dropped and counted in
  * `invalidRows` so the UI can say so (fail loud, never silently).
@@ -15,6 +17,8 @@
 
 import type { JsonObject } from "../../types/arena";
 import { formatBytes, formatUsd, summarizePayload } from "../../lib/format";
+import { EMPTY_ELEMENT_META, hasElementMeta, parseElementMeta, type ElementMeta } from "../../lib/elements";
+import { elementMixLine, ingestParseSummary, parseIngestParse, parseSynthesizeL3 } from "./level3Payloads";
 
 /** Bound on rows parsed from one payload (backend sends ≤ 50 candidates; this is a safety cap). */
 export const MAX_PAYLOAD_ROWS = 500;
@@ -165,6 +169,8 @@ export interface RetrieveCandidate {
   readonly lexicalRank: number | null;
   readonly vectorDistance: number | null;
   readonly rrfScore: number;
+  /** Level 3 element metadata (all null on Levels 1–2). */
+  readonly meta: ElementMeta;
 }
 
 /** BigQuery `indexUsageMode` + unused reasons, kept verbatim (codes and messages are BigQuery's). */
@@ -211,6 +217,7 @@ function parseCandidate(item: unknown): RetrieveCandidate | null {
     lexicalRank: rank(item.lexical_rank),
     vectorDistance: num(item.vector_distance),
     rrfScore,
+    meta: parseElementMeta(item),
   };
 }
 
@@ -308,6 +315,8 @@ export interface RerankResult {
   readonly rrfScore: number | null;
   readonly rerankRank: number;
   readonly rerankScore: number;
+  /** Level 3 element metadata from the result row itself (joined with retrieve metadata in the view). */
+  readonly meta: ElementMeta;
 }
 
 export interface RerankView {
@@ -332,7 +341,7 @@ function parseRerankResult(item: unknown): RerankResult | null {
   const rerankRank = rank(item.rerank_rank);
   const rerankScore = num(item.rerank_score);
   if (chunkId === null || rrfRank === null || rerankRank === null || rerankScore === null) return null;
-  return { chunkId, docName: str(item.doc_name), pageNumber: num(item.page_number), rrfRank, rrfScore: num(item.rrf_score), rerankRank, rerankScore };
+  return { chunkId, docName: str(item.doc_name), pageNumber: num(item.page_number), rrfRank, rrfScore: num(item.rrf_score), rerankRank, rerankScore, meta: parseElementMeta(item) };
 }
 
 /** Null when the payload has no `results` array (e.g. the stage failed or has not completed). */
@@ -419,6 +428,32 @@ export function rerankBillingLine(view: RerankView): string | null {
   return `records truncated ${dash(view.recordsTruncated)}/${dash(view.candidatesIn)} · billed counts ${dash(view.billedCounts)} · ${formatUsd(view.costUsd)}${retries}`;
 }
 
+/** True when any row carries Level 3 element metadata (drives the extra columns + filter chips). */
+export function anyElementMeta(rows: readonly { readonly meta: ElementMeta }[]): boolean {
+  return rows.some((r) => hasElementMeta(r.meta));
+}
+
+/**
+ * Row metadata for a rerank result: fields on the result win; missing ones are filled from the retrieve
+ * candidate with the same chunk_id (the rerank payload may omit them). Never invents values.
+ */
+export function joinElementMeta(own: ElementMeta, fromRetrieve: ElementMeta | undefined): ElementMeta {
+  const r = fromRetrieve ?? EMPTY_ELEMENT_META;
+  return {
+    elementType: own.elementType ?? r.elementType,
+    layoutSource: own.layoutSource ?? r.layoutSource,
+    amendmentNumber: own.amendmentNumber ?? r.amendmentNumber,
+    amendsSection: own.amendsSection ?? r.amendsSection,
+    bboxSource: own.bboxSource ?? r.bboxSource,
+  };
+}
+
+/** chunk_id → element metadata from a retrieve payload (empty map when it is not the hybrid shape). */
+export function retrieveMetaByChunk(payload: JsonObject | null): ReadonlyMap<string, ElementMeta> {
+  const view = parseHybridRetrieve(payload);
+  return new Map((view?.candidates ?? []).map((c) => [c.chunkId, c.meta] as const));
+}
+
 // ---------------------------------------------------------------------------
 // Diagram node summaries
 // ---------------------------------------------------------------------------
@@ -451,6 +486,12 @@ export function summarizeStage(stageId: string | null, payload: JsonObject | nul
   } else if (stageId === "rerank") {
     const v = parseRerank(payload);
     if (v) return rerankNodeSummary(v);
+  } else if (stageId === "synthesize") {
+    const v = parseSynthesizeL3(payload);
+    if (v?.elementMix) return elementMixLine(v.elementMix);
+  } else if (stageId === "parse") {
+    const v = parseIngestParse(payload);
+    if (v) return ingestParseSummary(v);
   } else if (stageId === "query_prep") {
     const v = parseQueryPrep(payload);
     if (v && v.expansions.length > 0) return `expansions=${v.expansions.length}`;

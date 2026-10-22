@@ -100,7 +100,7 @@ test("ingest job events reuse the reducer and progress derivation", () => {
   assert.equal(s.timelines[E].stages["parse"].status, "done");
   assert.equal(s.complete, true);
   const p = deriveIngestProgress(events);
-  assert.deepEqual(p.docs, [{ doc_name: "a.pdf", pages: 3, chunks: 12 }]);
+  assert.deepEqual(p.docs, [{ doc_name: "a.pdf", pages: 3, chunks: 12, tables: null, diagrams: null }]);
   assert.deepEqual(p.embed, { done: 12, total: 52, batchMs: 800 });
   assert.deepEqual(p.countsByTier, { naive: 52 });
 });
@@ -168,12 +168,12 @@ test("mini markdown: bullets, bold and inline code parse into blocks (no raw HTM
 });
 
 test("ingest doc_progress rows merge per document so chunk-stage counts replace parse-time zeros", () => {
-  const rows: { doc_name: string; pages: number; chunks: number }[] = [];
-  upsertDocProgress(rows, { doc_name: "a.pdf", pages: 2, chunks: 0 });
-  upsertDocProgress(rows, { doc_name: "b.pdf", pages: 1, chunks: 0 });
-  upsertDocProgress(rows, { doc_name: "a.pdf", pages: 2, chunks: 17 });
+  const rows: { doc_name: string; pages: number; chunks: number; tables: number | null; diagrams: number | null }[] = [];
+  upsertDocProgress(rows, { doc_name: "a.pdf", pages: 2, chunks: 0, tables: null, diagrams: null });
+  upsertDocProgress(rows, { doc_name: "b.pdf", pages: 1, chunks: 0, tables: null, diagrams: null });
+  upsertDocProgress(rows, { doc_name: "a.pdf", pages: 2, chunks: 17, tables: null, diagrams: null });
   assert.deepEqual(rows, [
-    { doc_name: "a.pdf", pages: 2, chunks: 17 },
-    { doc_name: "b.pdf", pages: 1, chunks: 0 },
+    { doc_name: "a.pdf", pages: 2, chunks: 17, tables: null, diagrams: null },
+    { doc_name: "b.pdf", pages: 1, chunks: 0, tables: null, diagrams: null },
   ]);
 });

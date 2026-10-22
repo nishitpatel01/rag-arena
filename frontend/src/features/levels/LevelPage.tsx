@@ -11,7 +11,7 @@ import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } f
 import { AgentTurnTimeline } from "./AgentTurnTimeline";
 import { AnswerPanel, MetricsPanel } from "./AnswerPanels";
 import { CompareTeaser } from "./CompareTeaser";
-import { BASELINE_ENGINE } from "./compareTeaserModel";
+import { lowerEnabledLevels, teaserTitle, type LowerLevel } from "./compareTeaserModel";
 import { ArchitectureDiagram } from "./ArchitectureDiagram";
 import { QuestionPicker } from "./QuestionPicker";
 import { StageDetail } from "./StageDetail";
@@ -27,7 +27,11 @@ function mergeOrder(declared: readonly string[], seen: readonly string[]): strin
   return out;
 }
 
-const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestState: IngestStatusState }> = ({ level, ingestState }) => {
+const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestState: IngestStatusState; readonly lowerLevels: readonly LowerLevel[] }> = ({
+  level,
+  ingestState,
+  lowerLevels,
+}) => {
   const stream = useBattleStream();
   const models = useModelCatalog();
   const { status: ingest, error: ingestError } = ingestState;
@@ -85,8 +89,8 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     [level.stages, timeline?.stageOrder]
   );
   const isAgentic = level.stages.includes("agent_turn");
-  // Teaser only after a finished run with judge metrics on a level other than the Level 1 baseline.
-  const showTeaser = level.level_id !== BASELINE_ENGINE && stream.state.complete && Boolean(timeline?.evaluation);
+  // Teaser only after a finished run with judge metrics, on a level that has lower enabled levels.
+  const showTeaser = lowerLevels.length > 0 && stream.state.complete && Boolean(timeline?.evaluation);
   const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
 
   return (
@@ -143,7 +147,11 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       </Panel>
 
       <Panel title="Stage detail" subtitle="Exact request and response from the event" className="xl:col-start-2">
-        <StageDetail stageId={selectedStage} state={selectedStage ? timeline?.stages[selectedStage] ?? null : null} />
+        <StageDetail
+          stageId={selectedStage}
+          state={selectedStage ? timeline?.stages[selectedStage] ?? null : null}
+          retrievePayload={timeline?.stages.retrieve?.payload ?? null}
+        />
         {isAgentic && selectedStage === "agent_turn" && (
           <div className="mt-3">
             <AgentTurnTimeline turns={timeline?.agentTurns ?? []} active={active === "agent_turn"} />
@@ -171,7 +179,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
         <MetricsPanel timeline={timeline} running={stream.isStreaming} runSynthesisModel={stream.state.synthesisModel} labelFor={labelFor} />
       </Panel>
       {showTeaser && (
-        <Panel title="Same question on Level 1" subtitle="Read-only teaser · full Compare page in Phase 6" className="xl:col-start-3">
+        <Panel title={teaserTitle(lowerLevels)} subtitle="Read-only teaser · full Compare page in Phase 6" className="xl:col-start-3">
           <CompareTeaser
             timeline={timeline}
             catalog={models.catalog}
@@ -179,6 +187,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
             judgeModel={stream.state.judgeModel}
             questionId={stream.state.questionId}
             labelFor={labelFor}
+            lowerLevels={lowerLevels}
           />
         </Panel>
       )}
@@ -207,6 +216,7 @@ export const LevelPage: React.FC = () => {
   // One request for the whole page (header pill + run gate share it).
   const ingestState = useIngestStatus();
   const back = <Link to="/" className="text-xs text-moss underline">Back to overview</Link>;
+  const lowerLevels = useMemo(() => (level ? lowerEnabledLevels(levels, level) : []), [levels, level]);
 
   if (loading) return <p className="text-xs text-ink-3">Loading level…</p>;
   if (!level) {
@@ -223,7 +233,7 @@ export const LevelPage: React.FC = () => {
         </h1>
         <IngestStatusPill levelId={level.level_id} ingestState={ingestState} />
       </div>
-      <LevelBody key={level.level_id} level={level} ingestState={ingestState} />
+      <LevelBody key={level.level_id} level={level} ingestState={ingestState} lowerLevels={lowerLevels} />
     </div>
   );
 };

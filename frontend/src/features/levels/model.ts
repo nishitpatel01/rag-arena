@@ -290,13 +290,17 @@ export function activeStageId(tl: EngineTimeline | undefined): string | null {
 
 /** Progress summary for ingest jobs, derived from doc/embed progress events. */
 export interface IngestProgress {
-  readonly docs: readonly { doc_name: string; pages: number; chunks: number }[];
+  readonly docs: readonly DocProgressRow[];
   readonly embed: { done: number; total: number; batchMs: number } | null;
   readonly countsByTier: Record<string, number> | null;
   readonly indexStates: Record<string, string> | null;
 }
 
-type DocProgressRow = { doc_name: string; pages: number; chunks: number };
+/** `tables` / `diagrams` are null unless a doc_progress event for the document reported them (Level 3). */
+export type DocProgressRow = { doc_name: string; pages: number; chunks: number; tables: number | null; diagrams: number | null };
+
+const optCount = (v: unknown): number | null => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
+const maxOpt = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
 
 /** One row per document: later doc_progress events (e.g. the chunk stage) update the parse-time row. */
 export function upsertDocProgress(rows: DocProgressRow[], next: DocProgressRow): void {
@@ -306,7 +310,13 @@ export function upsertDocProgress(rows: DocProgressRow[], next: DocProgressRow):
     return;
   }
   const prev = rows[idx];
-  rows[idx] = { doc_name: prev.doc_name, pages: Math.max(prev.pages, next.pages), chunks: Math.max(prev.chunks, next.chunks) };
+  rows[idx] = {
+    doc_name: prev.doc_name,
+    pages: Math.max(prev.pages, next.pages),
+    chunks: Math.max(prev.chunks, next.chunks),
+    tables: maxOpt(prev.tables, next.tables),
+    diagrams: maxOpt(prev.diagrams, next.diagrams),
+  };
 }
 
 export function deriveIngestProgress(events: readonly TimelineEvent[]): IngestProgress {
@@ -315,7 +325,8 @@ export function deriveIngestProgress(events: readonly TimelineEvent[]): IngestPr
   let countsByTier: Record<string, number> | null = null;
   let indexStates: Record<string, string> | null = null;
   for (const ev of events) {
-    if (ev.event === "doc_progress") upsertDocProgress(docs, { doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks });
+    if (ev.event === "doc_progress")
+      upsertDocProgress(docs, { doc_name: ev.doc_name, pages: ev.pages, chunks: ev.chunks, tables: optCount(ev.tables), diagrams: optCount(ev.diagrams) });
     else if (ev.event === "embed_progress") embed = { done: ev.done, total: ev.total, batchMs: ev.batch_ms };
     else if (ev.event === "job_complete") {
       countsByTier = ev.counts_by_tier;

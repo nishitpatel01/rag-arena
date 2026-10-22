@@ -7,7 +7,7 @@ import { Pill } from "../../components/ui/Pill";
 import { api } from "../../lib/api";
 import { formatMs } from "../../lib/format";
 import type { EngineTimeline, LeaderboardResponse, ModelsResponse } from "../../types/arena";
-import { BASELINE_ENGINE, baselineFor, teaserMetrics, type TeaserMetric } from "./compareTeaserModel";
+import { baselinesFor, teaserMatrix, teaserTitle, type BaselineEntry, type LowerLevel } from "./compareTeaserModel";
 
 export interface CompareTeaserProps {
   readonly timeline: EngineTimeline | undefined;
@@ -17,16 +17,24 @@ export interface CompareTeaserProps {
   readonly judgeModel: string | null;
   readonly questionId: string | null;
   readonly labelFor: (id: string | null) => string | null;
+  /** Every enabled level below the current one (ascending). */
+  readonly lowerLevels: readonly LowerLevel[];
 }
 
-const fmt = (m: TeaserMetric, v: number | null): string => (v === null ? "—" : m.unit === "ms" ? formatMs(v) : v.toFixed(2));
+const fmt = (unit: "score" | "ms", v: number | null): string => (v === null ? "—" : unit === "ms" ? formatMs(v) : v.toFixed(2));
+
+const RecordingPill: React.FC<{ readonly entry: BaselineEntry; readonly questionId: string | null }> = ({ entry, questionId }) => {
+  const { view, level } = entry;
+  if (view.questionRecorded) return <Pill tone="ok">{level.short} recording exists for {questionId}</Pill>;
+  return <Pill tone="locked">{questionId ? `no ${level.short} recording of ${questionId} for this pair` : `ad-hoc question — no ${level.short} recording`}</Pill>;
+};
 
 /**
- * "Same question on Level 1" (read-only teaser; the full Compare page is Phase 6). Never starts a run:
- * shows whether the same question + pair is recorded on Level 1 (GET /models.recorded_pairs) and the
- * Level 1 leaderboard averages for that pair (GET /leaderboard), next to this run's judge metrics.
+ * "Same question on lower levels" (read-only teaser; the full Compare page is Phase 6). Never starts a run:
+ * for every lower enabled level it shows whether the same question + pair is recorded
+ * (GET /models.recorded_pairs) and that level's leaderboard averages for the pair (GET /leaderboard).
  */
-export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog, synthesisModel, judgeModel, questionId, labelFor }) => {
+export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog, synthesisModel, judgeModel, questionId, labelFor, lowerLevels }) => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { mask } = useSafeMode();
@@ -43,25 +51,28 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
     };
   }, []);
 
-  const view = baselineFor(catalog, shownLeaderboard, { engine: BASELINE_ENGINE, synthesisModel, judgeModel, questionId });
-  const metrics = teaserMetrics(view, {
+  const entries = baselinesFor(catalog, shownLeaderboard, lowerLevels, { synthesisModel, judgeModel, questionId });
+  const rows = teaserMatrix(entries, {
     groundedness: timeline?.evaluation?.metrics.groundedness ?? null,
     qaRelevance: timeline?.evaluation?.metrics.qa_relevance ?? null,
     contextPrecision: timeline?.evaluation?.metrics.context_precision ?? null,
     latencyMs: timeline?.answer?.latencyMs ?? null,
   });
+  const pairKnown = Boolean(synthesisModel && judgeModel);
+  const withRow = entries.filter((e) => e.view.row !== null);
+  const missing = entries.filter((e) => e.view.row === null);
+  const syntheticNotes = entries.filter((e) => e.view.syntheticRuns > 0);
   const pairText = `synthesis ${labelFor(synthesisModel) ?? "—"} · judge ${labelFor(judgeModel) ?? "—"}`;
+  const title = teaserTitle(lowerLevels);
 
   return (
-    <section aria-label="Same question on Level 1" className="flex flex-col gap-2" data-testid="compare-teaser">
+    <section aria-label={title} className="flex flex-col gap-2" data-testid="compare-teaser">
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone="neutral" mono>{pairText}</Pill>
-        {!view.pairKnown ? (
+        {!pairKnown ? (
           <Pill tone="warn">model pair not reported by run_started</Pill>
-        ) : view.questionRecorded ? (
-          <Pill tone="ok">Level 1 recording exists for {questionId}</Pill>
         ) : (
-          <Pill tone="locked">{questionId ? `no Level 1 recording of ${questionId} for this pair` : "ad-hoc question — no Level 1 recording"}</Pill>
+          entries.map((e) => <RecordingPill key={e.level.engine} entry={e} questionId={questionId} />)
         )}
       </div>
       {error && (
@@ -69,42 +80,54 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
           GET /api/v1/leaderboard failed: {mask(error)}
         </p>
       )}
-      {!error && !leaderboard && <p className="text-xs text-ink-3">Loading Level 1 leaderboard…</p>}
-      {leaderboard && !view.row && view.pairKnown && (
-        <p className="text-xs text-ink-3">The leaderboard has no Level 1 row for this model pair.</p>
+      {!error && !leaderboard && <p className="text-xs text-ink-3">Loading leaderboard…</p>}
+      {leaderboard && pairKnown && missing.length > 0 && (
+        <p className="text-xs text-ink-3">
+          The leaderboard has no row for this model pair on {missing.map((e) => e.level.short).join(", ")}.
+        </p>
       )}
-      {view.row && (
+      {withRow.length > 0 && (
         <>
           <DataTable
-            caption="This run versus Level 1 averages for the same model pair"
-            rows={metrics}
+            caption={`This run versus ${withRow.map((e) => e.level.short).join(" and ")} averages for the same model pair`}
+            rows={rows}
             rowKey={(m) => m.key}
             columns={[
               { key: "metric", header: "Metric", render: (m) => m.label },
-              { key: "current", header: "This run", render: (m) => fmt(m, m.current), align: "right", mono: true },
-              {
-                key: "baseline",
-                header: `Level 1 avg (${view.runs ?? "?"} runs)`,
-                render: (m) => fmt(m, m.baseline),
-                align: "right",
-                mono: true,
-              },
+              { key: "current", header: "This run", render: (m) => fmt(m.unit, m.current), align: "right", mono: true },
+              ...entries.flatMap((e, i) =>
+                e.view.row === null
+                  ? []
+                  : [
+                      {
+                        key: `baseline-${e.level.engine}`,
+                        header: `${e.level.short.replace(/^Level /, "L")} avg · ${e.view.runs ?? "?"}`,
+                        render: (m: (typeof rows)[number]) => fmt(m.unit, m.baselines[i]),
+                        align: "right" as const,
+                        mono: true,
+                      },
+                    ]
+              ),
             ]}
           />
           <p className="text-xs text-ink-3">
-            Level 1 column = server-side average over all recorded runs of this pair (not only this question).
+            "Ln avg · N" = server-side average over all N recorded runs of this pair on that level (not only this question).
             {shownLeaderboard?.source ? ` Source: ${shownLeaderboard.source}.` : ""}
           </p>
-          {view.syntheticRuns > 0 && (
-            <p className="text-xs text-clay" role="status">
-              Caveat: the Level 1 row includes {view.syntheticRuns} provenance entr{view.syntheticRuns === 1 ? "y" : "ies"} flagged synthetic_dev_fixture.
+          {syntheticNotes.map((e) => (
+            <p key={e.level.engine} className="text-xs text-clay" role="status">
+              Caveat: the {e.level.short} row includes {e.view.syntheticRuns} provenance entr{e.view.syntheticRuns === 1 ? "y" : "ies"} flagged synthetic_dev_fixture.
             </p>
-          )}
+          ))}
         </>
       )}
-      <Link to={`/levels/${BASELINE_ENGINE}`} className="inline-flex items-center gap-1 text-xs font-medium text-moss hover:underline">
-        Open Level 1 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        {lowerLevels.map((l) => (
+          <Link key={l.engine} to={`/levels/${l.engine}`} className="inline-flex items-center gap-1 text-xs font-medium text-moss hover:underline">
+            Open {l.short} <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        ))}
+      </div>
     </section>
   );
 };

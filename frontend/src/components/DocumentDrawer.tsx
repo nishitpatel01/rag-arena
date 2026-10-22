@@ -13,9 +13,14 @@ import {
   type HighlightResponse,
   type ZoomLevel,
 } from "../lib/documents";
+import { citationRegion, layoutSourceLabel, transcriptionTitle } from "../lib/elements";
 import { KeyValue } from "./ui/KeyValue";
+import { ElementTypeBadge, LayoutSourceBadge } from "./ElementBadges";
 import { useSafeMode } from "../app/SafeMode";
 import { PageCanvas } from "./PageCanvas";
+
+const boxText = (b: { x0: number; y0: number; x1: number; y1: number }): string =>
+  `[${b.x0.toFixed(3)}, ${b.y0.toFixed(3)}, ${b.x1.toFixed(3)}, ${b.y1.toFixed(3)}]`;
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -107,6 +112,10 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
   const aspect = hl.data && page === citation.page_number ? hl.data.page_width / hl.data.page_height : null;
   const go = (delta: number): void => setPage((p) => clampPage(p + delta, pageCount));
   const bboxText = `[${citation.bbox.x0.toFixed(3)}, ${citation.bbox.y0.toFixed(3)}, ${citation.bbox.x1.toFixed(3)}, ${citation.bbox.y1.toFixed(3)}]`;
+  // Level 3: table / diagram citations carry a Document AI / Gemini vision region (honestly labelled).
+  const region = citationRegion(citation);
+  const transcription = transcriptionTitle(citation);
+  const regionLabel = region && page === citation.page_number ? region.label : null;
 
   return (
     <div className="fixed inset-0 z-50" role="presentation">
@@ -122,7 +131,7 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="drawer-slide-in absolute inset-y-0 right-0 flex w-[min(56rem,90vw)] flex-col border-l border-line bg-surface-1 shadow-2xl"
+        className={`drawer-slide-in absolute inset-y-0 right-0 flex ${transcription ? "w-[min(76rem,94vw)]" : "w-[min(56rem,90vw)]"} flex-col border-l border-line bg-surface-1 shadow-2xl`}
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
           <div className="min-w-0">
@@ -132,6 +141,12 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
             <p className="font-mono text-xs text-slate">
               {citation.solicitation_id} · {citation.section_id || "no section_id"} · {citation.element_type}
             </p>
+            {(region || citation.layout_source) && (
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <ElementTypeBadge elementType={citation.element_type} />
+                {citation.layout_source && <LayoutSourceBadge layoutSource={citation.layout_source} />}
+              </div>
+            )}
           </div>
           <button
             type="button"
@@ -188,26 +203,40 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
             role="status"
             data-testid="highlight-label"
           >
-            {highlightLabel(source)}
+            {highlightLabel(source, regionLabel)}
             {source === "other_page" ? ` (p.${citation.page_number}).` : ""}
             {source === "lookup_failed" && hl.error ? <span className="block break-words font-mono">{mask(hl.error)}</span> : null}
           </p>
-          <div className="shrink-0 overflow-x-auto">
-            <div style={{ width: `${zoom}%` }} className="min-w-full">
-              <PageCanvas
-                imageUrl={pageImageUrl(citation, page, dpiForZoom(zoom))}
-                alt={`${citation.doc_name} page ${page} (rendered from the local corpus)`}
-                aspectHint={aspect}
-                source={source}
-                rects={hl.data?.rects ?? []}
-                storedBbox={citation.bbox}
-                onPageCount={onPageCount}
-              />
+          <div className={transcription ? "grid shrink-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]" : "shrink-0"}>
+            <div className="min-w-0 overflow-x-auto pt-5">
+              <div style={{ width: `${zoom}%` }} className="min-w-full">
+                <PageCanvas
+                  imageUrl={pageImageUrl(citation, page, dpiForZoom(zoom))}
+                  alt={`${citation.doc_name} page ${page} (rendered from the local corpus)`}
+                  aspectHint={aspect}
+                  source={source}
+                  rects={hl.data?.rects ?? []}
+                  storedBbox={citation.bbox}
+                  region={region}
+                  onPageCount={onPageCount}
+                />
+              </div>
             </div>
+            {transcription && (
+              <details open className="min-w-0 rounded-md border border-line bg-surface-0 p-3 text-xs" data-testid="diagram-transcription">
+                <summary className="cursor-pointer font-semibold text-ink-1">{transcription}</summary>
+                <p className="mt-1 text-ink-3">
+                  Stored at ingestion{citation.layout_source ? ` by ${layoutSourceLabel(citation.layout_source)}` : ""}; this is the text the retriever indexed and the model was given.
+                </p>
+                <p className="mt-2 whitespace-pre-wrap break-words font-mono leading-relaxed text-ink-1">{citation.excerpt}</p>
+              </details>
+            )}
           </div>
-          <blockquote className="shrink-0 rounded-md border-l-4 border-ochre bg-surface-0 p-3 font-mono text-xs leading-relaxed text-ink-1">
-            “{citation.excerpt}”
-          </blockquote>
+          {!transcription && (
+            <blockquote className="shrink-0 rounded-md border-l-4 border-ochre bg-surface-0 p-3 font-mono text-xs leading-relaxed text-ink-1">
+              “{citation.excerpt}”
+            </blockquote>
+          )}
           <div className="shrink-0">
           <KeyValue
             items={[
@@ -215,8 +244,10 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
               ["solicitation", citation.solicitation_id],
               ["section_id", citation.section_id || "—"],
               ["element_type", citation.element_type],
+              ...(citation.layout_source ? [["layout_source", citation.layout_source] as const] : []),
+              ...(citation.bbox_source ? [["bbox_source", citation.bbox_source] as const] : []),
               ["chunk_id", citation.chunk_id],
-              ["stored bbox", bboxText],
+              [region ? `region bbox (${region.label})` : "stored bbox", region ? boxText(region.box) : bboxText],
               ["match query", hl.data?.query_used ?? (hl.data ? "none matched" : "—")],
             ]}
           />

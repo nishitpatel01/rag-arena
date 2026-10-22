@@ -5,6 +5,8 @@ import { KeyValue } from "../../components/ui/KeyValue";
 import { Pill } from "../../components/ui/Pill";
 import { MiniMarkdown } from "../../components/ui/MiniMarkdown";
 import { formatMs, formatPct, formatUsd } from "../../lib/format";
+import { ELEMENT_LABEL } from "../../lib/elements";
+import { AlignLeft, Network, Table2 } from "lucide-react";
 
 export interface AnswerPanelProps {
   readonly timeline: EngineTimeline | undefined;
@@ -57,6 +59,7 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
                   >
                     <span className="font-mono">[{i + 1}]</span> {c.doc_name} p.{c.page_number}
                     {c.section_id ? ` · ${c.section_id}` : ""}
+                    <CitationElementTag elementType={c.element_type} layoutSource={c.layout_source ?? null} />
                   </button>
                 </li>
               );
@@ -65,6 +68,20 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
         )}
       </div>
     </div>
+  );
+};
+
+const CITATION_ICON = { table: Table2, diagram: Network, narrative_text: AlignLeft } as const;
+
+/** Inline TABLE / DIAGRAM tag on Level 3 citation chips (shown only when the server reported layout_source). */
+const CitationElementTag: React.FC<{ readonly elementType: string; readonly layoutSource: string | null }> = ({ elementType, layoutSource }) => {
+  if (!layoutSource || (elementType !== "table" && elementType !== "diagram")) return null;
+  const Icon = CITATION_ICON[elementType];
+  return (
+    <span className="ml-1 inline-flex items-center gap-0.5 font-mono font-semibold text-slate">
+      <Icon className="h-3 w-3" aria-hidden />
+      {ELEMENT_LABEL[elementType]}
+    </span>
   );
 };
 

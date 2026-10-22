@@ -9,6 +9,7 @@ import { ArchitectureDiagram } from "../levels/ArchitectureDiagram";
 import { StageRail } from "../levels/StageRail";
 import { deriveIngestProgress } from "../levels/model";
 import { INGEST_STAGE_IDS } from "../../types/arena";
+import { ingestParseItems, parseIngestParse } from "../levels/level3Payloads";
 import type { IngestJobStream } from "./useIngestJobStream";
 
 export interface IngestJobViewProps {
@@ -27,6 +28,10 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
   const startedEvent = job.state.events.find((e) => e.event === "job_started");
   const jobTier = startedEvent && startedEvent.event === "job_started" ? startedEvent.tier_profile : null;
   const embedPct = progress.embed && progress.embed.total > 0 ? Math.round((progress.embed.done / progress.embed.total) * 100) : null;
+  // Level 3 parse stage (Document AI layout + Gemini vision); null for Levels 1–2 parse payloads.
+  const parseView = parseIngestParse(timeline?.stages.parse?.payload ?? null);
+  const showTables = progress.docs.some((d) => d.tables !== null);
+  const showDiagrams = progress.docs.some((d) => d.diagrams !== null);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]" data-testid="ingest-job-view">
@@ -71,6 +76,13 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
       </Panel>
 
       <div className="grid min-w-0 gap-4 xl:col-span-2 xl:grid-cols-2">
+        {parseView && (
+          <Panel title="Parse summary" subtitle="parse stage payload · Document AI layout + Gemini vision" className="xl:col-span-2">
+            <div data-testid="ingest-parse-summary">
+              <KeyValue columns={2} label="Layout parse summary" items={ingestParseItems(parseView)} />
+            </div>
+          </Panel>
+        )}
         <Panel title="Embedding progress" subtitle="embed_progress events">
           {progress.embed ? (
             <div className="flex flex-col gap-1.5">
@@ -98,6 +110,8 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
               { key: "doc", header: "Document", render: (r) => r.doc_name, mono: true },
               { key: "pages", header: "Pages", render: (r) => r.pages, align: "right" },
               { key: "chunks", header: "Chunks", render: (r) => r.chunks, align: "right" },
+              ...(showTables ? [{ key: "tables", header: "Tables", render: (r: (typeof progress.docs)[number]) => r.tables ?? "—", align: "right" as const }] : []),
+              ...(showDiagrams ? [{ key: "diagrams", header: "Diagrams", render: (r: (typeof progress.docs)[number]) => r.diagrams ?? "—", align: "right" as const }] : []),
             ]}
           />
         </Panel>

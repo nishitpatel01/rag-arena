@@ -271,6 +271,12 @@ export interface Citation {
   readonly element_type: string;
   readonly bbox: BoundingBox;
   readonly excerpt: string;
+  /** Level 3: service that produced the element ("documentai_layout" | "gemini_vision" | "pymupdf"). */
+  readonly layout_source?: string | null;
+  /** Level 3: who located `bbox` — "documentai" | "pdf_text_layer" | "page" (whole page, not located). */
+  readonly bbox_source?: string | null;
+  /** Level 3 (provisional): Document AI / vision region bbox when sent separately from `bbox`. */
+  readonly region_bbox?: BoundingBox | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -470,6 +476,9 @@ export interface DocProgressEvent extends BaseJobEvent {
   readonly doc_name: string;
   readonly pages: number;
   readonly chunks: number;
+  /** Level 3 (multimodal tier): Document AI tables / diagram pages found in this document. */
+  readonly tables?: number;
+  readonly diagrams?: number;
 }
 
 export interface EmbedProgressEvent extends BaseJobEvent {

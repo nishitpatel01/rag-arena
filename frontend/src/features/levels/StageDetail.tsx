@@ -38,17 +38,19 @@ export function splitPayload(obj: JsonObject | null, omitKeys: readonly string[]
 export interface StageDetailProps {
   readonly stageId: string | null;
   readonly state: StageState | null;
+  /** Retrieve payload of the same run (rerank rows join their Level 3 element metadata from it). */
+  readonly retrievePayload?: JsonObject | null;
 }
 
-export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state }) => {
+export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state, retrievePayload = null }) => {
   if (!stageId || !state) {
     return <EmptyState compact title="Select a stage" description="Click a node on the rail or the diagram to see the exact request and response it recorded." />;
   }
   const meta = STATUS_META[state.status];
   const req = splitPayload(state.request);
-  // Dedicated renderers (query_prep / hybrid retrieve / rerank) show their tables above; the same
+  // Dedicated renderers (query_prep / hybrid retrieve / rerank / Level 3 synthesize) show their tables above; the same
   // keys are left out of the generic code blocks but remain in the raw payload JSON below.
-  const dedicated = dedicatedStageView(stageId, state.payload);
+  const dedicated = dedicatedStageView(stageId, state.payload, { retrievePayload });
   const res = splitPayload(state.payload, dedicated ? DEDICATED_KEYS[stageId] ?? [] : []);
   return (
     <div className="flex flex-col gap-3">

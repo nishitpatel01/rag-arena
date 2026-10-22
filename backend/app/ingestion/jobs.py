@@ -3,7 +3,7 @@ build_indexes → verify_counts`` streamed as stage events.
 
 Phase 0: ``discover_docs``/``parse``/``chunk`` run for real against the local corpus; ``embed``/``load_bigquery``/
 ``build_indexes``/``verify_counts`` run behind the injectable ``Embedder`` / ``BigQueryLoader`` interfaces
-(mocked in tests). The default factory raises until the live wiring lands in Phase 1, which surfaces as
+(mocked in tests). Outside live/record mode the factory raises, which surfaces as
 ``stage_failed`` + ``job_failed`` — never as a silent skip.
 """
 
@@ -117,9 +117,10 @@ BackendFactory = Callable[[ArenaSettings], IngestBackends]
 
 
 def unavailable_backends(settings: ArenaSettings) -> IngestBackends:
-    """Default factory: live BigQuery/embedding wiring is Phase 1; fail loud with the mode in the message."""
+    """Factory for non-live modes: ingestion needs real GCP backends; fail loud with the mode in the message."""
     raise IngestBackendUnavailable(
-        f"No embedder/BigQuery loader is wired for DEMO_MODE={settings.demo_mode} yet (live wiring lands in Phase 1)"
+        f"DEMO_MODE={settings.demo_mode}: BigQuery ingestion status is not queried and ingestion jobs cannot run "
+        "(no GCP calls outside live/record mode)"
     )
 
 

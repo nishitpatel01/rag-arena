@@ -144,7 +144,7 @@ def test_ingest_job_without_live_backends_fails_loud_at_embed_stage() -> None:
     assert kinds[-1] == "job_failed"
     failed = [e for e in events if e["event"] == "stage_failed"]
     assert len(failed) == 1 and failed[0]["stage"] == "embed" and failed[0]["error_type"] == "IngestBackendUnavailable"
-    assert events[-1]["failed_stage"] == "embed" and "Phase 1" in events[-1]["error"]
+    assert events[-1]["failed_stage"] == "embed" and "no GCP calls outside live/record mode" in events[-1]["error"]
     assert [e["stage"] for e in events if e["event"] == "stage_completed"] == ["discover_docs", "parse", "chunk"]
     assert status["available"] is False and status["counts_by_tier"] == {} and "reason" in status
     assert status["last_runs"][0]["status"] == "failed"

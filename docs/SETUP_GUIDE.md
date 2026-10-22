@@ -2,12 +2,12 @@
 
 Two ways to run it:
 
-1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–3
+1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–4
    runs. No Google Cloud account, no credentials, no network calls to GCP.
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-**Levels 1–3** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal`; override in `.env` or the environment). Levels 4–5, the Compare page and the Cloud
+**Levels 1–3** are enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal`), and **Level 4** (`level4_agentic`) is live and enabled via `ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic` (default after D7 sign-off). Level 5, the Compare page and the Cloud
 Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 ---
@@ -83,7 +83,8 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `GEMINI_THINKING_LEVEL` | `high` | Gemini synthesis thinking level |
 | `JUDGE_PROVIDER` / `JUDGE_MODEL` / `JUDGE_LOCATION` | `anthropic_vertex` / `claude-opus-5-5` / `global` | default judge; must differ from the synthesis models |
 | `TEXT_EMBEDDING_MODEL` | `gemini-embedding-2` | query and document embeddings |
-| `QUERY_TIMEOUT_SECONDS` / `INGEST_JOB_TIMEOUT_SECONDS` | `90` / `1800` | explicit bounds |
+| `QUERY_TIMEOUT_SECONDS` / `INGEST_JOB_TIMEOUT_SECONDS` | `120` / `1800` | explicit bounds (`120` recommended when running or replaying Level 4 multi-turn ADK traces) |
+| `AGENT_MAX_TURNS` / `AGENT_MAX_TOOL_CALLS_PER_TURN` / `AGENT_TURN_TIMEOUT_SECONDS` / `AGENT_THINKING_LEVEL` | `8` / `8` / `90` / `low` | Level 4 ADK runner bounds and Gemini thinking level |
 | `CLOUDSDK_CONFIG` / `GOOGLE_APPLICATION_CREDENTIALS` | empty | optional isolated gcloud profile / ADC file |
 | `MODEL_LOCATION_<ID>` | `MODEL_LOCATION_CLAUDE_OPUS_5_5=global` | optional per-model endpoint override |
 | `DOCAI_LOCATION` / `DOCAI_PROCESSOR_ID` | `us` / short id printed by `scripts/provision_documentai.py` | Level 3 Layout Parser processor (never the full resource name) |
@@ -174,7 +175,11 @@ cd frontend && npm run dev
    (`multimodal` tier). `parse` calls the Layout Parser online (PDFs split into ≤ 15-page requests; $10 per
    1,000 pages) and Gemini vision on diagram pages; pages whose transcription is unusable are listed in
    `vision_failed_pages`. There is no PyMuPDF text fallback — a missing or failing processor fails `parse`.
-6. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
+6. **Level 4 (`level4_agentic`)**: reuses the Level 3 `multimodal` tier (no separate ingestion job; its Run button
+   checks the `multimodal` tier count). Requires `google-adk` (included in `backend/requirements.txt`) and a Gemini
+   synthesis model (`gemini-4-argon` or `gemini-3.8-flash`); selecting a Claude model as the Level 4 agent model
+   returns HTTP 400 because `google-adk`'s Claude adapter requires the undeclared `anthropic` SDK.
+7. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
    `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted.
 
 ---

@@ -1,0 +1,1156 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-23T14:19:34.481Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "vertex-ai-search-summary",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "vertex-ai-search-summary",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "779dad7f608f6c9f1e42239fa70b7241a597f0ec",
+    "app_version": "3.0.0",
+    "engine": "managed_vertex",
+    "question_id": "q_amendment_rate_comparison",
+    "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+    "run_id": "run_6a41e4c4f417"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-10-23T14:19:25.978Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          }
+        ],
+        "sent_to": "Vertex AI Search search.query"
+      },
+      "ts": "2026-10-23T14:19:25.978Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "retrieve",
+      "label": "Vertex AI Search (extractive segments)",
+      "service": "Vertex AI Search \u00b7 search + summary",
+      "request": {
+        "method": "POST",
+        "endpoint": "engines/rag-arena-procurement-search/servingConfigs/default_search:search",
+        "body": {
+          "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+          "pageSize": 10,
+          "contentSearchSpec": {
+            "snippetSpec": {
+              "returnSnippet": true
+            },
+            "extractiveContentSpec": {
+              "maxExtractiveSegmentCount": 3,
+              "returnExtractiveSegmentScore": true
+            },
+            "summarySpec": {
+              "summaryResultCount": 5,
+              "includeCitations": true,
+              "ignoreAdversarialQuery": true,
+              "ignoreNonSummarySeekingQuery": false,
+              "modelSpec": {
+                "version": "stable"
+              }
+            }
+          }
+        }
+      },
+      "ts": "2026-10-23T14:19:25.978Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "retrieve",
+      "duration_ms": 3600,
+      "payload": {
+        "api_request": {
+          "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+          "pageSize": 10,
+          "contentSearchSpec": {
+            "snippetSpec": {
+              "returnSnippet": true
+            },
+            "extractiveContentSpec": {
+              "maxExtractiveSegmentCount": 3,
+              "returnExtractiveSegmentScore": true
+            },
+            "summarySpec": {
+              "summaryResultCount": 5,
+              "includeCitations": true,
+              "ignoreAdversarialQuery": true,
+              "ignoreNonSummarySeekingQuery": false,
+              "modelSpec": {
+                "version": "stable"
+              }
+            }
+          }
+        },
+        "serving_config": "engines/rag-arena-procurement-search/servingConfigs/default_search",
+        "location": "global",
+        "total_size": 12,
+        "rows_returned": 10,
+        "results": [
+          {
+            "rank": 1,
+            "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+            "title": "06_Amendment_0001_Scope_Update",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>Amendment Number</b>: 0001 | Effective Date: 2026-<b>03</b>-15 <b>1</b>. ... SUPERSESSION OF <b>CLIN</b>-<b>0004</b>-<b>AB</b> (<b>CLOUD SECURITY ARCHITECT</b> LABOR <b>RATE</b>): ... Page <b>1</b> of <b>1</b> | SOL-2026-<b>CLOUD</b>-<b>01</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume",
+                "page_number": 1,
+                "relevance_score": 0.787214994430542
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+            "title": "04_Pricing_Schedule_CLINs",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>CONTRACT LINE ITEM NUMBER</b> (<b>CLIN</b>) ... <b>rate</b> is $210/hr for <b>2,000 hours</b> ($420,000 base <b>Year 1</b>). Page 1 of 1 | SOL-2026-<b>CLOUD</b>-<b>01</b> | Verified Enterprise Procurement&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Rec",
+                "page_number": 1,
+                "relevance_score": 0.786838173866272
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "title": "01_RFP_Base_Solicitation",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>Architect</b>) at the base <b>solicitation hourly rate</b> of $210/hr for an estimated <b>2,000</b> base <b>hours</b> ($420,000.00 <b>Year 1 ceiling</b>), subject to formal <b>contract amendments</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7476401329040527
+              },
+              {
+                "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\n\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 2,
+                "relevance_score": 0.7018052339553833
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "document_id": "5ad0a3ca401971d52a3f5bb621296a73",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/05_Master_Services_Agreement_MSA.pdf",
+            "title": "05_Master_Services_Agreement_MSA",
+            "solicitation_id": "solicitation_03",
+            "snippets": [
+              "... <b>Amendment</b> 0001 establishes a binding enterprise <b>rate ceiling</b> of $250.00/hr for <b>CLIN</b>-<b>2001</b> (<b>Cloud Security Architect</b>). For <b>2,000</b> annual <b>hours</b>, the <b>amended CLIN</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\n\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\n\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\nAggregate liability under this Agreement is capped at two times (2x) the total\nannual contract value, excluding willful misconduct or indemnification obligations.\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\nNotwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\nMSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\nCLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\nCLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7795342206954956
+              }
+            ]
+          },
+          {
+            "rank": 5,
+            "document_id": "21f585480d891c9ead509f463fdc2c43",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/04_Pricing_Labor_Categories.pdf",
+            "title": "04_Pricing_Labor_Categories",
+            "solicitation_id": "solicitation_03",
+            "snippets": [
+              "... <b>1 Security</b> Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 | Note: <b>CLIN</b>-<b>2001</b> base schedule <b>rate</b> is $265.00/hr before MSA <b>Amendment</b> 0001 <b>rate cap</b>."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.8002965450286865
+              }
+            ]
+          },
+          {
+            "rank": 6,
+            "document_id": "0368201ebb8db0abd2843c7ca9d0f9c3",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/07_Amendment_0002_Vendor_QA.pdf",
+            "title": "07_Amendment_0002_Vendor_QA",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>Amendment</b> 0001 modify the 2,000 base hours on <b>CLIN</b>-<b>0004</b>-<b>AB</b>? A19: <b>No</b>. Base quantity remains <b>2,000 hours</b>; the <b>amended rate</b> ... <b>Year 1</b>. Page 1 of 1 | SOL-2026-<b>CLOUD</b>-&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\n\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0002-QA | ELEMENT=narrative_text | AMENDMENT=2 | EFFECTIVE=2026-04-02 | AMENDS=SEC-4.\n\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.737276017665863
+              }
+            ]
+          },
+          {
+            "rank": 7,
+            "document_id": "710df224f7ca6659920e0d6541887939",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+            "title": "08_Vendor_A_Proposal_Redacted",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "<b>Pricing</b> Acknowledgment: <b>CLIN</b>-<b>0004</b>-<b>AB</b> priced at $245/hr less 5% volume discount for <b>2,000 hours</b> ($465,500.00), matching <b>Amendment</b> 0001. Page <b>1</b> of <b>1</b> | SOL&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\n\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS\n\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.718776285648346
+              }
+            ]
+          },
+          {
+            "rank": 8,
+            "document_id": "52e936cf3e8b13d46bec893faaf3fbc2",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/01_RFP_Security_Operations.pdf",
+            "title": "01_RFP_Security_Operations",
+            "solicitation_id": "solicitation_03",
+            "snippets": [
+              "... Agreement (MSA) <b>rate cap</b> provisions in Document 05_Master_Services_Agreement_MSA.pdf. Page <b>1</b> of <b>1</b> | SOL-2026-SEC-<b>03</b> | Verified Enterprise Procurement Record."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\n\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nDOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7126620411872864
+              }
+            ]
+          },
+          {
+            "rank": 9,
+            "document_id": "cd7bae2dc8790fdb79536194140576cf",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/02_Statement_of_Work_SOW.pdf",
+            "title": "02_Statement_of_Work_SOW",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>0004</b>-<b>AB</b> | SOW Section 3.2: <b>Contractor</b> shall provide weekly burn-<b>rate</b> telemetry in BigQuery. Page <b>1</b> of <b>1</b> | SOL-2026-<b>CLOUD</b>-<b>01</b> | Verified Enterprise Procurement&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 02_Statement_of_Work_SOW.pdf\n\nSTATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\nDOC_TYPE=SOW | SECTION=SOW-2.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSOW Section 2.1: Phased Workload Migration & Deliverable Payment Schedule\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |\nSOW Section 3.2: Contractor shall provide weekly burn-rate telemetry in BigQuery.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7015870809555054
+              }
+            ]
+          },
+          {
+            "rank": 10,
+            "document_id": "1f95d4fff7065077800b738ba9a8be60",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/03_Pricing_and_Volume_Tiers.pdf",
+            "title": "03_Pricing_and_Volume_Tiers",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "... <b>CLIN</b>-1001 | ELEMENT=table | <b>AMENDMENT</b>=0 | EFFECTIVE=2026-02-<b>01</b> | AMENDS=NONE | <b>CLIN</b> | Service Component | Unit | Monthly Qty | Base Unit <b>Rate</b> ... <b>Architect</b> | <b>Hour</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\n\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7243043184280396
+              }
+            ]
+          }
+        ],
+        "segments_returned": 11,
+        "attribution_token": "6AP05wEKCwju2e3WBhD3sN9-EiQ2YjNmYmYyNS0wMDAwLTI0N2MtOTljOS0xNGMxNGVmMzViYmMiB0dFTkVSSUMqnAKgoJY5_-TpOp_Wty2vxvI3vb26OdPY3zjW2N84uMzsOIOo2jmC3ZMymcH0OJzWty3Lh6U53vysOZfkrjmGqNo5qoX5ONizgjnkwu84w_D4OPji9DmlueY6p4X5ONn-_TiH3OM5naCWOYTjgDnZ4KQ5qa_mOcLwnhWQ97IwoM3UOf3a-DjBg4w5muSuOYHc4zneysU52tDDOYm23DnOh6U5ur26OYWnzjnh_Kw5hrbcOYKnzjm7zOw4roCTN9uS8jmOvp0V4sqdOb6DjDn-4vQ51v79OMDw-DicwfQ4gsHvOdWzgjn62vg4lZLFMOfC7ziH44A5stOXOa_TlznL2qk5q5q-OeHKxTnUsp0Vw7DzOMaw8ziI36k43dDDOTABUogBcHJvamVjdHMvNjE0NDE5NDkzNjc3L2xvY2F0aW9ucy9nbG9iYWwvY29sbGVjdGlvbnMvZGVmYXVsdF9jb2xsZWN0aW9uL2VuZ2luZXMvcmFnLWFyZW5hLXByb2N1cmVtZW50LXNlYXJjaC9zZXJ2aW5nQ29uZmlncy9kZWZhdWx0X3NlYXJjaA",
+        "api_ms": 3599,
+        "attempts": 1,
+        "summary_requested": true,
+        "solicitation_filter": "not supported (unstructured data store without filterable metadata)"
+      },
+      "ts": "2026-10-23T14:19:29.578Z",
+      "t_rel_ms": 3600
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "synthesize",
+      "label": "Vertex AI Search summary",
+      "service": "Vertex AI Search \u00b7 summary (Vertex AI Search summary)",
+      "request": {
+        "source": "summarySpec on the retrieve search call (same request, no second call)",
+        "summarySpec": {
+          "summaryResultCount": 5,
+          "includeCitations": true,
+          "ignoreAdversarialQuery": true,
+          "ignoreNonSummarySeekingQuery": false,
+          "modelSpec": {
+            "version": "stable"
+          }
+        }
+      },
+      "ts": "2026-10-23T14:19:29.579Z",
+      "t_rel_ms": 3600
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "vertex-ai-search-summary",
+        "provider": "vertex_ai_search",
+        "answer": "Based on the provided sources, the comparison between the rates and costs is as follows:\n\n*   **Solicitation 01 (CLIN-0004-AB) - Cloud Security Architect:** \n    *   **Amended Hourly Rate:** The hourly rate was increased from the base rate of $210.00/hr to an amended rate of **$245.00/hr** due to added cryptographic verification scope [1, 3].\n    *   **2,000-Hour Net Year 1 Cost:** Based on the amended rate of $245.00/hr, the cost for 2,000 hours is **$490,000.00** (calculated as $245.00/hr multiplied by 2,000 hours) [1, 3]. (Note: The original base solicitation cost for 2,000 hours was $420,000.00 [3]).\n*   **Solicitation 03 (CLIN-2001):**\n    *   **Amended Rate Cap:** The amended rate cap is **$250.00/hr** (derived from the 2,000 annual hours total of $500,000.00) [4]. \n    *   **2,000-Hour Net Year 1 Cost:** The amended total for 2,000 annual hours is **$500,000.00** [4].",
+        "generated_in_stage": "retrieve",
+        "model_version_requested": "stable",
+        "model_version_used": "not returned by the API",
+        "summary_skipped_reasons": [],
+        "safety_attributes": null,
+        "cited_result_ranks": [
+          3,
+          4
+        ],
+        "citation_metadata": [
+          {
+            "startIndex": "162",
+            "endIndex": "337",
+            "sources": [
+              {},
+              {
+                "referenceIndex": "2"
+              }
+            ]
+          },
+          {
+            "startIndex": "342",
+            "endIndex": "516",
+            "sources": [
+              {},
+              {
+                "referenceIndex": "2"
+              }
+            ]
+          },
+          {
+            "startIndex": "517",
+            "endIndex": "593",
+            "sources": [
+              {
+                "referenceIndex": "2"
+              }
+            ]
+          },
+          {
+            "startIndex": "755",
+            "endIndex": "759",
+            "sources": [
+              {
+                "referenceIndex": "3"
+              }
+            ]
+          },
+          {
+            "startIndex": "765",
+            "endIndex": "861",
+            "sources": [
+              {
+                "referenceIndex": "3"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "title": "06_Amendment_0001_Scope_Update",
+            "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+            "uri": ""
+          },
+          {
+            "title": "04_Pricing_Schedule_CLINs",
+            "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+            "uri": ""
+          },
+          {
+            "title": "01_RFP_Base_Solicitation",
+            "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+            "uri": ""
+          },
+          {
+            "title": "05_Master_Services_Agreement_MSA",
+            "document_id": "5ad0a3ca401971d52a3f5bb621296a73",
+            "uri": ""
+          },
+          {
+            "title": "04_Pricing_Labor_Categories",
+            "document_id": "21f585480d891c9ead509f463fdc2c43",
+            "uri": ""
+          }
+        ],
+        "citation_source": "summary_citations",
+        "prompt_tokens": 0,
+        "output_tokens": 0
+      },
+      "ts": "2026-10-23T14:19:29.579Z",
+      "t_rel_ms": 3600
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-23T14:19:29.579Z",
+      "t_rel_ms": 3601
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_6a41e4c4f417",
+      "engine": "managed_vertex",
+      "stage": "evaluate",
+      "duration_ms": 4901,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.6,
+        "qa_relevance": 0.4,
+        "context_precision": 0.8,
+        "reference_answer_used": true,
+        "input_tokens": 4637,
+        "output_tokens": 423,
+        "judge_cost_usd": 0.027008,
+        "rationale": "The $245/hr and $250/hr rates are supported, but the stated 2,000-hour net cost of $490,000 ignores the 5% volume discount in Amendment 0001, which explicitly gives a $465,500 net total. Because of that error, the answer gets the key net-cost figure wrong and never states the comparative difference ($34,500 in the reference). Most retrieved chunks are on-target pricing and amendment documents, though the SEC-5.1 evaluation-factors chunk and the DR/RTO content are irrelevant.",
+        "judge_response_id": "msg_vrtx_011CgKKDiNk6rKsQF1pLW9GT"
+      },
+      "ts": "2026-10-23T14:19:34.481Z",
+      "t_rel_ms": 8502
+    }
+  ],
+  "result": {
+    "engine_id": "managed_vertex",
+    "engine_label": "Level 5: Managed Vertex AI Search",
+    "answer": "Based on the provided sources, the comparison between the rates and costs is as follows:\n\n*   **Solicitation 01 (CLIN-0004-AB) - Cloud Security Architect:** \n    *   **Amended Hourly Rate:** The hourly rate was increased from the base rate of $210.00/hr to an amended rate of **$245.00/hr** due to added cryptographic verification scope [1, 3].\n    *   **2,000-Hour Net Year 1 Cost:** Based on the amended rate of $245.00/hr, the cost for 2,000 hours is **$490,000.00** (calculated as $245.00/hr multiplied by 2,000 hours) [1, 3]. (Note: The original base solicitation cost for 2,000 hours was $420,000.00 [3]).\n*   **Solicitation 03 (CLIN-2001):**\n    *   **Amended Rate Cap:** The amended rate cap is **$250.00/hr** (derived from the 2,000 annual hours total of $500,000.00) [4]. \n    *   **2,000-Hour Net Year 1 Cost:** The amended total for 2,000 annual hours is **$500,000.00** [4].",
+    "citations": [
+      {
+        "chunk_id": "vais_85bfbbd683157d7988d4b0e3_p1_s1",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf  SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES DOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE  Solicita",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_85bfbbd683157d7988d4b0e3_p2_s2",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 2,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 2,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf  SECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS DOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE  Factor 1 (Te",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_5ad0a3ca401971d52a3f5bb6_p1_s1",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf  MASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE DOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001 ",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "vais_4102e8c07a57f611ca9a46fd_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000\n* $245.00 * (1 - 0.05) = $465,500.00 net total.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7872,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_5635503c795c0d62aef25a7d_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7868,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_85bfbbd683157d7988d4b0e3_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7476,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_85bfbbd683157d7988d4b0e3_p2_s2",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 2,
+        "bbox": {
+          "page": 2,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\n\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7018,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_5ad0a3ca401971d52a3f5bb6_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\n\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\n\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\nAggregate liability under this Agreement is capped at two times (2x) the total\nannual contract value, excluding willful misconduct or indemnification obligations.\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\nNotwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\nMSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\nCLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\nCLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.7795,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_21f585480d891c9ead509f46_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.8003,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 3600,
+    "cost_usd": 0.008,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-23T14:19:25.978Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+          "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            }
+          ],
+          "sent_to": "Vertex AI Search search.query"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "Vertex AI Search (extractive segments)",
+        "service": "Vertex AI Search \u00b7 search + summary",
+        "status": "completed",
+        "started_at": "2026-10-23T14:19:25.978Z",
+        "duration_ms": 3600,
+        "request": {},
+        "payload": {
+          "api_request": {
+            "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+            "pageSize": 10,
+            "contentSearchSpec": {
+              "snippetSpec": {
+                "returnSnippet": true
+              },
+              "extractiveContentSpec": {
+                "maxExtractiveSegmentCount": 3,
+                "returnExtractiveSegmentScore": true
+              },
+              "summarySpec": {
+                "summaryResultCount": 5,
+                "includeCitations": true,
+                "ignoreAdversarialQuery": true,
+                "ignoreNonSummarySeekingQuery": false,
+                "modelSpec": {
+                  "version": "stable"
+                }
+              }
+            }
+          },
+          "serving_config": "engines/rag-arena-procurement-search/servingConfigs/default_search",
+          "location": "global",
+          "total_size": 12,
+          "rows_returned": 10,
+          "results": [
+            {
+              "rank": 1,
+              "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+              "title": "06_Amendment_0001_Scope_Update",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>Amendment Number</b>: 0001 | Effective Date: 2026-<b>03</b>-15 <b>1</b>. ... SUPERSESSION OF <b>CLIN</b>-<b>0004</b>-<b>AB</b> (<b>CLOUD SECURITY ARCHITECT</b> LABOR <b>RATE</b>): ... Page <b>1</b> of <b>1</b> | SOL-2026-<b>CLOUD</b>-<b>01</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume",
+                  "page_number": 1,
+                  "relevance_score": 0.787214994430542
+                }
+              ]
+            },
+            {
+              "rank": 2,
+              "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+              "title": "04_Pricing_Schedule_CLINs",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>CONTRACT LINE ITEM NUMBER</b> (<b>CLIN</b>) ... <b>rate</b> is $210/hr for <b>2,000 hours</b> ($420,000 base <b>Year 1</b>). Page 1 of 1 | SOL-2026-<b>CLOUD</b>-<b>01</b> | Verified Enterprise Procurement&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Rec",
+                  "page_number": 1,
+                  "relevance_score": 0.786838173866272
+                }
+              ]
+            },
+            {
+              "rank": 3,
+              "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "title": "01_RFP_Base_Solicitation",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>Architect</b>) at the base <b>solicitation hourly rate</b> of $210/hr for an estimated <b>2,000</b> base <b>hours</b> ($420,000.00 <b>Year 1 ceiling</b>), subject to formal <b>contract amendments</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7476401329040527
+                },
+                {
+                  "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\n\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 2,
+                  "relevance_score": 0.7018052339553833
+                }
+              ]
+            },
+            {
+              "rank": 4,
+              "document_id": "5ad0a3ca401971d52a3f5bb621296a73",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/05_Master_Services_Agreement_MSA.pdf",
+              "title": "05_Master_Services_Agreement_MSA",
+              "solicitation_id": "solicitation_03",
+              "snippets": [
+                "... <b>Amendment</b> 0001 establishes a binding enterprise <b>rate ceiling</b> of $250.00/hr for <b>CLIN</b>-<b>2001</b> (<b>Cloud Security Architect</b>). For <b>2,000</b> annual <b>hours</b>, the <b>amended CLIN</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\n\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\n\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\nAggregate liability under this Agreement is capped at two times (2x) the total\nannual contract value, excluding willful misconduct or indemnification obligations.\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\nNotwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\nMSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\nCLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\nCLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7795342206954956
+                }
+              ]
+            },
+            {
+              "rank": 5,
+              "document_id": "21f585480d891c9ead509f463fdc2c43",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/04_Pricing_Labor_Categories.pdf",
+              "title": "04_Pricing_Labor_Categories",
+              "solicitation_id": "solicitation_03",
+              "snippets": [
+                "... <b>1 Security</b> Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 | Note: <b>CLIN</b>-<b>2001</b> base schedule <b>rate</b> is $265.00/hr before MSA <b>Amendment</b> 0001 <b>rate cap</b>."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.8002965450286865
+                }
+              ]
+            },
+            {
+              "rank": 6,
+              "document_id": "0368201ebb8db0abd2843c7ca9d0f9c3",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/07_Amendment_0002_Vendor_QA.pdf",
+              "title": "07_Amendment_0002_Vendor_QA",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>Amendment</b> 0001 modify the 2,000 base hours on <b>CLIN</b>-<b>0004</b>-<b>AB</b>? A19: <b>No</b>. Base quantity remains <b>2,000 hours</b>; the <b>amended rate</b> ... <b>Year 1</b>. Page 1 of 1 | SOL-2026-<b>CLOUD</b>-&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\n\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0002-QA | ELEMENT=narrative_text | AMENDMENT=2 | EFFECTIVE=2026-04-02 | AMENDS=SEC-4.\n\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.737276017665863
+                }
+              ]
+            },
+            {
+              "rank": 7,
+              "document_id": "710df224f7ca6659920e0d6541887939",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+              "title": "08_Vendor_A_Proposal_Redacted",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "<b>Pricing</b> Acknowledgment: <b>CLIN</b>-<b>0004</b>-<b>AB</b> priced at $245/hr less 5% volume discount for <b>2,000 hours</b> ($465,500.00), matching <b>Amendment</b> 0001. Page <b>1</b> of <b>1</b> | SOL&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\n\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS\n\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.718776285648346
+                }
+              ]
+            },
+            {
+              "rank": 8,
+              "document_id": "52e936cf3e8b13d46bec893faaf3fbc2",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/01_RFP_Security_Operations.pdf",
+              "title": "01_RFP_Security_Operations",
+              "solicitation_id": "solicitation_03",
+              "snippets": [
+                "... Agreement (MSA) <b>rate cap</b> provisions in Document 05_Master_Services_Agreement_MSA.pdf. Page <b>1</b> of <b>1</b> | SOL-2026-SEC-<b>03</b> | Verified Enterprise Procurement Record."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\n\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nDOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7126620411872864
+                }
+              ]
+            },
+            {
+              "rank": 9,
+              "document_id": "cd7bae2dc8790fdb79536194140576cf",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/02_Statement_of_Work_SOW.pdf",
+              "title": "02_Statement_of_Work_SOW",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>0004</b>-<b>AB</b> | SOW Section 3.2: <b>Contractor</b> shall provide weekly burn-<b>rate</b> telemetry in BigQuery. Page <b>1</b> of <b>1</b> | SOL-2026-<b>CLOUD</b>-<b>01</b> | Verified Enterprise Procurement&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 02_Statement_of_Work_SOW.pdf\n\nSTATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\nDOC_TYPE=SOW | SECTION=SOW-2.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSOW Section 2.1: Phased Workload Migration & Deliverable Payment Schedule\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |\nSOW Section 3.2: Contractor shall provide weekly burn-rate telemetry in BigQuery.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7015870809555054
+                }
+              ]
+            },
+            {
+              "rank": 10,
+              "document_id": "1f95d4fff7065077800b738ba9a8be60",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/03_Pricing_and_Volume_Tiers.pdf",
+              "title": "03_Pricing_and_Volume_Tiers",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "... <b>CLIN</b>-1001 | ELEMENT=table | <b>AMENDMENT</b>=0 | EFFECTIVE=2026-02-<b>01</b> | AMENDS=NONE | <b>CLIN</b> | Service Component | Unit | Monthly Qty | Base Unit <b>Rate</b> ... <b>Architect</b> | <b>Hour</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\n\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7243043184280396
+                }
+              ]
+            }
+          ],
+          "segments_returned": 11,
+          "attribution_token": "6AP05wEKCwju2e3WBhD3sN9-EiQ2YjNmYmYyNS0wMDAwLTI0N2MtOTljOS0xNGMxNGVmMzViYmMiB0dFTkVSSUMqnAKgoJY5_-TpOp_Wty2vxvI3vb26OdPY3zjW2N84uMzsOIOo2jmC3ZMymcH0OJzWty3Lh6U53vysOZfkrjmGqNo5qoX5ONizgjnkwu84w_D4OPji9DmlueY6p4X5ONn-_TiH3OM5naCWOYTjgDnZ4KQ5qa_mOcLwnhWQ97IwoM3UOf3a-DjBg4w5muSuOYHc4zneysU52tDDOYm23DnOh6U5ur26OYWnzjnh_Kw5hrbcOYKnzjm7zOw4roCTN9uS8jmOvp0V4sqdOb6DjDn-4vQ51v79OMDw-DicwfQ4gsHvOdWzgjn62vg4lZLFMOfC7ziH44A5stOXOa_TlznL2qk5q5q-OeHKxTnUsp0Vw7DzOMaw8ziI36k43dDDOTABUogBcHJvamVjdHMvNjE0NDE5NDkzNjc3L2xvY2F0aW9ucy9nbG9iYWwvY29sbGVjdGlvbnMvZGVmYXVsdF9jb2xsZWN0aW9uL2VuZ2luZXMvcmFnLWFyZW5hLXByb2N1cmVtZW50LXNlYXJjaC9zZXJ2aW5nQ29uZmlncy9kZWZhdWx0X3NlYXJjaA",
+          "api_ms": 3599,
+          "attempts": 1,
+          "summary_requested": true,
+          "solicitation_filter": "not supported (unstructured data store without filterable metadata)"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Vertex AI Search summary",
+        "service": "Vertex AI Search \u00b7 summary (Vertex AI Search summary)",
+        "status": "completed",
+        "started_at": "2026-10-23T14:19:29.579Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "vertex-ai-search-summary",
+          "provider": "vertex_ai_search",
+          "answer": "Based on the provided sources, the comparison between the rates and costs is as follows:\n\n*   **Solicitation 01 (CLIN-0004-AB) - Cloud Security Architect:** \n    *   **Amended Hourly Rate:** The hourly rate was increased from the base rate of $210.00/hr to an amended rate of **$245.00/hr** due to added cryptographic verification scope [1, 3].\n    *   **2,000-Hour Net Year 1 Cost:** Based on the amended rate of $245.00/hr, the cost for 2,000 hours is **$490,000.00** (calculated as $245.00/hr multiplied by 2,000 hours) [1, 3]. (Note: The original base solicitation cost for 2,000 hours was $420,000.00 [3]).\n*   **Solicitation 03 (CLIN-2001):**\n    *   **Amended Rate Cap:** The amended rate cap is **$250.00/hr** (derived from the 2,000 annual hours total of $500,000.00) [4]. \n    *   **2,000-Hour Net Year 1 Cost:** The amended total for 2,000 annual hours is **$500,000.00** [4].",
+          "generated_in_stage": "retrieve",
+          "model_version_requested": "stable",
+          "model_version_used": "not returned by the API",
+          "summary_skipped_reasons": [],
+          "safety_attributes": null,
+          "cited_result_ranks": [
+            3,
+            4
+          ],
+          "citation_metadata": [
+            {
+              "startIndex": "162",
+              "endIndex": "337",
+              "sources": [
+                {},
+                {
+                  "referenceIndex": "2"
+                }
+              ]
+            },
+            {
+              "startIndex": "342",
+              "endIndex": "516",
+              "sources": [
+                {},
+                {
+                  "referenceIndex": "2"
+                }
+              ]
+            },
+            {
+              "startIndex": "517",
+              "endIndex": "593",
+              "sources": [
+                {
+                  "referenceIndex": "2"
+                }
+              ]
+            },
+            {
+              "startIndex": "755",
+              "endIndex": "759",
+              "sources": [
+                {
+                  "referenceIndex": "3"
+                }
+              ]
+            },
+            {
+              "startIndex": "765",
+              "endIndex": "861",
+              "sources": [
+                {
+                  "referenceIndex": "3"
+                }
+              ]
+            }
+          ],
+          "references": [
+            {
+              "title": "06_Amendment_0001_Scope_Update",
+              "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+              "uri": ""
+            },
+            {
+              "title": "04_Pricing_Schedule_CLINs",
+              "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+              "uri": ""
+            },
+            {
+              "title": "01_RFP_Base_Solicitation",
+              "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+              "uri": ""
+            },
+            {
+              "title": "05_Master_Services_Agreement_MSA",
+              "document_id": "5ad0a3ca401971d52a3f5bb621296a73",
+              "uri": ""
+            },
+            {
+              "title": "04_Pricing_Labor_Categories",
+              "document_id": "21f585480d891c9ead509f463fdc2c43",
+              "uri": ""
+            }
+          ],
+          "citation_source": "summary_citations",
+          "prompt_tokens": 0,
+          "output_tokens": 0
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 0,
+      "output_tokens": 0,
+      "embedding_tokens": 0,
+      "thinking_tokens": 0,
+      "model": "vertex-ai-search-summary",
+      "embedding_model": ""
+    },
+    "flags": {
+      "reranker_used": false,
+      "adk_runner_used": false,
+      "layout_source": "vertex_ai_search"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.6,
+      "qa_relevance": 0.4,
+      "context_precision": 0.8
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 4900,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4637,
+    "output_tokens": 423,
+    "judge_cost_usd": 0.027008,
+    "rationale": "The $245/hr and $250/hr rates are supported, but the stated 2,000-hour net cost of $490,000 ignores the 5% volume discount in Amendment 0001, which explicitly gives a $465,500 net total. Because of that error, the answer gets the key net-cost figure wrong and never states the comparative difference ($34,500 in the reference). Most retrieved chunks are on-target pricing and amendment documents, though the SEC-5.1 evaluation-factors chunk and the DR/RTO content are irrelevant.",
+    "judge_response_id": "msg_vrtx_011CgKKDiNk6rKsQF1pLW9GT"
+  }
+}

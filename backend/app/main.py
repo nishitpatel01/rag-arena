@@ -15,8 +15,9 @@ from app.api.documents import get_document_routes
 from app.api.routes import get_api_routes
 from app.core.config import ArenaSettings, get_settings
 from app.api.query_runs import QueryRunWriter
-from app.ingestion.jobs import BackendFactory, IngestJobRunner, unavailable_backends
+from app.ingestion.jobs import BackendFactory, IngestJobRunner, ManagedFactory, unavailable_backends
 from app.ingestion.live_backends import LiveQueryRunWriter, live_backends
+from app.ingestion.managed_job import live_managed_backends, managed_unavailable
 
 _FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
@@ -33,6 +34,7 @@ def create_app(
     *,
     settings: ArenaSettings | None = None,
     ingest_backend_factory: BackendFactory | None = None,
+    ingest_managed_factory: ManagedFactory | None = None,
     query_run_writer: QueryRunWriter | None | object = None,
 ) -> Starlette:
     """Create the Starlette app; settings are validated once here (startup fails loud on bad config).
@@ -75,7 +77,8 @@ def create_app(
     if writer is None and resolved.is_live:
         writer = LiveQueryRunWriter(resolved)
     application.state.settings = resolved
-    application.state.ingest_runner = IngestJobRunner(resolved, backend_factory=factory)
+    managed = ingest_managed_factory or (live_managed_backends if resolved.is_live else managed_unavailable)
+    application.state.ingest_runner = IngestJobRunner(resolved, backend_factory=factory, managed_factory=managed)
     application.state.query_run_writer = writer
     return application
 

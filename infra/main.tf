@@ -37,6 +37,24 @@ variable "docai_layout_parser_display_name" {
   default     = "rag-arena-layout-parser"
 }
 
+variable "vais_location" {
+  description = "Discovery Engine (Vertex AI Search) location for the Level 5 data store and search app (global, us, eu)"
+  type        = string
+  default     = "global"
+}
+
+variable "vais_data_store_id" {
+  description = "Level 5 data store id (VAIS_DATA_STORE_ID in .env)"
+  type        = string
+  default     = "rag-arena-procurement"
+}
+
+variable "vais_engine_id" {
+  description = "Level 5 search app (engine) id (VAIS_ENGINE_ID in .env)"
+  type        = string
+  default     = "rag-arena-procurement-search"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -134,4 +152,43 @@ resource "google_document_ai_processor" "layout_parser" {
 output "docai_layout_parser_processor_id" {
   description = "Short processor id for DOCAI_PROCESSOR_ID"
   value       = element(split("/", google_document_ai_processor.layout_parser.id), length(split("/", google_document_ai_processor.layout_parser.id)) - 1)
+}
+
+# Level 5: Vertex AI Search data store (unstructured PDFs imported from gs://<bucket>/sample_docs/procurement_corpus/)
+# with the default digital parser and NO chunking config — layout-based chunking makes the search API reject
+# extractiveContentSpec, and Level 5 cites extractive segments with page numbers. Documents are imported by the
+# managed_vertex ingestion job (documents:import, INCREMENTAL), not by Terraform.
+resource "google_discovery_engine_data_store" "procurement" {
+  location                    = var.vais_location
+  data_store_id               = var.vais_data_store_id
+  display_name                = var.vais_data_store_id
+  industry_vertical           = "GENERIC"
+  content_config              = "CONTENT_REQUIRED"
+  solution_types              = ["SOLUTION_TYPE_SEARCH"]
+  create_advanced_site_search = false
+  depends_on                  = [google_project_service.rag_arena_apis]
+}
+
+# Level 5: search app (engine) — Enterprise tier + LLM add-on (extractive segments + summaries).
+resource "google_discovery_engine_search_engine" "procurement" {
+  engine_id         = var.vais_engine_id
+  collection_id     = "default_collection"
+  location          = google_discovery_engine_data_store.procurement.location
+  display_name      = var.vais_engine_id
+  industry_vertical = "GENERIC"
+  data_store_ids    = [google_discovery_engine_data_store.procurement.data_store_id]
+  search_engine_config {
+    search_tier    = "SEARCH_TIER_ENTERPRISE"
+    search_add_ons = ["SEARCH_ADD_ON_LLM"]
+  }
+}
+
+output "vais_data_store_id" {
+  description = "Short data store id for VAIS_DATA_STORE_ID"
+  value       = google_discovery_engine_data_store.procurement.data_store_id
+}
+
+output "vais_engine_id" {
+  description = "Short engine id for VAIS_ENGINE_ID"
+  value       = google_discovery_engine_search_engine.procurement.engine_id
 }

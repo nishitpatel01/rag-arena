@@ -110,4 +110,12 @@ DOCAI_PROCESSOR_ID_OUT="$(GCP_PROJECT_ID="${PROJECT_ID}" DOCAI_LOCATION="${DOCAI
   "${PYTHON:-.venv/bin/python}" scripts/provision_documentai.py)"
 echo "    DOCAI_PROCESSOR_ID=${DOCAI_PROCESSOR_ID_OUT}  (add to .env together with DOCAI_LOCATION=${DOCAI_LOCATION:-us})"
 
+echo "==> Level 5: ensuring the Vertex AI Search data store + search app (location ${VAIS_LOCATION:-global})..."
+# Idempotent: get-or-create of OUR ids only (rag-arena-procurement / rag-arena-procurement-search); never modifies or
+# deletes anything. Prints only short ids — add them to the git-ignored .env. Documents are imported by the
+# managed_vertex ingestion job (/ingest page or POST /api/v1/ingest/jobs {"level":"managed_vertex"}).
+VAIS_OUT="$(GCP_PROJECT_ID="${PROJECT_ID}" VAIS_LOCATION="${VAIS_LOCATION:-global}" PYTHONPATH=backend \
+  "${PYTHON:-.venv/bin/python}" scripts/provision_vertex_search.py)"
+echo "${VAIS_OUT}" | sed 's/^/    /'
+
 echo "==> Bootstrap complete for ${PROJECT_ID}:${BQ_DATASET}.${BQ_TABLE}"

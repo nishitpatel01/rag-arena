@@ -1,0 +1,972 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-23T14:25:33.818Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "779dad7f608f6c9f1e42239fa70b7241a597f0ec",
+    "app_version": "3.0.0",
+    "engine": "managed_vertex",
+    "question_id": "q_soc_p1_response_matrix",
+    "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+    "run_id": "run_f3c4a2d02034"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-10-23T14:25:06.203Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "expansions": [],
+        "sent_to": "Vertex AI Search search.query"
+      },
+      "ts": "2026-10-23T14:25:06.203Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "retrieve",
+      "label": "Vertex AI Search (extractive segments)",
+      "service": "Vertex AI Search \u00b7 search",
+      "request": {
+        "method": "POST",
+        "endpoint": "engines/rag-arena-procurement-search/servingConfigs/default_search:search",
+        "body": {
+          "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "pageSize": 10,
+          "contentSearchSpec": {
+            "snippetSpec": {
+              "returnSnippet": true
+            },
+            "extractiveContentSpec": {
+              "maxExtractiveSegmentCount": 3,
+              "returnExtractiveSegmentScore": true
+            }
+          }
+        }
+      },
+      "ts": "2026-10-23T14:25:06.203Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "retrieve",
+      "duration_ms": 428,
+      "payload": {
+        "api_request": {
+          "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "pageSize": 10,
+          "contentSearchSpec": {
+            "snippetSpec": {
+              "returnSnippet": true
+            },
+            "extractiveContentSpec": {
+              "maxExtractiveSegmentCount": 3,
+              "returnExtractiveSegmentScore": true
+            }
+          }
+        },
+        "serving_config": "engines/rag-arena-procurement-search/servingConfigs/default_search",
+        "location": "global",
+        "total_size": 16,
+        "rows_returned": 10,
+        "results": [
+          {
+            "rank": 1,
+            "document_id": "34ed43b61098525051cbc073db0ce30a",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/03_Incident_Response_SLAs.pdf",
+            "title": "03_Incident_Response_SLAs",
+            "solicitation_id": "solicitation_03",
+            "snippets": [
+              "SOL-2026-SEC-<b>03</b> | <b>03_Incident_Response_SLAs</b>.<b>pdf</b> EXHIBIT B: SOC <b>INCIDENT RESPONSE</b> SEVERITY MATRIX &amp; <b>PENALTY CREDITS</b> ... <b>02</b>-10 | AMENDS=NONE Clause <b>SLA</b>-SEC-3.1:&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\n\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-SEC-3.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.8307268023490906
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "document_id": "db63fe61650b9515409c2d5919cb25bf",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/04_Compliance_and_SOC2_Matrix.pdf",
+            "title": "04_Compliance_and_SOC2_Matrix",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "SOL-2026-DATA-<b>02</b> | <b>04_Compliance_and_SOC2_Matrix</b>.<b>pdf</b> EXHIBITB: <b>SOC2 TYPE II</b>, <b>HIPAA</b> &amp; VPC SERVICE <b>CONTROLS</b> COMPLIANCE MATRIX DOC_TYPE=SLA_MATRIX | SECTION=CTRL-&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\n\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\nDOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7779157161712646
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "document_id": "4a5d01351b7abecfe5eb7c010077eee9",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/05_SLA_and_QASP_Requirements.pdf",
+            "title": "05_SLA_and_QASP_Requirements",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>SLA</b>-4.2: <b>Monthly</b> Infrastructure Availability &amp; Service <b>Credit</b> Formula: | Tier | <b>Monthly</b> Uptime Percentage | <b>Response</b> Target | Invoice Service <b>Credit</b> | | <b>P1</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\n\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 *\n0.25 = $11,250.00 credit).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7727017402648926
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "document_id": "21f585480d891c9ead509f463fdc2c43",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/04_Pricing_Labor_Categories.pdf",
+            "title": "04_Pricing_Labor_Categories",
+            "solicitation_id": "solicitation_03",
+            "snippets": [
+              "SOL-2026-SEC-<b>03</b> | 04_Pricing_Labor_Categories.<b>pdf</b> SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE) DOC_TYPE=PRICING_CLIN | SECTION=CLIN&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7230679988861084
+              }
+            ]
+          },
+          {
+            "rank": 5,
+            "document_id": "52e936cf3e8b13d46bec893faaf3fbc2",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/01_RFP_Security_Operations.pdf",
+            "title": "01_RFP_Security_Operations",
+            "solicitation_id": "solicitation_03",
+            "snippets": [
+              "... <b>02</b>-10 | AMENDS=NONE <b>Solicitation</b> ID: SOL-2026-SEC-<b>03</b> | Base Effective Date: 2026-<b>02</b>-10 Scope: 24x7x365 Managed Detection and <b>Response</b> (MDR), Google SecOps&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\n\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nDOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7176375985145569
+              }
+            ]
+          },
+          {
+            "rank": 6,
+            "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "title": "01_RFP_Base_Solicitation",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "Clause SEC-4.3.<b>2</b> (Key Personnel &amp; Labor Reference): Lead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect) at the base <b>solicitation</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7197796106338501
+              },
+              {
+                "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\n\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 2,
+                "relevance_score": 0.7047357559204102
+              }
+            ]
+          },
+          {
+            "rank": 7,
+            "document_id": "91a12a68389c756811d74357b176f213",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/01_RFP_Data_Platform.pdf",
+            "title": "01_RFP_Data_Platform",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "SOL-2026-DATA-<b>02</b> | 01_RFP_Data_Platform.<b>pdf SOLICITATION</b> SOL-2026-DATA-<b>02</b>: ENTERPRISE DATA LAKEHOUSE &amp; AI PLATFORM DOC_TYPE=BASE_RFP | SECTION=DATA-<b>SLA</b>-3.1&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\n\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\nCatalog governance, column-level policy tags, and fine-grained row-level security.\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.69892418384552
+              }
+            ]
+          },
+          {
+            "rank": 8,
+            "document_id": "d888bce6163b37b485c6af4d07862e69",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+            "title": "05_Amendments_and_Addenda",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "... <b>03</b>-20 | AMENDS=DAT [AMENDMENT 0001 - SUPERSEDES DATA-<b>SLA</b>-3.1 AND CLIN-1004] <b>Solicitation</b>: SOL-2026-DATA-<b>02</b> | Addendum Number: 0001 | Effective Date: 2026-<b>03</b>-20&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\n\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DAT\n\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\nTo support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\nis amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\nstreaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\nBigQuery Storage Write API committed streams.\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\nFor Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\na 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\n($1,224,000 annual total for 6,000 TB instead of $1,440,000).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.6961860060691833
+              }
+            ]
+          },
+          {
+            "rank": 9,
+            "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+            "title": "06_Amendment_0001_Scope_Update",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>03</b>-15 | AMENDS=SEC-4.2.1 [AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB] <b>Solicitation</b>: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume",
+                "page_number": 1,
+                "relevance_score": 0.7021079063415527
+              }
+            ]
+          },
+          {
+            "rank": 10,
+            "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+            "title": "04_Pricing_Schedule_CLINs",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>Solicitation</b> Rate Card (Prior to Amendment 0001 Adjustments): | CLIN | Description | Unit | Qty | Base Rate | Year 1 Total | | CLIN-0001-AA | Shared VPC&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Rec",
+                "page_number": 1,
+                "relevance_score": 0.6922556161880493
+              }
+            ]
+          }
+        ],
+        "segments_returned": 11,
+        "attribution_token": "6QP06AEKDAjC3O3WBhDiovmvARIkNmI4NDU3N2UtMDAwMC0yMjkxLWI2NjEtZDRmNTQ3ZjYwZDZjIgdHRU5FUklDKpwC25LyOYTjgDn92vg4h9zjOZ2gljmpr-Y52eCkOaeF-TjZ_v04pbnmOvji9Dnkwu84zoelOYm23DnC8J4V2tDDOZD3sjCB3OM5wYOMOcPw-Dia5K453srFOYWnzjmgzdQ5hqjaOcuHpTmZwfQ4l-SuOYOo2jmvxvI3vb26OdPY3zjW2N84uMzsOKCgljn_5Ok6gt2TMpjWty3Ys4I5qoX5ON78rDnUsp0V4crFOa_Tlzmy05c558LvOIfjgDnL2qk51bOCOYLB7zmcwfQ4q5q-Ofra-DiVksUwiN-pOMOw8zjd0MM5xrDzOLvM7Dib1rctroCTN-H8rDm6vbo5jr6dFYKnzjnA8Pg4voOMOYa23Dniyp05_uL0Odb-_TgwAVKIAXByb2plY3RzLzYxNDQxOTQ5MzY3Ny9sb2NhdGlvbnMvZ2xvYmFsL2NvbGxlY3Rpb25zL2RlZmF1bHRfY29sbGVjdGlvbi9lbmdpbmVzL3JhZy1hcmVuYS1wcm9jdXJlbWVudC1zZWFyY2gvc2VydmluZ0NvbmZpZ3MvZGVmYXVsdF9zZWFyY2g",
+        "api_ms": 428,
+        "attempts": 1,
+        "summary_requested": false,
+        "solicitation_filter": "not supported (unstructured data store without filterable metadata)"
+      },
+      "ts": "2026-10-23T14:25:06.632Z",
+      "t_rel_ms": 429
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the question using ONLY the extractive segments below (returned by Vertex AI Search). Each segment is headed by its document and page. Cite the document name and page for every claim. If the segments do not contain the answer, say so.\n\nContext:\n[03_Incident_Response_SLAs.pdf \u00b7 p.1 \u00b7 vais_34ed43b61098525051cbc073_p1_s1]\nSOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\n\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-SEC-3.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record\n\n[04_Compliance_and_SOC2_Matrix.pdf \u00b7 p.1 \u00b7 vais_db63fe61650b9515409c2d59_p1_s1]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\n\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\nDOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record\n\n[05_SLA_and_QASP_Requirements.pdf \u00b7 p.1 \u00b7 vais_4a5d01351b7abecfe5eb7c01_p1_s1]\nSOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\n\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 *\n0.25 = $11,250.00 credit).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record\n\n[04_Pricing_Labor_Categories.pdf \u00b7 p.1 \u00b7 vais_21f585480d891c9ead509f46_p1_s1]\nSOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record\n\n[01_RFP_Security_Operations.pdf \u00b7 p.1 \u00b7 vais_52e936cf3e8b13d46bec893f_p1_s1]\nSOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\n\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nDOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record\n\nQuestion: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-10-23T14:25:06.632Z",
+      "t_rel_ms": 429
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "synthesize",
+      "duration_ms": 23258,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 1973,
+        "output_tokens": 555,
+        "thinking_tokens": 1129,
+        "stop_reason": "STOP",
+        "response_id": "Qm7basHzKZ6Xw8cP-NPFkA0",
+        "attempts": 1,
+        "answer": "### Comparison of P1 Critical and P2 High Incident Response SLAs (SOL-2026-SEC-03)\n\nAccording to Clause SLA-SEC-3.1, the mandatory 24/7 SOC triage, containment, and penalty matrix compares P1 Critical and P2 High severities as follows (03_Incident_Response_SLAs.pdf, p. 1):\n\n*   **Definition:** P1 Critical applies to an \"Active Ransomware / Root Breach,\" whereas P2 High applies to a \"Privileged Account Compromise\" (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Initial Triage SLA:** P1 Critical requires triage in **<= 15 minutes**, while P2 High requires triage in **<= 30 minutes** (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Containment SLA:** P1 Critical requires containment in **<= 60 minutes**, whereas P2 High requires containment in **<= 4 hours** (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Penalty Credit:** P1 Critical carries a penalty credit of **20% Monthly Fee**, compared to **10% Monthly Fee** for P2 High (03_Incident_Response_SLAs.pdf, p. 1).\n\n---\n\n### SOC2 Type II and HIPAA Controls (SOL-2026-DATA-02)\n\nAccording to Exhibit B (Compliance Matrix), all listed SOC2 Type II and HIPAA controls are mandatory (\"YES\") and require the following attributes and GCP implementations (04_Compliance_and_SOC2_Matrix.pdf, p. 1):\n\n*   **SOC2 Type II Controls:**\n    *   **CTRL-SOC2-CC6.1:** Requires a **Logical Access Boundary**, implemented via **VPC Service Controls (VPC-SC)** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).\n    *   **CTRL-SOC2-CC6.7:** Requires **Encryption in Transit/Rest**, implemented via **Cloud KMS CMEK + TLS 1.3** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).\n*   **HIPAA Controls:**\n    *   **CTRL-HIPAA-164.312:** Requires **PHI De-Identification**, implemented via **Cloud DLP Streaming Redaction** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).",
+        "thinking_level": "HIGH",
+        "context_source": "Vertex AI Search extractive segments",
+        "context_segments": 5,
+        "context_results": 5
+      },
+      "ts": "2026-10-23T14:25:29.891Z",
+      "t_rel_ms": 23687
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-23T14:25:29.891Z",
+      "t_rel_ms": 23688
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_f3c4a2d02034",
+      "engine": "managed_vertex",
+      "stage": "evaluate",
+      "duration_ms": 3926,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 1.0,
+        "context_precision": 0.45,
+        "reference_answer_used": true,
+        "input_tokens": 4137,
+        "output_tokens": 328,
+        "judge_cost_usd": 0.023108,
+        "rationale": "Every SLA value, definition, penalty credit, control ID, requirement and GCP implementation in the answer matches the retrieved SLA-SEC-3.1 and compliance matrix tables exactly, with no hallucinated details. The answer fully covers both parts of the query and agrees with the reference, correctly excluding the out-of-scope ISO control. Only 2 of the 5 retrieved chunks are relevant; the rest are distractors, including a confusable QASP uptime-credit table from SOL-2026-CLOUD-01, a labor rate card and an RFP overview.",
+        "judge_response_id": "msg_vrtx_011CgKKgHTJUHEHYjFMLthUE"
+      },
+      "ts": "2026-10-23T14:25:33.818Z",
+      "t_rel_ms": 27615
+    }
+  ],
+  "result": {
+    "engine_id": "managed_vertex",
+    "engine_label": "Level 5: Managed Vertex AI Search",
+    "answer": "### Comparison of P1 Critical and P2 High Incident Response SLAs (SOL-2026-SEC-03)\n\nAccording to Clause SLA-SEC-3.1, the mandatory 24/7 SOC triage, containment, and penalty matrix compares P1 Critical and P2 High severities as follows (03_Incident_Response_SLAs.pdf, p. 1):\n\n*   **Definition:** P1 Critical applies to an \"Active Ransomware / Root Breach,\" whereas P2 High applies to a \"Privileged Account Compromise\" (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Initial Triage SLA:** P1 Critical requires triage in **<= 15 minutes**, while P2 High requires triage in **<= 30 minutes** (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Containment SLA:** P1 Critical requires containment in **<= 60 minutes**, whereas P2 High requires containment in **<= 4 hours** (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Penalty Credit:** P1 Critical carries a penalty credit of **20% Monthly Fee**, compared to **10% Monthly Fee** for P2 High (03_Incident_Response_SLAs.pdf, p. 1).\n\n---\n\n### SOC2 Type II and HIPAA Controls (SOL-2026-DATA-02)\n\nAccording to Exhibit B (Compliance Matrix), all listed SOC2 Type II and HIPAA controls are mandatory (\"YES\") and require the following attributes and GCP implementations (04_Compliance_and_SOC2_Matrix.pdf, p. 1):\n\n*   **SOC2 Type II Controls:**\n    *   **CTRL-SOC2-CC6.1:** Requires a **Logical Access Boundary**, implemented via **VPC Service Controls (VPC-SC)** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).\n    *   **CTRL-SOC2-CC6.7:** Requires **Encryption in Transit/Rest**, implemented via **Cloud KMS CMEK + TLS 1.3** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).\n*   **HIPAA Controls:**\n    *   **CTRL-HIPAA-164.312:** Requires **PHI De-Identification**, implemented via **Cloud DLP Streaming Redaction** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).",
+    "citations": [
+      {
+        "chunk_id": "vais_34ed43b61098525051cbc073_p1_s1",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf  EXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS DOC_TYPE=SLA_MATRIX | SECTION=SLA-SEC-3.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE  Clause SLA-SEC",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_db63fe61650b9515409c2d59_p1_s1",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf  EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX DOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE  ",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_4a5d01351b7abecfe5eb7c01_p1_s1",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf  EXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS DOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE  Clause SLA-4",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_21f585480d891c9ead509f46_p1_s1",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf  SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE) DOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE  Base Labor",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_52e936cf3e8b13d46bec893f_p1_s1",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf  SOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC DOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE  ",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "vais_34ed43b61098525051cbc073_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\n\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-SEC-3.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.8307,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_db63fe61650b9515409c2d59_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\n\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\nDOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+        "score": 0.7779,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_4a5d01351b7abecfe5eb7c01_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\n\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 *\n0.25 = $11,250.00 credit).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7727,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_21f585480d891c9ead509f46_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.7231,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_52e936cf3e8b13d46bec893f_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\n\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nDOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.7176,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 23688,
+    "cost_usd": 0.024786,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-23T14:25:06.203Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "expansions": [],
+          "sent_to": "Vertex AI Search search.query"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "Vertex AI Search (extractive segments)",
+        "service": "Vertex AI Search \u00b7 search",
+        "status": "completed",
+        "started_at": "2026-10-23T14:25:06.203Z",
+        "duration_ms": 428,
+        "request": {},
+        "payload": {
+          "api_request": {
+            "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+            "pageSize": 10,
+            "contentSearchSpec": {
+              "snippetSpec": {
+                "returnSnippet": true
+              },
+              "extractiveContentSpec": {
+                "maxExtractiveSegmentCount": 3,
+                "returnExtractiveSegmentScore": true
+              }
+            }
+          },
+          "serving_config": "engines/rag-arena-procurement-search/servingConfigs/default_search",
+          "location": "global",
+          "total_size": 16,
+          "rows_returned": 10,
+          "results": [
+            {
+              "rank": 1,
+              "document_id": "34ed43b61098525051cbc073db0ce30a",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/03_Incident_Response_SLAs.pdf",
+              "title": "03_Incident_Response_SLAs",
+              "solicitation_id": "solicitation_03",
+              "snippets": [
+                "SOL-2026-SEC-<b>03</b> | <b>03_Incident_Response_SLAs</b>.<b>pdf</b> EXHIBIT B: SOC <b>INCIDENT RESPONSE</b> SEVERITY MATRIX &amp; <b>PENALTY CREDITS</b> ... <b>02</b>-10 | AMENDS=NONE Clause <b>SLA</b>-SEC-3.1:&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\n\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-SEC-3.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.8307268023490906
+                }
+              ]
+            },
+            {
+              "rank": 2,
+              "document_id": "db63fe61650b9515409c2d5919cb25bf",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/04_Compliance_and_SOC2_Matrix.pdf",
+              "title": "04_Compliance_and_SOC2_Matrix",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "SOL-2026-DATA-<b>02</b> | <b>04_Compliance_and_SOC2_Matrix</b>.<b>pdf</b> EXHIBITB: <b>SOC2 TYPE II</b>, <b>HIPAA</b> &amp; VPC SERVICE <b>CONTROLS</b> COMPLIANCE MATRIX DOC_TYPE=SLA_MATRIX | SECTION=CTRL-&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\n\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\nDOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7779157161712646
+                }
+              ]
+            },
+            {
+              "rank": 3,
+              "document_id": "4a5d01351b7abecfe5eb7c010077eee9",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/05_SLA_and_QASP_Requirements.pdf",
+              "title": "05_SLA_and_QASP_Requirements",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>SLA</b>-4.2: <b>Monthly</b> Infrastructure Availability &amp; Service <b>Credit</b> Formula: | Tier | <b>Monthly</b> Uptime Percentage | <b>Response</b> Target | Invoice Service <b>Credit</b> | | <b>P1</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\n\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 *\n0.25 = $11,250.00 credit).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7727017402648926
+                }
+              ]
+            },
+            {
+              "rank": 4,
+              "document_id": "21f585480d891c9ead509f463fdc2c43",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/04_Pricing_Labor_Categories.pdf",
+              "title": "04_Pricing_Labor_Categories",
+              "solicitation_id": "solicitation_03",
+              "snippets": [
+                "SOL-2026-SEC-<b>03</b> | 04_Pricing_Labor_Categories.<b>pdf</b> SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE) DOC_TYPE=PRICING_CLIN | SECTION=CLIN&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\n\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-2001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7230679988861084
+                }
+              ]
+            },
+            {
+              "rank": 5,
+              "document_id": "52e936cf3e8b13d46bec893faaf3fbc2",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/01_RFP_Security_Operations.pdf",
+              "title": "01_RFP_Security_Operations",
+              "solicitation_id": "solicitation_03",
+              "snippets": [
+                "... <b>02</b>-10 | AMENDS=NONE <b>Solicitation</b> ID: SOL-2026-SEC-<b>03</b> | Base Effective Date: 2026-<b>02</b>-10 Scope: 24x7x365 Managed Detection and <b>Response</b> (MDR), Google SecOps&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\n\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nDOC_TYPE=BASE_RFP | SECTION=SEC-OPS-1.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-10 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7176375985145569
+                }
+              ]
+            },
+            {
+              "rank": 6,
+              "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "title": "01_RFP_Base_Solicitation",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "Clause SEC-4.3.<b>2</b> (Key Personnel &amp; Labor Reference): Lead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect) at the base <b>solicitation</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7197796106338501
+                },
+                {
+                  "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\n\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 2,
+                  "relevance_score": 0.7047357559204102
+                }
+              ]
+            },
+            {
+              "rank": 7,
+              "document_id": "91a12a68389c756811d74357b176f213",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/01_RFP_Data_Platform.pdf",
+              "title": "01_RFP_Data_Platform",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "SOL-2026-DATA-<b>02</b> | 01_RFP_Data_Platform.<b>pdf SOLICITATION</b> SOL-2026-DATA-<b>02</b>: ENTERPRISE DATA LAKEHOUSE &amp; AI PLATFORM DOC_TYPE=BASE_RFP | SECTION=DATA-<b>SLA</b>-3.1&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\n\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\nCatalog governance, column-level policy tags, and fine-grained row-level security.\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.69892418384552
+                }
+              ]
+            },
+            {
+              "rank": 8,
+              "document_id": "d888bce6163b37b485c6af4d07862e69",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+              "title": "05_Amendments_and_Addenda",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "... <b>03</b>-20 | AMENDS=DAT [AMENDMENT 0001 - SUPERSEDES DATA-<b>SLA</b>-3.1 AND CLIN-1004] <b>Solicitation</b>: SOL-2026-DATA-<b>02</b> | Addendum Number: 0001 | Effective Date: 2026-<b>03</b>-20&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\n\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DAT\n\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\nTo support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\nis amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\nstreaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\nBigQuery Storage Write API committed streams.\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\nFor Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\na 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\n($1,224,000 annual total for 6,000 TB instead of $1,440,000).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.6961860060691833
+                }
+              ]
+            },
+            {
+              "rank": 9,
+              "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+              "title": "06_Amendment_0001_Scope_Update",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>03</b>-15 | AMENDS=SEC-4.2.1 [AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB] <b>Solicitation</b>: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume",
+                  "page_number": 1,
+                  "relevance_score": 0.7021079063415527
+                }
+              ]
+            },
+            {
+              "rank": 10,
+              "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+              "title": "04_Pricing_Schedule_CLINs",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>Solicitation</b> Rate Card (Prior to Amendment 0001 Adjustments): | CLIN | Description | Unit | Qty | Base Rate | Year 1 Total | | CLIN-0001-AA | Shared VPC&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Rec",
+                  "page_number": 1,
+                  "relevance_score": 0.6922556161880493
+                }
+              ]
+            }
+          ],
+          "segments_returned": 11,
+          "attribution_token": "6QP06AEKDAjC3O3WBhDiovmvARIkNmI4NDU3N2UtMDAwMC0yMjkxLWI2NjEtZDRmNTQ3ZjYwZDZjIgdHRU5FUklDKpwC25LyOYTjgDn92vg4h9zjOZ2gljmpr-Y52eCkOaeF-TjZ_v04pbnmOvji9Dnkwu84zoelOYm23DnC8J4V2tDDOZD3sjCB3OM5wYOMOcPw-Dia5K453srFOYWnzjmgzdQ5hqjaOcuHpTmZwfQ4l-SuOYOo2jmvxvI3vb26OdPY3zjW2N84uMzsOKCgljn_5Ok6gt2TMpjWty3Ys4I5qoX5ON78rDnUsp0V4crFOa_Tlzmy05c558LvOIfjgDnL2qk51bOCOYLB7zmcwfQ4q5q-Ofra-DiVksUwiN-pOMOw8zjd0MM5xrDzOLvM7Dib1rctroCTN-H8rDm6vbo5jr6dFYKnzjnA8Pg4voOMOYa23Dniyp05_uL0Odb-_TgwAVKIAXByb2plY3RzLzYxNDQxOTQ5MzY3Ny9sb2NhdGlvbnMvZ2xvYmFsL2NvbGxlY3Rpb25zL2RlZmF1bHRfY29sbGVjdGlvbi9lbmdpbmVzL3JhZy1hcmVuYS1wcm9jdXJlbWVudC1zZWFyY2gvc2VydmluZ0NvbmZpZ3MvZGVmYXVsdF9zZWFyY2g",
+          "api_ms": 428,
+          "attempts": 1,
+          "summary_requested": false,
+          "solicitation_filter": "not supported (unstructured data store without filterable metadata)"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-23T14:25:06.632Z",
+        "duration_ms": 23258,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 1973,
+          "output_tokens": 555,
+          "thinking_tokens": 1129,
+          "stop_reason": "STOP",
+          "response_id": "Qm7basHzKZ6Xw8cP-NPFkA0",
+          "attempts": 1,
+          "answer": "### Comparison of P1 Critical and P2 High Incident Response SLAs (SOL-2026-SEC-03)\n\nAccording to Clause SLA-SEC-3.1, the mandatory 24/7 SOC triage, containment, and penalty matrix compares P1 Critical and P2 High severities as follows (03_Incident_Response_SLAs.pdf, p. 1):\n\n*   **Definition:** P1 Critical applies to an \"Active Ransomware / Root Breach,\" whereas P2 High applies to a \"Privileged Account Compromise\" (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Initial Triage SLA:** P1 Critical requires triage in **<= 15 minutes**, while P2 High requires triage in **<= 30 minutes** (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Containment SLA:** P1 Critical requires containment in **<= 60 minutes**, whereas P2 High requires containment in **<= 4 hours** (03_Incident_Response_SLAs.pdf, p. 1).\n*   **Penalty Credit:** P1 Critical carries a penalty credit of **20% Monthly Fee**, compared to **10% Monthly Fee** for P2 High (03_Incident_Response_SLAs.pdf, p. 1).\n\n---\n\n### SOC2 Type II and HIPAA Controls (SOL-2026-DATA-02)\n\nAccording to Exhibit B (Compliance Matrix), all listed SOC2 Type II and HIPAA controls are mandatory (\"YES\") and require the following attributes and GCP implementations (04_Compliance_and_SOC2_Matrix.pdf, p. 1):\n\n*   **SOC2 Type II Controls:**\n    *   **CTRL-SOC2-CC6.1:** Requires a **Logical Access Boundary**, implemented via **VPC Service Controls (VPC-SC)** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).\n    *   **CTRL-SOC2-CC6.7:** Requires **Encryption in Transit/Rest**, implemented via **Cloud KMS CMEK + TLS 1.3** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).\n*   **HIPAA Controls:**\n    *   **CTRL-HIPAA-164.312:** Requires **PHI De-Identification**, implemented via **Cloud DLP Streaming Redaction** (04_Compliance_and_SOC2_Matrix.pdf, p. 1).",
+          "thinking_level": "HIGH",
+          "context_source": "Vertex AI Search extractive segments",
+          "context_segments": 5,
+          "context_results": 5
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1973,
+      "output_tokens": 555,
+      "embedding_tokens": 0,
+      "thinking_tokens": 1129,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": false,
+      "adk_runner_used": false,
+      "layout_source": "vertex_ai_search"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 1.0,
+      "context_precision": 0.45
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 3926,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4137,
+    "output_tokens": 328,
+    "judge_cost_usd": 0.023108,
+    "rationale": "Every SLA value, definition, penalty credit, control ID, requirement and GCP implementation in the answer matches the retrieved SLA-SEC-3.1 and compliance matrix tables exactly, with no hallucinated details. The answer fully covers both parts of the query and agrees with the reference, correctly excluding the out-of-scope ISO control. Only 2 of the 5 retrieved chunks are relevant; the rest are distractors, including a confusable QASP uptime-credit table from SOL-2026-CLOUD-01, a labor rate card and an RFP overview.",
+    "judge_response_id": "msg_vrtx_011CgKKgHTJUHEHYjFMLthUE"
+  }
+}

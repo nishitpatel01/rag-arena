@@ -105,6 +105,11 @@ def _validate_battle_payload(
     return query, q_id, selected, sol_filter
 
 
+def _enabled_placeholder(settings: ArenaSettings) -> dict[str, Any]:
+    """Enabled level ids (values unused) so the payload is validated before any engine is built for the run."""
+    return {level_id: None for level_id in settings.enabled_levels}
+
+
 def _answer_complete_event(run_id: str, result: EngineResult) -> dict[str, Any]:
     return {
         "event": "answer_complete",
@@ -385,8 +390,8 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
     settings = _settings_of(request)
     try:
         models = _resolve_run_models(body, settings)
-        registry = get_engine_registry(settings, models=models)
-        query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, registry)
+        query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, _enabled_placeholder(settings))
+        registry = get_engine_registry(settings, models=models, level_ids=tuple(selected_engines))
     except (ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 

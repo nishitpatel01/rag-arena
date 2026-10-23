@@ -27,7 +27,9 @@ from app.core.pricing import PRICE_TABLE
 
 PROVIDER_VERTEX_GEMINI = "vertex_gemini"
 PROVIDER_ANTHROPIC_VERTEX = "anthropic_vertex"
-PROVIDERS: tuple[str, ...] = (PROVIDER_VERTEX_GEMINI, PROVIDER_ANTHROPIC_VERTEX)
+# Level 5 pseudo provider: the managed Vertex AI Search summary (not a token-priced LLM; synthesis on managed_vertex only).
+PROVIDER_VERTEX_AI_SEARCH = "vertex_ai_search"
+PROVIDERS: tuple[str, ...] = (PROVIDER_VERTEX_GEMINI, PROVIDER_ANTHROPIC_VERTEX, PROVIDER_VERTEX_AI_SEARCH)
 ROLE_SYNTHESIS = "synthesis"
 ROLE_JUDGE = "judge"
 ROLES: tuple[str, ...] = (ROLE_SYNTHESIS, ROLE_JUDGE)
@@ -46,6 +48,12 @@ CATALOG_ENTRIES: tuple[tuple[str, str, str], ...] = (
     ("claude-opus-5-5", "Claude Opus 5.5", PROVIDER_ANTHROPIC_VERTEX),
     ("claude-fable-5-1", "Claude Fable 5.1", PROVIDER_ANTHROPIC_VERTEX),
 )
+# (id, label, allowed level) — pseudo synthesis models served by a managed service, valid on ONE level only.
+VAIS_SUMMARY_MODEL_ID = "vertex-ai-search-summary"
+PSEUDO_ENTRIES: tuple[tuple[str, str, str], ...] = (
+    (VAIS_SUMMARY_MODEL_ID, "Vertex AI Search summary", "managed_vertex"),
+)
+VAIS_NOT_CONFIGURED = "VAIS_ENGINE_ID / VAIS_DATA_STORE_ID not configured (run scripts/provision_vertex_search.py)"
 
 
 class ModelSelectionError(ValueError):
@@ -72,6 +80,9 @@ class ModelSpec:
     available: bool
     unavailable_reason: str | None
     verified_at: str | None
+    # Empty = every level; otherwise the only levels this model may serve (pseudo models: ("managed_vertex",)).
+    allowed_levels: tuple[str, ...] = ()
+    usd_per_1k_requests: float = 0.0
 
     def __post_init__(self) -> None:
         if not self.id or not self.label:
@@ -97,7 +108,16 @@ class ModelSpec:
             "available": self.available,
             "unavailable_reason": self.unavailable_reason,
             "verified_at": self.verified_at,
+            "allowed_levels": list(self.allowed_levels),
+            "usd_per_1k_requests": self.usd_per_1k_requests,
         }
+
+    def check_level(self, level_id: str) -> None:
+        """Raise ``ModelSelectionError`` (HTTP 400) when this model may not serve ``level_id``."""
+        if self.allowed_levels and level_id not in self.allowed_levels:
+            raise ModelSelectionError(
+                f"Model '{self.id}' is only allowed on {list(self.allowed_levels)} (requested level '{level_id}')"
+            )
 
 
 @dataclass(frozen=True)
@@ -223,14 +243,32 @@ def _spec(model_id: str, label: str, provider: str, settings: ArenaSettings, ent
     )
 
 
+def _pseudo_spec(model_id: str, label: str, level_id: str, settings: ArenaSettings) -> ModelSpec:
+    """Synthesis-only managed model: available when its published price exists and (live) VAIS ids are configured."""
+    price = PRICE_TABLE.get(model_id)
+    if price is None or not price.source or price.usd_per_1k_requests <= 0:
+        available, reason = False, PRICE_NOT_VERIFIED
+    elif settings.is_live and not (settings.vais_engine_id and settings.vais_data_store_id):
+        available, reason = False, VAIS_NOT_CONFIGURED
+    else:
+        available, reason = True, None
+    return ModelSpec(
+        id=model_id, label=label, provider=PROVIDER_VERTEX_AI_SEARCH, location=settings.vais_location,
+        roles=(ROLE_SYNTHESIS,), input_usd_per_1m=0.0, output_usd_per_1m=0.0,
+        price_source=price.source if price else "", price_as_of=price.price_as_of if price else "",
+        available=available, unavailable_reason=reason, verified_at=None, allowed_levels=(level_id,),
+        usd_per_1k_requests=float(price.usd_per_1k_requests) if price else 0.0,
+    )
+
+
 def load_catalog(settings: ArenaSettings, verification_path: Path | None = None) -> ModelCatalog:
     """Build the catalog: code-defined entries + env locations + published prices + verification evidence."""
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
     verification = load_verification(verification_path or settings.model_verification_path)
-    return ModelCatalog(
-        models=tuple(_spec(mid, label, provider, settings, verification.get(mid)) for mid, label, provider in CATALOG_ENTRIES)
-    )
+    llms = tuple(_spec(mid, label, provider, settings, verification.get(mid)) for mid, label, provider in CATALOG_ENTRIES)
+    pseudo = tuple(_pseudo_spec(mid, label, level, settings) for mid, label, level in PSEUDO_ENTRIES)
+    return ModelCatalog(models=llms + pseudo)
 
 
 def default_selection_ids(settings: ArenaSettings) -> tuple[str, str]:
@@ -251,6 +289,10 @@ __all__ = [
     "ModelSpec",
     "NOT_VERIFIED",
     "PRICE_NOT_VERIFIED",
+    "PROVIDER_VERTEX_AI_SEARCH",
+    "PSEUDO_ENTRIES",
+    "VAIS_NOT_CONFIGURED",
+    "VAIS_SUMMARY_MODEL_ID",
     "PROVIDER_ANTHROPIC_VERTEX",
     "PROVIDER_VERTEX_GEMINI",
     "ROLES",

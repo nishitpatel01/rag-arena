@@ -184,6 +184,7 @@ class TokenUsage(_SerializableMixin):
 
 _VALID_LAYOUT_SOURCES: tuple[str, ...] = (
     "", "pymupdf", "pdf_stream_regex", "documentai_layout", "gemini_vision", "documentai_layout+gemini_vision",
+    "vertex_ai_search",  # Level 5: parsing/chunking managed inside Vertex AI Search (digital parser)
 )
 
 

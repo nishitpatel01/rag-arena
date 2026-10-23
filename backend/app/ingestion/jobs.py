@@ -16,6 +16,7 @@ import time
 from typing import Any, AsyncIterator, Callable, Protocol
 import uuid
 
+from app.core.architectures import ALL_INGEST_STAGES
 from app.core.config import ALL_LEVEL_IDS, ArenaSettings
 from app.core.telemetry import BaseStageEmitter, stage_scope, utc_now_iso
 from app.ingestion.parsers import chunk_pages, extract_pdf_pages, is_genuinely_blank_pdf, parser_backend_name
@@ -38,7 +39,7 @@ LEVEL_TIER_PROFILES: dict[str, str] = {
     "level2_hybrid": "hybrid",
     "level3_multimodal": "multimodal",
     "level4_agentic": "multimodal",
-    "managed_vertex": "hybrid",
+    "managed_vertex": "vertex_ai_search",
 }
 _MAX_SOLICITATION_DIRS = 20
 _MAX_PDFS_PER_SOLICITATION = 50
@@ -114,6 +115,8 @@ class TierOutcome:
 
 
 BackendFactory = Callable[[ArenaSettings], IngestBackends]
+# Level 5: returns ``app.ingestion.managed_job.ManagedBackends`` (GCS + Discovery Engine REST clients).
+ManagedFactory = Callable[[ArenaSettings], Any]
 
 
 def unavailable_backends(settings: ArenaSettings) -> IngestBackends:
@@ -195,6 +198,7 @@ class IngestJobRunner:
         *,
         backend_factory: BackendFactory = unavailable_backends,
         corpus_dir: Path | None = None,
+        managed_factory: ManagedFactory | None = None,
     ) -> None:
         if not isinstance(settings, ArenaSettings):
             raise TypeError("settings must be an ArenaSettings instance")
@@ -202,6 +206,13 @@ class IngestJobRunner:
             raise TypeError("backend_factory must be callable")
         self.settings = settings
         self.backend_factory = backend_factory
+        if managed_factory is None:
+            from app.ingestion.managed_job import managed_unavailable
+
+            managed_factory = managed_unavailable
+        if not callable(managed_factory):
+            raise TypeError("managed_factory must be callable")
+        self.managed_factory = managed_factory
         self.corpus_dir = DEFAULT_CORPUS_DIR if corpus_dir is None else corpus_dir
         self._jobs: dict[str, IngestJob] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -255,6 +266,11 @@ class IngestJobRunner:
         async with tracker.scope(emitter, "discover_docs", "Discover corpus documents", "Local corpus", {"corpus_dir": str(self.corpus_dir)}) as sc:
             docs = await asyncio.to_thread(discover_corpus_docs, self.corpus_dir)
             sc.payload = {"docs": len(docs), "solicitations": len({d.solicitation_id for d in docs}), "doc_names": [d.path.name for d in docs[:50]]}
+        if job.level == "managed_vertex":
+            from app.ingestion.managed_job import run_managed_job
+
+            await run_managed_job(self, job, emitter, tracker, docs)
+            return
         if job.tier_profile == "multimodal":
             from app.ingestion.multimodal_job import run_multimodal_stages
 
@@ -401,8 +417,21 @@ class IngestJobRunner:
                 runs = await asyncio.to_thread(backends.loader.recent_ingest_runs, 20)
                 base.update({"last_runs": runs, "last_runs_source": "bigquery:ingest_runs"})
         except IngestBackendUnavailable as exc:
-            return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {}}
-        return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn}
+            return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {},
+                    "managed_vertex": await self._managed_status()}
+        return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn,
+                "managed_vertex": await self._managed_status()}
+
+    async def _managed_status(self) -> dict[str, Any]:
+        """Level 5 entry (data store state + document count) or an explicit reason — only when the level is enabled."""
+        if "managed_vertex" not in self.settings.enabled_levels:
+            return {"available": False, "reason": "managed_vertex is not in ENABLED_LEVELS", "document_count": 0}
+        from app.ingestion.managed_job import managed_status
+
+        try:
+            return await managed_status(self)
+        except Exception as exc:  # boundary: surfaced verbatim in the status payload (the Run button stays disabled)
+            return {"available": False, "reason": f"{type(exc).__name__}: {exc}", "document_count": 0}
 
     def _memory_runs(self) -> dict[str, Any]:
         runs = [
@@ -457,7 +486,7 @@ class _StageTracker:
         self.job = job
 
     def scope(self, emitter: _JobEmitter, stage_id: str, label: str, service: str, request: dict[str, Any]):
-        if stage_id not in INGEST_STAGES:
+        if stage_id not in ALL_INGEST_STAGES:
             raise ValueError(f"Unknown ingest stage '{stage_id}'")
         self.job.failed_stage = stage_id
         return stage_scope(emitter, stage_id, label=label, service=service, request=request)

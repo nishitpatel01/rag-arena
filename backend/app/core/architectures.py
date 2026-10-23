@@ -34,6 +34,28 @@ CANONICAL_INGEST_STAGES: tuple[str, ...] = (
     "build_indexes",
     "verify_counts",
 )
+# Level 5 (managed_vertex) ingestion: the corpus is synced to GCS and imported by Vertex AI Search; the BigQuery
+# stages are emitted as ``stage_skipped`` ("managed by Vertex AI Search").
+MANAGED_INGEST_STAGES: tuple[str, ...] = (
+    "discover_docs",
+    "upload_gcs",
+    "import_documents",
+    "parse",
+    "chunk",
+    "embed",
+    "load_bigquery",
+    "build_indexes",
+    "verify_counts",
+)
+MANAGED_SKIPPED_INGEST_STAGES: tuple[str, ...] = ("parse", "chunk", "embed", "load_bigquery", "build_indexes")
+ALL_INGEST_STAGES: tuple[str, ...] = CANONICAL_INGEST_STAGES + ("upload_gcs", "import_documents")
+
+
+def ingest_stages_for(level_id: str) -> tuple[str, ...]:
+    """Ingest stage ids a level's ingestion job emits, in order."""
+    return MANAGED_INGEST_STAGES if level_id == "managed_vertex" else CANONICAL_INGEST_STAGES
+
+
 _NODE_KINDS: tuple[str, ...] = ("actor", "model", "store", "api", "process", "agent")
 
 
@@ -138,6 +160,7 @@ class ArchitectureDescriptor:
         docai_location: str = "",
         vision_model: str = "",
         multimodal_embedding_model: str = "",
+        vais_location: str = "",
     ) -> "ArchitectureDescriptor":
         """Resolve region + model placeholders from settings (regions/models are never hardcoded)."""
         if not gcp_location or not vertex_genai_location:
@@ -147,6 +170,8 @@ class ArchitectureDescriptor:
             mapping[JUDGE_LOCATION_PLACEHOLDER] = judge_location
         if docai_location:
             mapping[DOCAI_LOCATION_PLACEHOLDER] = docai_location
+        if vais_location:
+            mapping[VAIS_LOCATION_PLACEHOLDER] = vais_location
         services = {JUDGE_SERVICE_PLACEHOLDER: f"Vertex AI · {judge_model}"} if judge_model else {}
         if vision_model:
             services[VISION_SERVICE_PLACEHOLDER] = f"Vertex AI · {vision_model} (vision)"
@@ -171,6 +196,7 @@ class ArchitectureDescriptor:
             docai_location=getattr(settings, "docai_location", ""),
             vision_model=getattr(settings, "vision_model", ""),
             multimodal_embedding_model=getattr(settings, "multimodal_embedding_model", ""),
+            vais_location=getattr(settings, "vais_location", ""),
         )
 
 
@@ -179,6 +205,7 @@ GENAI_LOCATION_PLACEHOLDER = "{VERTEX_GENAI_LOCATION}"
 JUDGE_LOCATION_PLACEHOLDER = "{JUDGE_LOCATION}"
 JUDGE_SERVICE_PLACEHOLDER = "Vertex AI · {JUDGE_MODEL}"
 DOCAI_LOCATION_PLACEHOLDER = "{DOCAI_LOCATION}"
+VAIS_LOCATION_PLACEHOLDER = "{VAIS_LOCATION}"
 VISION_SERVICE_PLACEHOLDER = "Vertex AI · {VISION_MODEL} (vision)"
 MM_EMBED_SERVICE_PLACEHOLDER = "Vertex AI · {MULTIMODAL_EMBEDDING_MODEL} (multimodal)"
 _GENAI_REGION = GENAI_LOCATION_PLACEHOLDER
@@ -417,29 +444,53 @@ def _level4() -> ArchitectureDescriptor:
     )
 
 
+_MV_REF = "app.engines.managed_vertex:ManagedVertexSearchEngine"
+_MV_JOB_REF = "app.ingestion.managed_job"
+
+
+def _managed_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """Local corpus → GCS mirror (changed files only) → documents:import → (managed parse/chunk/embed/index) → count."""
+    nodes = (
+        ArchNode("corpus", "Procurement corpus (local)", "Local corpus · data/sample_docs", "store", 0, 0, ("discover_docs",)),
+        ArchNode("gcs", "Corpus mirror (sample_docs/)", "Cloud Storage · upload changed/missing PDFs", "store", 1, 0,
+                 ("upload_gcs",), region=GCP_LOCATION_PLACEHOLDER, code_ref=f"{_MV_JOB_REF}:_upload_gcs"),
+        ArchNode("import", "documents:import (INCREMENTAL)", "Vertex AI Search · Discovery Engine import LRO", "api", 2, 0,
+                 ("import_documents",), region=VAIS_LOCATION_PLACEHOLDER, code_ref=f"{_MV_JOB_REF}:_import_documents"),
+        ArchNode("managed", "Parse · chunk · embed · index", "Managed inside Vertex AI Search (not observable)", "process", 3, 1,
+                 MANAGED_SKIPPED_INGEST_STAGES, region=VAIS_LOCATION_PLACEHOLDER),
+        ArchNode("ds", "Data store documents", "Vertex AI Search · documents.list", "store", 4, 0, ("verify_counts",),
+                 region=VAIS_LOCATION_PLACEHOLDER, code_ref=f"{_MV_JOB_REF}:_verify_counts"),
+    )
+    edges = (
+        ArchEdge("corpus", "gcs", "PDFs (md5 diff)"),
+        ArchEdge("gcs", "import", "gs:// URIs"),
+        ArchEdge("import", "managed", "managed processing"),
+        ArchEdge("managed", "ds", "indexed documents"),
+    )
+    return nodes, edges
+
+
 def _managed() -> ArchitectureDescriptor:
-    ds = ArchNode("ds", "Discovery Engine data store", "Vertex AI Search", "store", 1, 1, ("retrieve",))
-    summary = ArchNode("summary", "Search summary", "Vertex AI Search summary", "model", 2, 1, ("synthesize",))
-    judge = ArchNode(
-        "judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 3, 1, ("evaluate",),
-        region=JUDGE_LOCATION_PLACEHOLDER, code_ref=_JUDGE_CODE_REF,
-    )
-    ingest_nodes = (
-        ArchNode("gcs", "Procurement corpus", "Cloud Storage", "store", 0, 0, ("discover_docs",)),
-        ArchNode(
-            "import", "Managed import", "Vertex AI Search data store", "process", 1, 0,
-            ("parse", "chunk", "embed", "load_bigquery", "build_indexes"),
-        ),
-        ArchNode("verify", "Document count", "Vertex AI Search", "store", 2, 0, ("verify_counts",)),
-    )
-    ingest_edges = (ArchEdge("gcs", "import", "GCS URIs"), ArchEdge("import", "verify", "imported docs"))
+    """User → query prep → Vertex AI Search app (data store; extractive segments [+ summary]) → synthesis → judge."""
+    ingest_nodes, ingest_edges = _managed_ingest()
+    user = ArchNode("user", "User question + query prep", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_MV_REF}._query_prep")
+    search = ArchNode("search", "Search app (Enterprise + LLM add-on)", "Vertex AI Search · servingConfigs/default_search:search",
+                      "api", 1, 1, ("retrieve",), region=VAIS_LOCATION_PLACEHOLDER, code_ref=f"{_MV_REF}._retrieve")
+    ds = ArchNode("ds", "Data store (unstructured PDFs)", "Vertex AI Search data store · digital parser", "store", 2, 0,
+                  ("retrieve",), region=VAIS_LOCATION_PLACEHOLDER)
+    llm = ArchNode("llm", "Answer synthesis", "Vertex AI Search summary | catalog model", "model", 3, 1, ("synthesize",),
+                   region=VAIS_LOCATION_PLACEHOLDER, code_ref=f"{_MV_REF}._synthesize_summary | _synthesize_model")
+    judge = replace(_JUDGE, col=4, row=1)
     return ArchitectureDescriptor(
         level_id="managed_vertex",
-        nodes=(_USER, ds, summary, judge),
+        nodes=(user, search, ds, llm, judge),
         edges=(
-            ArchEdge("user", "ds", "search request"),
-            ArchEdge("ds", "summary", "extractive segments"),
-            ArchEdge("summary", "judge", "answer + segments"),
+            ArchEdge("user", "search", "prepared query"),
+            ArchEdge("search", "ds", "query"),
+            ArchEdge("ds", "search", "extractive segments (page numbers)"),
+            ArchEdge("search", "llm", "segments (+ summary)"),
+            ArchEdge("llm", "judge", "answer + segments"),
         ),
         ingest_nodes=ingest_nodes,
         ingest_edges=ingest_edges,
@@ -473,6 +524,10 @@ __all__ = [
     "ArchitectureDescriptor",
     "CANONICAL_INGEST_STAGES",
     "CANONICAL_QUERY_STAGES",
+    "ALL_INGEST_STAGES",
+    "MANAGED_INGEST_STAGES",
+    "MANAGED_SKIPPED_INGEST_STAGES",
+    "ingest_stages_for",
     "JUDGE_LOCATION_PLACEHOLDER",
     "JUDGE_SERVICE_PLACEHOLDER",
     "get_architecture_descriptor",

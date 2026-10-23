@@ -99,10 +99,12 @@ def _battle(settings: ArenaSettings, body: dict[str, Any], writer: Any = None) -
 
 def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() -> None:
     catalog = _catalog()
-    assert [m.id for m in catalog.models] == ["gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5-1"]
-    assert [m.label for m in catalog.models] == ["Gemini 4 Argon", "Gemini 3.8 Flash", "Claude Opus 5.5", "Claude Fable 5.1"]
-    assert [m.provider for m in catalog.models] == ["vertex_gemini", "vertex_gemini", "anthropic_vertex", "anthropic_vertex"]
-    for spec in catalog.models:
+    llms = [m for m in catalog.models if m.provider != "vertex_ai_search"]
+    assert [m.id for m in catalog.models][-1] == "vertex-ai-search-summary"  # Level 5 pseudo model (managed_vertex only)
+    assert [m.id for m in llms] == ["gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5-1"]
+    assert [m.label for m in llms] == ["Gemini 4 Argon", "Gemini 3.8 Flash", "Claude Opus 5.5", "Claude Fable 5.1"]
+    assert [m.provider for m in llms] == ["vertex_gemini", "vertex_gemini", "anthropic_vertex", "anthropic_vertex"]
+    for spec in llms:
         assert spec.roles == ("synthesis", "judge") and spec.location == "global" and spec.available
         assert spec.price_source.startswith("https://cloud.google.com/vertex-ai/") and spec.price_as_of
         assert spec.input_usd_per_1m == PRICE_TABLE[spec.id].input_usd_per_1m > 0
@@ -122,7 +124,7 @@ def test_unverified_price_or_missing_verification_makes_a_model_unavailable() ->
         flash = _catalog().get("gemini-3.8-flash")
     assert flash.available is False and flash.unavailable_reason == PRICE_NOT_VERIFIED
     missing = load_catalog(live_settings(model_verification_file=str(Path(tempfile.mkdtemp()) / "absent.json")))
-    assert all(not m.available and m.unavailable_reason == NOT_VERIFIED for m in missing.models)
+    assert all(not m.available and m.unavailable_reason == NOT_VERIFIED for m in missing.models if m.provider != "vertex_ai_search")
 
 
 def test_model_location_override_comes_from_the_environment() -> None:
@@ -170,9 +172,9 @@ def test_models_endpoint_shape_defaults_and_recorded_pairs() -> None:
     body = TestClient(create_app(settings=settings)).get("/api/v1/models").json()
     assert set(body) == {"models", "defaults", "demo_mode", "recorded_pairs"}
     assert body["defaults"] == {"synthesis_model": "gemini-4-argon", "judge_model": "claude-opus-5-5"}
-    assert body["demo_mode"] == "replay" and len(body["models"]) == 4
+    assert body["demo_mode"] == "replay" and len(body["models"]) == 5
     keys = {"id", "label", "provider", "location", "roles", "input_usd_per_1m", "output_usd_per_1m", "price_source",
-            "price_as_of", "available", "unavailable_reason", "verified_at"}
+            "price_as_of", "available", "unavailable_reason", "verified_at", "allowed_levels", "usd_per_1k_requests"}
     assert all(set(m) == keys for m in body["models"])
     fable = next(m for m in body["models"] if m["id"] == "claude-fable-5-1")
     assert fable["available"] is False and "data sharing" in fable["unavailable_reason"]
@@ -305,11 +307,10 @@ def test_query_runs_schema_gains_model_columns_in_place() -> None:
     assert "DROP" not in sql.upper() and "CREATE OR REPLACE" not in sql.upper()
 
 
-def test_legacy_levels_reject_a_non_default_synthesis_model() -> None:
+def test_every_level_accepts_a_catalog_synthesis_model() -> None:
     settings = live_settings(enabled_levels=("level1_naive", "level4_agentic", "managed_vertex"))
     models = load_catalog(settings).select("gemini-3.8-flash", "claude-opus-5-5")
-    with pytest.raises(ValueError):
-        build_engine("managed_vertex", settings, models)
+    assert build_engine("managed_vertex", settings, models).synthesis_model.id == "gemini-3.8-flash"  # Phase 5
     assert build_engine("level4_agentic", settings, models).synthesis_model.id == "gemini-3.8-flash"  # Phase 4: ADK agent model
     level3 = build_engine("level3_multimodal", live_settings(enabled_levels=("level3_multimodal",)), models)
     assert level3.synthesis_model.id == "gemini-3.8-flash"  # Phase 3: Level 3 accepts any catalog synthesis model

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Pill } from "../../components/ui/Pill";
 import { formatMs } from "../../lib/format";
 import type { EngineTimeline } from "../../types/arena";
@@ -10,6 +10,9 @@ export interface CompareRailsProps {
   readonly levels: readonly (LevelChoice & { readonly stages: readonly string[] })[];
   readonly timelines: Readonly<Record<string, EngineTimeline>>;
   readonly rows: readonly ScoreRow[];
+  /** Selected stage per engine (kept in the page session). */
+  readonly picked: Readonly<Record<string, string>>;
+  readonly onPick: (engine: string, stageId: string) => void;
 }
 
 function mergeOrder(declared: readonly string[], seen: readonly string[]): string[] {
@@ -41,8 +44,7 @@ const StageNote: React.FC<{ readonly tl: EngineTimeline | undefined; readonly st
 };
 
 /** Stacked per-level stage rails (ladder order), each driven only by that engine's events. */
-export const CompareRails: React.FC<CompareRailsProps> = ({ levels, timelines, rows }) => {
-  const [picked, setPicked] = useState<Record<string, string>>({});
+export const CompareRails: React.FC<CompareRailsProps> = ({ levels, timelines, rows, picked, onPick }) => {
   return (
     <ol className="flex flex-col gap-4" aria-label="Stage rails per level">
       {levels.map((lvl) => {
@@ -58,7 +60,7 @@ export const CompareRails: React.FC<CompareRailsProps> = ({ levels, timelines, r
               {row?.error?.stage && <Pill tone="err" mono>failed stage: {row.error.stage}</Pill>}
             </div>
             <StageRail label={`${lvl.short} stages`} stageIds={stageIds} stages={tl?.stages ?? {}} selectedStage={picked[lvl.levelId] ?? null}
-              onSelectStage={(id) => setPicked((prev) => ({ ...prev, [lvl.levelId]: id }))} />
+              onSelectStage={(id) => onPick(lvl.levelId, id)} />
             <StageNote tl={tl} stageId={picked[lvl.levelId] ?? null} />
           </li>
         );

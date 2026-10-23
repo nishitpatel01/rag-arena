@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Square } from "lucide-react";
+import { Play, RotateCcw, Square } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { validateQueryInput } from "../../lib/validation";
 import { ModelPicker } from "../levels/ModelPicker";
@@ -24,6 +24,9 @@ export interface CompareSetupProps {
   readonly isStreaming: boolean;
   readonly onRun: (engines: readonly string[], sel: ModelSelection | null) => void;
   readonly onAbort: () => void;
+  /** Stops any run and clears results, stage selections, question fields and level ticks (models are kept). */
+  readonly onReset: () => void;
+  readonly canReset: boolean;
 }
 
 /** Question + one model pair + level checkboxes + cost line; Run sends ONE battle request for every checked level. */
@@ -60,6 +63,11 @@ export const CompareSetup: React.FC<CompareSetupProps> = (p) => {
           {p.isStreaming && (
             <Button variant="danger" onClick={p.onAbort} leadingIcon={<Square className="h-3.5 w-3.5" aria-hidden />}>Stop</Button>
           )}
+          <Button variant="ghost" onClick={p.onReset} disabled={!p.canReset} data-testid="reset-page"
+            title="Clear this page's results, selections, question and level ticks (models are kept)"
+            leadingIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}>
+            {p.isStreaming ? "Stop & reset" : "Reset"}
+          </Button>
         </div>
         {!p.isStreaming && blockers.length > 0 && p.question.query.length > 0 && (
           <ul className="text-xs text-clay" aria-label="Why Run is disabled">

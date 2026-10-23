@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAppData } from "../../app/AppDataProvider";
+import { useSessionUi } from "../../app/BattleSessions";
+import { useSafeMode } from "../../app/SafeMode";
 import { DocumentDrawer } from "../../components/DocumentDrawer";
 import { DocumentViewer } from "../../components/DocumentViewer";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -26,6 +28,9 @@ import { useModelCatalog } from "./useModelCatalog";
 /** Two `gap-4` (16 px) column gaps in the level grid. */
 const GRID_GAPS_PX = 32;
 
+const isStageId = (v: unknown): v is string | null => v === null || typeof v === "string";
+const isCitation = (v: unknown): v is Citation | null => v === null || (typeof v === "object" && !Array.isArray(v));
+
 function mergeOrder(declared: readonly string[], seen: readonly string[]): string[] {
   const out = [...declared];
   for (const s of seen) if (!out.includes(s)) out.push(s);
@@ -37,17 +42,21 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   ingestState,
   lowerLevels,
 }) => {
-  const stream = useBattleStream();
+  // Page session: run, results and selections survive navigation (and keep streaming) until Reset / a new Run.
+  const sessionKey = `level:${level.level_id}`;
+  const stream = useBattleStream(sessionKey);
   const models = useModelCatalog(level.level_id);
   const { status: ingest, error: ingestError } = ingestState;
-  const [selectedStage, setSelectedStage] = useState<string | null>(null);
-  const [userPicked, setUserPicked] = useState(false);
-  const [citation, setCitation] = useState<Citation | null>(null);
+  const { maskValue } = useSafeMode();
+  const [selectedStage, setSelectedStage] = useSessionUi<string | null>(sessionKey, "selectedStage", null, isStageId);
+  const [userPicked, setUserPicked] = useSessionUi<boolean>(sessionKey, "userPicked", false);
+  const [storedCitation, setCitation] = useSessionUi<Citation | null>(sessionKey, "citation", null, isCitation);
+  const citation = useMemo(() => maskValue(storedCitation), [maskValue, storedCitation]);
   const [viewerOpen, setViewerOpen] = useState(false);
   const openCitation = useCallback((c: Citation) => {
     setCitation(c);
     setViewerOpen(true);
-  }, []);
+  }, [setCitation]);
   const openViewer = useCallback(() => setViewerOpen(true), []);
   const closeViewer = useCallback(() => setViewerOpen(false), []);
 
@@ -60,12 +69,12 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   // Auto-follow the active stage until the user picks one explicitly.
   useEffect(() => {
     if (!userPicked && active) setSelectedStage(active);
-  }, [active, userPicked]);
+  }, [active, userPicked, setSelectedStage]);
 
   const pickStage = useCallback((id: string) => {
     setUserPicked(true);
     setSelectedStage(id);
-  }, []);
+  }, [setUserPicked, setSelectedStage]);
 
   const onRun = (query: string, questionId: string | null, runModels: ModelSelection | null): void => {
     setSelectedStage(null);
@@ -79,6 +88,11 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
     });
+  };
+
+  const onReset = (): void => {
+    setViewerOpen(false);
+    stream.reset();
   };
 
   // Models of the run actually executed (from run_started), never the dropdown state.
@@ -120,7 +134,8 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     >
       <div className="flex min-w-0 xl:row-span-2">
       <Panel title="Question" subtitle="Golden benchmark or custom" className="flex-1">
-        <QuestionPicker levelId={level.level_id} gate={gate} isStreaming={stream.isStreaming} onRun={onRun} onAbort={stream.abort} models={models} />
+        <QuestionPicker levelId={level.level_id} sessionKey={sessionKey} gate={gate} isStreaming={stream.isStreaming} onRun={onRun}
+          onAbort={stream.abort} onReset={onReset} hasResults={stream.hasContent || selectedStage !== null || citation !== null} models={models} />
         {gate.note && (
           <p className={`mt-2 text-xs ${gate.tone === "err" ? "text-err" : gate.tone === "warn" ? "text-clay" : "text-slate"}`} role="status">
             {gate.tone === "err" ? "Error" : gate.tone === "warn" ? "Blocked" : "Note"}: {gate.note}

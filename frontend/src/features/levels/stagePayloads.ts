@@ -15,6 +15,7 @@
  * `invalidRows` so the UI can say so (fail loud, never silently).
  */
 
+import { agentStageSummary } from "./agentTimelineModel";
 import type { JsonObject } from "../../types/arena";
 import { formatBytes, formatUsd, summarizePayload } from "../../lib/format";
 import { EMPTY_ELEMENT_META, hasElementMeta, parseElementMeta, type ElementMeta } from "../../lib/elements";
@@ -492,6 +493,9 @@ export function summarizeStage(stageId: string | null, payload: JsonObject | nul
   } else if (stageId === "parse") {
     const v = parseIngestParse(payload);
     if (v) return ingestParseSummary(v);
+  } else if (stageId === "agent_turn") {
+    const line = agentStageSummary(payload);
+    if (line) return line;
   } else if (stageId === "query_prep") {
     const v = parseQueryPrep(payload);
     if (v && v.expansions.length > 0) return `expansions=${v.expansions.length}`;

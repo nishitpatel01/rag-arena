@@ -1,0 +1,946 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-22T16:32:32.668Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "500749c36bf78b8e0faa3bcb7af33791dbb09f55",
+    "app_version": "3.0.0",
+    "engine": "level4_agentic",
+    "question_id": "q_zero_trust_pep_diagram",
+    "query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+    "run_id": "run_2916b4fb943e"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-10-22T16:32:01.206Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+        "prepared_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access? (PEP = Policy Enforcement Point)",
+        "expansions": [
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          }
+        ],
+        "element_intent": [
+          "diagram"
+        ],
+        "intent_matches": {
+          "diagram": [
+            "diagram",
+            "architecture",
+            "pep"
+          ]
+        },
+        "handed_to_agent": "Question: Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?\nAcronyms: PEP = Policy Enforcement Point\nElement intent (keywords found): diagram"
+      },
+      "ts": "2026-10-22T16:32:01.207Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?\nAcronyms: PEP = Policy Enforcement Point\nElement intent (keywords found): diagram",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 118.0
+      },
+      "ts": "2026-10-22T16:32:01.207Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 3265,
+      "tokens": {
+        "prompt": 1276,
+        "output": 76,
+        "thinking": 0,
+        "total": 1352
+      },
+      "function_calls": [
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:32:04.472Z",
+      "t_rel_ms": 3266
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "element_types": [
+          "diagram",
+          "narrative_text"
+        ],
+        "solicitation_id": "solicitation_03",
+        "query": "NIST SP 800-207 Zero Trust Architecture diagram Policy Engine PE Policy Administrator PA Policy Enforcement Point PEP enclave access"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_372307",
+      "repair": false,
+      "ts": "2026-10-22T16:32:04.472Z",
+      "t_rel_ms": 3266
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 48/50 RRF candidates \u00b7 top 02_Zero_Trust_Architecture_Specs.pdf p.1 (0.9423) \u00b7 41.3 MB scanned",
+      "duration_ms": 2162,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_372307",
+      "repair": false,
+      "ts": "2026-10-22T16:32:06.636Z",
+      "t_rel_ms": 5430
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 3217,
+      "tokens": {
+        "prompt": 3150,
+        "output": 53,
+        "thinking": 0,
+        "total": 3203
+      },
+      "function_calls": [
+        "check_amendments"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:32:09.854Z",
+      "t_rel_ms": 8648
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "section_or_clin_id": "ZTA-NIST-800-207"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_184025",
+      "repair": false,
+      "ts": "2026-10-22T16:32:09.854Z",
+      "t_rel_ms": 8648
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names ZTA-NIST-800-207 in solicitation_03 \u00b7 2.0 MB scanned",
+      "duration_ms": 787,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_184025",
+      "repair": false,
+      "ts": "2026-10-22T16:32:10.642Z",
+      "t_rel_ms": 9436
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 8473,
+      "tokens": {
+        "prompt": 3275,
+        "output": 376,
+        "thinking": 0,
+        "total": 3651
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:32:19.116Z",
+      "t_rel_ms": 17909
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"cited_chunk_ids\": [\"solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal\", \"solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal\"], \"draft_answer\": \"Based on Exhibit A (`ZTA-NIST-800-207`) in `02_Zero_Trust_Architecture_Specs.pdf` (Solicitation 03, `SOL-2026-SEC-03`), which has no superseding amendments, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact across the Control Plane and Data Plane as follows before granting access to the Protected Enterprise Enclave:\\n\\n1. **Control Plane Evaluation (PE to PA):** An **Untrusted Subject + Device** connects to the **Policy Engine (PE) Context**. The PE evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds. Based on this evaluation, the PE signals the **Policy Administrator (PA)** to mint short-lived mTLS / OIDC session tokens.\\n2. **Data Plane Enforcement (PA to PEP to Enclave):** The **Policy Enforcement Point (PEP)**\u2014comprising the Identity-Aware Proxy (**BeyondCorp IAP**) and Envoy Service Mesh (**mTLS Mesh**) ingress gateways\u2014terminates all untrusted traffic. The PEP permits per-request access throug\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_1151274",
+      "repair": false,
+      "ts": "2026-10-22T16:32:19.116Z",
+      "t_rel_ms": 17910
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "3 claims checked \u00b7 0 unsupported",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_1151274",
+      "repair": false,
+      "ts": "2026-10-22T16:32:19.118Z",
+      "t_rel_ms": 17911
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 4,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 8006,
+      "tokens": {
+        "prompt": 3767,
+        "output": 352,
+        "thinking": 0,
+        "total": 4119
+      },
+      "function_calls": [],
+      "text_preview": "Based on Exhibit A (`ZTA-NIST-800-207`) in `02_Zero_Trust_Architecture_Specs.pdf` (Solicitation 03, `SOL-2026-SEC-03`), which has no superseding amendments, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact across the Control Plane and Data Plane as follows before granting access to the Protected Enterprise Enclave:\n\n1. **Control Plane Evaluation (PE to PA):** An **Untrusted Subject + Device** connects to the **Policy Engine (PE) Context**. The PE evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intel",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-10-22T16:32:27.124Z",
+      "t_rel_ms": 25918
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 25918,
+      "payload": {
+        "turns": 4,
+        "agent_turn_events": 10,
+        "tool_calls": 3,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 1,
+          "check_amendments": 1,
+          "calculate_contract_pricing": 0,
+          "verify_citations": 1
+        },
+        "tool_errors": 0,
+        "verify_calls": 1,
+        "unsupported_claims_before": 0,
+        "unsupported_claims_after": 0,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [],
+        "unsupported_after_list": [],
+        "repair_turns": 0,
+        "final_answer_check": {
+          "checked_claims": 3,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 4,
+        "tokens": {
+          "prompt": 11468,
+          "output": 857,
+          "thinking": 0,
+          "total": 12325
+        },
+        "citations": [
+          "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+          "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 5,
+        "retrieval_usage": {
+          "embedding_tokens": 40,
+          "rank_billed_counts": 1,
+          "bigquery_bytes": 43375534,
+          "bigquery_jobs": 2,
+          "search_calls": 1
+        },
+        "calculator_values": []
+      },
+      "ts": "2026-10-22T16:32:27.125Z",
+      "t_rel_ms": 25919
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 4,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-10-22T16:32:27.126Z",
+      "t_rel_ms": 25919
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 11468,
+        "output_tokens": 857,
+        "thinking_tokens": 0,
+        "turns": 4,
+        "final_turn": {
+          "turn_index": 4,
+          "duration_ms": 8006,
+          "tokens": {
+            "prompt": 3767,
+            "output": 352,
+            "thinking": 0,
+            "total": 4119
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "Based on Exhibit A (`ZTA-NIST-800-207`) in `02_Zero_Trust_Architecture_Specs.pdf` (Solicitation 03, `SOL-2026-SEC-03`), which has no superseding amendments, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact across the Control Plane and Data Plane as follows before granting access to the Protected Enterprise Enclave:\n\n1. **Control Plane Evaluation (PE to PA):** An **Untrusted Subject + Device** connects to the **Policy Engine (PE) Context**. The PE evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds. Based on this evaluation, the PE signals the **Policy Administrator (PA)** to mint short-lived mTLS / OIDC session tokens.\n2. **Data Plane Enforcement (PA to PEP to Enclave):** The **Policy Enforcement Point (PEP)**\u2014comprising the Identity-Aware Proxy (**BeyondCorp IAP**) and Envoy Service Mesh (**mTLS Mesh**) ingress gateways\u2014terminates all untrusted traffic. The PEP permits per-request access through the **BeyondCorp IAP + mTLS Mesh** to the **Protected Enterprise Enclave** resources only upon verification by the **PA**.\n3. **Continuous Telemetry:** Every allow/deny decision made by the PEP streams to the Google SecOps SIEM."
+      },
+      "ts": "2026-10-22T16:32:27.126Z",
+      "t_rel_ms": 25919
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-22T16:32:27.126Z",
+      "t_rel_ms": 25919
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2916b4fb943e",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 5542,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.96,
+        "qa_relevance": 0.94,
+        "context_precision": 0.65,
+        "reference_answer_used": true,
+        "input_tokens": 2345,
+        "output_tokens": 449,
+        "judge_cost_usd": 0.01836,
+        "rationale": "Every claim in the answer traces to Exhibit A's text or diagram transcription: PE evaluation inputs, the PE-to-PA token minting signal, PEP termination via IAP and Envoy with access only upon PA verification, and telemetry to SecOps SIEM. The answer matches the reference flow and fully answers the interaction question, with only slight wording differences on how the PA directs the PEP. The two Exhibit A chunks are highly relevant, but the 'EXHIBIT B', 'ARTICLE SEVEN', and title-only chunks add no information and dilute precision.",
+        "judge_response_id": "msg_vrtx_011CgHbYtkxfwMJdnhm9tJhp"
+      },
+      "ts": "2026-10-22T16:32:32.668Z",
+      "t_rel_ms": 31462
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 4: Agentic RAG (Google ADK)",
+    "answer": "Based on Exhibit A (`ZTA-NIST-800-207`) in `02_Zero_Trust_Architecture_Specs.pdf` (Solicitation 03, `SOL-2026-SEC-03`), which has no superseding amendments, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact across the Control Plane and Data Plane as follows before granting access to the Protected Enterprise Enclave:\n\n1. **Control Plane Evaluation (PE to PA):** An **Untrusted Subject + Device** connects to the **Policy Engine (PE) Context**. The PE evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds. Based on this evaluation, the PE signals the **Policy Administrator (PA)** to mint short-lived mTLS / OIDC session tokens.\n2. **Data Plane Enforcement (PA to PEP to Enclave):** The **Policy Enforcement Point (PEP)**\u2014comprising the Identity-Aware Proxy (**BeyondCorp IAP**) and Envoy Service Mesh (**mTLS Mesh**) ingress gateways\u2014terminates all untrusted traffic. The PEP permits per-request access through the **BeyondCorp IAP + mTLS Mesh** to the **Protected Enterprise Enclave** resources only upon verification by the **PA**.\n3. **Continuous Telemetry:** Every allow/deny decision made by the PEP streams to the Google SecOps SIEM.",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "ZTA-NIST-800-207",
+        "element_type": "diagram",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY [DIAGRAM transcription \u00b7 gemini-4-argon] Diagram: VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP Components: - Untrusted Subject + Device (bo",
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "ZTA-NIST-800-207",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8237,
+          "y1": 0.2736
+        },
+        "excerpt": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY - Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds, signaling the Polic",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8237,
+          "y1": 0.2736
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n- Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds, signaling the Policy Administrator (PA) to mint short-lived mTLS / OIDC session tokens.\n- Data Plane Policy Enforcement Point (PEP): Identity-Aware Proxy (IAP) and Envoy Service Mesh ingress gateways terminate all untrusted traffic and permit per-request access to protected enclave resources only upon PA verification.\n- Continuous Telemetry: Every PEP allow/deny decision streams to Google SecOps SIEM.",
+        "score": 0.9423,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "diagram",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n[DIAGRAM transcription \u00b7 gemini-4-argon]\nDiagram: VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP\nComponents:\n- Untrusted Subject + Device (box)\n- Policy Engine (PE) Context (box)\n- Policy Administrator (PA) (box)\n- Policy Enforcement Point (PEP) (box)\n- BeyondCorp IAP + mTLS Mesh (box)\n- Protected Enterprise Enclave (box)\nConnections:\n- Untrusted Subject + Device -- Policy Engine (PE) Context\n- Policy Engine (PE) Context -- Policy Administrator (PA)\n- Policy Enforcement Point (PEP) -- BeyondCorp IAP + mTLS Mesh\n- BeyondCorp IAP + mTLS Mesh -- Protected Enterprise Enclave\nRegions:\n- VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP: Untrusted Subject + Device, Policy Engine (PE) Context, Policy Administrator (PA), Policy Enforcement Point (PEP), BeyondCorp IAP + mTLS Mesh, Protected Enterprise Enclave\nNotes:\n- Document title at top: EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n- The diagram consists of two horizontal rows of three boxes each, connected horizontally by solid lines without arrowheads.\n- Above the diagram box is text titled 'Architecture Specification ZTA-NIST-800-207 (Zero Trust Enforcement Flow):' with 3 numbered points.",
+        "score": 0.8763,
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_01_rfp_security_operations_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-OPS-1.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8999,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC",
+        "score": 0.2122,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_alliedesportsentertainmentinc_20190815_8-k_ex-10.19_11788293_ex-10.19_content license agreement_p10_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "AlliedEsportsEntertainmentInc_20190815_8-K_EX-10.19_11788293_EX-10.19_Content License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 10,
+        "bbox": {
+          "page": 10,
+          "x0": 0.4671,
+          "y0": 0.055,
+          "x1": 0.5329,
+          "y1": 0.0648
+        },
+        "content": "EXHIBIT B",
+        "score": 0.0737,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p11_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 11,
+        "bbox": {
+          "page": 11,
+          "x0": 0.4491,
+          "y0": 0.097,
+          "x1": 0.5509,
+          "y1": 0.3346
+        },
+        "content": "ARTICLE SEVEN",
+        "score": 0.0688,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "NIST SP 800-207 Zero Trust Architecture diagram Policy Engine PE Policy Administrator PA Policy Enforcement Point PEP enclave access",
+          "solicitation_id": "solicitation_03",
+          "element_types": [
+            "diagram",
+            "narrative_text"
+          ]
+        },
+        "result_summary": "5 chunks of 48/50 RRF candidates \u00b7 top 02_Zero_Trust_Architecture_Specs.pdf p.1 (0.9423) \u00b7 41.3 MB scanned",
+        "latency_ms": 2162
+      },
+      {
+        "step_number": 2,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_03",
+          "section_or_clin_id": "ZTA-NIST-800-207"
+        },
+        "result_summary": "no amendment row names ZTA-NIST-800-207 in solicitation_03 \u00b7 2.0 MB scanned",
+        "latency_ms": 787
+      },
+      {
+        "step_number": 3,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "Based on Exhibit A (`ZTA-NIST-800-207`) in `02_Zero_Trust_Architecture_Specs.pdf` (Solicitation 03, `SOL-2026-SEC-03`), which has no superseding amendments, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact across the Control Plane and Data Plane as follows before granting access to the Protected Enterprise Enclave:\n\n1. **Control Plane Evaluation (PE to PA):** An **Untrusted Subject + Device** connects to the **Policy Engine (PE) Context**. The PE evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds. Based on this evaluation, the PE signals the **Policy Administrator (PA)** to mint short-lived mTLS / OIDC session tokens.\n2. **Data Plane Enforcement (PA to PEP to Enclave):** The **Policy Enforcement Point (PEP)**\u2014comprising the Identity-Aware Proxy (**BeyondCorp IAP**) and Envoy Service Mesh (**mTLS Mesh**) ingress gateways\u2014terminates all untrusted traffic. The PEP permits per-request access through the **BeyondCorp IAP + mTLS Mesh** to the **Protected Enterprise Enclave** resources only upon verification by the **PA**.\n3. **Continuous Telemetry:** Every allow/deny decision made by the PEP streams to the Google SecOps SIEM.",
+          "cited_chunk_ids": [
+            "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+            "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal"
+          ]
+        },
+        "result_summary": "3 claims checked \u00b7 0 unsupported",
+        "latency_ms": 0
+      }
+    ],
+    "latency_ms": 25919,
+    "cost_usd": 0.032514,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-22T16:32:01.206Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+          "prepared_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access? (PEP = Policy Enforcement Point)",
+          "expansions": [
+            {
+              "term": "PEP",
+              "expansion": "Policy Enforcement Point"
+            }
+          ],
+          "element_intent": [
+            "diagram"
+          ],
+          "intent_matches": {
+            "diagram": [
+              "diagram",
+              "architecture",
+              "pep"
+            ]
+          },
+          "handed_to_agent": "Question: Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?\nAcronyms: PEP = Policy Enforcement Point\nElement intent (keywords found): diagram"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-22T16:32:01.207Z",
+        "duration_ms": 25918,
+        "request": {},
+        "payload": {
+          "turns": 4,
+          "agent_turn_events": 10,
+          "tool_calls": 3,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 1,
+            "check_amendments": 1,
+            "calculate_contract_pricing": 0,
+            "verify_citations": 1
+          },
+          "tool_errors": 0,
+          "verify_calls": 1,
+          "unsupported_claims_before": 0,
+          "unsupported_claims_after": 0,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [],
+          "unsupported_after_list": [],
+          "repair_turns": 0,
+          "final_answer_check": {
+            "checked_claims": 3,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 4,
+          "tokens": {
+            "prompt": 11468,
+            "output": 857,
+            "thinking": 0,
+            "total": 12325
+          },
+          "citations": [
+            "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+            "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 5,
+          "retrieval_usage": {
+            "embedding_tokens": 40,
+            "rank_billed_counts": 1,
+            "bigquery_bytes": 43375534,
+            "bigquery_jobs": 2,
+            "search_calls": 1
+          },
+          "calculator_values": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-22T16:32:27.126Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 11468,
+          "output_tokens": 857,
+          "thinking_tokens": 0,
+          "turns": 4,
+          "final_turn": {
+            "turn_index": 4,
+            "duration_ms": 8006,
+            "tokens": {
+              "prompt": 3767,
+              "output": 352,
+              "thinking": 0,
+              "total": 4119
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "Based on Exhibit A (`ZTA-NIST-800-207`) in `02_Zero_Trust_Architecture_Specs.pdf` (Solicitation 03, `SOL-2026-SEC-03`), which has no superseding amendments, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact across the Control Plane and Data Plane as follows before granting access to the Protected Enterprise Enclave:\n\n1. **Control Plane Evaluation (PE to PA):** An **Untrusted Subject + Device** connects to the **Policy Engine (PE) Context**. The PE evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds. Based on this evaluation, the PE signals the **Policy Administrator (PA)** to mint short-lived mTLS / OIDC session tokens.\n2. **Data Plane Enforcement (PA to PEP to Enclave):** The **Policy Enforcement Point (PEP)**\u2014comprising the Identity-Aware Proxy (**BeyondCorp IAP**) and Envoy Service Mesh (**mTLS Mesh**) ingress gateways\u2014terminates all untrusted traffic. The PEP permits per-request access through the **BeyondCorp IAP + mTLS Mesh** to the **Protected Enterprise Enclave** resources only upon verification by the **PA**.\n3. **Continuous Telemetry:** Every allow/deny decision made by the PEP streams to the Google SecOps SIEM."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 11468,
+      "output_tokens": 857,
+      "embedding_tokens": 40,
+      "thinking_tokens": 0,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout+gemini_vision"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.96,
+      "qa_relevance": 0.94,
+      "context_precision": 0.65
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 5541,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 2345,
+    "output_tokens": 449,
+    "judge_cost_usd": 0.01836,
+    "rationale": "Every claim in the answer traces to Exhibit A's text or diagram transcription: PE evaluation inputs, the PE-to-PA token minting signal, PEP termination via IAP and Envoy with access only upon PA verification, and telemetry to SecOps SIEM. The answer matches the reference flow and fully answers the interaction question, with only slight wording differences on how the PA directs the PEP. The two Exhibit A chunks are highly relevant, but the 'EXHIBIT B', 'ARTICLE SEVEN', and title-only chunks add no information and dilute precision.",
+    "judge_response_id": "msg_vrtx_011CgHbYtkxfwMJdnhm9tJhp"
+  }
+}

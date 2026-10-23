@@ -53,7 +53,7 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal")
+DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic")
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
@@ -63,6 +63,20 @@ DEFAULT_RANKING_TIMEOUT_SECONDS: int = 30
 _HYBRID_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
 _RERANK_TOP_N_RANGE: tuple[int, int] = (1, 20)
 _RANKING_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
+# Level 4 ADK agent bounds (env: AGENT_MAX_TURNS, AGENT_MAX_TOOL_CALLS_PER_TURN).
+DEFAULT_AGENT_MAX_TURNS: int = 8
+DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN: int = 8
+# Per-turn thinking level of the Level 4 agent (env: AGENT_THINKING_LEVEL). Lower than synthesis by default: an agent
+# run makes several model calls and must finish inside QUERY_TIMEOUT_SECONDS (≤ 120 s); measured with HIGH, a 4-turn
+# Argon run spent 56 s in one turn and exceeded the budget.
+DEFAULT_AGENT_THINKING_LEVEL: str = "low"
+# Per model call HTTP timeout of the agent (env: AGENT_MODEL_CALL_TIMEOUT_SECONDS); a timed-out call is retried once by
+# google-genai (bounded). Measured 2026-10-22: single Flash turns on the global endpoint stalled 74–110 s for ~50
+# output tokens while healthy turns took 3–20 s.
+DEFAULT_AGENT_MODEL_CALL_TIMEOUT_SECONDS: int = 45
+_AGENT_MODEL_CALL_TIMEOUT_RANGE: tuple[int, int] = (5, 120)
+_AGENT_MAX_TURNS_RANGE: tuple[int, int] = (1, 16)
+_AGENT_MAX_TOOL_CALLS_RANGE: tuple[int, int] = (1, 8)
 # Level 3 Document AI Layout Parser + Gemini vision transcription.
 DEFAULT_DOCAI_LOCATION: str = "us"
 DEFAULT_DOCAI_TIMEOUT_SECONDS: int = 120
@@ -153,6 +167,11 @@ class ArenaSettings:
     docai_processor_version: str = ""
     docai_timeout_seconds: int = DEFAULT_DOCAI_TIMEOUT_SECONDS
     vision_model: str = DEFAULT_GEMINI_FAST_MODEL
+    agent_max_turns: int = DEFAULT_AGENT_MAX_TURNS
+    agent_max_tool_calls_per_turn: int = DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN
+    agent_thinking_level: str = DEFAULT_AGENT_THINKING_LEVEL
+    agent_model_call_timeout_seconds: int = DEFAULT_AGENT_MODEL_CALL_TIMEOUT_SECONDS
+
     @property
     def model_verification_path(self) -> Path:
         """``data/model_verification.json`` written by ``scripts/verify_models.py`` (override: MODEL_VERIFICATION_FILE)."""
@@ -204,6 +223,19 @@ class ArenaSettings:
         self._validate_synthesis()
         self._validate_hybrid()
         self._validate_level3()
+        self._validate_agent()
+
+    def _validate_agent(self) -> None:
+        """Level 4 ADK bounds: max model turns per run and max function calls per model turn."""
+        for name, value, (low, high) in (
+            ("AGENT_MAX_TURNS", self.agent_max_turns, _AGENT_MAX_TURNS_RANGE),
+            ("AGENT_MAX_TOOL_CALLS_PER_TURN", self.agent_max_tool_calls_per_turn, _AGENT_MAX_TOOL_CALLS_RANGE),
+            ("AGENT_MODEL_CALL_TIMEOUT_SECONDS", self.agent_model_call_timeout_seconds, _AGENT_MODEL_CALL_TIMEOUT_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if self.agent_thinking_level not in _VALID_THINKING_LEVELS:
+            raise ValueError(f"AGENT_THINKING_LEVEL must be one of {_VALID_THINKING_LEVELS}, got {self.agent_thinking_level!r}")
 
     def _validate_level3(self) -> None:
         """Document AI location/processor/version identifiers and the Gemini vision model (empty processor id = unset)."""
@@ -231,6 +263,8 @@ class ArenaSettings:
         ):
             if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
                 raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if self.agent_thinking_level not in _VALID_THINKING_LEVELS:
+            raise ValueError(f"AGENT_THINKING_LEVEL must be one of {_VALID_THINKING_LEVELS}, got {self.agent_thinking_level!r}")
         if self.rerank_top_n > self.hybrid_candidate_k:
             raise ValueError("RERANK_TOP_N must not exceed HYBRID_CANDIDATE_K")
 
@@ -242,6 +276,8 @@ class ArenaSettings:
         ):
             if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
                 raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if self.agent_thinking_level not in _VALID_THINKING_LEVELS:
+            raise ValueError(f"AGENT_THINKING_LEVEL must be one of {_VALID_THINKING_LEVELS}, got {self.agent_thinking_level!r}")
         if not isinstance(self.model_locations, tuple) or len(self.model_locations) > _MAX_MODEL_LOCATION_OVERRIDES:
             raise ValueError(f"model_locations must be a tuple of at most {_MAX_MODEL_LOCATION_OVERRIDES} pairs")
         for pair in self.model_locations:
@@ -278,6 +314,8 @@ class ArenaSettings:
         ):
             if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
                 raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if self.agent_thinking_level not in _VALID_THINKING_LEVELS:
+            raise ValueError(f"AGENT_THINKING_LEVEL must be one of {_VALID_THINKING_LEVELS}, got {self.agent_thinking_level!r}")
 
     def _validate_gcp_identity(self) -> None:
         """Project/bucket/location come only from the environment; live|record modes require a project."""
@@ -409,6 +447,14 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         **_judge_kwargs(source),
         **_synthesis_kwargs(source),
         **_level3_kwargs(source),
+        agent_max_turns=_parse_int(source.get("AGENT_MAX_TURNS", str(DEFAULT_AGENT_MAX_TURNS)), "AGENT_MAX_TURNS"),
+        agent_max_tool_calls_per_turn=_parse_int(
+            source.get("AGENT_MAX_TOOL_CALLS_PER_TURN", str(DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN)), "AGENT_MAX_TOOL_CALLS_PER_TURN"
+        ),
+        agent_thinking_level=source.get("AGENT_THINKING_LEVEL", DEFAULT_AGENT_THINKING_LEVEL).strip().lower(),
+        agent_model_call_timeout_seconds=_parse_int(
+            source.get("AGENT_MODEL_CALL_TIMEOUT_SECONDS", str(DEFAULT_AGENT_MODEL_CALL_TIMEOUT_SECONDS)), "AGENT_MODEL_CALL_TIMEOUT_SECONDS"
+        ),
     )
 
 

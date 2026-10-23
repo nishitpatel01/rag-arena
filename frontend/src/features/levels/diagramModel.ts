@@ -127,46 +127,119 @@ export function deriveNodeView(node: ArchNode, timeline: EngineTimeline | undefi
   return best;
 }
 
+/** Approximate width of an 11 px edge label (≤ 12 chars shown). */
+export function edgeLabelWidth(label: string): number {
+  return Math.min(label.length, 12) * 6.2;
+}
+
 export interface EdgePath {
   readonly edge: ArchEdge;
   readonly d: string;
   readonly labelX: number;
   readonly labelY: number;
+  /** Horizontal room (px) for the label; labels that do not fit are drawn only as a hover title. */
+  readonly labelRoom: number;
+  /** The reverse edge (B→A) is declared too. */
+  readonly paired: boolean;
   readonly flowing: boolean;
 }
 
-/** Edge geometry; `flowing` only when source is `done` and target is `active` (spec §7.2.1). */
+/**
+ * Edge geometry; `flowing` when source is `done` and target is `active` (spec §7.2.1), or when the edge key
+ * "from->to" is in `extraFlowing` (Level 4: agent ⇄ tool while a tool call is open).
+ */
 export function buildEdgePaths(
   edges: readonly ArchEdge[],
   boxes: readonly NodeBox[],
-  views: Readonly<Record<string, NodeView>>
+  views: Readonly<Record<string, NodeView>>,
+  extraFlowing: ReadonlySet<string> = new Set()
 ): EdgePath[] {
   const byId = new Map(boxes.map((b) => [b.node.id, b]));
+  const keys = new Set(edges.map((e) => `${e.from}->${e.to}`));
   const out: EdgePath[] = [];
   for (const edge of edges) {
     const a = byId.get(edge.from);
     const b = byId.get(edge.to);
     if (!a || !b) continue;
+    // A→B and B→A both declared (Level 4 agent ⇄ tool): forward and return lines run parallel, 7 px apart.
+    const paired = keys.has(`${edge.to}->${edge.from}`);
     const x1 = a.x + NODE_W;
-    const y1 = a.y + NODE_H / 2;
-    const x2 = b.x;
-    const y2 = b.y + NODE_H / 2;
-    const backwards = x2 < x1;
-    const cx = backwards ? Math.max(x1, x2) + COL_GAP : (x1 + x2) / 2;
-    const d = backwards
-      ? `M ${x1} ${y1} C ${x1 + COL_GAP} ${y1}, ${cx} ${y2 - ROW_GAP}, ${x2 + NODE_W} ${y2}`
-      : `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`;
-    // Same-row edges: label sits just below the boxes so it never collides with a node;
-    // cross-row edges have open space at the curve midpoint.
-    const sameRow = Math.abs(y1 - y2) < 1;
+    const y2c = b.y + NODE_H / 2;
+    const backwards = b.x < x1;
+    const sameRow = Math.abs(a.y - b.y) < 1;
+    const adjacentLeft = b.x + NODE_W < a.x && a.x - (b.x + NODE_W) <= COL_GAP + 1;
+    let d: string;
+    let labelX: number;
+    let labelY: number;
+    let labelRoom: number;
+    if (!backwards) {
+      const off = paired ? -7 : 0;
+      const y1 = a.y + NODE_H / 2 + off;
+      const y2 = y2c + off;
+      const cx = (x1 + b.x) / 2;
+      d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${b.x} ${y2}`;
+      labelX = (x1 + b.x) / 2;
+      // Same-row edges: label just below the boxes; cross-row edges: open space at the curve midpoint.
+      labelY = sameRow ? y1 + NODE_H / 2 + 14 : (y1 + y2) / 2 - 8;
+      // Same-row labels sit under the boxes (room = centre-to-centre); cross-row labels live in the column gap.
+      // A paired (A⇄B) same-row edge shares the gap with its return line, so it only gets the gap.
+      labelRoom = sameRow && !paired ? b.x + NODE_W / 2 - (a.x + NODE_W / 2) : b.x - x1;
+    } else if (b.x + NODE_W <= a.x && (!sameRow || adjacentLeft)) {
+      // Return edge to a column on the left: source left side → target right side (never crosses the source box).
+      const off = paired ? 7 : 0;
+      const sx = a.x;
+      const sy = a.y + NODE_H / 2 + off;
+      const tx = b.x + NODE_W;
+      const ty = y2c + off;
+      const cx = (sx + tx) / 2;
+      d = `M ${sx} ${sy} C ${cx} ${sy}, ${cx} ${ty}, ${tx} ${ty}`;
+      labelX = cx;
+      // Label below the line; a paired forward edge labels above (-8), so the two never overlap.
+      labelY = (sy + ty) / 2 + 12;
+      labelRoom = sx - tx;
+    } else {
+      // Same row, non-adjacent (or overlapping columns): arc through the gap under the boxes, bottom-centre to bottom-centre.
+      const sx = a.x + NODE_W / 2;
+      const tx = b.x + NODE_W / 2;
+      const by = Math.max(a.y, b.y) + NODE_H;
+      const dip = by + ROW_GAP - 6;
+      d = `M ${sx} ${a.y + NODE_H} C ${sx} ${dip}, ${tx} ${dip}, ${tx} ${b.y + NODE_H}`;
+      labelX = (sx + tx) / 2;
+      labelY = dip + 4;
+      labelRoom = Math.abs(sx - tx);
+    }
     out.push({
       edge,
       d,
-      labelX: (x1 + x2) / 2,
-      labelY: sameRow ? y1 + NODE_H / 2 + 14 : (y1 + y2) / 2 - 8,
-      flowing: views[edge.from]?.status === "done" && views[edge.to]?.status === "active",
+      labelX,
+      labelY,
+      labelRoom,
+      paired,
+      flowing:
+        extraFlowing.has(`${edge.from}->${edge.to}`) || (views[edge.from]?.status === "done" && views[edge.to]?.status === "active"),
     });
   }
+  return out;
+}
+
+/**
+ * Indices of edge labels to draw: a paired (A⇄B) edge label needs room in its gap, and a label whose box
+ * overlaps an already placed label is skipped (it stays available as the path's hover title). Levels without
+ * crowded or bidirectional edges keep every label.
+ */
+export function visibleEdgeLabels(paths: readonly EdgePath[]): Set<number> {
+  const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  const out = new Set<number>();
+  paths.forEach((p, i) => {
+    const label = p.edge.label;
+    if (!label) return;
+    const w = edgeLabelWidth(label);
+    if (p.paired && p.labelRoom < w) return;
+    const box = { x0: p.labelX - w / 2, x1: p.labelX + w / 2, y0: p.labelY - 10, y1: p.labelY + 3 };
+    if (placed.some((q) => box.x0 < q.x1 && q.x0 < box.x1 && box.y0 < q.y1 && q.y0 < box.y1)) return;
+    placed.push(box);
+    out.add(i);
+  });
   return out;
 }
 

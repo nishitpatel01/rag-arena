@@ -2,8 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pin, PinOff } from "lucide-react";
 import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
+import { PaneResizer, useElementWidth, usePaneWidth } from "../../components/ui/PaneResizer";
+import { MIN_DIAGRAM_PX, NODE_PANE, paneMax } from "../../lib/paneWidth";
 import { DiagramNode } from "./DiagramNode";
-import { buildEdgePaths, deriveNodeView, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
+import { buildEdgePaths, deriveNodeView, visibleEdgeLabels, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
+import { deriveToolNodeView, toolFlowEdges, toolNodeBindings, toolNodeSummary, type ToolBinding } from "./agentTimelineModel";
 import { NodeDetails } from "./NodeDetails";
 import { summarizeStage } from "./stagePayloads";
 
@@ -61,19 +64,41 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [manualId, setManualId] = useState<string | null>(null);
   const [containerRef, containerWidth] = useContainerWidth();
+  const [nodePref, setNodeWidth] = usePaneWidth("node-details", NODE_PANE);
+  const [gridRef, gridWidth] = useElementWidth<HTMLDivElement>();
+  // gap-3 (12 px) between diagram and details; the diagram keeps at least MIN_DIAGRAM_PX.
+  const nodeMax = paneMax(NODE_PANE, gridWidth === null ? null : gridWidth - 12 - MIN_DIAGRAM_PX);
+  const nodeWidth = Math.min(nodePref, nodeMax);
 
   // Inner width of the figure (minus its p-2 padding); the layout shrinks column gaps to fit it.
   const innerWidth = containerWidth > 0 ? containerWidth - FIGURE_PADDING_X : undefined;
   const layout = useMemo(() => layoutNodes(nodes, innerWidth), [nodes, innerWidth]);
+  // Level 4: tool nodes light up from open tool calls (agent_turn events), not from stage status.
+  const toolBindings = useMemo(() => (timeline?.agentTurns.length || nodes.some((n) => n.tool_names?.length) ? toolNodeBindings(nodes) : new Map<string, ToolBinding>()), [nodes, timeline?.agentTurns.length]);
   const views = useMemo<Record<string, NodeView>>(
-    () => Object.fromEntries(nodes.map((n) => [n.id, deriveNodeView(n, timeline)])),
-    [nodes, timeline]
+    () =>
+      Object.fromEntries(
+        nodes.map((n) => {
+          const binding = toolBindings.get(n.id);
+          return [n.id, binding ? deriveToolNodeView(binding, timeline) : deriveNodeView(n, timeline)];
+        })
+      ),
+    [nodes, timeline, toolBindings]
   );
   const services = useMemo<Record<string, NodeServiceView>>(
-    () => Object.fromEntries(nodes.map((n) => [n.id, resolveNodeService(n, timeline, runServiceByStage)])),
-    [nodes, timeline, runServiceByStage]
+    () =>
+      Object.fromEntries(
+        nodes.map((n) => [
+          n.id,
+          // Tool nodes share the agent_turn stage, whose service is the ADK Runner; tools report no service of their own.
+          toolBindings.has(n.id) ? { text: n.service, source: "default" as const } : resolveNodeService(n, timeline, runServiceByStage),
+        ])
+      ),
+    [nodes, timeline, runServiceByStage, toolBindings]
   );
-  const paths = useMemo(() => buildEdgePaths(edges, layout.boxes, views), [edges, layout.boxes, views]);
+  const toolFlow = useMemo(() => toolFlowEdges(edges, nodes, timeline), [edges, nodes, timeline]);
+  const paths = useMemo(() => buildEdgePaths(edges, layout.boxes, views, toolFlow), [edges, layout.boxes, views, toolFlow]);
+  const shownLabels = useMemo(() => visibleEdgeLabels(paths), [paths]);
   const followed = useMemo(() => followTarget(nodes, timeline), [nodes, timeline]);
 
   // Rail → diagram sync: when the parent selects a stage, highlight the node that maps it.
@@ -107,7 +132,11 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const svgHeight = Math.max(DIAGRAM_MIN_HEIGHT, Math.round(layout.height * scale));
 
   return (
-    <div className={`grid min-w-0 gap-3 ${detailsPlacement === "side" ? "xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]" : ""}`}>
+    <div
+      ref={gridRef}
+      className={`grid min-w-0 gap-3 ${detailsPlacement === "side" ? "xl:grid-cols-[minmax(0,1fr)_var(--node-pane-w)]" : ""}`}
+      style={{ "--node-pane-w": `${nodeWidth}px` } as React.CSSProperties}
+    >
       <figure ref={containerRef} className="min-w-0 overflow-x-auto rounded-md border border-line bg-surface-0 p-2">
         <figcaption className="sr-only">{title}</figcaption>
         <svg
@@ -124,11 +153,13 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-3)" />
             </marker>
           </defs>
-          {paths.map((p) => (
+          {paths.map((p, i) => (
             <g key={`${p.edge.from}->${p.edge.to}`}>
-              <path d={p.d} fill="none" stroke="var(--line)" strokeWidth={2} markerEnd="url(#arena-arrow)" />
+              <path d={p.d} fill="none" stroke="var(--line)" strokeWidth={2} markerEnd="url(#arena-arrow)">
+                {p.edge.label && <title>{`${p.edge.from} → ${p.edge.to}: ${p.edge.label}`}</title>}
+              </path>
               {p.flowing && <path d={p.d} fill="none" stroke="var(--accent-moss)" strokeWidth={2.5} className="edge-flowing" />}
-              {p.edge.label && (
+              {p.edge.label && shownLabels.has(i) && (
                 <text x={p.labelX} y={p.labelY} textAnchor="middle" fontSize={11} fill="var(--ink-3)">
                   {p.edge.label.length > 12 ? `${p.edge.label.slice(0, 11)}…` : p.edge.label}
                 </text>
@@ -138,6 +169,10 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
           {layout.boxes.map(({ node, x, y }) => {
             const view = views[node.id];
             const st = view.stageId ? timeline?.stages[view.stageId] : undefined;
+            const binding = toolBindings.get(node.id);
+            const summary = binding
+              ? view.status === "done" || view.status === "active" ? toolNodeSummary(binding, timeline) : ""
+              : view.status === "done" ? summarizeStage(view.stageId, st?.payload ?? null) : "";
             return (
               <DiagramNode
                 key={node.id}
@@ -147,14 +182,18 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
                 view={view}
                 service={services[node.id]}
                 selected={shownId === node.id}
-                summary={view.status === "done" ? summarizeStage(view.stageId, st?.payload ?? null) : ""}
+                summary={summary}
                 onSelect={select}
               />
             );
           })}
         </svg>
       </figure>
-      <aside className="min-w-0 rounded-md border border-line bg-surface-1 p-3" aria-label="Node details">
+      <div className="flex min-w-0">
+      {detailsPlacement === "side" && (
+        <PaneResizer label="Resize node details" side="right" width={nodeWidth} bounds={NODE_PANE} maxPx={nodeMax} onChange={setNodeWidth} className="-ml-3" />
+      )}
+      <aside className="min-w-0 flex-1 rounded-md border border-line bg-surface-1 p-3" aria-label="Node details">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-3">
             {pinnedId ? "Pinned node" : running ? "Following active node" : "Node details"}
@@ -164,8 +203,14 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
             {pinnedId ? "Unpin" : "Pin"}
           </Button>
         </div>
-        <NodeDetails node={shownNode} timeline={timeline} service={shownNode ? services[shownNode.id] ?? null : null} />
+        <NodeDetails
+          node={shownNode}
+          timeline={timeline}
+          service={shownNode ? services[shownNode.id] ?? null : null}
+          toolBinding={shownNode ? toolBindings.get(shownNode.id) ?? null : null}
+        />
       </aside>
+      </div>
     </div>
   );
 };

@@ -1,15 +1,8 @@
 # The RAG Arena — Progressive Enterprise RAG on Google Cloud (v3)
 
-The RAG Arena is a Google Cloud reference application that climbs the production RAG maturity curve one level
-at a time on a single domain — **Enterprise IT & Cloud Procurement** (RFPs, SOWs, CLIN rate cards, SLA
-matrices, architecture exhibits, superseding amendments). You pick a level, ask a question, and watch the real
-pipeline execute: every stage lights up when the backend actually enters it, shows the exact SQL or API
-request it sent, what came back, and the measured duration, cost and LLM-judge scores.
+The RAG Arena is a Google Cloud reference application that climbs the production RAG maturity curve one level at a time on **Enterprise IT & Cloud Procurement** (RFPs, SOWs, CLIN rate cards, SLA matrices, architecture exhibits, superseding amendments). You pick a level, ask a question, and watch the real pipeline execute: every stage lights up when the backend enters it, shows the exact SQL or API request sent, what came back, and the measured duration, cost and LLM-judge scores.
 
-**Status: Levels 1–3 live · Levels 4–5 in progress.** Level 1 (naive vector RAG), Level 2 (BigQuery hybrid RRF +
-Discovery Engine Ranking API) and Level 3 (Document AI Layout Parser + Gemini vision, multimodal embeddings) have
-each run end-to-end on a live GCP project (ingestion, queries, recordings). Compare, Levels 4–5 and the Cloud Run
-deployment are planned and are marked as such everywhere below.
+**Status: Levels 1–4 live · Level 5 in progress.** Levels 1–4 have each run end-to-end on a live GCP project (ingestion, queries, recordings). Compare, Level 5 and Cloud Run deployment are planned and marked as such below.
 
 ---
 
@@ -37,14 +30,10 @@ hardcoded evaluation scores. v3 rebuilds the product around six rules:
 | 1 | `level1_naive` | BigQuery `VECTOR_SEARCH` (COSINE, top-5) over 360-char windows, `gemini-embedding-2`, selectable synthesis model | The baseline — and its failure modes: identifiers blurred, tables scrambled, no amendment awareness | ✅ live |
 | 2 | `level2_hybrid` | Acronym expansion; BigQuery `VECTOR_SEARCH` ⨝ `SEARCH()` lexical over one-chunk-per-page lineage chunks → RRF (k=60) top-50 → Discovery Engine Ranking API (`semantic-ranker-default@latest`) → top-5 | Exact identifier recall; reranker precision | ✅ live |
 | 3 | `level3_multimodal` | Document AI Layout Parser v1.5 (release candidate) elements + Gemini vision transcription of diagram pages → element-aware chunks with `gemini-embedding-2` multimodal vectors; hybrid RRF + Ranking API; authority headers (latest amendment first) | Tables and diagrams answered correctly | ✅ live |
-| 4 | `level4_agentic` | Real Google ADK `Runner` with retrieval, amendment lookup, pricing math and citation-check tools | Multi-hop supersession, deterministic math, self-verification | 🔒 planned |
+| 4 | `level4_agentic` | Real Google ADK `LlmAgent` + `InMemoryRunner` (Gemini on Vertex AI, ≤8 turns) with `search_procurement_corpus` (Level 3 hybrid RRF + rerank), `check_amendments` (BigQuery supersession query), `calculate_contract_pricing` (AST calculator) and `verify_citations` (claim check + one repair turn) | Multi-hop supersession, deterministic math, self-verification | ✅ live |
 | 5 | `managed_vertex` | Vertex AI Search data store (extractive segments + summary) | Build vs. buy baseline | 🔒 planned |
 
-Levels 4–5 still contain their v2 bodies in `backend/app/engines/` but are **not enabled**: they run under one
-measured `legacy` stage and emit `stage_skipped` for the canonical stages until their phase rebuilds them.
-`ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid,level3_multimodal` (the signed-off levels).
-Vertex AI Vector Search 2.0 and AlloyDB ScaNN engines are parked in `backend/app/engines/parked/` (excluded
-from the registry).
+Level 5 still contains its v2 body in `backend/app/engines/` (`legacy` stage + `stage_skipped` for canonical stages until Phase 5 rebuilds it). `ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid,level3_multimodal,level4_agentic` (the signed-off levels). Vertex AI Vector Search 2.0 and AlloyDB ScaNN are parked in `backend/app/engines/parked/`.
 
 ---
 
@@ -149,15 +138,32 @@ flowchart LR
 
 ![Level 3 citation drawer on a Gemini-vision diagram chunk: whole-page region plus the transcription](docs/screenshots/19-level3.png)
 
-- **Element boxes come from the PDF text layer.** The v1.5 Layout Parser returns table structure but no bounding
-  boxes, so each element is located with `page.search_for` (else the full page); every citation carries
-  `bbox_source` (`documentai` | `pdf_text_layer` | `page`).
-- **Unusable vision answers are not invented around**: a page whose transcription is empty, not JSON or has no
-  labelled components (e.g. a logo or signature page flagged as a figure) is listed in `vision_failed_pages`
-  and gets no diagram chunk.
-- **Known limitation: BigQuery allows one vector index per table.** The `embedding` index already exists, so
-  `VECTOR_SEARCH` on `embedding_multimodal` brute-forces (BigQuery reports the index "does not cover the column
-  to search"); at scale the multimodal tier needs its own table.
+- **Element boxes come from the PDF text layer** (`page.search_for`, else the full page; `bbox_source` = `documentai` | `pdf_text_layer` | `page`) because Layout Parser v1.5 returns table structure without bounding boxes.
+- **Unusable vision answers are not invented around**: pages whose transcription is empty, non-JSON or has no labelled components (e.g. logo/signature pages) are listed in `vision_failed_pages` and get no diagram chunk.
+- **Known limitation: BigQuery allows one vector index per table.** The `embedding` index exists, so `VECTOR_SEARCH` on `embedding_multimodal` brute-forces; at scale the multimodal tier needs its own table.
+
+---
+
+## Level 4 architecture
+
+**Query path** (`backend/app/engines/{level4_agentic,agent_runtime,agent_tools,agent_calculator,agent_verify}.py`; reuses the Level 3 `multimodal` tier):
+
+```mermaid
+flowchart LR
+    U["User question"] --> QP["query_prep<br/>acronyms + element intent"]
+    QP --> AT["agent_turn · Google ADK InMemoryRunner<br/>LlmAgent (Gemini on Vertex AI, ≤8 turns)"]
+    AT <--> T1["search_procurement_corpus<br/>Level 3 embed + RRF + Ranking API"]
+    AT <--> T2["check_amendments<br/>BigQuery amends_section / section_id"]
+    AT <--> T3["calculate_contract_pricing<br/>AST-safe arithmetic"]
+    AT <--> T4["verify_citations<br/>claim ↔ chunk check (+1 repair turn)"]
+    AT --> SY["synthesize<br/>final ADK response + tool ledger citations"]
+    SY --> EV["evaluate<br/>LLM judge (≠ synthesis)"]
+```
+
+![Level 4 architecture diagram and Node details pane showing 4 ADK turns, 14 tool calls, calculate_contract_pricing and verify_citations](docs/screenshots/20-level4.png)
+
+- **Real ADK loop**: every model turn (`kind="model_turn"`), tool call (`kind="tool_call"`) and tool result (`kind="tool_result"`) streams as an `agent_turn` SSE event while the runner executes; if `verify_citations` leaves unsupported claims on the final answer, the engine runs one bounded repair turn (`repair=true`).
+- **Gemini-only agent model**: `google-adk`'s Claude adapter requires the undeclared `anthropic` package, so Level 4 requires a Gemini synthesis model (`gemini-4-argon` or `gemini-3.8-flash`; selecting Claude returns HTTP 400). Claude models remain selectable as the LLM judge.
 
 ---
 
@@ -166,14 +172,15 @@ flowchart LR
 Every value is read from the stage event payloads the engine emits (and that recordings store verbatim in
 `data/recordings/`).
 
-| Stage | Level 1 | Level 2 adds | Level 3 adds |
-| :-- | :-- | :-- | :-- |
-| `query_prep` | original and prepared query (local, ~0 ms) | deterministic 16-acronym expansion (CLIN, SLA, RTO, …) with a word-level diff | `element_intent` (table / diagram / amendment) with the matched keywords |
-| `embed_query` | model, `task_type=RETRIEVAL_QUERY`, 3072 dimensions, billed token count | — | same model, multimodal embedding space |
-| `retrieve` | parameterized `VECTOR_SEARCH` SQL, rows, scores, BigQuery `job_id`, bytes scanned, cache hit | one hybrid SQL statement: up to 50 candidates with `vector_rank`, `lexical_rank`, RRF score, and BigQuery's verbatim index-usage report | `embedding_multimodal` column; element / layout source / bbox source badges per candidate; `element_types`, `layout_sources`, `amendment_candidates` counts |
-| `rerank` | — | Discovery Engine Ranking API over all candidates: RRF rank → rerank rank, scores, truncated records, billed counts, cost; an API error fails the stage (no fallback ranker) | same, with element badges joined per row |
-| `synthesize` | prompt with top-5 chunks, selected model, prompt/output/thinking tokens from the provider's usage block | same, with `[doc · section · page]` context labels | `authority_headers` (e.g. `[AMENDMENT 0001 · effective … · SUPERSEDES SEC-4.2]`), ordered latest amendment first; `element_mix`; diagram transcription shown in the citation drawer |
-| `evaluate` | judge model (must differ from synthesis), groundedness / QA relevance / context precision, rationale, judge tokens and cost | — | — |
+| Stage | Level 1 | Level 2 adds | Level 3 adds | Level 4 (`level4_agentic`) |
+| :-- | :-- | :-- | :-- | :-- |
+| `query_prep` | original & prepared query | 16-acronym expansion + diff | `element_intent` + matched keywords | same as Level 3 |
+| `embed_query` | `gemini-embedding-2` 3072-d, tokens | — | multimodal space | runs inside `search_procurement_corpus` tool calls |
+| `retrieve` | parameterized `VECTOR_SEARCH` SQL, scores, `job_id`, bytes, cache hit | hybrid RRF top-50 (`vector_rank`, `lexical_rank`, index usage) | `embedding_multimodal`, element / layout / bbox badges | runs inside `search_procurement_corpus` + `check_amendments` tools |
+| `rerank` | — | Discovery Engine Ranking API before/after ranks & cost | element badges joined per row | runs inside `search_procurement_corpus` (`reranker_used`) |
+| `agent_turn` | — | — | — | live ADK `model_turn` / `tool_call` / `tool_result` stream (`turn_count`, `tool_call_count`, `tools_used`, calculator expression/result, `verify_citations` before/after repair counts) |
+| `synthesize` | prompt + top-5 chunks, model, tokens | `[doc · section · page]` labels | `authority_headers` (latest amendment first), `element_mix` | final ADK response (`source: "adk_final_response"`), aggregated agent + tool tokens & cost, citations ordered by authority |
+| `evaluate` | judge model (≠ synthesis), G / QA / CP, rationale, tokens & cost | — | — | — |
 
 Also in the UI:
 
@@ -215,25 +222,24 @@ Other billable services (details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
-## Results so far (Levels 1–3)
+## Results so far (Levels 1–4)
 
 Each level ran the 8 golden questions live (`DEMO_MODE=record`) with two (synthesis, judge) pairs: **Argon** =
-`gemini-4-argon` + `claude-opus-5-5`, **Flash** = `gemini-3.8-flash` + `claude-opus-5-5`. G / QA / CP =
+`gemini-4-argon` + `claude-opus-5-5`, **Flash** = `gemini-3.8-flash` + `claude-opus-5-5` (Level 4 Flash has 7/8 recorded: `q_sla_credit_calculation` timed out at 120 s across 6 live attempts when single Flash turns stalled 46–110 s, so it is left unrecorded and returns `ReplayUnavailableError` in replay). G / QA / CP =
 groundedness / QA relevance / context precision from the LLM judge (0–1); latency = engine run without the
-judge; run cost = engine + judge, mean per question (total for the 8 in brackets).
+judge; run cost = engine + judge, mean per question (total in brackets).
 
 | Level | Argon G / QA / CP | Argon latency | Argon run cost (total) | Flash G / QA / CP | Flash latency | Flash run cost (total) |
 | :-- | :-: | --: | --: | :-: | --: | --: |
 | 1 · naive | 0.956 / 0.693 / 0.715 | 24.6 s | $0.0354 ($0.283) | 0.934 / 0.672 / 0.715 | 14.9 s | $0.0229 ($0.183) |
 | 2 · hybrid + rerank | 0.971 / 0.838 / 0.644 | 28.6 s | $0.0471 ($0.377) | 0.984 / 0.855 / 0.637 | 13.8 s | $0.0309 ($0.247) |
 | 3 · multimodal | 0.932 / 0.825 / 0.694 | 26.7 s | $0.0428 ($0.342) | 0.963 / 0.825 / 0.704 | 18.4 s | $0.0271 ($0.217) |
+| 4 · agentic (ADK) | 0.929 / 0.981 / 0.637 | 47.2 s | $0.1183 ($0.946) | 0.984 / 0.973 / 0.750 *(7/8)* | 44.0 s | $0.0477 ($0.334) |
 
-Level 2 lifts QA relevance on amendment and table questions, but its reranker pulled CUAD agreements into the
-top 5 on three questions (lower CP); Level 3 recovers most of that precision. Remaining weak spots:
-`q_soc_p1_response_matrix` (QA 0.55) and cross-solicitation cost math (QA 0.35 / 0.25) — Level 4's job.
-These are single runs scored by one judge, so treat differences of a few hundredths as noise. Per-question
-scores, SQL, prompts, judge rationales and provenance headers are in [`data/recordings/`](data/recordings/)
-(one JSON per level / pair / question; BigQuery result-cache hits show 0 bytes processed).
+Level 2 lifts QA relevance on amendment and table questions, and Level 3 recovers context precision on tables and
+diagrams. Level 4 closes the multi-hop and arithmetic gaps (`q_soc_p1_response_matrix` QA 0.55 → 1.00,
+`q_cross_solicitation_total_cost` QA 0.35 → 1.00 with exact `$2,765,500.00` via `calculate_contract_pricing`) at ~1.7× latency and ~2.8× Argon cost.
+Per-question scores, SQL, tool traces, prompts, judge rationales and provenance headers are in [`data/recordings/`](data/recordings/).
 
 ---
 
@@ -257,7 +263,7 @@ cd frontend && npm install && npm run dev
 
 Open `http://localhost:5173`, pick a level, a golden question and a recorded pair (`gemini-4-argon` or
 `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run; events replay with their recorded timing and
-ad-hoc questions return `engine_error`. Levels 1–3 are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
+ad-hoc questions return `engine_error`. Levels 1–4 are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
 
 ### (b) Live on your own GCP project
 
@@ -313,6 +319,7 @@ Run stream frames are `data: {json}\n\n`, bounded by `MAX_SSE_FRAMES` (600):
 | `run_started` | `run_id`, `engines[]`, `demo_mode`, `question_id` |
 | `stage_started` | `engine`, `stage`, `label`, `service`, `request` |
 | `stage_completed` | `engine`, `stage`, `duration_ms`, `payload` |
+| `agent_turn` | `engine`, `turn_index`, `kind` (`model_turn`\|`tool_call`\|`tool_result`), `tool_name`, `tool_args`, `tool_result_summary`, `duration_ms`, `tokens`, `repair` |
 | `stage_failed` / `stage_skipped` | `error_type`, `error` / `reason` |
 | `answer_complete` | `answer`, `citations[]`, `latency_ms`, `cost_usd`, `usage`, `flags` |
 | `eval_complete` | `metrics`, `judge_model`, `reference_answer_used`, `duration_ms`, judge tokens & cost |
@@ -331,13 +338,14 @@ Ingestion streams emit `job_started`, `stage_started|completed|failed`, `doc_pro
 backend/app/
   api/          routes.py (REST + SSE forwarder), documents.py, query_runs.py
   core/         config, telemetry (StageEmitter), models_catalog, pricing, ranking, architectures, …
-  engines/      level1_naive, level2_hybrid, level3_multimodal, common_stages, synthesis, replay_engine;
-                level4 / managed_vertex not enabled; parked/
+  engines/      level1_naive, level2_hybrid, level3_multimodal, level4_agentic, agent_runtime, agent_tools,
+                agent_calculator, agent_verify, agent_ledger, common_stages, synthesis, replay_engine;
+                managed_vertex not enabled; parked/
   evaluation/   judges, evaluator, scoring
   ingestion/    jobs, live_backends, parsers, bq_indexer, documentai_client, layout_documentai,
                 vision_transcribe, multimodal, multimodal_job, …
   recording/    recorder, store, codec, redaction
-backend/tests/  24 offline test modules + shared fakes
+backend/tests/  25 offline test modules + shared fakes
 frontend/src/   app, pages, features/{levels,ingest}, components, lib, theme, styles, types
 data/           sample_docs/procurement_corpus (45 PDFs), golden_benchmarks, model_verification.json,
                 recordings/<engine>/<synthesis>__<judge>/<question_id>.json
@@ -353,12 +361,12 @@ infra/main.tf   Terraform (APIs, bucket, dataset, table, Layout Parser processor
 ## Testing
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 208 passed (2026-10-22)
-cd frontend && npm test                                 # node test runner suites
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 221 passed (2026-10-22)
+cd frontend && npm test                                 # 102 node test runner checks
 cd frontend && npm run build                            # tsc + vite build
 ```
 
-Backend tests are offline (fakes for Vertex AI, BigQuery and Document AI) and include the principle guards: no
+Backend tests are offline (fakes for Vertex AI, BigQuery, Document AI and Google ADK) and include the principle guards: no
 timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synthesis, and the public-docs leak scan.
 
 ## Security & leak hygiene
@@ -376,22 +384,16 @@ timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synth
 | 1 | Level 1 Naive Vector RAG | ✅ live |
 | 2 | Level 2 BigQuery Hybrid RRF + Discovery Engine Ranking API (rerank before/after scores) | ✅ live |
 | 3 | Level 3 Document AI Layout Parser + Gemini vision, multimodal embeddings, authority headers | ✅ live |
-| 4 | Level 4 real Google ADK runner with tools over real data — **next** | 🔒 planned |
-| 5 | Managed Vertex AI Search baseline | 🔒 planned |
+| 4 | Level 4 real Google ADK runner with retrieval, amendment, pricing and citation-check tools | ✅ live |
+| 5 | Managed Vertex AI Search baseline — **next** | 🔒 planned |
 | 6 | Compare page, leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
 
 ## Data & license
 
-- **Generated procurement corpus**: 18 interconnected solicitation documents across 3 solicitations (cloud
-  infrastructure, data analytics platform, cybersecurity operations) built by
-  `scripts/build_procurement_corpus.py`; fictional, for benchmarking only.
-- **CUAD**: 27 commercial agreements (maintenance, hosting, development, license, outsourcing) from the
-  [Contract Understanding Atticus Dataset (CUAD) v1](https://zenodo.org/records/4595826) by The Atticus
-  Project, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); fetched by
-  `scripts/download_procurement_corpus.sh` and included as the original CUAD PDFs.
+- **Generated procurement corpus**: 18 interconnected solicitation PDFs across 3 solicitations (`scripts/build_procurement_corpus.py`; fictional, for benchmarking only).
+- **CUAD**: 27 commercial agreements from the [Contract Understanding Atticus Dataset (CUAD) v1](https://zenodo.org/records/4595826) by The Atticus Project ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), fetched by `scripts/download_procurement_corpus.sh`.
 - **Golden benchmark**: 8 questions across 4 failure modes in `data/golden_benchmarks/procurement_benchmark.json`.
 
 ## Acknowledgements
 
-Built on Google Cloud (Vertex AI, BigQuery, Cloud Storage), Anthropic Claude models on Vertex AI, PyMuPDF,
-Starlette, React, Vite and Tailwind CSS. Contract data from The Atticus Project's CUAD.
+Built on Google Cloud (Vertex AI, BigQuery, Cloud Storage, Discovery Engine, Document AI, Google ADK), Anthropic Claude models on Vertex AI, PyMuPDF, Starlette, React, Vite and Tailwind CSS. Contract data from The Atticus Project's CUAD.

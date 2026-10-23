@@ -51,7 +51,7 @@ export type JsonObject = Record<string, unknown>;
 // Architecture descriptor (spec §7.2.1) — design metadata only
 // ---------------------------------------------------------------------------
 
-export type ArchNodeKind = "actor" | "model" | "store" | "api" | "compute" | "index";
+export type ArchNodeKind = "actor" | "model" | "store" | "api" | "compute" | "index" | "agent" | "process";
 
 export interface ArchNode {
   readonly id: string;
@@ -63,6 +63,8 @@ export interface ArchNode {
   readonly stage_ids: readonly string[];
   readonly region?: string;
   readonly code_ref?: string;
+  /** Level 4: ADK tools this node represents; it lights up while one of their tool calls is open. */
+  readonly tool_names?: readonly string[];
 }
 
 export interface ArchEdge {
@@ -357,14 +359,26 @@ export interface StageSkippedEvent extends BaseEvent {
   readonly reason: string;
 }
 
-export interface AgentTurnEvent extends BaseEvent {
+/**
+ * Level 4: one ADK event, forwarded the moment it happens. `kind` splits a model turn, a tool call and its result;
+ * legacy frames without `kind` (spec §6.3) describe one finished tool call. All fields beyond the base are optional.
+ */
+export interface AgentTurnEvent extends BaseEvent, ReplayMarkers {
   readonly event: "agent_turn";
   readonly engine: string;
-  readonly turn_index: number;
-  readonly tool_name: string;
-  readonly tool_args: JsonObject;
-  readonly tool_result_summary: string;
-  readonly duration_ms: number;
+  readonly turn_index?: number;
+  readonly kind?: "model" | "tool_call" | "tool_result";
+  readonly tool_name?: string | null;
+  readonly tool_args?: JsonObject | string | null;
+  readonly tool_result_summary?: string | null;
+  /** Structured tool result (e.g. calculator value, verify_citations claims) when the backend sends it. */
+  readonly tool_result?: JsonObject | null;
+  readonly duration_ms?: number | null;
+  readonly tokens?: number | JsonObject | null;
+  readonly call_id?: string | null;
+  readonly repair?: boolean;
+  readonly status?: string | null;
+  readonly text_preview?: string | null;
 }
 
 export interface AnswerCompleteEvent extends BaseEvent {
@@ -556,12 +570,29 @@ export interface StageState {
   readonly skipReason: string | null;
 }
 
+/** "tool" = legacy combined call + result in one frame. */
+export type AgentTurnKind = "model" | "tool_call" | "tool_result" | "tool";
+
+/** One normalised `agent_turn` frame (see `agentTimelineModel.normalizeAgentTurn`); null = not sent. */
 export interface AgentTurnRecord {
-  readonly turnIndex: number;
-  readonly toolName: string;
-  readonly toolArgs: JsonObject;
-  readonly resultSummary: string;
-  readonly durationMs: number;
+  /** Arrival index — the only ordering the timeline uses. */
+  readonly seq: number;
+  readonly turnIndex: number | null;
+  readonly kind: AgentTurnKind;
+  readonly toolName: string | null;
+  readonly toolArgs: JsonObject | null;
+  /** Raw `tool_args` text when it was a string that is not a complete JSON object (e.g. truncated at 1200 chars). */
+  readonly toolArgsText: string | null;
+  readonly resultSummary: string | null;
+  readonly result: JsonObject | null;
+  readonly durationMs: number | null;
+  readonly tokens: { readonly total: number | null; readonly prompt: number | null; readonly output: number | null; readonly thinking: number | null } | null;
+  readonly callId: string | null;
+  readonly repair: boolean;
+  /** Model text preview (`text_preview`). */
+  readonly text: string | null;
+  /** tool_result `status` ("ok" | "error") when reported. */
+  readonly status: string | null;
   readonly ts: string;
 }
 

@@ -37,7 +37,7 @@ from app.evaluation.judges import (
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
 _MAX_QUERY_CHARS = 4000
-_MAX_CONTEXT_CHUNKS = 6
+_MAX_CONTEXT_CHUNKS = 24  # Levels 1–3 pass top-5; Level 4 passes every tool-returned chunk (deduped, ≤ 24)
 _MAX_CHUNK_CHARS = 2400
 _MAX_BENCHMARK_QUESTIONS = 200
 

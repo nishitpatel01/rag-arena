@@ -5,7 +5,6 @@
  */
 
 import type {
-  AgentTurnRecord,
   BattleEvent,
   EngineTimeline,
   IngestEvent,
@@ -14,6 +13,7 @@ import type {
   StreamInterruptedEvent,
 } from "../../types/arena";
 import { parseTs } from "../../lib/format";
+import { MAX_AGENT_TURNS, normalizeAgentTurn } from "./agentTimelineModel";
 
 export type TimelineEvent = BattleEvent | IngestEvent | StreamInterruptedEvent;
 
@@ -199,14 +199,8 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
     }
     case "agent_turn": {
       const tl = getTimeline(base, ev.engine);
-      const turn: AgentTurnRecord = {
-        turnIndex: ev.turn_index,
-        toolName: ev.tool_name,
-        toolArgs: ev.tool_args ?? {},
-        resultSummary: ev.tool_result_summary,
-        durationMs: ev.duration_ms,
-        ts: ev.ts,
-      };
+      if (tl.agentTurns.length >= MAX_AGENT_TURNS) return base;
+      const turn = normalizeAgentTurn(ev as unknown as Record<string, unknown>, tl.agentTurns.length);
       return withTimeline(base, { ...tl, agentTurns: [...tl.agentTurns, turn] });
     }
     case "answer_complete": {

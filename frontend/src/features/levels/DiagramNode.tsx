@@ -12,6 +12,8 @@ const KIND_GLYPH: Record<ArchNode["kind"], string> = {
   api: "⇄",
   compute: "⚙",
   index: "≡",
+  agent: "✦",
+  process: "⚙",
 };
 
 const STATUS_STYLE: Record<

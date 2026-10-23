@@ -1,6 +1,6 @@
 # The RAG Arena v3 — System Architecture
 
-This document describes the architecture **as implemented** with Levels 1–3 live. Anything not yet built is
+This document describes the architecture **as implemented** with Levels 1–4 live. Anything not yet built is
 marked 🔒 *planned*. The product rule behind every decision: **nothing is shown that was not measured**
 (principles P1–P6 in the [README](../README.md#why-v3-measured-not-simulated)).
 
@@ -20,6 +20,7 @@ flowchart LR
         L1["engines/level1_naive.py"]
         L2["engines/level2_hybrid.py"]
         L3["engines/level3_multimodal.py"]
+        L4["engines/level4_agentic.py<br/>+ agent_runtime / agent_tools"]
         RP["engines/replay_engine.py"]
         EV["evaluation/evaluator.py + judges.py"]
         IJ["ingestion/jobs.py<br/>IngestJobRunner"]
@@ -36,10 +37,11 @@ flowchart LR
     UI -- "POST /api/v1/battle/stream (SSE)" --> R
     UI -- "GET /api/v1/ingest/jobs/{id}/stream (SSE)" --> R
     UI -- "GET /api/v1/documents/*" --> D
-    R --> REG --> L1 & L2 & L3 & RP
+    R --> REG --> L1 & L2 & L3 & L4 & RP
     L1 --> VX & BQ
     L2 --> VX & BQ & RA
     L3 --> VX & BQ & RA
+    L4 --> VX & BQ & RA
     EV --> VX
     IJ --> VX & BQ & DA
     R --> REC --> FS
@@ -50,7 +52,7 @@ flowchart LR
 | Mode (`DEMO_MODE`) | Engines | Judge | Writes |
 | :-- | :-- | :-- | :-- |
 | `replay` (default) | `ReplayRAGEngine` per enabled level, streaming recorded events with original relative timing × `REPLAY_SPEED` | recorded judge outcome of the selected pair | nothing; no credentials needed |
-| `live` | real engines (Levels 1–3) | selected judge model, live | `query_runs` row per run; `ingest_runs` row per ingestion job |
+| `live` | real engines (Levels 1–4) | selected judge model, live | `query_runs` row per run; `ingest_runs` row per ingestion job |
 | `record` | `live` + recorder | live | `live` writes + `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` |
 
 Settings are validated once at startup (`core/config.py`); invalid configuration fails the process, and
@@ -193,6 +195,30 @@ multimodal tier needs its own table.
 
 ---
 
+## 3d. Level 4 query path (`engines/level4_agentic.py`, `agent_runtime.py`, `agent_tools.py`)
+
+Level 4 reuses the Level 3 `multimodal` tier in BigQuery (`document_chunks_v3`, no separate ingestion job) and runs a
+real Google ADK `LlmAgent` inside `InMemoryRunner` with a created session (`session_service.create_session`):
+
+| Stage | Service label | What runs | Payload (measured) |
+| :-- | :-- | :-- | :-- |
+| `query_prep` | Engine (local) | Level 3 acronym expansion + `element_intent` | `original_query`, `prepared_query`, `expansions[]`, `element_intent`, `intent_matches` |
+| `agent_turn` | Google ADK · Vertex AI · *selected Gemini model* | `InMemoryRunner.run_async` over `LlmAgent(model=Gemini(..., client_kwargs={vertexai:True, project, location}), tools=[...])`, bounded by `AGENT_MAX_TURNS` (8), `AGENT_MAX_TOOL_CALLS_PER_TURN` (8), `AGENT_TURN_TIMEOUT_SECONDS` (90); emits live `agent_turn` SSE events (`kind="model_turn"`, `"tool_call"`, `"tool_result"`) | `runner` (`google.adk.runners.InMemoryRunner`), `agent_name`, `session_id`, `model`, `turn_count`, `tool_call_count`, `tools_used[]`, `repair_turns_used`, `verify_citations_called`, `unsupported_claims_before`, `unsupported_claims_after`, `final_answer_check`, `prompt_tokens`, `output_tokens`, `thinking_tokens`, `embedding_tokens`, `rerank_billed_counts`, `rerank_cost_usd` |
+| `synthesize` | Google ADK · Vertex AI · *selected Gemini model* | Final ADK model response assembled with the tool ledger's retrieved chunks ordered by authority (latest amendment first) | `source` (`"adk_final_response"`), `model`, `provider`, `prompt_tokens`, `output_tokens`, `thinking_tokens`, `embedding_tokens`, `citations_count`, `authority_headers[]`, `element_mix`, `context_order[]`, `answer` |
+| `evaluate` | Vertex AI · *selected judge* | `evaluation/evaluator.py` over the union of chunks returned by `search_procurement_corpus` and `check_amendments` (`result.retrieved_chunks`) | as Levels 1–3 |
+
+Tools registered on the `LlmAgent`:
+- `search_procurement_corpus(query, solicitation_filter?, top_k=5)`: embeds with `gemini-embedding-2` (`RETRIEVAL_QUERY`), runs `build_hybrid_rrf_sql(..., embedding_column='embedding_multimodal', tier_profile='multimodal')` in BigQuery, and reranks via Discovery Engine Ranking API (`RankingClient.rank`). Records retrieved chunks, embedding tokens, and rerank billed counts/cost in `AgentLedger`.
+- `check_amendments(section_id, solicitation_id?)`: runs parameterized `build_amendment_lookup_sql` against `document_chunks_v3` (`tier_profile = 'multimodal'`, matching `amends_section` or `section_id` prefix, ordered by `amendment_number DESC, effective_date DESC`). All static `_AMENDMENT_LEDGER` constants are deleted.
+- `calculate_contract_pricing(expression, variables?)`: AST-validated arithmetic (`engines/agent_calculator.py`; only `Expression`, `BinOp`, `UnaryOp`, `Constant`, `Name` over `+ - * / // % **`, max 400 chars, max 64 AST nodes, max exponent 12; rejects calls/attributes/subscripts).
+- `verify_citations(draft_answer, cited_chunk_ids?)`: deterministic numeric/currency/percentage, `CLIN-*`, `SEC-*`, and `AMENDMENT NNNN` claim extractor (`engines/agent_verify.py`) checked against the ledger's retrieved chunks (`supported_claims`, `unsupported_claims`). If the agent finishes without calling `verify_citations` or leaves `unsupported_claims` non-empty, `agent_runtime.py` runs one bounded repair turn (`repair=true`) on the same ADK session.
+
+Model constraint: `google-adk`'s Claude adapter requires the undeclared `anthropic` package, so `level4_agentic`
+requires a `vertex_gemini` synthesis model (`gemini-4-argon` or `gemini-3.8-flash`); selecting an `anthropic_vertex`
+synthesis model on Level 4 returns HTTP 400 before streaming. Claude models remain selectable as the LLM judge.
+
+---
+
 ## 4. Model selection and evaluation
 
 - **Catalog** (`core/models_catalog.py`): `gemini-4-argon`, `gemini-3.8-flash` (provider `vertex_gemini`),
@@ -329,7 +355,6 @@ one node.
 
 | Item | Phase |
 | :-- | :-- |
-| Level 4 (next): real Google ADK runner, tools over real data, `agent_turn` events | 4 🔒 |
-| Level 5: Vertex AI Search data store baseline | 5 🔒 |
+| Level 5 (next): Vertex AI Search data store baseline | 5 🔒 |
 | Compare page; leaderboard from `query_runs`; updated `docker-compose.yml` | 6 🔒 |
 | Cloud Run: single multi-stage container serving API + SPA, least-privilege runtime service account with no key files, env-only config, IAP-protected live service, optional public replay service, Cloud Run Job for long ingestion | 6 🔒 |

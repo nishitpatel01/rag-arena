@@ -84,12 +84,21 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - Cost: ≈ $11.0 of the owner-approved $12 (first full pass aborted at ≈ $4.5 before the per-page vision fix).
   - D7 owner sign-off: ✅ 2026-10-22 (owner: "looks good"; UI tweaks deferred until all levels are done); Level 3 enabled by default.
 
-## Phase 4 — Level 4: Agentic RAG with Google ADK (`level4_agentic`)
-- [ ] Real ADK path: `InMemoryRunner` + `session_service.create_session`, `run_async`, Vertex env (`GOOGLE_GENAI_USE_VERTEXAI`, project, location); bounded `max_turns=8`, timeout; ADK events → `agent_turn` SSE as they happen; final ADK text is the answer.
-- [ ] Tools hit real data: `search_procurement_corpus` → Level 3 retrieval; `check_amendments` → BigQuery `amends_section` query (delete `_AMENDMENT_LEDGER`); `calculate_contract_pricing` AST-safe; `verify_citations` → claim/chunk check; unsupported claims trigger one bounded repair turn.
-- [ ] Delete procedural fallback and hardcoded `CLIN-0004-AB` default; failure → `stage_failed` + `engine_error`.
-- [ ] UI: `agent_turn` node expands into tool-call timeline (args, result summary, duration).
-- [ ] Record + replay; gate D1–D7 evidence: `…`
+## Phase 4 — Level 4: Agentic RAG with Google ADK (`level4_agentic`) — branch `phase-4/level4-agentic`
+- [x] Real ADK path: `InMemoryRunner` + `session_service.create_session`, `run_async`, Vertex per-agent `Gemini(..., client_kwargs={vertexai:True, project, location})`; bounded `AGENT_MAX_TURNS=8`, `AGENT_MAX_TOOL_CALLS_PER_TURN=8`, `AGENT_TURN_TIMEOUT_SECONDS=90`, `AGENT_THINKING_LEVEL=low`; ADK events → `agent_turn` SSE (`model_turn`, `tool_call`, `tool_result`) as they happen; final ADK text is the answer. (`2e651b9`, `ba6cc60`)
+- [x] Tools hit real data: `search_procurement_corpus` → Level 3 retrieval + Discovery Engine rerank; `check_amendments` → BigQuery parameterized `amends_section` / `section_id` query (`_AMENDMENT_LEDGER` deleted); `calculate_contract_pricing` AST-safe (`agent_calculator.py`); `verify_citations` → claim/chunk check (`agent_verify.py`); unsupported claims trigger one bounded repair turn (`repair=true`). (`2e651b9`)
+- [x] Delete procedural fallback and hardcoded `CLIN-0004-AB` default; failure → `stage_failed` + `engine_error`; Claude synthesis rejected on Level 4 with HTTP 400 (`google-adk` Claude adapter requires undeclared `anthropic` SDK). (`2e651b9`)
+- [x] UI: `agent_turn` node + 4 tool nodes (`search_procurement_corpus`, `check_amendments`, `calculate_contract_pricing`, `verify_citations`) in the live diagram, expanding tool-call timeline with per-turn tokens, calculator expression/result, and `verify_citations` claim diff. (`500749c`, `7643511`)
+- [x] Record + replay (`bac2e8e`); README Level 4 section with one screenshot (`20-level4.png`, `7643511`).
+- [x] Owner UI feedback 2026-10-23: resizable Question / Document viewer / Node details panes (drag + keyboard, persisted; middle column keeps ≥ 480 px). (`d5f0168`, `1d17618`)
+- [x] Gate evidence D1–D7:
+  - D1 ingestion: reuses Level 3 `multimodal` tier (`ing_02fecff2eb91`, `counts_by_tier.multimodal = 1599`: narrative 1520, table 76, diagram 3); `/api/v1/levels` maps `level4_agentic` to the `multimodal` tier count.
+  - D2 stage emission: `query_prep`, `agent_turn`, `synthesize`, `evaluate` emitted by the engine with measured `duration_ms`, plus live `agent_turn` SSE frames (`kind="model_turn"`, `"tool_call"`, `"tool_result"`) during `InMemoryRunner.run_async`.
+  - D3 live runs (Argon + Opus): `run_b95dfbc3942e` q_soc_p1_response_matrix 0.90 / 1.00 / 0.60 (L3 QA 0.55; 4 turns, 4 tool calls, 30.8 s, $0.0885); `run_1f925e8fa01d` q_cross_solicitation_total_cost 1.00 / 1.00 / 0.70 (L3 QA 0.35; 4 turns, 14 tool calls across all 4 tools, exact `$2,765,500.00`, 56.8 s, $0.1453); `run_846a7e4b3b55` q_amendment_rate_comparison 0.98 / 0.95 / 0.85 (4 turns, 7 tool calls, 50.8 s, $0.1145).
+  - D4 UI: replay of `q_cross_solicitation_total_cost` (`run_cf9d38ff6468`) — 10-node ADK architecture diagram + Node details timeline showing 4 turns · 14 tool calls · `calculate_contract_pricing` (`465500.0 + 1224000.0 + 576000.0 + 500000.0 = 2,765,500.00`) · `verify_citations` (`31 claims checked · 0 unsupported`) (`docs/screenshots/20-level4.png`, safe mode + identity guard).
+  - D5 recordings: 15 recordings in `data/recordings/level4_agentic/` — 8/8 for `gemini-4-argon__claude-opus-5-5` (avg G / QA / CP · latency · run cost: `0.929 / 0.981 / 0.637 · 47.2 s · $0.1183`, vs L3 `0.932 / 0.825 / 0.694 · 26.7 s · $0.0428`) and 7/8 for `gemini-3.8-flash__claude-opus-5-5` (`0.984 / 0.973 / 0.750 · 44.0 s · $0.0477`, vs L3 `0.963 / 0.825 / 0.704 · 18.4 s · $0.0271`; `Flash × q_sla_credit_calculation` timed out 6/6 live at 120 s due to single-turn Flash stalls of 46–110 s and is left unrecorded so replay returns `ReplayUnavailableError`). Actual Phase 4 spend ≈ $1.83 of the owner-approved $8.50 cap.
+  - D6 tests: backend `221 passed`; frontend `npm test` 108/108, `npm run build` clean.
+  - D7 owner sign-off: ✅ 2026-10-23 (owner reviewed live UI: "looks good"); Level 4 enabled by default (`DEFAULT_ENABLED_LEVELS`, `.env.example`).
 
 ## Phase 5 — Managed Vertex AI Search (`managed_vertex`)
 - [ ] Provision Discovery Engine data store from `gs://<bucket>/sample_docs/` and wait for import (bounded poll) in `bootstrap_gcp.sh` / `infra/main.tf`.

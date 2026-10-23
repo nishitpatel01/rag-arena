@@ -2,12 +2,12 @@
 
 Two ways to run it:
 
-1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–4
+1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–5
    runs. No Google Cloud account, no credentials, no network calls to GCP.
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-**Levels 1–4** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic`; override in `.env` or the environment). Level 5, the Compare page and the Cloud
+**Levels 1–4** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic`; override in `.env` or the environment). Level 5 (`managed_vertex`) is enabled by adding it to `ENABLED_LEVELS` together with the `VAIS_*` keys. The Compare page and the Cloud
 Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 ---
@@ -89,6 +89,7 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `MODEL_LOCATION_<ID>` | `MODEL_LOCATION_CLAUDE_OPUS_5_5=global` | optional per-model endpoint override |
 | `DOCAI_LOCATION` / `DOCAI_PROCESSOR_ID` | `us` / short id printed by `scripts/provision_documentai.py` | Level 3 Layout Parser processor (never the full resource name) |
 | `DOCAI_PROCESSOR_VERSION` | `pretrained-layout-parser-v1.5-2025-08-25` | release candidate; returns table structure but no bounding boxes (empty = processor default) |
+| `VAIS_LOCATION` / `VAIS_DATA_STORE_ID` / `VAIS_ENGINE_ID` | `global` / `rag-arena-procurement` / `rag-arena-procurement-search` | Level 5 Vertex AI Search ids printed by `scripts/provision_vertex_search.py` (short ids only) |
 | `DOCAI_TIMEOUT_SECONDS` / `VISION_MODEL` | `120` / `gemini-4-argon` | Layout Parser request bound; Gemini model that transcribes diagram pages |
 
 ### 3.2 Authenticate
@@ -179,7 +180,8 @@ cd frontend && npm run dev
    checks the `multimodal` tier count). Requires `google-adk` (included in `backend/requirements.txt`) and a Gemini
    synthesis model (`gemini-4-argon` or `gemini-3.8-flash`); selecting a Claude model as the Level 4 agent model
    returns HTTP 400 because `google-adk`'s Claude adapter requires the undeclared `anthropic` SDK.
-7. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
+7. **Level 5 (`managed_vertex`)**: run `PYTHONPATH=backend .venv/bin/python scripts/provision_vertex_search.py` once (creates the data store with the default digital parser and an Enterprise search app with the LLM add-on; Vertex AI Search pricing: $4 / 1,000 queries + $4 / 1,000 generative answers), set the `VAIS_*` keys, then run the Level 5 ingestion job from `/ingest` (syncs changed PDFs to `gs://$GCS_CORPUS_BUCKET/sample_docs/`, imports them, and waits for the import operation — ≈ 6 minutes for 45 PDFs, with zero progress counts for the first few minutes). Pick synthesis model `vertex-ai-search-summary` for the managed summary, or any catalog model to generate over the extractive segments.
+8. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
    `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted.
 
 ---

@@ -4,7 +4,7 @@ import { Play, Square } from "lucide-react";
 import type { BenchmarkQuestion } from "../../types/arena";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
-import { validateQueryInput } from "../../lib/validation";
+import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN, validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
 import type { RunGate } from "../ingest/ingestStatus";
 import { ModelPicker } from "./ModelPicker";
@@ -21,8 +21,6 @@ export interface QuestionPickerProps {
   readonly onAbort: () => void;
   readonly models: ModelCatalogState;
 }
-
-const QUESTION_ID_PATTERN = /^[A-Za-z0-9_.-]{0,80}$/;
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 placeholder:text-ink-3";
 
@@ -67,7 +65,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
   };
 
   const validation = validateQueryInput(query, [levelId]);
-  const idError = QUESTION_ID_PATTERN.test(questionId) ? null : "question_id may contain only letters, digits, `_ . -` (max 80).";
+  const idError = QUESTION_ID_PATTERN.test(questionId) ? null : QUESTION_ID_ERROR;
   const { catalog, selection } = models;
   const modelError = catalog && selection ? validateSelection(catalog, selection, levelId) : null;
   // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.

@@ -435,6 +435,20 @@ export interface EvalCompleteEvent extends BaseEvent {
   readonly judge_cost_usd?: number;
   readonly run_cost_usd?: number;
   readonly rationale?: string;
+  /** Battle Score 0–100 computed by the server (scoring.battle_score) at emit time; absent on older servers. */
+  readonly battle_score?: number;
+  readonly score_breakdown?: ScoreBreakdown;
+}
+
+/** `scoring.ScoreBreakdown.to_dict()` — the measured inputs of the Battle Score (cost = engine + judge). */
+export interface ScoreBreakdown {
+  readonly battle_score: number;
+  readonly efficiency: number;
+  readonly qa_relevance: number;
+  readonly groundedness: number;
+  readonly context_precision: number;
+  readonly latency_ms: number;
+  readonly cost_usd: number;
 }
 
 export interface EngineErrorEvent extends BaseEvent {
@@ -640,6 +654,9 @@ export interface EngineEvaluation {
   readonly judgeCostUsd?: number | null;
   readonly runCostUsd?: number | null;
   readonly rationale?: string | null;
+  /** Server-emitted Battle Score (null when the server did not send a valid one — never computed client-side). */
+  readonly battleScore?: number | null;
+  readonly scoreBreakdown?: ScoreBreakdown | null;
 }
 
 export interface EngineTimeline {

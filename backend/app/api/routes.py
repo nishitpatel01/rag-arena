@@ -39,7 +39,7 @@ from app.core.telemetry import QueueStageEmitter, utc_now_iso
 from app.engines import BaseRAGEngine, get_engine_registry, list_levels
 from app.engines.replay_engine import ReplayUnavailableError, recording_store_for
 from app.evaluation.evaluator import run_evaluation
-from app.evaluation.scoring import leaderboard_from_recordings
+from app.evaluation.scoring import battle_score, leaderboard_from_recordings
 from app.ingestion.jobs import IngestJobRunner
 from app.ingestion.parsers import parse_pdf_Fallback_or_fitz
 from app.ingestion.session_store import store_uploaded_session_chunks
@@ -129,13 +129,21 @@ def _answer_complete_event(run_id: str, result: EngineResult) -> dict[str, Any]:
 
 
 def _eval_complete_event(run_id: str, result: EngineResult, outcome: EvalOutcome) -> dict[str, Any]:
-    """``eval_complete`` with the judge outcome; ``run_cost_usd`` = engine cost + judge cost (both measured)."""
+    """``eval_complete`` with the judge outcome; ``run_cost_usd`` = engine cost + judge cost (both measured).
+
+    ``battle_score`` + ``score_breakdown`` are computed here (live, record AND replay) with ``scoring.battle_score``
+    from the judge metrics, the engine latency and the run cost — the leaderboard's inputs; recordings never store it.
+    """
+    total_cost = run_cost_usd(result, outcome)
+    breakdown = battle_score(outcome.metrics, int(result.latency_ms), total_cost).to_dict()
     return {
         "event": "eval_complete",
         "run_id": run_id,
         "engine": result.engine_id,
         **eval_outcome_to_dict(outcome),
-        "run_cost_usd": run_cost_usd(result, outcome),
+        "run_cost_usd": total_cost,
+        "battle_score": breakdown["battle_score"],
+        "score_breakdown": breakdown,
         "ts": utc_now_iso(),
     }
 

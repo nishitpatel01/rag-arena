@@ -2,7 +2,8 @@ import type { RouteObject } from "react-router-dom";
 import { IngestPage } from "../features/ingest/IngestPage";
 import { LevelPage } from "../features/levels/LevelPage";
 import { OverviewPage } from "../pages/OverviewPage";
-import { ComparePage, LeaderboardPage } from "../pages/PlaceholderPages";
+import { ComparePage } from "../features/compare/ComparePage";
+import { LeaderboardPage } from "../pages/PlaceholderPages";
 import { EmptyState } from "../components/ui/EmptyState";
 
 export const routes: RouteObject[] = [

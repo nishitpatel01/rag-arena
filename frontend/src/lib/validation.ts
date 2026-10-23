@@ -2,6 +2,9 @@
 
 export const MAX_QUERY_CHARS = 4000;
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+/** `question_id` (recording key in replay, reference-answer key for the judge): empty = ad-hoc. */
+export const QUESTION_ID_PATTERN = /^[A-Za-z0-9_.-]{0,80}$/;
+export const QUESTION_ID_ERROR = "question_id may contain only letters, digits, `_ . -` (max 80).";
 
 export function validateQueryInput(query: string, engines: readonly string[]): string | null {
   if (typeof query !== "string" || query.trim().length === 0) {

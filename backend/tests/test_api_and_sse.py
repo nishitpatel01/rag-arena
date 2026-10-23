@@ -12,7 +12,8 @@ from starlette.testclient import TestClient
 
 from app.api.routes import _stream_battle_events
 from app.core.config import ArenaSettings
-from app.core.models import EngineResult
+from app.core.models import EngineResult, EvalMetrics
+from app.evaluation.scoring import battle_score
 from app.engines import get_engine_registry
 from app.engines.base import BaseRAGEngine
 from app.main import create_app
@@ -87,6 +88,14 @@ def test_replay_battle_stream_forwards_recorded_stage_events_in_v3_envelope() ->
     assert set(evaluated["metrics"]) == {"groundedness", "qa_relevance", "context_precision"}
     assert evaluated["judge_model"] == "claude-opus-5-5" and evaluated["reference_answer_used"] is False
     assert isinstance(evaluated["duration_ms"], int)
+    # Battle Score is computed at emit time with scoring.battle_score from the replayed metrics, the engine's
+    # latency and the run cost (engine + judge) — the same inputs the leaderboard uses; never stored in recordings.
+    expected = battle_score(
+        EvalMetrics(**evaluated["metrics"]), answer["latency_ms"], answer["cost_usd"] + evaluated["judge_cost_usd"]
+    ).to_dict()
+    assert evaluated["battle_score"] == expected["battle_score"]
+    assert evaluated["score_breakdown"] == expected
+    assert evaluated["score_breakdown"]["cost_usd"] == evaluated["run_cost_usd"]
     assert kinds.index("answer_complete") < kinds.index("eval_complete") < kinds.index("battle_complete")
     assert events[-1] == {"event": "battle_complete", "run_id": run_id, "engines_completed": ["level1_naive"], "engines_failed": [], "ts": events[-1]["ts"]}
     assert "pipeline_stage" not in kinds and "battlefield_summary" not in kinds

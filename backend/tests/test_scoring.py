@@ -23,12 +23,20 @@ def test_battle_score_weights_sum_to_one_and_scale_to_100() -> None:
     assert sum(SCORE_WEIGHTS.values()) == pytest.approx(1.0)
     perfect = battle_score(EvalMetrics(1.0, 1.0, 1.0), latency_ms=0, cost_usd=0.0)
     assert perfect.battle_score == 100.0 and perfect.efficiency == 1.0
-    zero = battle_score(EvalMetrics(0.0, 0.0, 0.0), latency_ms=10_000, cost_usd=1.0)
+    zero = battle_score(EvalMetrics(0.0, 0.0, 0.0), latency_ms=120_000, cost_usd=1.0)
     assert zero.battle_score == 0.0 and zero.efficiency == 0.0
-    mid = battle_score(EvalMetrics(groundedness=0.8, qa_relevance=0.6, context_precision=0.5), latency_ms=2500, cost_usd=0.0)
+    mid = battle_score(EvalMetrics(groundedness=0.8, qa_relevance=0.6, context_precision=0.5), latency_ms=30_000, cost_usd=0.0)
     expected = (0.6 * 0.40 + 0.8 * 0.35 + 0.5 * 0.15 + 0.75 * 0.10) * 100
     assert mid.battle_score == pytest.approx(round(expected, 1))
-    assert efficiency_score(2500, 0.0) == 0.75
+    assert efficiency_score(30_000, 0.0) == 0.75
+
+
+def test_efficiency_references_separate_real_runs() -> None:
+    # Owner decision 2026-10-23: 60 s / $0.20 references so measured runs (15–57 s, $0.03–0.13) are not all 0.
+    assert efficiency_score(0, 0.10) == 0.75
+    assert efficiency_score(3_500, 0.0326) == pytest.approx(0.889, abs=0.001)  # Level 5 managed summary
+    assert efficiency_score(56_800, 0.1333) == pytest.approx(0.193, abs=0.001)  # Level 4 agent
+    assert efficiency_score(3_500, 0.0326) > efficiency_score(43_400, 0.06) > efficiency_score(56_800, 0.1333) > 0.0
     with pytest.raises(ValueError):
         efficiency_score(-1, 0.0)
 

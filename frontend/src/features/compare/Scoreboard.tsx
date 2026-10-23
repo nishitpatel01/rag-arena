@@ -49,7 +49,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ rows, labelFor }) => (
   <div className="flex flex-col gap-2">
     <DataTable caption="Compare scoreboard: one row per level" columns={columns(labelFor)} rows={rows} rowKey={(r) => r.engine} emptyText="No levels in this run." />
     <p className="text-xs text-ink-3">
-      Battle Score (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 5 s, run cost vs $0.01),
+      Battle Score (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20),
       computed by the server from this run's judge metrics, latency and run cost (engine + judge). Failed levels are never scored or ranked.
     </p>
   </div>

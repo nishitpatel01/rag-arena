@@ -19,8 +19,8 @@ SCORE_WEIGHTS: dict[str, float] = {
     "context_precision": 0.15,
     "efficiency": 0.10,
 }
-_LATENCY_REFERENCE_MS = 5000.0
-_COST_REFERENCE_USD = 0.01
+_LATENCY_REFERENCE_MS = 60_000.0  # owner decision 2026-10-23: real runs take 15–57 s
+_COST_REFERENCE_USD = 0.20  # owner decision 2026-10-23: real runs cost $0.03–0.13
 _LOW_METRIC_THRESHOLD = 0.6
 _MAX_DIAGNOSTICS = 8
 

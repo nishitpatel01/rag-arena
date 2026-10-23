@@ -283,7 +283,7 @@ upload_gcs` (md5 diff, prefix-restricted, no deletes) `→ import_documents` (IN
   (+ the rank call at Level 2);
   judge cost from the judge's measured input/output tokens; run cost = engine + judge (`api/query_runs.py`).
 - **Battle Score** (`evaluation/scoring.py`, used by the leaderboard): 40% QA relevance + 35% groundedness +
-  15% context precision + 10% efficiency (latency vs. 5 s, cost vs. $0.01), scaled to 0–100. Leaderboard rows
+  15% context precision + 10% efficiency (latency vs. 60 s, cost vs. $0.20 per run), scaled to 0–100. Leaderboard rows
   are grouped per (engine, synthesis model, judge model) and never averaged across judges.
 
 ---

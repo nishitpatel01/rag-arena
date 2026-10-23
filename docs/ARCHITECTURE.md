@@ -2,7 +2,24 @@
 
 This document describes the architecture **as implemented** with Levels 1–5 live. Anything not yet built is
 marked 🔒 *planned*. The product rule behind every decision: **nothing is shown that was not measured**
-(principles P1–P6 in the [README](../README.md#why-v3-measured-not-simulated)).
+(principles P1–P6 in [§0](#0-design-principles-v3)).
+
+---
+
+## 0. Design principles (v3)
+
+v2 shipped seven engines, but an audit ([`audits/2026-10-20-v2-authenticity-audit.md`](audits/2026-10-20-v2-authenticity-audit.md))
+found timer-driven stage events, silent fallbacks to local files, a Python-scripted "agent" trace and hardcoded
+evaluation scores. v3 rebuilds the product around six rules:
+
+| # | Principle | How it is enforced in the code |
+| :-- | :-- | :-- |
+| P1 | **Measured, not simulated** — every stage event is emitted inside the engine when the stage starts/ends, with a backend-measured `duration_ms`. | `core/telemetry.py` (`StageEmitter`); `routes.py` only forwards events — `test_routes_no_timers.py` guards it. |
+| P2 | **Fail loud** — no silent fallback or impersonation; a failed stage emits `stage_failed`, then `engine_error`. | `test_no_silent_fallbacks.py` (AST scan of `engines/**`). |
+| P3 | **No hardcoded scores** — live metrics come only from the LLM judge; replay metrics come from recordings of real live runs. | `EngineResult` has no `eval_metrics`; recordings carry a provenance header. |
+| P4 | **One level at a time** — `ENABLED_LEVELS` gates the registry, navigation and Compare. | `core/config.py`; locked levels render a "Locked" card. |
+| P5 | **Honest labels** — a stage is labelled with the service that actually ran. | `stage_started.service`, `EngineFlags` (`reranker_used`, `adk_runner_used`, `layout_source`). |
+| P6 | **Zero-credential replay** — `DEMO_MODE=replay` streams recorded events with their original timing. | `engines/replay_engine.py`; ad-hoc questions in replay return `engine_error`, never an improvised answer. |
 
 ---
 
@@ -52,7 +69,7 @@ flowchart LR
 | Mode (`DEMO_MODE`) | Engines | Judge | Writes |
 | :-- | :-- | :-- | :-- |
 | `replay` (default) | `ReplayRAGEngine` per enabled level, streaming recorded events with original relative timing × `REPLAY_SPEED` | recorded judge outcome of the selected pair | nothing; no credentials needed |
-| `live` | real engines (Levels 1–4) | selected judge model, live | `query_runs` row per run; `ingest_runs` row per ingestion job |
+| `live` | real engines (Levels 1–5) | selected judge model, live | `query_runs` row per run; `ingest_runs` row per ingestion job |
 | `record` | `live` + recorder | live | `live` writes + `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` |
 
 Settings are validated once at startup (`core/config.py`); invalid configuration fails the process, and
@@ -92,9 +109,17 @@ contains no stage pacing.
 
 ### 2.3 SSE protocol
 
-`POST /api/v1/battle/stream` → `data: {json}\n\n` frames, bounded by `MAX_SSE_FRAMES` (default 600). Events
-and fields are listed in the [README](../README.md#api--sse-protocol). Ingestion jobs stream `job_started`,
+`POST /api/v1/battle/stream` → `data: {json}\n\n` frames, bounded by `MAX_SSE_FRAMES` (default 600). Ingestion jobs stream `job_started`,
 `stage_*`, `doc_progress`, `embed_progress`, `job_complete` on `GET /api/v1/ingest/jobs/{job_id}/stream`.
+
+| Event | Key fields |
+| :-- | :-- |
+| `run_started` | `run_id`, `engines[]`, `demo_mode`, `question_id` |
+| `stage_started` / `stage_completed` | `engine`, `stage`, `label`, `service`, `request` / `duration_ms`, `payload` |
+| `agent_turn` | `turn_index`, `kind` (`model_turn`\|`tool_call`\|`tool_result`), `tool_name`, `tool_args`, `duration_ms`, `tokens`, `repair` |
+| `stage_failed` / `stage_skipped` | `error_type`, `error` / `reason` |
+| `answer_complete` · `eval_complete` | `answer`, `citations[]`, `latency_ms`, `cost_usd`, `flags` · `metrics`, `judge_model`, judge tokens & cost |
+| `engine_error` · `stream_warning` · `battle_complete` | `error_type`, `failed_stage` · `message` · `engines_completed[]`, `engines_failed[]` |
 
 ---
 
@@ -245,6 +270,24 @@ upload_gcs` (md5 diff, prefix-restricted, no deletes) `→ import_documents` (IN
 
 ---
 
+## 3f. What each stage shows (UI)
+
+Every value is read from the stage event payloads the engine emits (recordings store them verbatim).
+
+| Stage | Level 1 | Level 2 adds | Level 3 adds | Level 4 |
+| :-- | :-- | :-- | :-- | :-- |
+| `query_prep` | original & prepared query | 16-acronym expansion + diff | `element_intent` + matched keywords | same as Level 3 |
+| `embed_query` | `gemini-embedding-2` 3072-d, tokens | — | multimodal space | inside `search_procurement_corpus` |
+| `retrieve` | parameterized `VECTOR_SEARCH` SQL, scores, `job_id`, bytes, cache hit | hybrid RRF top-50 (`vector_rank`, `lexical_rank`, index usage) | element / layout / bbox badges | inside the search + amendment tools |
+| `rerank` | — | ranking API before/after ranks & cost | element badges per row | inside `search_procurement_corpus` |
+| `agent_turn` | — | — | — | live ADK model turns, tool calls/results, calculator, `verify_citations` counts |
+| `synthesize` | prompt + top-5 chunks, model, tokens | `[doc · section · page]` labels | authority headers, `element_mix` | final ADK response, agent + tool tokens & cost |
+| `evaluate` | judge (≠ synthesis), G / QA / CP, rationale, tokens & cost | — | — | — |
+
+Citations open a drawer with the real PDF page (PyMuPDF) and the excerpt located on it — or say it couldn't be found.
+
+---
+
 ## 4. Model selection and evaluation
 
 - **Catalog** (`core/models_catalog.py`): `gemini-4-argon`, `gemini-3.8-flash` (provider `vertex_gemini`),
@@ -274,6 +317,15 @@ upload_gcs` (md5 diff, prefix-restricted, no deletes) `→ import_documents` (IN
 - **Price notes** (`pricing.py`): Gemini 4 Argon is an introductory global rate through 2026-11-30; Gemini 3.8
   Flash is introductory through 2026-12-31 ($1.50 / $7.50 from 2027-01-01); output rates include thinking tokens;
   Claude Opus 5.5 is the global rate for ≤ 200K input tokens; Claude Fable 5.1 regional endpoints are $11 / $55.
+- **Other billable services**:
+
+| Other billable service | Used by | Price (source, as of) |
+| :-- | :-- | :-- |
+| `gemini-embedding-2` | all levels | $0.20 / 1M input tokens (`pricing.py`, 2026-10-20) |
+| Vertex AI ranking API | Levels 2–4 | $1.00 / 1,000 counts; 1 count = 1 query of ≤ 100 docs (`pricing.py`, 2026-10-21) |
+| Vertex AI Search (Enterprise + LLM add-on) | Level 5 | $4 / 1,000 queries + $4 / 1,000 generative answers (`pricing.py`, 2026-10-23) |
+| Document AI Layout Parser | Level 3 ingestion | $10 / 1,000 pages (`multimodal_job.py`, 2026-10-22) |
+
 - **Judge** (`evaluation/judges.py`): strict parse of one JSON object
   `{groundedness, qa_relevance, context_precision, rationale}` with values in [0, 1]. QA relevance is graded
   against the golden `ground_truth_answer` when the run has a known `question_id`. Claude judges are called
@@ -372,14 +424,13 @@ one node.
 - `components/` — UI primitives, `DocumentDrawer` / `PageCanvas` / `DocumentViewer` for citations.
 - `theme/`, `styles/tokens.css` — light / dark / system theme with CSS-variable design tokens.
 - `lib/sse.ts` — bounded SSE reader; `lib/safeMode.ts` — masking of project id, bucket and project number.
-- `/compare` is a placeholder until two levels pass their Definition of Done; `/leaderboard` renders
-  `GET /api/v1/leaderboard`.
+- `features/compare/` — `/compare`: concurrent multi-level run, stacked rails, side-by-side answers, Battle Score
+  scoreboard; `/leaderboard` renders `GET /api/v1/leaderboard` (live `query_runs` or recordings).
 
 ---
 
-## 10. Planned (not implemented)
+## 10. Status
 
-| Item | Phase |
-| :-- | :-- |
-| Compare page; leaderboard from `query_runs`; updated `docker-compose.yml` | 6 🔒 |
-| Cloud Run: single multi-stage container serving API + SPA, least-privilege runtime service account with no key files, env-only config, IAP-protected live service, optional public replay service, Cloud Run Job for long ingestion | 6 🔒 |
+Compare, Leaderboard from `query_runs`, the v3 `docker-compose.yml` and the configurable Cloud Run deployment
+(single multi-stage container, least-privilege service account, IAP-protected live service, optional public replay
+service) are implemented (Phase 6). Open: owner UI changes. Vector Search 2.0 / AlloyDB ScaNN engines stay parked.

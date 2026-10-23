@@ -1,31 +1,20 @@
+# The RAG Arena v3 — one container (root Dockerfile): Starlette serves the built SPA + /api on :8080.
+#   docker compose up --build        → replay mode (plays data/recordings; no credentials, no cloud calls)
+#   open http://localhost:8080
+# Live mode needs Google credentials inside the container; run the app locally instead (README Quickstart)
+# or deploy to Cloud Run with scripts/deploy_cloudrun.sh.
 services:
-  backend:
+  arena:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
-      - DEMO_MODE=${DEMO_MODE:-replay}
-      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
-      - GCP_LOCATION=${GCP_LOCATION:-us-central1}
-      - BQ_DATASET=${BQ_DATASET:-rag_arena}
-      - BQ_TABLE=${BQ_TABLE:-document_chunks}
-      - GEMINI_FAST_MODEL=${GEMINI_FAST_MODEL:-gemini-4-argon}
-      - GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL:-gemini-4-argon}
-      - GEMINI_THINKING_LEVEL=${GEMINI_THINKING_LEVEL:-high}
-      - TEXT_EMBEDDING_MODEL=${TEXT_EMBEDDING_MODEL:-gemini-embedding-2}
-      - MULTIMODAL_EMBEDDING_MODEL=${MULTIMODAL_EMBEDDING_MODEL:-gemini-embedding-2}
-    volumes:
-      - ./data:/workspace/data:ro
-
-  frontend:
-    image: node:20-alpine
-    working_dir: /workspace/frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/workspace/frontend
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
-    depends_on:
-      - backend
+      - DEMO_MODE=replay
+      - ALLOW_DEV_FIXTURES=0
+      - REPLAY_SPEED=${REPLAY_SPEED:-1.0}
+      - ENABLED_LEVELS=${ENABLED_LEVELS:-level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex}
+    read_only: true
+    tmpfs:
+      - /tmp

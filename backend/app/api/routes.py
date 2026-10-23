@@ -304,15 +304,16 @@ async def _stream_battle_events(
 
 
 async def health_endpoint(request: Request) -> JSONResponse:
-    """GET /api/v1/health: runtime health, mode, project/bucket (frontend never hardcodes them), models, levels."""
+    """GET /api/v1/health: runtime health, mode, project/bucket (empty in replay; frontend never hardcodes them), models, levels."""
     settings = _settings_of(request)
     return JSONResponse(
         {
             "status": "ok",
             "app_version": settings.app_version,
             "demo_mode": settings.demo_mode,
-            "project_id": settings.gcp_project_id,
-            "gcs_bucket": settings.gcs_corpus_bucket,
+            # Replay (incl. the public Cloud Run copy) never reveals the owner's project or bucket.
+            "project_id": "" if settings.demo_mode == "replay" else settings.gcp_project_id,
+            "gcs_bucket": "" if settings.demo_mode == "replay" else settings.gcs_corpus_bucket,
             "enabled_levels": list(settings.enabled_levels),
             "replay_speed": settings.replay_speed,
             "gemini_fast_model": settings.gemini_fast_model,

@@ -33,3 +33,7 @@ dist/
 scratch/
 *.sse.txt
 .env.*.local
+
+# Cloud Run deploy config (identity values; copy deploy/cloudrun.env.example)
+deploy/cloudrun.env
+deploy/*.env

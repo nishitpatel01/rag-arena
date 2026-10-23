@@ -3,7 +3,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.30.0"
+      version = ">= 6.30.0"
+    }
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = ">= 6.30.0"
     }
   }
 }
@@ -56,6 +60,11 @@ variable "vais_engine_id" {
 }
 
 provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+provider "google-beta" {
   project = var.project_id
   region  = var.region
 }
@@ -191,4 +200,256 @@ output "vais_data_store_id" {
 output "vais_engine_id" {
   description = "Short engine id for VAIS_ENGINE_ID"
   value       = google_discovery_engine_search_engine.procurement.engine_id
+}
+
+# =====================================================================================================================
+# Phase 6: Cloud Run deployment (parity with scripts/deploy_cloudrun.sh — the script is the SUPPORTED, tested path;
+# this block is provided for Terraform users and has not been applied by the project). Build and push the image first
+# (`gcloud builds submit --tag <var.image>`), then `terraform apply -var image=... -var 'iap_members=["user:you@x.com"]'`.
+# Direct Cloud Run IAP (`iap_enabled`) needs a recent provider (hashicorp/google >= 6.x); if your provider rejects
+# `iap_enabled`, deploy with the script instead.
+# =====================================================================================================================
+
+variable "service_name" {
+  description = "Live Cloud Run service name"
+  type        = string
+  default     = "rag-arena"
+}
+
+variable "image" {
+  description = "Container image built from the root Dockerfile (<region>-docker.pkg.dev/<project>/<repo>/rag-arena:<tag>); empty = skip Cloud Run resources"
+  type        = string
+  default     = ""
+}
+
+variable "artifact_repo" {
+  description = "Artifact Registry docker repository for the image"
+  type        = string
+  default     = "rag-arena"
+}
+
+variable "access_mode" {
+  description = "iap (Identity-Aware Proxy allowlist, recommended) or public (anyone can start billed live runs)"
+  type        = string
+  default     = "iap"
+  validation {
+    condition     = contains(["iap", "public"], var.access_mode)
+    error_message = "access_mode must be iap or public."
+  }
+}
+
+variable "iap_members" {
+  description = "Principals allowed through IAP (user:EMAIL, group:EMAIL, serviceAccount:EMAIL, domain:DOMAIN)"
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = alltrue([for m in var.iap_members : can(regex("^(user|group|serviceAccount|domain):", m))])
+    error_message = "iap_members entries must start with user:, group:, serviceAccount: or domain:."
+  }
+}
+
+variable "deploy_replay" {
+  description = "Also deploy a public, role-less replay-only copy (DEMO_MODE=replay)"
+  type        = bool
+  default     = true
+}
+
+variable "live_ingest" {
+  description = "Grant write roles so the live service can run ingestion jobs (documents:import + bucket object writes)"
+  type        = bool
+  default     = true
+}
+
+variable "live_env" {
+  description = "App settings for the live service (same keys as .env; DEMO_MODE/GCP_PROJECT_ID are set automatically)"
+  type        = map(string)
+  default     = {}
+}
+
+locals {
+  deploy_cloud_run = var.image != ""
+  live_sa_roles = toset(concat(
+    ["roles/aiplatform.user", "roles/bigquery.jobUser", "roles/documentai.apiUser"],
+    [var.live_ingest ? "roles/discoveryengine.editor" : "roles/discoveryengine.viewer"],
+  ))
+  live_env = merge(var.live_env, {
+    DEMO_MODE          = "live"
+    GCP_PROJECT_ID     = var.project_id
+    ALLOW_DEV_FIXTURES = "0"
+  })
+}
+
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
+resource "google_project_service" "cloud_run_apis" {
+  for_each           = local.deploy_cloud_run ? toset(["run.googleapis.com", "artifactregistry.googleapis.com", "cloudbuild.googleapis.com", "iap.googleapis.com"]) : toset([])
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+
+resource "google_artifact_registry_repository" "rag_arena" {
+  count         = local.deploy_cloud_run ? 1 : 0
+  location      = var.region
+  repository_id = var.artifact_repo
+  format        = "DOCKER"
+  description   = "The RAG Arena images"
+  depends_on    = [google_project_service.cloud_run_apis]
+}
+
+resource "google_service_account" "live" {
+  count        = local.deploy_cloud_run ? 1 : 0
+  account_id   = "rag-arena-run"
+  display_name = "RAG Arena live runtime"
+}
+
+resource "google_project_iam_member" "live" {
+  for_each = local.deploy_cloud_run ? local.live_sa_roles : toset([])
+  project  = var.project_id
+  role     = each.value
+  member   = "serviceAccount:${google_service_account.live[0].email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "live_editor" {
+  count      = local.deploy_cloud_run ? 1 : 0
+  dataset_id = google_bigquery_dataset.rag_arena.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.live[0].email}"
+}
+
+resource "google_storage_bucket_iam_member" "live_corpus" {
+  count  = local.deploy_cloud_run ? 1 : 0
+  bucket = google_storage_bucket.corpus_bucket.name
+  role   = var.live_ingest ? "roles/storage.objectUser" : "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.live[0].email}"
+}
+
+resource "google_cloud_run_v2_service" "live" {
+  count               = local.deploy_cloud_run ? 1 : 0
+  name                = var.service_name
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
+  iap_enabled         = var.access_mode == "iap"
+
+  template {
+    service_account                  = google_service_account.live[0].email
+    timeout                          = "900s"
+    max_instance_request_concurrency = 20
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 2
+    }
+    containers {
+      image = var.image
+      ports {
+        container_port = 8080
+      }
+      resources {
+        limits = { cpu = "1", memory = "2Gi" }
+      }
+      dynamic "env" {
+        for_each = local.live_env
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+    }
+  }
+  depends_on = [google_project_service.cloud_run_apis]
+}
+
+resource "google_project_service_identity" "iap_agent" {
+  provider = google-beta
+  count    = local.deploy_cloud_run && var.access_mode == "iap" ? 1 : 0
+  project  = var.project_id
+  service  = "iap.googleapis.com"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "iap_agent_invoker" {
+  count    = local.deploy_cloud_run && var.access_mode == "iap" ? 1 : 0
+  name     = google_cloud_run_v2_service.live[0].name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-iap.iam.gserviceaccount.com"
+}
+
+resource "google_iap_web_cloud_run_service_iam_member" "allowlist" {
+  for_each               = local.deploy_cloud_run && var.access_mode == "iap" ? toset(var.iap_members) : toset([])
+  project                = var.project_id
+  location               = var.region
+  cloud_run_service_name = google_cloud_run_v2_service.live[0].name
+  role                   = "roles/iap.httpsResourceAccessor"
+  member                 = each.value
+}
+
+resource "google_cloud_run_v2_service_iam_member" "live_public" {
+  count    = local.deploy_cloud_run && var.access_mode == "public" ? 1 : 0
+  name     = google_cloud_run_v2_service.live[0].name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+resource "google_service_account" "replay" {
+  count        = local.deploy_cloud_run && var.deploy_replay ? 1 : 0
+  account_id   = "rag-arena-replay"
+  display_name = "RAG Arena replay (no roles)"
+}
+
+resource "google_cloud_run_v2_service" "replay" {
+  count               = local.deploy_cloud_run && var.deploy_replay ? 1 : 0
+  name                = "${var.service_name}-replay"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
+
+  template {
+    service_account                  = google_service_account.replay[0].email
+    timeout                          = "300s"
+    max_instance_request_concurrency = 40
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 3
+    }
+    containers {
+      image = var.image
+      ports {
+        container_port = 8080
+      }
+      resources {
+        limits = { cpu = "1", memory = "1Gi" }
+      }
+      env {
+        name  = "DEMO_MODE"
+        value = "replay"
+      }
+      env {
+        name  = "ALLOW_DEV_FIXTURES"
+        value = "0"
+      }
+    }
+  }
+  depends_on = [google_project_service.cloud_run_apis]
+}
+
+resource "google_cloud_run_v2_service_iam_member" "replay_public" {
+  count    = local.deploy_cloud_run && var.deploy_replay ? 1 : 0
+  name     = google_cloud_run_v2_service.replay[0].name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+output "live_service_url" {
+  description = "Live service URL (contains the project number; do not commit)"
+  value       = local.deploy_cloud_run ? google_cloud_run_v2_service.live[0].uri : ""
+}
+
+output "replay_service_url" {
+  description = "Public replay service URL"
+  value       = local.deploy_cloud_run && var.deploy_replay ? google_cloud_run_v2_service.replay[0].uri : ""
 }

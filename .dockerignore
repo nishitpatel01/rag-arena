@@ -1,0 +1,54 @@
+# Build context for the root Dockerfile (Cloud Run image). Secrets, local state and build outputs never enter the image.
+# Keep in sync with .gcloudignore (what `gcloud builds submit` uploads).
+
+# Secrets & local identity
+.env
+.env.*
+deploy/*.env
+*.pem
+*.key
+*credentials*.json
+
+# VCS, editors, local state
+.git
+.github
+.gitignore
+.DS_Store
+**/.DS_Store
+scratch
+brain
+reviews
+docs/superpowers
+
+# Python / Node build state
+.venv
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+.coverage
+htmlcov
+**/node_modules
+frontend/dist
+frontend/.vite
+dist
+
+# Infra state
+.terraform
+**/.terraform
+*.tfstate
+*.tfstate.*
+
+# Not needed at runtime
+*.sse.txt
+backend/tests
+frontend/tests
+docs
+infra
+scripts
+deploy
+spec.md
+task.md
+publish.json
+docker-compose.yml
+pytest.ini

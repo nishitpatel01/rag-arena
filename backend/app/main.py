@@ -8,10 +8,8 @@ from pathlib import Path
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.routing import Mount
-from starlette.staticfiles import StaticFiles
-
 from app.api.documents import get_document_routes
+from app.api.spa import resolve_static_dir, spa_routes
 from app.api.routes import get_api_routes
 from app.core.config import ArenaSettings, get_settings
 from app.api.query_runs import QueryRunWriter
@@ -54,10 +52,9 @@ def create_app(
         raise RuntimeError("API route table must not be empty")
     routes.extend(get_document_routes())
 
-    if _FRONTEND_DIST.is_dir() and (_FRONTEND_DIST / "index.html").is_file():
-        routes.append(
-            Mount("/", app=StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")
-        )
+    static_dir = resolve_static_dir(resolved.static_dir, _FRONTEND_DIST)
+    if static_dir is not None:
+        routes.extend(spa_routes(static_dir))  # after every API route: /api/** misses → 404 JSON, client routes → index.html
 
     middleware = [
         Middleware(

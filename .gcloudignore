@@ -1,0 +1,54 @@
+# Files `gcloud builds submit` must NOT upload (mirrors .dockerignore; without this file gcloud falls back to .gitignore).
+.gcloudignore
+
+# Secrets & local identity
+.env
+.env.*
+deploy/*.env
+*.pem
+*.key
+*credentials*.json
+
+# VCS, editors, local state
+.git
+.github
+.gitignore
+.DS_Store
+**/.DS_Store
+scratch
+brain
+reviews
+docs/superpowers
+
+# Python / Node build state
+.venv
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+.coverage
+htmlcov
+**/node_modules
+frontend/dist
+frontend/.vite
+dist
+
+# Infra state
+.terraform
+**/.terraform
+*.tfstate
+*.tfstate.*
+
+# Not needed at runtime
+*.sse.txt
+backend/tests
+frontend/tests
+docs
+infra
+scripts
+deploy
+spec.md
+task.md
+publish.json
+docker-compose.yml
+pytest.ini

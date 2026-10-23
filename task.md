@@ -116,12 +116,14 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - D7 owner sign-off: ✅ 2026-10-23 (owner: "level 5 signed off"); Level 5 enabled by default (`DEFAULT_ENABLED_LEVELS`, `.env.example`).
 
 ## Phase 6 — Compare, Leaderboard, Public Packaging
-- [ ] Owner UI changes (requested 2026-10-22, details to be provided once all levels are done).
-- [ ] `/compare`: concurrent run of enabled levels, stacked stage rails, Battle Score from `query_runs`.
-- [ ] `/leaderboard`: aggregated from `query_runs` (live) or recordings (replay); provenance shown per row; delete hand-typed `precomputed_runs.json` metrics.
-- [ ] README rewrite (v3 claims only), `publish.json` scrub check, `docker compose up` in replay.
-- [ ] **Cloud Run deployment (spec §8.1)**: root multi-stage `Dockerfile` (SPA build + Uvicorn serving `/api` and static SPA with route fallback); runtime service account with least-privilege IAM (no key files); `deploy/cloudrun.env.example` + git-ignored `deploy/cloudrun.env`; `infra/main.tf` Cloud Run v2 service + Artifact Registry + IAP; `scripts/deploy_cloudrun.sh`; optional Cloud Run Job for long ingestion. Gate: IAP-protected URL, live run + ingestion job succeed from the deployed UI, image leak scan clean.
-- [ ] Decide fate of parked `vertex_vector_v2` / `alloydb_scann` (re-enable one at a time under the same gate, or remove).
+- [ ] Owner UI changes (requested 2026-10-22; owner will provide later — deferred past Phase 6 PR).
+- [x] `/compare`: one question, selected levels run concurrently in one SSE stream, stacked stage rails, side-by-side answers + citations, server-computed Battle Score scoreboard (`d87eadb`); efficiency references recalibrated to 60 s / $0.20 per run with owner approval (`108b98d`).
+- [x] Owner UI feedback 2026-10-23: per-page run sessions survive navigation with Reset / Stop & reset (`049d7a6`); level pages show the newest run that included them, Compare or own, with question/models and Clear (`dc098ed`).
+- [x] `/leaderboard`: aggregated from `query_runs` (live) or recordings (replay); provenance shown per row; hand-typed `precomputed_runs.json` deleted (`5678375`). Live read: 143 query_runs rows, 23.8 KB processed; pre-model-column rows isolated as `unknown` pair.
+- [x] README v3 (Compare + Leaderboard + Cloud Run sections, one screenshot per level), `publish.json` scrub + leak scan clean (internal proxy hostnames now forbidden; GitHub history left as-is per owner, option A). `docker compose up` updated to the v3 image but untested (no Docker on the dev machine).
+- [x] **Cloud Run deployment (spec §8.1)**: root multi-stage `Dockerfile` (SPA build + Uvicorn serving `/api` and static SPA with route fallback); runtime service account with least-privilege IAM (no key files); `deploy/cloudrun.env.example` + git-ignored `deploy/cloudrun.env`; `infra/main.tf` Cloud Run v2 service + Artifact Registry + IAP; `scripts/deploy_cloudrun.sh`; optional Cloud Run Job for long ingestion. Gate: IAP-protected URL, live run + ingestion job succeed from the deployed UI, image leak scan clean.
+  - Progress 2026-10-23 (`6f742a4`, `d1a873e`): configurable deploy (`deploy/cloudrun.env.example`, `scripts/deploy_cloudrun.sh`, teardown, Terraform parity, v3 compose); owner setup deployed in us-central1 — live service behind IAP (owner only; unauthenticated → IAP 302), public replay copy (health identity empty; replayed L4 run streamed 82 s); served-content leak scan clean. Redeploy `aa4d20a` fixed Level 4 on Cloud Run (image had resolved google-adk 1.14.1 → now public-PyPI lock with 2.12.0; thinking via BuiltInPlanner). Gate ✅ 2026-10-23: owner signed in, live run (incl. Level 4) and ingestion job succeeded from the deployed UI (owner: "both look good").
+- [x] Parked `vertex_vector_v2` / `alloydb_scann`: owner decided keep parked (2026-10-23); code only, excluded from the registry, no GCP resources → $0/month.
 
 ---
 

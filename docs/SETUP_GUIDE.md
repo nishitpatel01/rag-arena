@@ -212,3 +212,30 @@ and `.env.example` for internal terms and for the identity values in your local 
 | Level 2 `retrieve` shows search index `UNUSED` | BigQuery reports "The search index cannot be used when a vector search index is used." for the combined VECTOR_SEARCH + SEARCH() statement; the lexical leg still runs without the index. |
 | Recorded `retrieve` shows 0 bytes processed | BigQuery result-cache hit (`cache_hit: true`); ask a question not run recently to see a real scan. |
 | `/api/v1/ingest/status` is slow on first load | It runs live BigQuery `COUNT(*)` and `INFORMATION_SCHEMA` queries. |
+
+---
+
+## 6. Cloud Run
+
+Prerequisites: the project is bootstrapped (BigQuery dataset, corpus bucket, Document AI processor, Vertex AI Search
+app) and you can enable APIs, create service accounts, grant IAM, run Cloud Build and deploy Cloud Run (Owner, or
+`run.admin` + `iam.serviceAccountAdmin` + `resourcemanager.projectIamAdmin` + `cloudbuild.builds.editor` +
+`artifactregistry.admin` + `iap.admin`).
+
+1. `cp deploy/cloudrun.env.example deploy/cloudrun.env` (git-ignored) and set `GCP_PROJECT_ID`, `GCS_CORPUS_BUCKET`,
+   `DOCAI_PROCESSOR_ID`, `VAIS_*` (same values as `.env`), `REGION`, `ACCESS_MODE` (`iap` | `public`), `IAP_MEMBERS`,
+   `DEPLOY_REPLAY` and `LIVE_INGEST`.
+2. `scripts/deploy_cloudrun.sh --dry-run`, then `--yes`. It enables the APIs, creates the Artifact Registry repo, builds
+   with Cloud Build, creates the service accounts (live: `aiplatform.user`, `bigquery.jobUser`, WRITER on the dataset
+   only, `documentai.apiUser`, `discoveryengine.editor|viewer`, `storage.objectUser|objectViewer` on the corpus bucket
+   only; replay: no roles), deploys the services and prints the URLs.
+3. IAP: open the live URL and sign in with an allowlisted account; others get a 403 from IAP. Removing a member is
+   manual: `gcloud iap web remove-iam-policy-binding --resource-type=cloud-run …`.
+
+Notes: requests time out after `TIMEOUT` (default 900 s) and an ingestion job must finish within it
+(`INGEST_JOB_TIMEOUT_SECONDS=840`), otherwise run ingestion locally. The first request after idle takes ~30 s (cold
+start). If your organization enforces domain-restricted sharing (`iam.allowedPolicyMemberDomains`), the replay copy's
+`allUsers` binding is rejected: set `DEPLOY_REPLAY=false` or put it behind IAP. If your npm points at a private
+registry, keep `frontend/package-lock.json` resolving from `https://registry.npmjs.org` (a test enforces it) — Cloud
+Build cannot reach private registries. Local single-container replay: `docker compose up --build` →
+`http://localhost:8080`.

@@ -80,7 +80,7 @@ def test_frontend_sources_avoid_unsafe_execution_and_hardcoded_project_ids() -> 
 
 
 def test_infra_docker_and_bootstrap_artifacts_exist() -> None:
-    """Verify scripts/bootstrap_gcp.sh, infra/main.tf, backend/Dockerfile, and docker-compose.yml exist and are valid."""
+    """Verify scripts/bootstrap_gcp.sh, infra/main.tf, the root Dockerfile, and docker-compose.yml exist and are valid."""
     bootstrap_path = PROJECT_ROOT / "scripts" / "bootstrap_gcp.sh"
     assert bootstrap_path.exists(), "Missing scripts/bootstrap_gcp.sh"
     assert os.access(bootstrap_path, os.X_OK), "scripts/bootstrap_gcp.sh must be executable"
@@ -116,18 +116,19 @@ def test_infra_docker_and_bootstrap_artifacts_exist() -> None:
     assert "bbox_json" not in tf_text
     assert "text_embedding" not in tf_text
 
-    dockerfile_path = PROJECT_ROOT / "backend" / "Dockerfile"
-    assert dockerfile_path.exists(), "Missing backend/Dockerfile"
+    dockerfile_path = PROJECT_ROOT / "Dockerfile"  # v3 single image (SPA + API); the pre-v3 backend/Dockerfile is gone
+    assert dockerfile_path.exists(), "Missing root Dockerfile"
+    assert not (PROJECT_ROOT / "backend" / "Dockerfile").exists(), "stale pre-v3 backend/Dockerfile must not return"
     dockerfile_text = dockerfile_path.read_text(encoding="utf-8")
-    assert "8000" in dockerfile_text
+    assert "8080" in dockerfile_text
     assert "app.main:app" in dockerfile_text
 
     compose_path = PROJECT_ROOT / "docker-compose.yml"
     assert compose_path.exists(), "Missing docker-compose.yml"
     compose_text = compose_path.read_text(encoding="utf-8")
-    assert "8000" in compose_text
-    assert "5173" in compose_text
-    assert "DEMO_MODE" in compose_text
+    assert "8080:8080" in compose_text
+    assert "dockerfile: Dockerfile" in compose_text
+    assert "DEMO_MODE=replay" in compose_text
 
 
 def test_mirror_and_scrub_pipeline_exports_clean_bundle() -> None:

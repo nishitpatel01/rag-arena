@@ -1,28 +1,37 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play, Square } from "lucide-react";
+import { Play, RotateCcw, Square } from "lucide-react";
 import type { BenchmarkQuestion } from "../../types/arena";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
-import { validateQueryInput } from "../../lib/validation";
+import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN, validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
 import type { RunGate } from "../ingest/ingestStatus";
 import { ModelPicker } from "./ModelPicker";
 import { isMockRequested } from "./useBattleStream";
 import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
 import type { ModelCatalogState } from "./useModelCatalog";
+import { useQuestionFields, type QuestionOverride } from "./useQuestionFields";
 
 export interface QuestionPickerProps {
   readonly levelId: string;
+  /** Page session holding the question fields, so they survive navigation. */
+  readonly sessionKey: string;
   readonly gate: RunGate;
   readonly isStreaming: boolean;
   /** `models` is null when the catalog is unavailable (pre-picker backend): server defaults apply. */
   readonly onRun: (query: string, questionId: string | null, models: ModelSelection | null) => void;
   readonly onAbort: () => void;
+  /** Stops any run and clears the page's results, selections and question fields. */
+  readonly onReset: () => void;
+  /** True when the page's results / selections hold something besides the question fields. */
+  readonly hasResults: boolean;
   readonly models: ModelCatalogState;
+  /** Question of a viewed Compare run: shown in the form until the user edits it. */
+  readonly viewing?: QuestionOverride | null;
+  /** "clear" while a Compare run is shown: the button only hides it on this page. */
+  readonly resetMode?: "reset" | "clear";
 }
-
-const QUESTION_ID_PATTERN = /^[A-Za-z0-9_.-]{0,80}$/;
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 placeholder:text-ink-3";
 
@@ -30,13 +39,13 @@ const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.
  * Golden-question select + editable question + explicit `question_id` (the recording key in replay
  * mode, the reference-answer key for the judge). Run is gated by validation and the ingest gate.
  */
-export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, isStreaming, onRun, onAbort, models }) => {
+export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, sessionKey, gate, isStreaming, onRun, onAbort, onReset, hasResults, models, viewing = null, resetMode = "reset" }) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = useSafeMode();
-  const [selectedId, setSelectedId] = useState<string>("");
-  const [questionId, setQuestionId] = useState<string>("");
-  const [query, setQuery] = useState<string>("");
+  const goldenIds = useMemo(() => questions.map((q) => q.question_id), [questions]);
+  const { selectedId, setSelectedId, questionId, setQuestionId, query, setQuery } = useQuestionFields(sessionKey, viewing, goldenIds);
+  const canReset = hasResults || selectedId !== "" || questionId !== "" || query !== "";
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +76,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
   };
 
   const validation = validateQueryInput(query, [levelId]);
-  const idError = QUESTION_ID_PATTERN.test(questionId) ? null : "question_id may contain only letters, digits, `_ . -` (max 80).";
+  const idError = QUESTION_ID_PATTERN.test(questionId) ? null : QUESTION_ID_ERROR;
   const { catalog, selection } = models;
   const modelError = catalog && selection ? validateSelection(catalog, selection, levelId) : null;
   // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.
@@ -134,6 +143,11 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
         {isStreaming && (
           <Button variant="danger" onClick={onAbort} leadingIcon={<Square className="h-3.5 w-3.5" aria-hidden />}>Stop</Button>
         )}
+        <Button variant="ghost" onClick={onReset} disabled={!canReset} data-testid="reset-page"
+          title={resetMode === "clear" ? "Hide the Compare run on this page (Compare keeps it)" : "Clear this page's results, selections and question (models are kept)"}
+          leadingIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}>
+          {resetMode === "clear" ? "Clear" : isStreaming ? "Stop & reset" : "Reset"}
+        </Button>
       </div>
     </form>
   );

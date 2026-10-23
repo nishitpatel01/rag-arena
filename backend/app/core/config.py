@@ -163,6 +163,7 @@ class ArenaSettings:
     allow_dev_fixtures: bool = False
     recordings_dir: str = ""
     app_version: str = "3.0.0"
+    static_dir: str = ""  # built SPA served with history fallback (container: /app/frontend/dist); empty = frontend/dist if built
     judge_provider: str = DEFAULT_JUDGE_PROVIDER
     judge_model: str = DEFAULT_JUDGE_MODEL
     judge_location: str = DEFAULT_JUDGE_LOCATION
@@ -483,6 +484,7 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         allow_dev_fixtures=_parse_bool(source.get("ALLOW_DEV_FIXTURES", "0")),
         recordings_dir=source.get("RECORDINGS_DIR", "").strip(),
         app_version=source.get("APP_VERSION", "3.0.0").strip() or "3.0.0",
+        static_dir=source.get("STATIC_DIR", "").strip(),
         hybrid_candidate_k=_parse_int(source.get("HYBRID_CANDIDATE_K", str(DEFAULT_HYBRID_CANDIDATE_K)), "HYBRID_CANDIDATE_K"),
         rerank_top_n=_parse_int(source.get("RERANK_TOP_N", str(DEFAULT_RERANK_TOP_N)), "RERANK_TOP_N"),
         ranking_timeout_seconds=_parse_int(

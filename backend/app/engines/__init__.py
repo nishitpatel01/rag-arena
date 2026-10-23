@@ -84,6 +84,11 @@ def get_engine_registry(
     }
 
 
+def engine_labels() -> dict[str, str]:
+    """``{level_id: engine_label}`` for all five levels (static class metadata; no settings or clients)."""
+    return {level_id: _ENGINE_CLASS_BY_ID[level_id].engine_label for level_id in ALL_LEVEL_IDS}
+
+
 def list_levels(settings: ArenaSettings | None = None) -> list[dict[str, Any]]:
     """Metadata for all five levels (``GET /api/v1/levels``): enabled flag, stages, architecture descriptor."""
     resolved = _resolve(settings)
@@ -116,6 +121,7 @@ __all__ = [
     "ReplayRAGEngine",
     "build_engine",
     "build_vector_search_sql",
+    "engine_labels",
     "expand_procurement_acronyms",
     "format_chunk_with_authority_header",
     "get_engine_registry",

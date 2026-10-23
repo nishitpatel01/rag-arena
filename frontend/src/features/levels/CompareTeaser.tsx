@@ -42,7 +42,7 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
 
   useEffect(() => {
     let cancelled = false;
-    api.leaderboard().then(
+    api.leaderboard({ source: "recordings" }).then(
       (res) => !cancelled && setLeaderboard(res),
       (err: unknown) => !cancelled && setError(err instanceof Error ? err.message : String(err))
     );
@@ -63,7 +63,6 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
   const pairKnown = Boolean(synthesisModel && judgeModel);
   const withRow = entries.filter((e) => e.view.row !== null);
   const missing = entries.filter((e) => e.view.row === null);
-  const syntheticNotes = entries.filter((e) => e.view.syntheticRuns > 0);
   const pairText = `synthesis ${labelFor(synthesisModel) ?? "—"} · judge ${labelFor(judgeModel) ?? "—"}`;
   const title = teaserTitle(lowerLevels);
 
@@ -122,11 +121,6 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
             {pair.substituted ? " The Vertex AI Search summary has no equivalent on Levels 1–4, so their columns use the default synthesis model with the same judge." : ""}
             {shownLeaderboard?.source ? ` Source: ${shownLeaderboard.source}.` : ""}
           </p>
-          {syntheticNotes.map((e) => (
-            <p key={e.level.engine} className="text-xs text-clay" role="status">
-              Caveat: the {e.level.short} row includes {e.view.syntheticRuns} provenance entr{e.view.syntheticRuns === 1 ? "y" : "ies"} flagged synthetic_dev_fixture.
-            </p>
-          ))}
         </>
       )}
       <div className="flex flex-wrap gap-3">

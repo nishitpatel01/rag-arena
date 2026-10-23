@@ -269,7 +269,7 @@ cd frontend && npm install && npm run dev
 
 Open `http://localhost:5173`, pick a level, a golden question and a recorded pair (`gemini-4-argon` or
 `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run; events replay with their recorded timing and
-ad-hoc questions return `engine_error`. All five levels are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
+ad-hoc questions return `engine_error`. All five levels are enabled by default.
 
 ### (b) Live on your own GCP project
 
@@ -300,6 +300,28 @@ ad-hoc questions return `engine_error`. All five levels are enabled by default. 
 IAM for the backend principal: `roles/aiplatform.user`, `roles/bigquery.jobUser`, `roles/bigquery.dataEditor` on
 `rag_arena`. Step-by-step setup, all `.env` keys, the Fable data-sharing call and troubleshooting:
 [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
+
+---
+
+## Compare & Leaderboard
+
+- **`/compare`** runs one question on any selected levels concurrently (one SSE stream): stacked live stage rails, side-by-side answers + citations, and a scoreboard with the server-computed Battle Score. Levels that can't run with the chosen models (Level 4 needs Gemini; the managed summary is Level 5 only) or have no recording in replay are disabled with the reason. Each level page also shows the newest Compare run that included it.
+- **`/leaderboard`** aggregates either live runs from BigQuery `query_runs` or the committed recordings, one table per (synthesis, judge) pair with provenance per row; scores are never averaged across pairs.
+- **Battle Score** (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20).
+
+---
+
+## Deploy to Cloud Run (your own project)
+
+One container serves the UI and the API; images build with Cloud Build (no local Docker needed).
+
+```bash
+cp deploy/cloudrun.env.example deploy/cloudrun.env   # git-ignored: project, region, access, replay copy
+scripts/deploy_cloudrun.sh --dry-run                  # validates every key, prints the exact plan
+scripts/deploy_cloudrun.sh --yes                      # idempotent apply; prints the service URLs
+```
+
+Choices: `REGION` (default `us-central1`); `ACCESS_MODE=iap` (only `IAP_MEMBERS`, e.g. `user:you@example.com,group:team@example.com`) or `public` (anyone can start runs billed to you); `DEPLOY_REPLAY=true` adds a public replay-only copy (recordings only, role-less service account, identity hidden); `LIVE_INGEST=true|false` (ingestion write roles vs query-only). Min instances 0 → $0 when idle; `scripts/teardown_cloudrun.sh --yes` removes only what the script created. Details: [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md#6-cloud-run).
 
 ---
 
@@ -340,35 +362,23 @@ Ingestion streams emit `job_started`, `stage_started|completed|failed`, `doc_pro
 
 ## Repository layout
 
-```text
-backend/app/
-  api/          routes.py (REST + SSE forwarder), documents.py, query_runs.py
-  core/         config, telemetry (StageEmitter), models_catalog, pricing, ranking, architectures, …
-  engines/      level1_naive, level2_hybrid, level3_multimodal, level4_agentic, agent_runtime, agent_tools,
-                agent_calculator, agent_verify, agent_ledger, common_stages, synthesis, replay_engine;
-                managed_vertex, vais_search; parked/
-  evaluation/   judges, evaluator, scoring
-  ingestion/    jobs, live_backends, parsers, bq_indexer, documentai_client, layout_documentai,
-                vision_transcribe, multimodal, multimodal_job, …
-  recording/    recorder, store, codec, redaction
-backend/tests/  25 offline test modules + shared fakes
-frontend/src/   app, pages, features/{levels,ingest}, components, lib, theme, styles, types
-data/           sample_docs/procurement_corpus (45 PDFs), golden_benchmarks, model_verification.json,
-                recordings/<engine>/<synthesis>__<judge>/<question_id>.json
-docs/           ARCHITECTURE.md, SETUP_GUIDE.md, audits/, screenshots/
-scripts/        bootstrap_gcp.sh, verify_models.py, provision_documentai.py, build/download corpus, …
-infra/main.tf   Terraform (APIs, bucket, dataset, table, Layout Parser processor)
-```
+| Path | Contents |
+| :-- | :-- |
+| `backend/app/` | `api/` (REST + SSE forwarder, documents, SPA serving), `core/` (config, telemetry, models catalog, pricing, ranking, architectures), `engines/` (5 levels, agent runtime/tools, replay; `parked/`), `evaluation/` (judges, scoring, leaderboard), `ingestion/`, `recording/` |
+| `frontend/src/` | `app`, `pages`, `features/{levels,compare,ingest}`, `components`, `lib`, `theme`, `styles`, `types` |
+| `data/` | `sample_docs/procurement_corpus` (45 PDFs), `golden_benchmarks`, `model_verification.json`, `recordings/<engine>/<synthesis>__<judge>/<question_id>.json` |
+| `deploy/`, `scripts/`, `infra/` | Cloud Run env template + deploy/teardown scripts, bootstrap/provisioning scripts, Terraform |
+| `docs/` | `ARCHITECTURE.md`, `SETUP_GUIDE.md`, `audits/`, `screenshots/` |
 
-`docker-compose.yml` predates v3 and is being updated; `.env.example` is the configuration template.
+`.env.example` is the configuration template. `docker-compose.yml` runs the single v3 image in replay mode (`docker compose up --build` → `http://localhost:8080`; not yet exercised in CI).
 
 ---
 
 ## Testing
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 245 passed (2026-10-23)
-cd frontend && npm test                                 # 124 node test runner checks
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 278 passed (2026-10-23)
+cd frontend && npm test                                 # 156 node test runner checks
 cd frontend && npm run build                            # tsc + vite build
 ```
 
@@ -380,6 +390,7 @@ timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synth
 - **Identity only from the git-ignored `.env`** (project, bucket, credential paths); code defaults are empty.
 - **Recorder redaction**: identity values become `${…}` placeholders and `assert_redacted` refuses to write
   otherwise. **Safe mode** (`?safe=1` or the header toggle) masks them in the UI for screen sharing.
+- **Cloud Run**: the live service runs as a dedicated least-privilege service account (no key files); the image never contains `.env` or deploy config, and the deploy script leak-scans the upload before every build.
 - **No key files** (ADC only); parameterized queries, validated identifiers, and an explicit bound and timeout on
   every loop, retry, poll and request.
 
@@ -392,7 +403,7 @@ timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synth
 | 3 | Level 3 Document AI Layout Parser + Gemini vision, multimodal embeddings, authority headers | ✅ live |
 | 4 | Level 4 real Google ADK runner with retrieval, amendment, pricing and citation-check tools | ✅ live |
 | 5 | Managed Vertex AI Search baseline (managed summary vs. model over extractive segments) | ✅ live |
-| 6 | **Next:** Compare page, leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
+| 6 | **In progress:** Compare page ✅, leaderboard from `query_runs` ✅, configurable Cloud Run deployment ✅ —  leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
 
 ## Data & license
 

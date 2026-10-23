@@ -9,6 +9,7 @@ import type {
   EngineTimeline,
   IngestEvent,
   RetrievedChunkText,
+  ScoreBreakdown,
   StageState,
   StreamInterruptedEvent,
 } from "../../types/arena";
@@ -137,6 +138,32 @@ function interruptStream(state: StreamState, ev: StreamInterruptedEvent): Stream
   return { ...state, events: [...state.events, ev], timelines, interrupted: { reason: ev.reason } };
 }
 
+const isScore = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
+const isFiniteNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+/** A Battle Score in [0, 100], else null (a malformed value is never shown as a score). */
+export function scoreOrNull(v: unknown): number | null {
+  return isScore(v) ? v : null;
+}
+
+const BREAKDOWN_KEYS = ["battle_score", "efficiency", "qa_relevance", "groundedness", "context_precision", "latency_ms", "cost_usd"] as const;
+
+/** `score_breakdown` with every field a finite number and a valid score, else null. */
+export function breakdownOrNull(raw: unknown): ScoreBreakdown | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (!BREAKDOWN_KEYS.every((k) => isFiniteNum(r[k])) || !isScore(r.battle_score)) return null;
+  return {
+    battle_score: r.battle_score as number,
+    efficiency: r.efficiency as number,
+    qa_relevance: r.qa_relevance as number,
+    groundedness: r.groundedness as number,
+    context_precision: r.context_precision as number,
+    latency_ms: r.latency_ms as number,
+    cost_usd: r.cost_usd as number,
+  };
+}
+
 /** Apply one event. Unknown event types are appended to the log but otherwise ignored. */
 export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): StreamState {
   if (ev.event === "stream_interrupted") return interruptStream(state, ev);
@@ -234,6 +261,8 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
           judgeCostUsd: ev.judge_cost_usd ?? null,
           runCostUsd: ev.run_cost_usd ?? null,
           rationale: ev.rationale ?? null,
+          battleScore: scoreOrNull(ev.battle_score),
+          scoreBreakdown: breakdownOrNull(ev.score_breakdown),
         },
       });
     }

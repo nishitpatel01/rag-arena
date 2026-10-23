@@ -38,8 +38,6 @@ export interface BaselineView {
   readonly questionRecorded: boolean;
   readonly row: LeaderboardRow | null;
   readonly runs: number | null;
-  /** Provenance entries flagged `synthetic_dev_fixture: true` inside the baseline row (shown as a caveat). */
-  readonly syntheticRuns: number;
 }
 
 export interface CurrentRunMetrics {
@@ -59,7 +57,7 @@ export function baselineFor(
   const { engine, synthesisModel, judgeModel } = lookup;
   const questionId = lookup.questionId?.trim() ?? "";
   const pairKnown = Boolean(synthesisModel && judgeModel);
-  if (!pairKnown) return { pairKnown, pairRecorded: false, questionRecorded: false, row: null, runs: null, syntheticRuns: 0 };
+  if (!pairKnown) return { pairKnown, pairRecorded: false, questionRecorded: false, row: null, runs: null };
   const pairs = (catalog?.recorded_pairs ?? []).filter(
     (p) => p.engine === engine && p.synthesis_model === synthesisModel && p.judge_model === judgeModel
   );
@@ -70,8 +68,8 @@ export function baselineFor(
       (r) => r.engine === engine && r.synthesis_model === synthesisModel && r.judge_model === judgeModel
     ) ?? null;
   const runs = row && isNum(row.runs) ? row.runs : null;
-  const syntheticRuns = (row?.provenance ?? []).filter((p) => p.synthetic_dev_fixture === true).length;
-  return { pairKnown, pairRecorded, questionRecorded, row, runs, syntheticRuns };
+  // Synthetic dev fixtures are never aggregated server-side (any mode), so baseline rows are measured runs only.
+  return { pairKnown, pairRecorded, questionRecorded, row, runs };
 }
 
 /** Rows of the teaser table: current run value vs the baseline pair's server-side average. */
@@ -146,7 +144,7 @@ export interface TeaserMatrixRow {
 /** Metric rows: this run vs each lower level's server-side pair average. */
 export function teaserMatrix(entries: readonly BaselineEntry[], current: CurrentRunMetrics): TeaserMatrixRow[] {
   const perLevel = entries.map((e) => teaserMetrics(e.view, current));
-  const template = teaserMetrics({ pairKnown: false, pairRecorded: false, questionRecorded: false, row: null, runs: null, syntheticRuns: 0 }, current);
+  const template = teaserMetrics({ pairKnown: false, pairRecorded: false, questionRecorded: false, row: null, runs: null }, current);
   return template.map((m, i) => ({ key: m.key, label: m.label, unit: m.unit, current: m.current, baselines: perLevel.map((rows) => rows[i].baseline) }));
 }
 

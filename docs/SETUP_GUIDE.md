@@ -7,7 +7,7 @@ Two ways to run it:
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-**Levels 1–3** are enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal`), and **Level 4** (`level4_agentic`) is live and enabled via `ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic` (default after D7 sign-off). Level 5, the Compare page and the Cloud
+**Levels 1–4** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic`; override in `.env` or the environment). Level 5, the Compare page and the Cloud
 Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 ---

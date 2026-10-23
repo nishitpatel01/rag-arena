@@ -150,6 +150,7 @@ def build_agent(spec: ModelSpec, settings: ArenaSettings, tools: list[Callable[.
     ensure_agent_model(spec)
     from google.adk.agents import LlmAgent
     from google.adk.models.google_llm import Gemini
+    from google.adk.planners import BuiltInPlanner
     from google.genai import types
 
     model = Gemini(model=spec.id, client_kwargs=agent_client_kwargs(spec, settings))
@@ -159,8 +160,10 @@ def build_agent(spec: ModelSpec, settings: ArenaSettings, tools: list[Callable[.
         description="Multi-hop procurement RAG agent: search, amendment supersession, exact pricing math, citation check.",
         instruction=agent_instruction(settings.agent_max_tool_calls_per_turn),
         tools=tools,
+        # ADK rejects thinking_config inside generate_content_config ("Thinking config should be set via
+        # LlmAgent.planner"); the built-in planner forwards it to Gemini unchanged.
+        planner=BuiltInPlanner(thinking_config=types.ThinkingConfig(thinking_level=settings.agent_thinking_level.upper())),
         generate_content_config=types.GenerateContentConfig(
-            thinking_config=types.ThinkingConfig(thinking_level=settings.agent_thinking_level.upper()),
             max_output_tokens=settings.synthesis_max_tokens,  # bounded output per model turn (SYNTHESIS_MAX_TOKENS)
         ),
     )

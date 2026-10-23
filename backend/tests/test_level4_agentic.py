@@ -446,7 +446,10 @@ def test_build_agent_constructs_a_real_adk_llm_agent_on_vertex_gemini_without_ne
     assert http.timeout == 45_000 and http.retry_options.attempts == 2  # per-call timeout + one bounded retry
     assert agent.generate_content_config.max_output_tokens == settings.synthesis_max_tokens
     assert [t.__name__ for t in agent.tools] == ["search_procurement_corpus", "check_amendments", "calculate_contract_pricing", "verify_citations"]
-    assert agent.generate_content_config.thinking_config.thinking_level.name == "LOW" == settings.agent_thinking_level.upper()
+    # Thinking goes through the planner: newer google-adk rejects thinking_config in generate_content_config
+    # ("Thinking config should be set via LlmAgent.planner") — the Cloud Run failure of 2026-10-23.
+    assert agent.generate_content_config.thinking_config is None
+    assert agent.planner.thinking_config.thinking_level.name == "LOW" == settings.agent_thinking_level.upper()
     claude = load_catalog(settings).get("claude-opus-5-5")
     try:
         build_agent(claude, settings, [])

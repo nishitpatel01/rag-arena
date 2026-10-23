@@ -26,8 +26,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STATIC_DIR=/app/frontend/dist
 WORKDIR /app
 
-COPY backend/requirements.txt backend/requirements.txt
-RUN pip install -r backend/requirements.txt
+COPY backend/requirements.txt backend/requirements.lock backend/
+RUN pip install --no-cache-dir -r backend/requirements.lock && python -c "import google.adk, sys; v = google.adk.__version__; sys.exit(0 if v.startswith(\"2.\") else f\"google-adk {v} != 2.x\")"
 
 # Runtime data: golden benchmarks, recordings (replay), model verification, procurement corpus PDFs (document viewer
 # and in-service ingestion read them locally).

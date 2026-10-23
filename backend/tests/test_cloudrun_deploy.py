@@ -345,3 +345,15 @@ def test_frontend_lockfile_resolves_only_from_the_public_npm_registry() -> None:
     assert resolved, "lockfile must pin resolved tarball URLs"
     bad = [url for url in resolved if not url.startswith("https://registry.npmjs.org/")]
     assert not bad, f"{len(bad)} lockfile entries resolve outside registry.npmjs.org, e.g. {bad[0][:60]}"
+
+
+def test_image_installs_the_public_pypi_lock_with_adk_2() -> None:
+    root = Path(__file__).resolve().parents[2]
+    lock = (root / "backend" / "requirements.lock").read_text(encoding="utf-8")
+    assert "google-adk==2.12.0" in lock.splitlines()
+    for bad in ("uplink" + ".goog", "air" + "lock", "artifact" + "-foundry"):
+        assert bad not in lock, bad
+    assert not any(line.startswith(("--index-url", "-i ", "--extra-index-url")) for line in lock.splitlines())
+    dockerfile = (root / "Dockerfile").read_text(encoding="utf-8")
+    assert "pip install --no-cache-dir -r backend/requirements.lock" in dockerfile
+    assert "pip install -r backend/requirements.txt" not in dockerfile

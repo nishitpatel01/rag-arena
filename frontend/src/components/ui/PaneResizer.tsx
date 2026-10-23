@@ -2,16 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   PANE_STORAGE_PREFIX,
   clampPaneWidth,
-  effectiveMax,
   parseStoredWidth,
   widthFromDrag,
   widthFromKey,
   type PaneBounds,
+  type PaneSide,
 } from "../../lib/paneWidth";
-
-function viewportWidth(): number | null {
-  return typeof window === "undefined" ? null : window.innerWidth;
-}
 
 function readStored(key: string, bounds: PaneBounds): number {
   try {
@@ -21,12 +17,15 @@ function readStored(key: string, bounds: PaneBounds): number {
   }
 }
 
-/** Width state for a right-anchored pane, persisted per key and re-clamped when the viewport shrinks. */
+/**
+ * Preferred width of a pane, persisted per key. The rendered width is `Math.min(preferred, max)` at the
+ * call site, so shrinking the window narrows panes without overwriting the user's preference.
+ */
 export function usePaneWidth(key: string, bounds: PaneBounds): [number, (px: number) => void] {
-  const [width, setWidthState] = useState(() => clampPaneWidth(readStored(key, bounds), bounds, viewportWidth()));
+  const [width, setWidthState] = useState(() => readStored(key, bounds));
   const setWidth = useCallback(
     (px: number) => {
-      const next = clampPaneWidth(px, bounds, viewportWidth());
+      const next = clampPaneWidth(px, bounds);
       setWidthState(next);
       try {
         window.localStorage.setItem(PANE_STORAGE_PREFIX + key, String(next));
@@ -36,27 +35,42 @@ export function usePaneWidth(key: string, bounds: PaneBounds): [number, (px: num
     },
     [key, bounds]
   );
-  useEffect(() => {
-    const onResize = (): void => setWidthState((w) => clampPaneWidth(w, bounds, viewportWidth()));
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [bounds]);
   return [width, setWidth];
+}
+
+/** Element width via ResizeObserver (disconnected on unmount); null until measured. */
+export function useElementWidth<T extends HTMLElement>(): [React.RefObject<T>, number | null] {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState<number | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    setWidth(el.clientWidth);
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width];
 }
 
 export interface PaneResizerProps {
   readonly label: string;
+  /** Which side of the layout the pane sits on (the handle is on its inner edge). */
+  readonly side: PaneSide;
+  /** Rendered width of the pane. */
   readonly width: number;
   readonly bounds: PaneBounds;
+  /** Current effective maximum (fixed cap and the room the middle column needs). */
+  readonly maxPx: number;
   readonly onChange: (px: number) => void;
   readonly className?: string;
 }
 
 /**
- * Vertical separator on the LEFT edge of a right-anchored pane (xl+ only): drag, arrow keys
- * (Shift = ×4), Home/End, double-click resets to the default width.
+ * Vertical separator on the inner edge of a side pane (xl+ only): drag, arrow keys (toward the middle
+ * widens; Shift = ×4), Home/End, double-click resets to the default width.
  */
-export const PaneResizer: React.FC<PaneResizerProps> = ({ label, width, bounds, onChange, className = "" }) => {
+export const PaneResizer: React.FC<PaneResizerProps> = ({ label, side, width, bounds, maxPx, onChange, className = "" }) => {
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -69,7 +83,7 @@ export const PaneResizer: React.FC<PaneResizerProps> = ({ label, width, bounds, 
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>): void => {
     const d = drag.current;
-    if (d) onChange(widthFromDrag(d.startWidth, d.startX, e.clientX, bounds, viewportWidth()));
+    if (d) onChange(widthFromDrag(d.startWidth, d.startX, e.clientX, side, bounds, maxPx));
   };
   const endDrag = (e: React.PointerEvent<HTMLDivElement>): void => {
     if (!drag.current) return;
@@ -78,11 +92,12 @@ export const PaneResizer: React.FC<PaneResizerProps> = ({ label, width, bounds, 
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
   };
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
-    const next = widthFromKey(width, e.key, e.shiftKey, bounds, viewportWidth());
+    const next = widthFromKey(width, e.key, e.shiftKey, side, bounds, maxPx);
     if (next === null) return;
     e.preventDefault();
     onChange(next);
   };
+  const widen = side === "right" ? "←" : "→";
 
   return (
     <div
@@ -91,9 +106,9 @@ export const PaneResizer: React.FC<PaneResizerProps> = ({ label, width, bounds, 
       aria-label={label}
       aria-valuenow={width}
       aria-valuemin={bounds.minPx}
-      aria-valuemax={effectiveMax(bounds, viewportWidth())}
+      aria-valuemax={Math.max(bounds.minPx, maxPx)}
       aria-valuetext={`${width} pixels wide`}
-      title={`${label} — drag, or use ←/→ (Shift ×4); double-click to reset`}
+      title={`${label} — drag, or ${widen} to widen (Shift ×4); double-click to reset`}
       tabIndex={0}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -102,7 +117,7 @@ export const PaneResizer: React.FC<PaneResizerProps> = ({ label, width, bounds, 
       onKeyDown={onKeyDown}
       onDoubleClick={() => onChange(bounds.defaultPx)}
       className={`group hidden w-3 shrink-0 cursor-col-resize touch-none select-none items-stretch justify-center outline-none xl:flex ${className}`}
-      data-testid="pane-resizer"
+      data-testid={`pane-resizer-${side}`}
     >
       <span
         aria-hidden

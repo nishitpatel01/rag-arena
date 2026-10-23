@@ -6,8 +6,8 @@ import { DocumentViewer } from "../../components/DocumentViewer";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Panel } from "../../components/ui/Panel";
 import { Pill } from "../../components/ui/Pill";
-import { PaneResizer, usePaneWidth } from "../../components/ui/PaneResizer";
-import { DOC_PANE } from "../../lib/paneWidth";
+import { PaneResizer, useElementWidth, usePaneWidth } from "../../components/ui/PaneResizer";
+import { DOC_PANE, MIN_MIDDLE_PX, QUESTION_PANE, paneMax, sideMaxima } from "../../lib/paneWidth";
 import type { Citation, LevelDescriptor } from "../../types/arena";
 import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
 import { parseAgentStagePayload } from "./agentTimelineModel";
@@ -22,6 +22,9 @@ import { activeStageId } from "./model";
 import { modelLabel, type ModelSelection } from "./modelSelection";
 import { useBattleStream } from "./useBattleStream";
 import { useModelCatalog } from "./useModelCatalog";
+
+/** Two `gap-4` (16 px) column gaps in the level grid. */
+const GRID_GAPS_PX = 32;
 
 function mergeOrder(declared: readonly string[], seen: readonly string[]): string[] {
   const out = [...declared];
@@ -100,14 +103,23 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   // Teaser only after a finished run with judge metrics, on a level that has lower enabled levels.
   const showTeaser = lowerLevels.length > 0 && stream.state.complete && Boolean(timeline?.evaluation);
   const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
-  const [docWidth, setDocWidth] = usePaneWidth("document-viewer", DOC_PANE);
+  const [questionPref, setQuestionWidth] = usePaneWidth("question", QUESTION_PANE);
+  const [docPref, setDocWidth] = usePaneWidth("document-viewer", DOC_PANE);
+  const [gridRef, gridWidth] = useElementWidth<HTMLDivElement>();
+  // Rendered widths: preferences clipped so the middle column keeps MIN_MIDDLE_PX (the 1fr middle absorbs the rest).
+  const room = gridWidth === null ? null : gridWidth - GRID_GAPS_PX - MIN_MIDDLE_PX;
+  const questionWidth = Math.min(questionPref, paneMax(QUESTION_PANE, room === null ? null : room - DOC_PANE.minPx));
+  const docWidth = Math.min(docPref, paneMax(DOC_PANE, room === null ? null : room - questionWidth));
+  const { leftAvailable, rightAvailable } = sideMaxima(gridWidth, questionWidth, docWidth, GRID_GAPS_PX);
 
   return (
     <div
-      className="grid gap-4 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_var(--doc-pane-w)]"
-      style={{ "--doc-pane-w": `${docWidth}px` } as React.CSSProperties}
+      ref={gridRef}
+      className="grid gap-4 xl:grid-cols-[var(--question-pane-w)_minmax(0,1fr)_var(--doc-pane-w)]"
+      style={{ "--question-pane-w": `${questionWidth}px`, "--doc-pane-w": `${docWidth}px` } as React.CSSProperties}
     >
-      <Panel title="Question" subtitle="Golden benchmark or custom" className="xl:row-span-2">
+      <div className="flex min-w-0 xl:row-span-2">
+      <Panel title="Question" subtitle="Golden benchmark or custom" className="flex-1">
         <QuestionPicker levelId={level.level_id} gate={gate} isStreaming={stream.isStreaming} onRun={onRun} onAbort={stream.abort} models={models} />
         {gate.note && (
           <p className={`mt-2 text-xs ${gate.tone === "err" ? "text-err" : gate.tone === "warn" ? "text-clay" : "text-slate"}`} role="status">
@@ -123,6 +135,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
           <p key={i} className="mt-2 text-xs text-clay" role="status">{w}</p>
         ))}
       </Panel>
+      <PaneResizer label="Resize question pane" side="left" width={questionWidth} bounds={QUESTION_PANE}
+        maxPx={paneMax(QUESTION_PANE, leftAvailable)} onChange={setQuestionWidth} className="-mr-3.5 ml-0.5" />
+      </div>
 
       <Panel
         title="Stage rail"
@@ -155,7 +170,8 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       </Panel>
 
       <div className="flex min-w-0 xl:row-span-2">
-        <PaneResizer label="Resize document viewer" width={docWidth} bounds={DOC_PANE} onChange={setDocWidth} className="-ml-3.5 mr-0.5" />
+        <PaneResizer label="Resize document viewer" side="right" width={docWidth} bounds={DOC_PANE}
+          maxPx={paneMax(DOC_PANE, rightAvailable)} onChange={setDocWidth} className="-ml-3.5 mr-0.5" />
         <Panel title="Document viewer" subtitle="Real source page of the selected citation" className="flex-1" as="aside">
           <DocumentViewer citation={citation} onOpen={openViewer} />
         </Panel>

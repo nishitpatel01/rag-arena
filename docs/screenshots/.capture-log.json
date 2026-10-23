@@ -73,6 +73,34 @@
       "guard_passed": true,
       "captured_at": "2026-10-23T14:35:40Z",
       "bytes": 224618
+    },
+    {
+      "bytes": 432358,
+      "capture": "full page cropped to 1600x1850 (5-level Compare run complete: sticky \"Best Battle Score: Level 4 · Agentic RAG (Google ADK) · 86.1\" summary with replayed-recording / model-pair / question / battle_complete pills, Setup, Scoreboard table L4 86.1 #1, L5 75.5 #2, L2 63.1 #3, L3 55.7 #4, L1 54.9 #5 with groundedness / QA / CP / efficiency / latency / run cost / judge, five stacked stage rails, and the top of the side-by-side answer cards)",
+      "captured_at": "2026-10-23T18:47:50Z",
+      "file": "22-compare.png",
+      "guard_passed": true,
+      "path": "/compare",
+      "safe_mode": true,
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=all 5; port 8030) via vite preview on 127.0.0.1:4330",
+      "source": "replay",
+      "source_run": "replay battle run_c9c82e76b05f of the committed recordings for q_cross_solicitation_total_cost (levels 1-5; synthesis gemini-4-argon, judge claude-opus-5-5)",
+      "theme": "light",
+      "viewport": "1600x4000 (cropped to 1600x1850)"
+    },
+    {
+      "bytes": 253423,
+      "capture": "full page cropped to 1600x1000 (source Recordings, All questions, All levels: 79 runs read; one table per (synthesis, judge) pair — gemini-3.8-flash, gemini-4-argon, vertex-ai-search-summary, each judged by claude-opus-5-5 — with a provenance line per row: recording files, recorded date range, git SHAs; Battle Score footnote)",
+      "captured_at": "2026-10-23T18:48:40Z",
+      "file": "23-leaderboard.png",
+      "guard_passed": true,
+      "path": "/leaderboard",
+      "safe_mode": true,
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=all 5; port 8030) via vite preview on 127.0.0.1:4330",
+      "source": "replay",
+      "source_run": "GET /api/v1/leaderboard?source=recordings (aggregate of committed data/recordings; no live runs)",
+      "theme": "light",
+      "viewport": "1600x3200 (cropped to 1600x1000)"
     }
   ]
 }

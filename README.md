@@ -297,6 +297,10 @@ the v2 name; v3 ingestion creates `document_chunks_v3` and refuses the frozen v2
 - **Battle Score** (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs
   60 s, run cost vs $0.20).
 
+![Compare: 5-level replay of q_cross_solicitation_total_cost (Gemini 4 Argon + Claude Opus 5.5) — Best Battle Score summary, scoreboard (L4 86.1 best) and stacked stage rails](docs/screenshots/22-compare.png)
+
+![Leaderboard from committed recordings — one table per (synthesis, judge) pair with per-row provenance](docs/screenshots/23-leaderboard.png)
+
 ## Deploy to Cloud Run (your own project)
 
 ```bash

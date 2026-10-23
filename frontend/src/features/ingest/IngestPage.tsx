@@ -10,8 +10,9 @@ import { Pill } from "../../components/ui/Pill";
 import { formatTimestamp, statusTone } from "../../lib/format";
 import type { IngestRunSummary, LevelDescriptor } from "../../types/arena";
 import { IngestJobView } from "./IngestJobView";
-import { TIER_FOR_LEVEL, tierCountFor, useIngestStatus } from "./ingestStatus";
-import { useIngestJobStream } from "./useIngestJobStream";
+import { TIER_FOR_LEVEL, isManagedLevel, managedStoreFor, tierCountFor, useIngestStatus } from "./ingestStatus";
+import { DEV_INGEST_FIXTURE_LEVELS, useIngestJobStream } from "./useIngestJobStream";
+import { isMockRequested } from "../levels/useBattleStream";
 
 const LevelIngestCard: React.FC<{
   readonly level: LevelDescriptor;
@@ -20,16 +21,29 @@ const LevelIngestCard: React.FC<{
   readonly busy: boolean;
   readonly unavailableReason: string | null;
   readonly onRun: () => void;
-}> = ({ level, count, lastRuns, busy, unavailableReason, onRun }) => {
+  /** Level 5: data store state from `GET /ingest/status` → `managed_vertex` (null when not reported). */
+  readonly storeState?: string | null;
+  readonly storeReason?: string | null;
+}> = ({ level, count, lastRuns, busy, unavailableReason, onRun, storeState = null, storeReason = null }) => {
   const tier = TIER_FOR_LEVEL[level.level_id];
+  const managed = isManagedLevel(level.level_id);
+  // DEV `?mock=1`: levels with an ingest fixture play it instead of calling the backend.
+  const devIngestFixture = import.meta.env.DEV && isMockRequested() && DEV_INGEST_FIXTURE_LEVELS.includes(level.level_id);
+  const countItems: (readonly [string, string])[] = managed
+    ? [
+        ["documents in data store", count === null ? "not reported" : count.toLocaleString()],
+        ["data store state", storeState ?? "not reported"],
+        ...(storeReason ? [["status note", storeReason] as const] : []),
+      ]
+    : [["chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
   return (
     <Panel
       title={/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
-      subtitle={tier ? `tier_profile = ${tier}` : "managed service — no BigQuery tier"}
+      subtitle={tier ? `tier_profile = ${tier}` : managed ? "Vertex AI Search data store — managed import from Cloud Storage" : "managed service — no BigQuery tier"}
       actions={level.dev_fixture ? <Pill tone="warn">dev fixture</Pill> : level.enabled ? <Pill tone="ok">enabled</Pill> : <Pill tone="locked">locked</Pill>}
       bodyClassName="flex flex-col gap-3"
     >
-      <KeyValue items={[["chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]]} />
+      <KeyValue items={countItems} />
       <DataTable
         caption={`Last ingestion runs for ${level.label}`}
         rows={lastRuns}
@@ -50,20 +64,25 @@ const LevelIngestCard: React.FC<{
         <Button
           variant="primary"
           size="sm"
-          disabled={busy || !level.enabled || level.dev_fixture === true || tier === null || unavailableReason !== null}
+          disabled={busy || !level.enabled || (level.dev_fixture === true && !devIngestFixture) || (tier === null && !managed) || (unavailableReason !== null && !devIngestFixture)}
           onClick={onRun}
           leadingIcon={<Play className="h-3.5 w-3.5" aria-hidden />}
           title={
-            tier === null
-              ? "Managed Vertex AI Search indexes from GCS; no ingestion job"
+            tier === null && !managed
+              ? "Managed service; no ingestion job"
               : level.dev_fixture
                 ? "Unlocked only by the DEV ?mock=1 fixture — the backend has this level disabled"
                 : unavailableReason ?? undefined
           }
         >
-          Run ingestion
+          {managed ? "Run managed import" : "Run ingestion"}
         </Button>
-        {level.dev_fixture && (
+        {managed && (
+          <p className="mt-1 text-xs text-ink-3">
+            Uploads the corpus to Cloud Storage and imports it into the data store; parsing, chunking, embedding and indexing are done by Vertex AI Search (reported as skipped stages).
+          </p>
+        )}
+        {level.dev_fixture && !devIngestFixture && (
           <p className="mt-1 text-xs text-clay" role="status">
             DEV fixture: this level is enabled only client-side; ingestion runs against the real backend and is disabled here.
           </p>
@@ -126,6 +145,8 @@ export const IngestPage: React.FC = () => {
                 busy={job.isStreaming}
                 unavailableReason={unavailableReason}
                 onRun={() => onRun(level)}
+                storeState={isManagedLevel(level.level_id) ? managedStoreFor(status)?.state ?? null : null}
+                storeReason={isManagedLevel(level.level_id) ? managedStoreFor(status)?.reason ?? null : null}
               />
             </li>
           ))}

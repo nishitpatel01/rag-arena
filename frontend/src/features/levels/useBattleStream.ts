@@ -83,7 +83,9 @@ export function useBattleStream(): BattleStream {
     // Dev-only fixture replay. The whole branch (including the dynamic imports) is eliminated from
     // the production bundle because `import.meta.env.DEV` is statically `false` there.
     if (import.meta.env.DEV) {
-      const fixture = engines.includes("level4_agentic")
+      const fixture = engines.includes("managed_vertex")
+        ? (await import("../../dev/fixtures/level5_run")).level5DevFixture(window.location.search.includes("mock_mode=model") ? "model" : "summary")
+        : engines.includes("level4_agentic")
         ? (await import("../../dev/fixtures/level4_run")).LEVEL4_DEV_FIXTURE
         : engines.includes("level3_multimodal")
         ? (await import("../../dev/fixtures/level3_run")).LEVEL3_DEV_FIXTURE

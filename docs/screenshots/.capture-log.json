@@ -59,6 +59,20 @@
       "guard_passed": true,
       "captured_at": "2026-10-22T17:25:58Z",
       "bytes": 175755
+    },
+    {
+      "file": "21-level5.png",
+      "path": "/levels/managed_vertex",
+      "viewport": "1600x3400 (cropped to 1600x2700)",
+      "theme": "light",
+      "capture": "full page cropped above the Metrics tail (run complete in vertex-ai-search-summary mode; Retrieve stage selected: Vertex AI Search results table — 10 results, doc · page · top relevance, result #1 expanded with its extractive segment (p.1, relevance 0.829), total_size / api_ms / truncated attribution token, request body; architecture diagram with node summaries; Answer panel with the verbatim Vertex AI Search summary, mode badge and the page-level citation). PNG palette-quantized (256 colours, no dither) to stay under 600 KB",
+      "source_run": "replay of recording run_0de011e73aa2 (q_vpc_failover_diagram, recorded 2026-10-23T14:19:44.327Z; synthesis vertex-ai-search-summary, judge claude-opus-5-5)",
+      "source": "replay",
+      "server": "replay (DEMO_MODE=replay, ALLOW_DEV_FIXTURES=0, ENABLED_LEVELS=all 5; port 8022 on ::1) via vite preview on 127.0.0.1:4183",
+      "safe_mode": true,
+      "guard_passed": true,
+      "captured_at": "2026-10-23T14:35:40Z",
+      "bytes": 224618
     }
   ]
 }

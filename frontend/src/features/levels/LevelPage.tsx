@@ -9,7 +9,7 @@ import { Pill } from "../../components/ui/Pill";
 import { PaneResizer, useElementWidth, usePaneWidth } from "../../components/ui/PaneResizer";
 import { DOC_PANE, MIN_MIDDLE_PX, QUESTION_PANE, paneMax, sideMaxima } from "../../lib/paneWidth";
 import type { Citation, LevelDescriptor } from "../../types/arena";
-import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
+import { ingestPillText, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
 import { parseAgentStagePayload } from "./agentTimelineModel";
 import { AnswerPanel, MetricsPanel } from "./AnswerPanels";
 import { CompareTeaser } from "./CompareTeaser";
@@ -38,7 +38,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   lowerLevels,
 }) => {
   const stream = useBattleStream();
-  const models = useModelCatalog();
+  const models = useModelCatalog(level.level_id);
   const { status: ingest, error: ingestError } = ingestState;
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [userPicked, setUserPicked] = useState(false);
@@ -184,6 +184,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
           retrievePayload={timeline?.stages.retrieve?.payload ?? null}
           agentTurns={isAgentic ? timeline?.agentTurns ?? [] : null}
           answerSource={answerSource}
+          citations={timeline?.answer?.citations}
+          onSelectCitation={openCitation}
+          labelFor={labelFor}
         />
       </Panel>
 
@@ -201,7 +204,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       </Panel>
 
       <Panel title="Answer + citations" className="xl:col-span-2">
-        <AnswerPanel timeline={timeline} running={stream.isStreaming} selectedCitation={citation} onSelectCitation={openCitation} />
+        <AnswerPanel timeline={timeline} running={stream.isStreaming} selectedCitation={citation} onSelectCitation={openCitation} labelFor={labelFor} />
       </Panel>
       <Panel title="Metrics" subtitle="LLM judge · cost · latency">
         <MetricsPanel timeline={timeline} running={stream.isStreaming} runSynthesisModel={stream.state.synthesisModel} labelFor={labelFor} />
@@ -226,10 +229,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
 
 const IngestStatusPill: React.FC<{ readonly levelId: string; readonly ingestState: IngestStatusState }> = ({ levelId, ingestState }) => {
   const { status, error } = ingestState;
-  const tier = TIER_FOR_LEVEL[levelId];
   const gate = runGateFor(levelId, status, error);
   if (!status && !error) return <Pill tone="neutral">ingest status…</Pill>;
-  const text = gate.count !== null ? `${tier ?? "managed"} tier: ${gate.count} chunks` : gate.note ?? "ingest status";
+  const text = ingestPillText(levelId, gate, status);
   return (
     <Link to="/ingest" className="inline-flex max-w-[40rem]" aria-label="Open ingestion page" title={gate.note ?? undefined}>
       <Pill tone={gate.tone} mono={gate.count !== null}>{text}</Pill>

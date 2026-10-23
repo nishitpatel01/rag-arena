@@ -7,7 +7,7 @@ import { Pill } from "../../components/ui/Pill";
 import { api } from "../../lib/api";
 import { formatMs } from "../../lib/format";
 import type { EngineTimeline, LeaderboardResponse, ModelsResponse } from "../../types/arena";
-import { baselinesFor, teaserMatrix, teaserTitle, type BaselineEntry, type LowerLevel } from "./compareTeaserModel";
+import { baselinePair, baselinesFor, teaserMatrix, teaserTitle, type BaselineEntry, type LowerLevel } from "./compareTeaserModel";
 
 export interface CompareTeaserProps {
   readonly timeline: EngineTimeline | undefined;
@@ -51,7 +51,9 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
     };
   }, []);
 
-  const entries = baselinesFor(catalog, shownLeaderboard, lowerLevels, { synthesisModel, judgeModel, questionId });
+  // Level 5 managed summary: lower levels cannot run that pseudo model → compare against the default synthesis model + same judge.
+  const pair = baselinePair(catalog, synthesisModel, judgeModel);
+  const entries = baselinesFor(catalog, shownLeaderboard, lowerLevels, { synthesisModel: pair.synthesisModel, judgeModel: pair.judgeModel, questionId });
   const rows = teaserMatrix(entries, {
     groundedness: timeline?.evaluation?.metrics.groundedness ?? null,
     qaRelevance: timeline?.evaluation?.metrics.qa_relevance ?? null,
@@ -69,6 +71,11 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
     <section aria-label={title} className="flex flex-col gap-2" data-testid="compare-teaser">
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone="neutral" mono>{pairText}</Pill>
+        {pair.substituted && (
+          <Pill tone="warn" mono title="The managed summary exists only on Level 5; lower-level baselines use the server default synthesis model with the same judge.">
+            baselines: synthesis {labelFor(pair.synthesisModel) ?? "—"} · judge {labelFor(judgeModel) ?? "—"}
+          </Pill>
+        )}
         {!pairKnown ? (
           <Pill tone="warn">model pair not reported by run_started</Pill>
         ) : (
@@ -111,7 +118,8 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
             ]}
           />
           <p className="text-xs text-ink-3">
-            "Ln avg · N" = server-side average over all N recorded runs of this pair on that level (not only this question).
+            "Ln avg · N" = server-side average over all N recorded runs of {pair.substituted ? "the baseline pair" : "this pair"} on that level (not only this question).
+            {pair.substituted ? " The Vertex AI Search summary has no equivalent on Levels 1–4, so their columns use the default synthesis model with the same judge." : ""}
             {shownLeaderboard?.source ? ` Source: ${shownLeaderboard.source}.` : ""}
           </p>
           {syntheticNotes.map((e) => (

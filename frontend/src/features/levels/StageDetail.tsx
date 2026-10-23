@@ -1,5 +1,5 @@
 import React from "react";
-import type { AgentTurnRecord, JsonObject, StageState } from "../../types/arena";
+import type { AgentTurnRecord, Citation, JsonObject, StageState } from "../../types/arena";
 import { AgentTurnTimeline } from "./AgentTurnTimeline";
 import { CodeBlock, stringifyJson } from "../../components/ui/CodeBlock";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -45,6 +45,10 @@ export interface StageDetailProps {
   readonly agentTurns?: readonly AgentTurnRecord[] | null;
   /** Level 4: where the answer came from (synthesize stage note). */
   readonly answerSource?: AnswerSource | null;
+  /** Level 5: answer citations + opener (summary references link to them) and model labels for the mode badge. */
+  readonly citations?: readonly Citation[];
+  readonly onSelectCitation?: (c: Citation) => void;
+  readonly labelFor?: (id: string | null) => string | null;
 }
 
 export interface AnswerSource {
@@ -83,7 +87,7 @@ export const AdkAnswerNote: React.FC<{ readonly source: AnswerSource }> = ({ sou
   );
 };
 
-export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state, retrievePayload = null, agentTurns = null, answerSource = null }) => {
+export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state, retrievePayload = null, agentTurns = null, answerSource = null, citations, onSelectCitation, labelFor }) => {
   if (!stageId || !state) {
     return <EmptyState compact title="Select a stage" description="Click a node on the rail or the diagram to see the exact request and response it recorded." />;
   }
@@ -95,7 +99,7 @@ export const StageDetail: React.FC<StageDetailProps> = ({ stageId, state, retrie
   const dedicated = isAgentStage ? (
     <AgentTurnTimeline turns={agentTurns} stageStatus={state.status} payload={state.payload} />
   ) : (
-    dedicatedStageView(stageId, state.payload, { retrievePayload })
+    dedicatedStageView(stageId, state.payload, { retrievePayload, citations, onSelectCitation, labelFor, stageRequest: state.request })
   );
   const res = splitPayload(state.payload, isAgentStage ? AGENT_KEYS : dedicated ? DEDICATED_KEYS[stageId] ?? [] : []);
   return (

@@ -20,6 +20,8 @@ export const STAGE_LABELS: Record<string, string> = {
   load_bigquery: "Load BQ",
   build_indexes: "Indexes",
   verify_counts: "Verify",
+  upload_gcs: "Upload GCS",
+  import_documents: "Import",
 };
 
 export const STATUS_META: Record<

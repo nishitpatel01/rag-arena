@@ -14,6 +14,7 @@ export const DEV_MODELS_FIXTURE: ModelsResponse = {
     { id: "gemini-4-argon", label: "Gemini 4 Argon (dev fixture)", provider: "vertex_gemini", location: "global", roles: ["synthesis", "judge"], ...NO_PRICE, available: true, unavailable_reason: null, verified_at: null },
     { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash (dev fixture)", provider: "vertex_gemini", location: "global", roles: ["synthesis", "judge"], ...NO_PRICE, available: true, unavailable_reason: null, verified_at: null },
     { id: "claude-opus-5-5", label: "Claude Opus 5.5 (dev fixture)", provider: "anthropic_vertex", location: "global", roles: ["synthesis", "judge"], ...NO_PRICE, available: true, unavailable_reason: null, verified_at: null },
+    { id: "vertex-ai-search-summary", label: "Vertex AI Search summary (dev fixture)", provider: "vertex_ai_search", location: "global", roles: ["synthesis"], ...NO_PRICE, available: true, unavailable_reason: null, verified_at: null, levels: ["managed_vertex"] },
     { id: "claude-fable-5-1", label: "Claude Fable 5.1 (dev fixture)", provider: "anthropic_vertex", location: "global", roles: ["synthesis", "judge"], ...NO_PRICE, available: false, unavailable_reason: "DEV FIXTURE: simulated unavailability (not a real probe result)", verified_at: null },
   ],
   defaults: { synthesis_model: "gemini-4-argon", judge_model: "claude-opus-5-5" },

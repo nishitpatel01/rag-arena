@@ -1,7 +1,7 @@
 {
   "header": {
     "format_version": 1,
-    "recorded_at": "2026-10-21T18:05:07.702Z",
+    "recorded_at": "2026-10-23T18:21:19.040Z",
     "project_id": "${GCP_PROJECT_ID}",
     "demo_mode": "record",
     "synthesis_model": "gemini-4-argon",
@@ -13,8 +13,8 @@
       "judge": "claude-opus-5-5",
       "judge_provider": "anthropic_vertex"
     },
-    "git_sha": "692f5742b73b2975ef96cea74875aa351d86e86d",
-    "app_version": "3.0.0",
+    "git_sha": "7219188a89c97b0a96f82bea891fbebf75f3a48f",
+    "app_version": "1.0.0",
     "engine": "level1_naive",
     "question_id": "dev_q01",
     "query": "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?",
@@ -33,7 +33,7 @@
       "request": {
         "query": "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?"
       },
-      "ts": "2026-10-21T18:05:05.424Z",
+      "ts": "2026-10-23T18:21:18.417Z",
       "t_rel_ms": 1
     },
     {
@@ -47,7 +47,7 @@
         "prepared_query": "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?",
         "expansions": []
       },
-      "ts": "2026-10-21T18:05:05.424Z",
+      "ts": "2026-10-23T18:21:18.417Z",
       "t_rel_ms": 1
     },
     {
@@ -63,7 +63,7 @@
         "task_type": "RETRIEVAL_QUERY",
         "method": "models.embed_content"
       },
-      "ts": "2026-10-21T18:05:05.424Z",
+      "ts": "2026-10-23T18:21:18.417Z",
       "t_rel_ms": 1
     },
     {
@@ -71,15 +71,15 @@
       "run_id": "run_rec",
       "engine": "level1_naive",
       "stage": "embed_query",
-      "duration_ms": 1497,
+      "duration_ms": 61,
       "payload": {
         "model": "gemini-embedding-2",
         "dimensions": 3072,
         "token_count": 14,
         "task_type": "RETRIEVAL_QUERY"
       },
-      "ts": "2026-10-21T18:05:06.922Z",
-      "t_rel_ms": 1498
+      "ts": "2026-10-23T18:21:18.479Z",
+      "t_rel_ms": 62
     },
     {
       "event": "stage_started",
@@ -103,15 +103,15 @@
         },
         "top_k": 5
       },
-      "ts": "2026-10-21T18:05:06.922Z",
-      "t_rel_ms": 1499
+      "ts": "2026-10-23T18:21:18.479Z",
+      "t_rel_ms": 62
     },
     {
       "event": "stage_completed",
       "run_id": "run_rec",
       "engine": "level1_naive",
       "stage": "retrieve",
-      "duration_ms": 404,
+      "duration_ms": 186,
       "payload": {
         "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
         "params": {
@@ -140,8 +140,8 @@
         "slot_millis": 1840,
         "cache_hit": false
       },
-      "ts": "2026-10-21T18:05:07.327Z",
-      "t_rel_ms": 1904
+      "ts": "2026-10-23T18:21:18.665Z",
+      "t_rel_ms": 249
     },
     {
       "event": "stage_started",
@@ -159,8 +159,8 @@
         "context_chunks": 2,
         "method": "models.generate_content"
       },
-      "ts": "2026-10-21T18:05:07.327Z",
-      "t_rel_ms": 1904
+      "ts": "2026-10-23T18:21:18.665Z",
+      "t_rel_ms": 249
     },
     {
       "event": "stage_completed",
@@ -180,8 +180,8 @@
         "answer": "The base rate for CLIN-0004-AB is $210.00/hr (amended to $245.00/hr).",
         "thinking_level": "HIGH"
       },
-      "ts": "2026-10-21T18:05:07.578Z",
-      "t_rel_ms": 2154
+      "ts": "2026-10-23T18:21:18.916Z",
+      "t_rel_ms": 500
     },
     {
       "event": "stage_started",
@@ -199,8 +199,8 @@
         "max_tokens": 1024,
         "reference_answer_used": false
       },
-      "ts": "2026-10-21T18:05:07.579Z",
-      "t_rel_ms": 2155
+      "ts": "2026-10-23T18:21:18.917Z",
+      "t_rel_ms": 500
     },
     {
       "event": "stage_completed",
@@ -222,8 +222,8 @@
         "rationale": "Synthetic judge rationale from the offline fake.",
         "judge_response_id": "msg_vrtx_fake01"
       },
-      "ts": "2026-10-21T18:05:07.700Z",
-      "t_rel_ms": 2277
+      "ts": "2026-10-23T18:21:19.038Z",
+      "t_rel_ms": 622
     }
   ],
   "result": {
@@ -245,7 +245,9 @@
           "x1": 0.92,
           "y1": 0.46
         },
-        "excerpt": "CLIN-0004-AB Senior Cloud Architect labor rate $210.00/hr base period, 2,000 hours estimated."
+        "excerpt": "CLIN-0004-AB Senior Cloud Architect labor rate $210.00/hr base period, 2,000 hours estimated.",
+        "layout_source": "",
+        "bbox_source": ""
       },
       {
         "chunk_id": "solicitation_01_06_Amendment_0001_Scope_Update_p1_w1",
@@ -261,7 +263,9 @@
           "x1": 0.92,
           "y1": 0.4
         },
-        "excerpt": "Amendment 0001 revises CLIN-0004-AB to $245.00/hr with a 5% volume discount above 1,500 hours."
+        "excerpt": "Amendment 0001 revises CLIN-0004-AB to $245.00/hr with a 5% volume discount above 1,500 hours.",
+        "layout_source": "",
+        "bbox_source": ""
       }
     ],
     "retrieved_chunks": [
@@ -285,7 +289,9 @@
           "y1": 0.46
         },
         "content": "CLIN-0004-AB Senior Cloud Architect labor rate $210.00/hr base period, 2,000 hours estimated.",
-        "score": 0.8123
+        "score": 0.8123,
+        "layout_source": "",
+        "bbox_source": ""
       },
       {
         "chunk_id": "solicitation_01_06_Amendment_0001_Scope_Update_p1_w1",
@@ -307,11 +313,13 @@
           "y1": 0.4
         },
         "content": "Amendment 0001 revises CLIN-0004-AB to $245.00/hr with a 5% volume discount above 1,500 hours.",
-        "score": 0.7791
+        "score": 0.7791,
+        "layout_source": "",
+        "bbox_source": ""
       }
     ],
     "agent_steps": [],
-    "latency_ms": 2153,
+    "latency_ms": 499,
     "cost_usd": 0.0069468,
     "stage_log": [
       {
@@ -319,7 +327,7 @@
         "label": "Query preparation",
         "service": "Engine (local)",
         "status": "completed",
-        "started_at": "2026-10-21T18:05:05.424Z",
+        "started_at": "2026-10-23T18:21:18.417Z",
         "duration_ms": 0,
         "request": {},
         "payload": {
@@ -335,8 +343,8 @@
         "label": "Query embedding",
         "service": "Vertex AI \u00b7 gemini-embedding-2",
         "status": "completed",
-        "started_at": "2026-10-21T18:05:05.424Z",
-        "duration_ms": 1497,
+        "started_at": "2026-10-23T18:21:18.417Z",
+        "duration_ms": 61,
         "request": {},
         "payload": {
           "model": "gemini-embedding-2",
@@ -352,8 +360,8 @@
         "label": "BigQuery VECTOR_SEARCH",
         "service": "BigQuery",
         "status": "completed",
-        "started_at": "2026-10-21T18:05:06.922Z",
-        "duration_ms": 404,
+        "started_at": "2026-10-23T18:21:18.479Z",
+        "duration_ms": 186,
         "request": {},
         "payload": {
           "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
@@ -391,7 +399,7 @@
         "label": "Answer synthesis",
         "service": "Vertex AI \u00b7 Gemini 4 Argon",
         "status": "completed",
-        "started_at": "2026-10-21T18:05:07.327Z",
+        "started_at": "2026-10-23T18:21:18.665Z",
         "duration_ms": 250,
         "request": {},
         "payload": {
@@ -432,7 +440,7 @@
     },
     "judge_model": "claude-opus-5-5",
     "reference_answer_used": false,
-    "duration_ms": 121,
+    "duration_ms": 120,
     "judge_provider": "anthropic_vertex",
     "judge_location": "global",
     "input_tokens": 1500,

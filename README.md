@@ -2,9 +2,9 @@
 
 **Five RAG architectures, one procurement corpus, every stage measured live — pick the right architecture with evidence, not demos.**
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 278 passed](https://img.shields.io/badge/backend%20tests-278%20passed-brightgreen.svg) ![Frontend tests: 156 passed](https://img.shields.io/badge/frontend%20tests-156%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.0.0](https://img.shields.io/badge/release-v1.0.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 278 passed](https://img.shields.io/badge/backend%20tests-278%20passed-brightgreen.svg) ![Frontend tests: 156 passed](https://img.shields.io/badge/frontend%20tests-156%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Status:** all five levels live · Compare, Leaderboard and Cloud Run deployment done · Phase 6 open item: owner UI changes (later).
+**Release:** v1.0.0 (2026-10-23, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all five levels live · Compare, Leaderboard and Cloud Run deployment done · Phase 6 open item: owner UI changes (later).
 
 ## The problem
 
@@ -30,7 +30,7 @@ same data — and many demos fake the pipeline with timers and hardcoded scores.
   context precision; **Compare** and **Leaderboard** put levels side by side.
 - **Zero-credential replay** of recorded real runs, and **one-command Cloud Run deployment** to your own project.
 
-The v3 guarantees (full principles table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#0-design-principles-v3)):
+Design guarantees (full principles table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#0-design-principles-v3)):
 
 - **Measured, not simulated** — stage events are emitted inside the engines; the API layer has no timers.
 - **Fail loud** — a failed stage emits `stage_failed` + `engine_error`; no silent fallback service or model.

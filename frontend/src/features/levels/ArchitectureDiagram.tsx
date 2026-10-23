@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pin, PinOff } from "lucide-react";
 import type { ArchEdge, ArchNode, EngineTimeline } from "../../types/arena";
 import { Button } from "../../components/ui/Button";
+import { PaneResizer, usePaneWidth } from "../../components/ui/PaneResizer";
+import { NODE_PANE } from "../../lib/paneWidth";
 import { DiagramNode } from "./DiagramNode";
 import { buildEdgePaths, deriveNodeView, visibleEdgeLabels, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
 import { deriveToolNodeView, toolFlowEdges, toolNodeBindings, toolNodeSummary, type ToolBinding } from "./agentTimelineModel";
@@ -62,6 +64,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [manualId, setManualId] = useState<string | null>(null);
   const [containerRef, containerWidth] = useContainerWidth();
+  const [nodeWidth, setNodeWidth] = usePaneWidth("node-details", NODE_PANE);
 
   // Inner width of the figure (minus its p-2 padding); the layout shrinks column gaps to fit it.
   const innerWidth = containerWidth > 0 ? containerWidth - FIGURE_PADDING_X : undefined;
@@ -125,7 +128,10 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
   const svgHeight = Math.max(DIAGRAM_MIN_HEIGHT, Math.round(layout.height * scale));
 
   return (
-    <div className={`grid min-w-0 gap-3 ${detailsPlacement === "side" ? "xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]" : ""}`}>
+    <div
+      className={`grid min-w-0 gap-3 ${detailsPlacement === "side" ? "xl:grid-cols-[minmax(0,1fr)_var(--node-pane-w)]" : ""}`}
+      style={{ "--node-pane-w": `${nodeWidth}px` } as React.CSSProperties}
+    >
       <figure ref={containerRef} className="min-w-0 overflow-x-auto rounded-md border border-line bg-surface-0 p-2">
         <figcaption className="sr-only">{title}</figcaption>
         <svg
@@ -178,7 +184,11 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
           })}
         </svg>
       </figure>
-      <aside className="min-w-0 rounded-md border border-line bg-surface-1 p-3" aria-label="Node details">
+      <div className="flex min-w-0">
+      {detailsPlacement === "side" && (
+        <PaneResizer label="Resize node details" width={nodeWidth} bounds={NODE_PANE} onChange={setNodeWidth} className="-ml-3" />
+      )}
+      <aside className="min-w-0 flex-1 rounded-md border border-line bg-surface-1 p-3" aria-label="Node details">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-3">
             {pinnedId ? "Pinned node" : running ? "Following active node" : "Node details"}
@@ -195,6 +205,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
           toolBinding={shownNode ? toolBindings.get(shownNode.id) ?? null : null}
         />
       </aside>
+      </div>
     </div>
   );
 };

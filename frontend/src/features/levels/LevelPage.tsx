@@ -6,6 +6,8 @@ import { DocumentViewer } from "../../components/DocumentViewer";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Panel } from "../../components/ui/Panel";
 import { Pill } from "../../components/ui/Pill";
+import { PaneResizer, usePaneWidth } from "../../components/ui/PaneResizer";
+import { DOC_PANE } from "../../lib/paneWidth";
 import type { Citation, LevelDescriptor } from "../../types/arena";
 import { TIER_FOR_LEVEL, runGateFor, useIngestStatus, type IngestStatusState } from "../ingest/ingestStatus";
 import { parseAgentStagePayload } from "./agentTimelineModel";
@@ -98,9 +100,13 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   // Teaser only after a finished run with judge metrics, on a level that has lower enabled levels.
   const showTeaser = lowerLevels.length > 0 && stream.state.complete && Boolean(timeline?.evaluation);
   const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
+  const [docWidth, setDocWidth] = usePaneWidth("document-viewer", DOC_PANE);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(17rem,21rem)]">
+    <div
+      className="grid gap-4 xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_var(--doc-pane-w)]"
+      style={{ "--doc-pane-w": `${docWidth}px` } as React.CSSProperties}
+    >
       <Panel title="Question" subtitle="Golden benchmark or custom" className="xl:row-span-2">
         <QuestionPicker levelId={level.level_id} gate={gate} isStreaming={stream.isStreaming} onRun={onRun} onAbort={stream.abort} models={models} />
         {gate.note && (
@@ -148,9 +154,12 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
         </div>
       </Panel>
 
-      <Panel title="Document viewer" subtitle="Real source page of the selected citation" className="xl:row-span-2" as="aside">
-        <DocumentViewer citation={citation} onOpen={openViewer} />
-      </Panel>
+      <div className="flex min-w-0 xl:row-span-2">
+        <PaneResizer label="Resize document viewer" width={docWidth} bounds={DOC_PANE} onChange={setDocWidth} className="-ml-3.5 mr-0.5" />
+        <Panel title="Document viewer" subtitle="Real source page of the selected citation" className="flex-1" as="aside">
+          <DocumentViewer citation={citation} onOpen={openViewer} />
+        </Panel>
+      </div>
 
       <Panel title="Stage detail" subtitle="Exact request and response from the event" className="xl:col-start-2">
         <StageDetail

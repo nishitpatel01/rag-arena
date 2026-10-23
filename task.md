@@ -105,7 +105,7 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 - [x] Stages: `query_prep`, `retrieve` (real extractive segments with page numbers → citations), `synthesize` (managed summary via pseudo model `vertex-ai-search-summary`, or a catalog model over the segments), `evaluate`; failure → `engine_error` (no local impersonation). Battle route now builds only requested engines (fixes Claude-on-L1 400 when L4 enabled). (`5994be6`)
 - [x] UI: results + extractive segments, summary vs model mode badges, page-level citations, managed ingest view, Level-5-only picker rule; README screenshot `21-level5.png`. (`1e7f8a3`)
 - [x] Record + replay: 16 recordings (`5994be6`).
-- [ ] Gate evidence D1–D7:
+- [x] Gate evidence D1–D7:
   - D1 ingestion (live, 2026-10-23): job `ing_8a3a8206d0d5` → `job_complete`; discover 2 ms (45 docs) · upload_gcs 580 ms (uploaded 3 regenerated diagram PDFs, skipped 42) · import_documents 341.0 s (33 polls, success 45 / failure 0) · verify_counts 247 ms (document_count 45, missing [], indexed 45); parse/chunk/embed/load/index `stage_skipped` "managed by Vertex AI Search".
   - D2 stage emission: `query_prep`, `retrieve`, `synthesize`, `evaluate` engine-emitted with measured `duration_ms`; summary generated inside the retrieve call (`generated_in_stage: "retrieve"`).
   - D3 live runs (judge Opus; summary mode / Argon over segments): q_exact_clin_lookup `run_d66b31339b5e` 0.45/0.40/0.75 · `run_81e97d11d155` 1.0/1.0/0.80; q_amendment_rate_comparison `run_252bb91d6cdc` 0.50/0.40/0.85 · `run_559777a33cec` 0.97/0.85/0.82; q_vpc_failover_diagram `run_4ac80d3f2431` 0.50/0.20/0.60 · `run_f03e261d883d` 1.0/0.97/0.65.
@@ -113,7 +113,7 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - D5 recordings: 2 pairs × 8 golden questions in `data/recordings/managed_vertex/`. Averages G / QA / CP · latency · run cost: `vertex-ai-search-summary__claude-opus-5-5` 0.531 / 0.312 / 0.706 · 3.5 s · $0.0326; `gemini-4-argon__claude-opus-5-5` 0.974 / 0.905 / 0.706 · 26.9 s · $0.0542. Managed summary often claims the sources lack facts present in the rank-1 segment (judge rationales).
   - D6 tests: backend `245 passed`; frontend `npm test` 124/124, `npm run build` clean.
   - Cost: ≈ $0.98 of the owner-approved $3.00 cap (option A, 2026-10-23).
-  - D7 owner sign-off: pending owner review on `:5173/levels/managed_vertex`.
+  - D7 owner sign-off: ✅ 2026-10-23 (owner: "level 5 signed off"); Level 5 enabled by default (`DEFAULT_ENABLED_LEVELS`, `.env.example`).
 
 ## Phase 6 — Compare, Leaderboard, Public Packaging
 - [ ] Owner UI changes (requested 2026-10-22, details to be provided once all levels are done).

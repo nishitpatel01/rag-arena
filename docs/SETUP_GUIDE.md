@@ -7,7 +7,7 @@ Two ways to run it:
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
    ingestion from the UI, and (in `record`) new recordings.
 
-**Levels 1–4** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic`; override in `.env` or the environment). Level 5 (`managed_vertex`) is enabled by adding it to `ENABLED_LEVELS` together with the `VAIS_*` keys. The Compare page and the Cloud
+**All five levels** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex`; override in `.env` or the environment). Level 5 needs the `VAIS_*` keys in live mode. The Compare page and the Cloud
 Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 ---

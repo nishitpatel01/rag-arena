@@ -33,7 +33,7 @@ hardcoded evaluation scores. v3 rebuilds the product around six rules:
 | 4 | `level4_agentic` | Real Google ADK `LlmAgent` + `InMemoryRunner` (Gemini on Vertex AI, ≤8 turns) with `search_procurement_corpus` (Level 3 hybrid RRF + rerank), `check_amendments` (BigQuery supersession query), `calculate_contract_pricing` (AST calculator) and `verify_citations` (claim check + one repair turn) | Multi-hop supersession, deterministic math, self-verification | ✅ live |
 | 5 | `managed_vertex` | Vertex AI Search (Enterprise + LLM add-on) over the same 45 PDFs imported from Cloud Storage: extractive segments with page numbers, answered either by the managed summary or by a selectable model over the segments | Build vs. buy baseline | ✅ live |
 
-`ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid,level3_multimodal,level4_agentic` (the signed-off levels; add `managed_vertex` with the `VAIS_*` keys). Vertex AI Vector Search 2.0 and AlloyDB ScaNN are parked in `backend/app/engines/parked/`.
+`ENABLED_LEVELS` defaults to all five levels (Level 5 needs the `VAIS_*` keys in live mode). Vertex AI Vector Search 2.0 and AlloyDB ScaNN are parked in `backend/app/engines/parked/`.
 
 ---
 
@@ -269,7 +269,7 @@ cd frontend && npm install && npm run dev
 
 Open `http://localhost:5173`, pick a level, a golden question and a recorded pair (`gemini-4-argon` or
 `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run; events replay with their recorded timing and
-ad-hoc questions return `engine_error`. Levels 1–4 are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
+ad-hoc questions return `engine_error`. All five levels are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
 
 ### (b) Live on your own GCP project
 

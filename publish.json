@@ -33,6 +33,9 @@
     "antigravity-cli",
     "jetski",
     "corp.goog",
-    "@google.com"
+    "@google.com",
+    "uplink.goog",
+    "airlock-proxy",
+    "artifact-foundry"
   ]
 }

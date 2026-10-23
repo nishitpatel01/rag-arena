@@ -303,6 +303,20 @@ IAM for the backend principal: `roles/aiplatform.user`, `roles/bigquery.jobUser`
 
 ---
 
+## Deploy to Cloud Run (your own project)
+
+One container serves the UI and the API; images build with Cloud Build (no local Docker needed).
+
+```bash
+cp deploy/cloudrun.env.example deploy/cloudrun.env   # git-ignored: project, region, access, replay copy
+scripts/deploy_cloudrun.sh --dry-run                  # validates every key, prints the exact plan
+scripts/deploy_cloudrun.sh --yes                      # idempotent apply; prints the service URLs
+```
+
+Choices: `REGION` (default `us-central1`); `ACCESS_MODE=iap` (only `IAP_MEMBERS`, e.g. `user:you@example.com,group:team@example.com`) or `public` (anyone can start runs billed to you); `DEPLOY_REPLAY=true` adds a public replay-only copy (recordings only, role-less service account, identity hidden); `LIVE_INGEST=true|false` (ingestion write roles vs query-only). Min instances 0 → $0 when idle; `scripts/teardown_cloudrun.sh --yes` removes only what the script created. Details: [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md#6-cloud-run).
+
+---
+
 ## API & SSE protocol
 
 | Method & path | Purpose |
@@ -380,6 +394,7 @@ timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synth
 - **Identity only from the git-ignored `.env`** (project, bucket, credential paths); code defaults are empty.
 - **Recorder redaction**: identity values become `${…}` placeholders and `assert_redacted` refuses to write
   otherwise. **Safe mode** (`?safe=1` or the header toggle) masks them in the UI for screen sharing.
+- **Cloud Run**: the live service runs as a dedicated least-privilege service account (no key files); the image never contains `.env` or deploy config, and the deploy script leak-scans the upload before every build.
 - **No key files** (ADC only); parameterized queries, validated identifiers, and an explicit bound and timeout on
   every loop, retry, poll and request.
 
@@ -392,7 +407,7 @@ timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synth
 | 3 | Level 3 Document AI Layout Parser + Gemini vision, multimodal embeddings, authority headers | ✅ live |
 | 4 | Level 4 real Google ADK runner with retrieval, amendment, pricing and citation-check tools | ✅ live |
 | 5 | Managed Vertex AI Search baseline (managed summary vs. model over extractive segments) | ✅ live |
-| 6 | **Next:** Compare page, leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
+| 6 | **In progress:** Compare page ✅, leaderboard from `query_runs` ✅, configurable Cloud Run deployment ✅ —  leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
 
 ## Data & license
 

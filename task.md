@@ -122,6 +122,7 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 - [x] `/leaderboard`: aggregated from `query_runs` (live) or recordings (replay); provenance shown per row; hand-typed `precomputed_runs.json` deleted (`5678375`). Live read: 143 query_runs rows, 23.8 KB processed; pre-model-column rows isolated as `unknown` pair.
 - [ ] README rewrite (v3 claims only), `publish.json` scrub check, `docker compose up` in replay.
 - [ ] **Cloud Run deployment (spec §8.1)**: root multi-stage `Dockerfile` (SPA build + Uvicorn serving `/api` and static SPA with route fallback); runtime service account with least-privilege IAM (no key files); `deploy/cloudrun.env.example` + git-ignored `deploy/cloudrun.env`; `infra/main.tf` Cloud Run v2 service + Artifact Registry + IAP; `scripts/deploy_cloudrun.sh`; optional Cloud Run Job for long ingestion. Gate: IAP-protected URL, live run + ingestion job succeed from the deployed UI, image leak scan clean.
+  - Progress 2026-10-23 (`6f742a4`, `d1a873e`): configurable deploy (`deploy/cloudrun.env.example`, `scripts/deploy_cloudrun.sh`, teardown, Terraform parity, v3 compose); owner setup deployed in us-central1 — live service behind IAP (owner only; unauthenticated → IAP 302), public replay copy (health identity empty; replayed L4 run streamed 82 s); served-content leak scan clean. Remaining gate: owner signs in and completes one live run + one ingestion job from the deployed UI.
 - [ ] Decide fate of parked `vertex_vector_v2` / `alloydb_scann` (re-enable one at a time under the same gate, or remove).
 
 ---

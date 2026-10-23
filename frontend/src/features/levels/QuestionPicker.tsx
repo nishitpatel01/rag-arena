@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, RotateCcw, Square } from "lucide-react";
 import type { BenchmarkQuestion } from "../../types/arena";
-import { useSessionUi } from "../../app/BattleSessions";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN, validateQueryInput } from "../../lib/validation";
@@ -12,6 +11,7 @@ import { ModelPicker } from "./ModelPicker";
 import { isMockRequested } from "./useBattleStream";
 import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
 import type { ModelCatalogState } from "./useModelCatalog";
+import { useQuestionFields, type QuestionOverride } from "./useQuestionFields";
 
 export interface QuestionPickerProps {
   readonly levelId: string;
@@ -27,6 +27,10 @@ export interface QuestionPickerProps {
   /** True when the page's results / selections hold something besides the question fields. */
   readonly hasResults: boolean;
   readonly models: ModelCatalogState;
+  /** Question of a viewed Compare run: shown in the form until the user edits it. */
+  readonly viewing?: QuestionOverride | null;
+  /** "clear" while a Compare run is shown: the button only hides it on this page. */
+  readonly resetMode?: "reset" | "clear";
 }
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 placeholder:text-ink-3";
@@ -35,13 +39,12 @@ const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.
  * Golden-question select + editable question + explicit `question_id` (the recording key in replay
  * mode, the reference-answer key for the judge). Run is gated by validation and the ingest gate.
  */
-export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, sessionKey, gate, isStreaming, onRun, onAbort, onReset, hasResults, models }) => {
+export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, sessionKey, gate, isStreaming, onRun, onAbort, onReset, hasResults, models, viewing = null, resetMode = "reset" }) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = useSafeMode();
-  const [selectedId, setSelectedId] = useSessionUi<string>(sessionKey, "goldenId", "");
-  const [questionId, setQuestionId] = useSessionUi<string>(sessionKey, "questionId", "");
-  const [query, setQuery] = useSessionUi<string>(sessionKey, "query", "");
+  const goldenIds = useMemo(() => questions.map((q) => q.question_id), [questions]);
+  const { selectedId, setSelectedId, questionId, setQuestionId, query, setQuery } = useQuestionFields(sessionKey, viewing, goldenIds);
   const canReset = hasResults || selectedId !== "" || questionId !== "" || query !== "";
 
   useEffect(() => {
@@ -141,9 +144,9 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, session
           <Button variant="danger" onClick={onAbort} leadingIcon={<Square className="h-3.5 w-3.5" aria-hidden />}>Stop</Button>
         )}
         <Button variant="ghost" onClick={onReset} disabled={!canReset} data-testid="reset-page"
-          title="Clear this page's results, selections and question (models are kept)"
+          title={resetMode === "clear" ? "Hide the Compare run on this page (Compare keeps it)" : "Clear this page's results, selections and question (models are kept)"}
           leadingIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}>
-          {isStreaming ? "Stop & reset" : "Reset"}
+          {resetMode === "clear" ? "Clear" : isStreaming ? "Stop & reset" : "Reset"}
         </Button>
       </div>
     </form>

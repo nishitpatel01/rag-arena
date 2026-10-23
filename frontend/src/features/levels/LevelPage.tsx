@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAppData } from "../../app/AppDataProvider";
-import { useSessionUi } from "../../app/BattleSessions";
 import { useSafeMode } from "../../app/SafeMode";
 import { DocumentDrawer } from "../../components/DocumentDrawer";
 import { DocumentViewer } from "../../components/DocumentViewer";
@@ -17,19 +16,20 @@ import { AnswerPanel, MetricsPanel } from "./AnswerPanels";
 import { CompareTeaser } from "./CompareTeaser";
 import { lowerEnabledLevels, teaserTitle, type LowerLevel } from "./compareTeaserModel";
 import { ArchitectureDiagram } from "./ArchitectureDiagram";
-import { QuestionPicker } from "./QuestionPicker";
+import { CompareRunBanner } from "./CompareRunBanner";
+import { LevelQuestionPanel } from "./LevelQuestionPanel";
+import { RunPills, runStateAttr } from "./RunPills";
 import { StageDetail, type AnswerSource } from "./StageDetail";
 import { StageRail } from "./StageRail";
 import { activeStageId } from "./model";
 import { modelLabel, type ModelSelection } from "./modelSelection";
-import { useBattleStream } from "./useBattleStream";
+import { useLevelRun } from "./useLevelRun";
 import { useModelCatalog } from "./useModelCatalog";
+import { useRunSelection } from "./useRunSelection";
+import { useViewedRunInputs } from "./useViewedRunInputs";
 
 /** Two `gap-4` (16 px) column gaps in the level grid. */
 const GRID_GAPS_PX = 32;
-
-const isStageId = (v: unknown): v is string | null => v === null || typeof v === "string";
-const isCitation = (v: unknown): v is Citation | null => v === null || (typeof v === "object" && !Array.isArray(v));
 
 function mergeOrder(declared: readonly string[], seen: readonly string[]): string[] {
   const out = [...declared];
@@ -43,14 +43,13 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   lowerLevels,
 }) => {
   // Page session: run, results and selections survive navigation (and keep streaming) until Reset / a new Run.
+  // "Latest run wins": the page shows its own run or the newer Compare run that included this level.
   const sessionKey = `level:${level.level_id}`;
-  const stream = useBattleStream(sessionKey);
-  const models = useModelCatalog(level.level_id);
+  const stream = useLevelRun(level.level_id);
+  const catalogModels = useModelCatalog(level.level_id);
   const { status: ingest, error: ingestError } = ingestState;
   const { maskValue } = useSafeMode();
-  const [selectedStage, setSelectedStage] = useSessionUi<string | null>(sessionKey, "selectedStage", null, isStageId);
-  const [userPicked, setUserPicked] = useSessionUi<boolean>(sessionKey, "userPicked", false);
-  const [storedCitation, setCitation] = useSessionUi<Citation | null>(sessionKey, "citation", null, isCitation);
+  const { selectedStage, setSelectedStage, userPicked, setUserPicked, citation: storedCitation, setCitation, clearOwn } = useRunSelection(sessionKey, stream);
   const citation = useMemo(() => maskValue(storedCitation), [maskValue, storedCitation]);
   const [viewerOpen, setViewerOpen] = useState(false);
   const openCitation = useCallback((c: Citation) => {
@@ -59,6 +58,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   }, [setCitation]);
   const openViewer = useCallback(() => setViewerOpen(true), []);
   const closeViewer = useCallback(() => setViewerOpen(false), []);
+  const { models, viewing } = useViewedRunInputs(stream, catalogModels);
 
   const timeline = stream.state.timelines[level.level_id];
   const active = activeStageId(timeline);
@@ -77,10 +77,8 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   }, [setUserPicked, setSelectedStage]);
 
   const onRun = (query: string, questionId: string | null, runModels: ModelSelection | null): void => {
-    setSelectedStage(null);
-    setUserPicked(false);
-    setCitation(null);
     setViewerOpen(false);
+    clearOwn(); // the new level run becomes the page's source (newest): start with no selections
     stream.run({
       query,
       questionId,
@@ -115,7 +113,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     return { adkRunnerUsed: typeof flag === "boolean" ? flag : null, finalAnswerSource: p?.finalAnswerSource ?? null };
   }, [isAgentic, timeline?.stages.agent_turn?.payload, timeline?.answer?.flags]);
   // Teaser only after a finished run with judge metrics, on a level that has lower enabled levels.
-  const showTeaser = lowerLevels.length > 0 && stream.state.complete && Boolean(timeline?.evaluation);
+  const showTeaser = lowerLevels.length > 0 && (stream.state.complete || stream.source === "compare") && !stream.isStreaming && Boolean(timeline?.evaluation);
   const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
   const [questionPref, setQuestionWidth] = usePaneWidth("question", QUESTION_PANE);
   const [docPref, setDocWidth] = usePaneWidth("document-viewer", DOC_PANE);
@@ -127,29 +125,16 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   const { leftAvailable, rightAvailable } = sideMaxima(gridWidth, questionWidth, docWidth, GRID_GAPS_PX);
 
   return (
+    <>
+    <CompareRunBanner run={stream} labelFor={labelFor} />
     <div
       ref={gridRef}
       className="grid gap-4 xl:grid-cols-[var(--question-pane-w)_minmax(0,1fr)_var(--doc-pane-w)]"
       style={{ "--question-pane-w": `${questionWidth}px`, "--doc-pane-w": `${docWidth}px` } as React.CSSProperties}
     >
       <div className="flex min-w-0 xl:row-span-2">
-      <Panel title="Question" subtitle="Golden benchmark or custom" className="flex-1">
-        <QuestionPicker levelId={level.level_id} sessionKey={sessionKey} gate={gate} isStreaming={stream.isStreaming} onRun={onRun}
-          onAbort={stream.abort} onReset={onReset} hasResults={stream.hasContent || selectedStage !== null || citation !== null} models={models} />
-        {gate.note && (
-          <p className={`mt-2 text-xs ${gate.tone === "err" ? "text-err" : gate.tone === "warn" ? "text-clay" : "text-slate"}`} role="status">
-            {gate.tone === "err" ? "Error" : gate.tone === "warn" ? "Blocked" : "Note"}: {gate.note}
-          </p>
-        )}
-        {stream.transportError && (
-          <div className="mt-2 rounded-md border border-err p-2 text-xs text-err" role="alert" data-testid="run-error">
-            <span className="font-semibold">Run rejected / stream error:</span> <span className="break-words">{stream.transportError}</span>
-          </div>
-        )}
-        {stream.state.warnings.map((w, i) => (
-          <p key={i} className="mt-2 text-xs text-clay" role="status">{w}</p>
-        ))}
-      </Panel>
+        <LevelQuestionPanel levelId={level.level_id} sessionKey={sessionKey} gate={gate} run={stream} models={models} viewing={viewing}
+          hasResults={stream.hasContent || selectedStage !== null || citation !== null} onRun={onRun} onReset={onReset} />
       <PaneResizer label="Resize question pane" side="left" width={questionWidth} bounds={QUESTION_PANE}
         maxPx={paneMax(QUESTION_PANE, leftAvailable)} onChange={setQuestionWidth} className="-mr-3.5 ml-0.5" />
       </div>
@@ -157,29 +142,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       <Panel
         title="Stage rail"
         subtitle={stream.state.runId ? `run ${stream.state.runId}` : "idle — statuses come only from backend events"}
-        actions={
-          <>
-            {stream.state.demoMode && (
-              <Pill tone={stream.state.replayed ? "info" : "ok"} mono title={stream.state.replayed ? "Frames carry replayed:true (recording of a real run)" : "DEMO_MODE of this run"}>
-                {stream.state.replayed ? "replayed recording" : stream.state.demoMode}
-              </Pill>
-            )}
-            {(runSynthLabel || runJudgeLabel) && (
-              <Pill tone="neutral" mono title="Models from run_started (what this run actually executed)">
-                synthesis: {runSynthLabel ?? "—"} · judge: {runJudgeLabel ?? "—"}
-              </Pill>
-            )}
-            {timeline?.error && <Pill tone="err" mono title={timeline.error.message}>engine_error · {timeline.error.type}</Pill>}
-            {stream.state.interrupted && (
-              <Pill tone="err" title="The SSE stream ended without battle_complete / engine_error; running stages were marked failed.">
-                stream interrupted · {stream.state.interrupted.reason}
-              </Pill>
-            )}
-            {stream.state.complete ? <Pill tone="ok">battle_complete</Pill> : stream.isStreaming ? <Pill tone="active">streaming</Pill> : null}
-          </>
-        }
+        actions={<RunPills state={stream.state} timeline={timeline} isStreaming={stream.isStreaming} synthLabel={runSynthLabel} judgeLabel={runJudgeLabel} />}
       >
-        <div data-run-state={stream.state.complete ? "complete" : stream.state.interrupted ? "interrupted" : stream.isStreaming ? "streaming" : "idle"}>
+        <div data-run-state={runStateAttr(stream.state, stream.isStreaming)} data-run-source={stream.source}>
           <StageRail stageIds={stageIds} stages={timeline?.stages ?? {}} selectedStage={selectedStage} onSelectStage={pickStage} />
         </div>
       </Panel>
@@ -239,6 +204,7 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       )}
       <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} retrievedChunks={timeline?.answer?.retrievedChunks} />
     </div>
+    </>
   );
 };
 

@@ -9,6 +9,7 @@ import type { Citation, LeaderboardResponse } from "../../types/arena";
 import { modelLabel, type ModelSelection } from "../levels/modelSelection";
 import { useBattleStream } from "../levels/useBattleStream";
 import { useModelCatalog } from "../levels/useModelCatalog";
+import { COMPARE_SESSION } from "../levels/useLevelRun";
 import { CompareAnswers, type SelectedCitation } from "./CompareAnswers";
 import { CompareRails } from "./CompareRails";
 import { CompareSetup } from "./CompareSetup";
@@ -17,8 +18,9 @@ import { Scoreboard } from "./Scoreboard";
 import { costEstimate, enginesToRun, levelChoices, scoreboardRows, summaryText } from "./compareModel";
 import { RunStatusPills } from "./RunStatusPills";
 
-/** Session key of the Compare page: its run, results and setup survive navigation until Reset / a new Run. */
-export const COMPARE_SESSION = "compare";
+/** Session key of the Compare page: its run, results and setup survive navigation until Reset / a new Run.
+ * Level pages read the same session to show the newest Compare run that included their level. */
+export { COMPARE_SESSION };
 const NO_QUESTION: QuestionValue = { query: "", questionId: "" };
 const NO_LEVELS: readonly string[] = [];
 const NO_PICKS: Readonly<Record<string, string>> = {};

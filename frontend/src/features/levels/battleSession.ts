@@ -42,6 +42,26 @@ export interface SessionSnapshot {
   readonly ui: UiRecord;
   /** True when the session holds a run result, a live run or a transport error. */
   readonly hasContent: boolean;
+  /** The current run's start stamp + request params; null before the first run and after `reset`. */
+  readonly run: RunInfo | null;
+}
+
+/** When a run started (strictly increasing epoch ms from the shared RunClock) and what it requested. */
+export interface RunInfo {
+  readonly startedAt: number;
+  readonly params: BattleRunParams;
+}
+
+/** Strictly increasing epoch-ms stamps; share ONE clock across sessions so "newest run" is well defined. */
+export type RunClock = () => number;
+
+export function createRunClock(now: () => number = Date.now): RunClock {
+  let last = -Infinity;
+  return () => {
+    const t = Math.max(now(), last + 1);
+    last = t;
+    return t;
+  };
 }
 
 export const MAX_UI_FIELDS = 32;
@@ -53,13 +73,14 @@ export class BattleSession {
   private streaming = false;
   private error: string | null = null;
   private ui: UiRecord = EMPTY_UI;
+  private runInfo: RunInfo | null = null;
   private handle: TransportHandle | null = null;
   /** Each run gets a generation; transport callbacks of a superseded run are ignored. */
   private gen = 0;
   private readonly listeners = new Set<() => void>();
   private snapshot: SessionSnapshot;
 
-  constructor(private readonly openTransport: OpenTransport) {
+  constructor(private readonly openTransport: OpenTransport, private readonly clock: RunClock = createRunClock()) {
     this.snapshot = this.build();
   }
 
@@ -83,6 +104,7 @@ export class BattleSession {
     this.state = INITIAL_STREAM_STATE;
     this.error = null;
     this.streaming = true;
+    this.runInfo = { startedAt: this.clock(), params: { ...params, engines: [...params.engines] } };
     this.emit();
     this.handle = this.openTransport(params, {
       onFrame: (frame) => {
@@ -116,6 +138,7 @@ export class BattleSession {
     this.stop();
     this.state = INITIAL_STREAM_STATE;
     this.error = null;
+    this.runInfo = null;
     this.ui = EMPTY_UI;
     this.emit();
   };
@@ -170,6 +193,7 @@ export class BattleSession {
       transportError: this.error,
       ui: this.ui,
       hasContent: this.streaming || this.error !== null || this.state.events.length > 0,
+      run: this.runInfo,
     };
   }
 
@@ -178,7 +202,7 @@ export class BattleSession {
     const next = this.build();
     if (
       prev.state === next.state && prev.isStreaming === next.isStreaming && prev.transportError === next.transportError &&
-      prev.ui === next.ui
+      prev.ui === next.ui && prev.run === next.run
     ) return;
     this.snapshot = next;
     for (const l of [...this.listeners]) l();

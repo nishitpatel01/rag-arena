@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
-import { BattleSession, SessionRegistry, readUi, sameKindAs, type SessionSnapshot, type UiValue } from "../features/levels/battleSession";
+import { BattleSession, SessionRegistry, createRunClock, readUi, sameKindAs, type SessionSnapshot, type UiValue } from "../features/levels/battleSession";
 import { isMockRequested, mockTransport, sseTransport } from "../features/levels/battleTransport";
 
 /**
@@ -10,9 +10,11 @@ import { isMockRequested, mockTransport, sseTransport } from "../features/levels
 const RegistryContext = createContext<SessionRegistry | null>(null);
 
 export const BattleSessionsProvider: React.FC<{ readonly children: React.ReactNode }> = ({ children }) => {
-  const [registry] = useState(
-    () => new SessionRegistry(() => new BattleSession(import.meta.env.DEV && isMockRequested() ? mockTransport : sseTransport))
-  );
+  const [registry] = useState(() => {
+    // One clock for every page session: run start stamps order Compare vs level runs ("latest run wins").
+    const clock = createRunClock();
+    return new SessionRegistry(() => new BattleSession(import.meta.env.DEV && isMockRequested() ? mockTransport : sseTransport, clock));
+  });
   return <RegistryContext.Provider value={registry}>{children}</RegistryContext.Provider>;
 };
 

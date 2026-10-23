@@ -54,20 +54,13 @@ def test_parked_engines_are_not_importable_from_the_registry_module() -> None:
     assert "PARKED" in (parked / "alloydb_scann.py").read_text(encoding="utf-8")[:200]
 
 
-def test_legacy_engines_emit_skipped_stages_then_fail_loud_under_one_legacy_stage() -> None:
-    emitter = RecordingStageEmitter(run_id="run_legacy", engine="managed_vertex")
-    with fake_clients():
-        engine = ManagedVertexSearchEngine(settings=live_settings(enabled_levels=("managed_vertex",)))
-        with pytest.raises(Exception):
-            run(engine.run_query("What is the CLIN-0004-AB rate?", question_id=None, solicitation_filter=None, emitter=emitter))
-    kinds = [(e["event"], e["stage"]) for e in emitter.events]
-    skipped = [s for s in engine.stages if s != "evaluate"]
-    assert kinds[: len(skipped)] == [("stage_skipped", s) for s in skipped]
-    assert kinds[len(skipped)] == ("stage_started", "legacy") and kinds[len(skipped) + 1] == ("stage_failed", "legacy")
-    assert "Phase 5" in emitter.events[0]["reason"]
+def test_replay_mode_live_engines_refuse_to_run() -> None:
     replay_emitter = RecordingStageEmitter(run_id="r2", engine="level2_hybrid")
     with pytest.raises(RuntimeError, match="replay"):
         run(Level2HybridEngine(settings=ArenaSettings(demo_mode="replay")).run_query("q", question_id=None, solicitation_filter=None, emitter=replay_emitter))
+    mv_emitter = RecordingStageEmitter(run_id="r3", engine="managed_vertex")
+    with pytest.raises(RuntimeError, match="replay"):
+        run(ManagedVertexSearchEngine(settings=ArenaSettings(demo_mode="replay")).run_query("q", question_id=None, solicitation_filter=None, emitter=mv_emitter))
 
 
 def test_level3_authority_header_formatting() -> None:

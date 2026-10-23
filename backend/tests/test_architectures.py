@@ -8,7 +8,9 @@ import re
 from starlette.testclient import TestClient
 
 from app.core.architectures import (
+    ALL_INGEST_STAGES,
     CANONICAL_INGEST_STAGES,
+    ingest_stages_for,
     CANONICAL_QUERY_STAGES,
     ArchitectureDescriptor,
     get_architecture_descriptor,
@@ -38,10 +40,12 @@ def test_descriptors_exist_for_all_five_levels_with_valid_grid_nodes_and_edges()
             assert edge.source in node_ids and edge.target in node_ids, f"dangling edge in {desc.level_id}"
         ingest_ids = {n.id for n in desc.ingest_nodes}
         for node in desc.ingest_nodes:
-            assert set(node.stage_ids) <= set(CANONICAL_INGEST_STAGES)
+            assert set(node.stage_ids) <= set(ALL_INGEST_STAGES)
         for edge in desc.ingest_edges:
             assert edge.source in ingest_ids and edge.target in ingest_ids
-        assert all(stage in {s for n in desc.ingest_nodes for s in n.stage_ids} for stage in CANONICAL_INGEST_STAGES)
+        mapped = {s for n in desc.ingest_nodes for s in n.stage_ids}
+        assert all(stage in mapped for stage in ingest_stages_for(desc.level_id)), desc.level_id
+    assert set(CANONICAL_INGEST_STAGES) <= set(ingest_stages_for("managed_vertex"))
 
 
 def test_every_canonical_engine_stage_maps_to_at_least_one_node() -> None:

@@ -4,6 +4,10 @@ import { api } from "../../lib/api";
 import { openSseStream, type SseFrame, type StreamHandle } from "../../lib/sse";
 import type { IngestEvent } from "../../types/arena";
 import { INITIAL_STREAM_STATE, reduceStreamEvent, streamEndReason, streamInterruptedEvent, type StreamState } from "../levels/model";
+import { isMockRequested } from "../levels/useBattleStream";
+
+/** Levels with a DEV `?mock=1` ingestion fixture (managed import job). */
+export const DEV_INGEST_FIXTURE_LEVELS: readonly string[] = ["managed_vertex"];
 
 const INGEST_STREAM_TIMEOUT_MS = 30 * 60_000;
 
@@ -25,6 +29,7 @@ export function useIngestJobStream(): IngestJobStream {
   const [isStreaming, setIsStreaming] = useState(false);
   const [transportError, setTransportError] = useState<string | null>(null);
   const handleRef = useRef<StreamHandle | null>(null);
+  const mockTimersRef = useRef<number[]>([]);
 
   // Each job follow gets a generation; transport callbacks of a superseded stream are ignored.
   const genRef = useRef(0);
@@ -37,6 +42,8 @@ export function useIngestJobStream(): IngestJobStream {
     genRef.current += 1;
     handleRef.current?.abort();
     handleRef.current = null;
+    for (const id of mockTimersRef.current) window.clearTimeout(id);
+    mockTimersRef.current = [];
     setIsStreaming(false);
   }, []);
 
@@ -55,6 +62,23 @@ export function useIngestJobStream(): IngestJobStream {
       setTransportError(null);
       setLevel(nextLevel);
       setIsStreaming(true);
+      // DEV + ?mock=1 only: play the managed import fixture (statically removed from production bundles).
+      if (import.meta.env.DEV && isMockRequested() && DEV_INGEST_FIXTURE_LEVELS.includes(nextLevel)) {
+        const fixture = (await import("../../dev/fixtures/level5_run")).level5IngestFixture();
+        if (gen !== genRef.current) return;
+        setJobId("devfixture-ing-level5");
+        let offset = 0;
+        fixture.forEach((item, index) => {
+          offset += item.t_rel;
+          const id = window.setTimeout(() => {
+            if (gen !== genRef.current) return;
+            setState((prev) => reduceStreamEvent(prev, { ...item.event, ts: new Date().toISOString() } as unknown as IngestEvent));
+            if (index === fixture.length - 1) setIsStreaming(false);
+          }, offset);
+          mockTimersRef.current.push(id);
+        });
+        return;
+      }
       let created: { job_id: string };
       try {
         created = await api.createIngestJob(nextLevel);

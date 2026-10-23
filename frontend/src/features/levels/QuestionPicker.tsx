@@ -69,7 +69,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
   const validation = validateQueryInput(query, [levelId]);
   const idError = QUESTION_ID_PATTERN.test(questionId) ? null : "question_id may contain only letters, digits, `_ . -` (max 80).";
   const { catalog, selection } = models;
-  const modelError = catalog && selection ? validateSelection(catalog, selection) : null;
+  const modelError = catalog && selection ? validateSelection(catalog, selection, levelId) : null;
   // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.
   const replay = catalog && selection && !isMockRequested() ? replayGate(catalog, levelId, questionId, selection) : null;
   const disabled =
@@ -119,6 +119,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, gate, i
         disabled={isStreaming}
         validationError={modelError}
         replay={replay}
+        levelId={levelId}
       />
       {validation && query.length > 0 && <p className="text-xs text-clay">{validation}</p>}
       {gate.blocked && gate.count === 0 && (

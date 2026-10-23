@@ -1,6 +1,6 @@
 # The RAG Arena v3 — System Architecture
 
-This document describes the architecture **as implemented** with Levels 1–4 live. Anything not yet built is
+This document describes the architecture **as implemented** with Levels 1–5 live. Anything not yet built is
 marked 🔒 *planned*. The product rule behind every decision: **nothing is shown that was not measured**
 (principles P1–P6 in the [README](../README.md#why-v3-measured-not-simulated)).
 
@@ -219,6 +219,32 @@ synthesis model on Level 4 returns HTTP 400 before streaming. Claude models rema
 
 ---
 
+## 3e. Level 5 query path (`engines/managed_vertex.py`, `engines/vais_search.py`, `core/vertex_search.py`)
+
+Managed baseline over a Vertex AI Search data store `rag-arena-procurement` (unstructured, default digital parser, no
+chunking config — layout-based chunking makes the API reject `extractiveContentSpec`) behind the Enterprise search
+app `rag-arena-procurement-search` with the LLM add-on, both in `global` / `default_collection`
+(`scripts/provision_vertex_search.py`, idempotent and limited to these ids; `infra/main.tf`). Settings:
+`VAIS_LOCATION`, `VAIS_DATA_STORE_ID`, `VAIS_ENGINE_ID` (+ optional `VAIS_PAGE_SIZE`, `VAIS_MAX_SEGMENTS`,
+`VAIS_SUMMARY_RESULT_COUNT`, `VAIS_TIMEOUT_SECONDS`, `VAIS_SUMMARY_MODEL_VERSION`).
+
+| Stage | What runs | Payload (measured) |
+| :-- | :-- | :-- |
+| `query_prep` | Level 2 acronym expansion | `original_query`, `prepared_query`, `expansions[]` |
+| `retrieve` | REST `engines/<id>/servingConfigs/default_search:search` with `extractiveContentSpec` (+ `summarySpec` in summary mode) | `api_request`, `total_size`, `results[]` (`rank`, `doc_name`, `extractive_segments[]` with `page_number`, `relevance_score`), `attribution_token`, `api_ms`, `summary_requested`, `solicitation_filter: "not supported (…)"` |
+| `synthesize` (a) | synthesis model `vertex-ai-search-summary` (provider `vertex_ai_search`, Level 5 only, else HTTP 400): the summary generated inside the same search call | `answer`, `generated_in_stage: "retrieve"`, `summary_skipped_reasons[]`, `references[{title, document_id, uri}]`, `model_version_used: "not returned by the API"` |
+| `synthesize` (b) | any catalog model over the extractive segments ("buy retrieval, build generation") | standard synthesize payload + `context_source`, `context_segments` |
+| `evaluate` | judge (≠ synthesis) over the extractive segments | as Levels 1–4 |
+
+Citations are page-level (`element_type: extractive_segment`, `layout_source: vertex_ai_search`, `bbox_source: page`).
+A skipped summary or API error fails the stage — no local impersonation. Price: $4 / 1,000 queries + $4 / 1,000 for
+the LLM add-on (summary mode $0.008 per run). Ingestion (`ingestion/{gcs_sync,managed_job}.py`): `discover_docs →
+upload_gcs` (md5 diff, prefix-restricted, no deletes) `→ import_documents` (INCREMENTAL, bounded LRO poll, emits
+`import_progress`) `→ verify_counts`; `parse … build_indexes` are `stage_skipped` ("managed by Vertex AI Search").
+`/api/v1/ingest/status.managed_vertex` reports data store / engine state and document count.
+
+---
+
 ## 4. Model selection and evaluation
 
 - **Catalog** (`core/models_catalog.py`): `gemini-4-argon`, `gemini-3.8-flash` (provider `vertex_gemini`),
@@ -355,6 +381,5 @@ one node.
 
 | Item | Phase |
 | :-- | :-- |
-| Level 5 (next): Vertex AI Search data store baseline | 5 🔒 |
 | Compare page; leaderboard from `query_runs`; updated `docker-compose.yml` | 6 🔒 |
 | Cloud Run: single multi-stage container serving API + SPA, least-privilege runtime service account with no key files, env-only config, IAP-protected live service, optional public replay service, Cloud Run Job for long ingestion | 6 🔒 |

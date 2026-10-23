@@ -53,7 +53,7 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic")
+DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic", "managed_vertex")
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
@@ -84,6 +84,21 @@ _DOCAI_TIMEOUT_RANGE: tuple[int, int] = (10, 600)
 _DOCAI_LOCATION_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
 _DOCAI_PROCESSOR_ID_RE = re.compile(r"[a-z0-9]{1,64}")
 _DOCAI_VERSION_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
+# Level 5 Managed Vertex AI Search (Discovery Engine REST v1). Ids are env-only (VAIS_DATA_STORE_ID / VAIS_ENGINE_ID).
+DEFAULT_VAIS_LOCATION: str = "global"
+DEFAULT_VAIS_PAGE_SIZE: int = 10
+DEFAULT_VAIS_MAX_SEGMENTS: int = 3
+DEFAULT_VAIS_SUMMARY_RESULT_COUNT: int = 5
+DEFAULT_VAIS_TIMEOUT_SECONDS: int = 30
+DEFAULT_VAIS_SUMMARY_MODEL_VERSION: str = "stable"
+_VAIS_PAGE_SIZE_RANGE: tuple[int, int] = (1, 20)
+_VAIS_MAX_SEGMENTS_RANGE: tuple[int, int] = (1, 10)
+_VAIS_SUMMARY_RESULT_COUNT_RANGE: tuple[int, int] = (1, 10)
+_VAIS_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
+_VAIS_LOCATION_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
+# Discovery Engine resource ids: lowercase letters, digits, dashes, underscores (≤ 63 chars).
+_VAIS_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
+_VAIS_MODEL_VERSION_RE = re.compile(r"[a-z0-9][a-z0-9._/@-]{0,80}")
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -171,6 +186,16 @@ class ArenaSettings:
     agent_max_tool_calls_per_turn: int = DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN
     agent_thinking_level: str = DEFAULT_AGENT_THINKING_LEVEL
     agent_model_call_timeout_seconds: int = DEFAULT_AGENT_MODEL_CALL_TIMEOUT_SECONDS
+    # Level 5 (env: VAIS_LOCATION, VAIS_DATA_STORE_ID, VAIS_ENGINE_ID, VAIS_PAGE_SIZE, VAIS_MAX_SEGMENTS,
+    # VAIS_SUMMARY_RESULT_COUNT, VAIS_TIMEOUT_SECONDS, VAIS_SUMMARY_MODEL_VERSION).
+    vais_location: str = DEFAULT_VAIS_LOCATION
+    vais_data_store_id: str = ""
+    vais_engine_id: str = ""
+    vais_page_size: int = DEFAULT_VAIS_PAGE_SIZE
+    vais_max_segments: int = DEFAULT_VAIS_MAX_SEGMENTS
+    vais_summary_result_count: int = DEFAULT_VAIS_SUMMARY_RESULT_COUNT
+    vais_timeout_seconds: int = DEFAULT_VAIS_TIMEOUT_SECONDS
+    vais_summary_model_version: str = DEFAULT_VAIS_SUMMARY_MODEL_VERSION
 
     @property
     def model_verification_path(self) -> Path:
@@ -224,6 +249,25 @@ class ArenaSettings:
         self._validate_hybrid()
         self._validate_level3()
         self._validate_agent()
+        self._validate_vais()
+
+    def _validate_vais(self) -> None:
+        """Level 5 Vertex AI Search location/ids (empty id = not provisioned) and request bounds."""
+        if not isinstance(self.vais_location, str) or not _VAIS_LOCATION_RE.fullmatch(self.vais_location):
+            raise ValueError(f"VAIS_LOCATION is not a valid Discovery Engine location: {self.vais_location!r}")
+        for name, value in (("VAIS_DATA_STORE_ID", self.vais_data_store_id), ("VAIS_ENGINE_ID", self.vais_engine_id)):
+            if not isinstance(value, str) or (value and not _VAIS_ID_RE.fullmatch(value)):
+                raise ValueError(f"{name} must be a short Discovery Engine id (not a resource name), got {value!r}")
+        for name, value, (low, high) in (
+            ("VAIS_PAGE_SIZE", self.vais_page_size, _VAIS_PAGE_SIZE_RANGE),
+            ("VAIS_MAX_SEGMENTS", self.vais_max_segments, _VAIS_MAX_SEGMENTS_RANGE),
+            ("VAIS_SUMMARY_RESULT_COUNT", self.vais_summary_result_count, _VAIS_SUMMARY_RESULT_COUNT_RANGE),
+            ("VAIS_TIMEOUT_SECONDS", self.vais_timeout_seconds, _VAIS_TIMEOUT_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if not _VAIS_MODEL_VERSION_RE.fullmatch(self.vais_summary_model_version or ""):
+            raise ValueError(f"VAIS_SUMMARY_MODEL_VERSION is invalid: {self.vais_summary_model_version!r}")
 
     def _validate_agent(self) -> None:
         """Level 4 ADK bounds: max model turns per run and max function calls per model turn."""
@@ -447,6 +491,7 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         **_judge_kwargs(source),
         **_synthesis_kwargs(source),
         **_level3_kwargs(source),
+        **_vais_kwargs(source),
         agent_max_turns=_parse_int(source.get("AGENT_MAX_TURNS", str(DEFAULT_AGENT_MAX_TURNS)), "AGENT_MAX_TURNS"),
         agent_max_tool_calls_per_turn=_parse_int(
             source.get("AGENT_MAX_TOOL_CALLS_PER_TURN", str(DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN)), "AGENT_MAX_TOOL_CALLS_PER_TURN"
@@ -469,6 +514,24 @@ def _level3_kwargs(source: Mapping[str, str]) -> dict[str, object]:
         ),
         "vision_model": source.get("VISION_MODEL", DEFAULT_GEMINI_FAST_MODEL).strip(),
     }
+
+
+def _vais_kwargs(source: Mapping[str, str]) -> dict[str, object]:
+    """VAIS_* keys → ArenaSettings Level 5 fields (validated in ``ArenaSettings._validate_vais``)."""
+    ints = (
+        ("vais_page_size", "VAIS_PAGE_SIZE", DEFAULT_VAIS_PAGE_SIZE),
+        ("vais_max_segments", "VAIS_MAX_SEGMENTS", DEFAULT_VAIS_MAX_SEGMENTS),
+        ("vais_summary_result_count", "VAIS_SUMMARY_RESULT_COUNT", DEFAULT_VAIS_SUMMARY_RESULT_COUNT),
+        ("vais_timeout_seconds", "VAIS_TIMEOUT_SECONDS", DEFAULT_VAIS_TIMEOUT_SECONDS),
+    )
+    out: dict[str, object] = {field: _parse_int(source.get(key, str(default)), key) for field, key, default in ints}
+    out.update({
+        "vais_location": source.get("VAIS_LOCATION", DEFAULT_VAIS_LOCATION).strip(),
+        "vais_data_store_id": source.get("VAIS_DATA_STORE_ID", "").strip(),
+        "vais_engine_id": source.get("VAIS_ENGINE_ID", "").strip(),
+        "vais_summary_model_version": source.get("VAIS_SUMMARY_MODEL_VERSION", DEFAULT_VAIS_SUMMARY_MODEL_VERSION).strip(),
+    })
+    return out
 
 
 def _synthesis_kwargs(source: Mapping[str, str]) -> dict[str, object]:

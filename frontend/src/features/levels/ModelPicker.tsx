@@ -21,6 +21,8 @@ export interface ModelPickerProps {
   readonly disabled: boolean;
   readonly validationError: string | null;
   readonly replay: ReplayGate | null;
+  /** Level of the page: level-restricted models (e.g. the managed summary pseudo model) are disabled elsewhere. */
+  readonly levelId?: string | null;
 }
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 disabled:opacity-60";
@@ -33,11 +35,12 @@ interface RoleSelectProps {
   readonly other: string;
   readonly disabled: boolean;
   readonly onSelect: (id: string) => void;
+  readonly levelId: string | null;
 }
 
-const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, other, disabled, onSelect }) => {
+const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, other, disabled, onSelect, levelId }) => {
   const id = `model-${role}`;
-  const options = optionStates(catalog, role, other);
+  const options = optionStates(catalog, role, other, levelId);
   const selected = findModel(catalog, value);
   const priceUrl = safeHttpUrl(selected?.price_source);
   const blocked = options.filter((o) => o.disabled);
@@ -50,7 +53,7 @@ const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, ot
         {options.map((o) => (
           <option key={o.entry.id} value={o.entry.id} disabled={o.disabled} title={o.reason ?? undefined}>
             {o.entry.label} · {providerLabel(o.entry.provider)} · {o.entry.location}
-            {o.unavailable ? " — unavailable" : o.disabled ? (role === "judge" ? " — used for synthesis" : " — used as judge") : ""}
+            {o.unavailable ? " — unavailable" : o.restricted ? " — Level 5 only" : o.disabled ? (role === "judge" ? " — used for synthesis" : " — used as judge") : ""}
           </option>
         ))}
       </select>
@@ -85,7 +88,7 @@ const pairText = (catalog: ModelsResponse, p: RecordedPair): string =>
  * Synthesis + judge model selects (spec §7.2). Options, availability, prices and replay recordings
  * all come from GET /api/v1/models; the judge must differ from the synthesis model.
  */
-export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, error, selection, onChange, disabled, validationError, replay }) => {
+export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, error, selection, onChange, disabled, validationError, replay, levelId = null }) => {
   if (error || !catalog || !selection) {
     return (
       <fieldset className="flex flex-col gap-1 rounded-md border border-line p-2" disabled aria-busy={loading}>
@@ -105,9 +108,9 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, erro
   return (
     <fieldset className="flex flex-col gap-2 rounded-md border border-line p-2" data-testid="model-picker">
       <legend className="px-1 text-xs font-medium text-ink-2">Models</legend>
-      <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled}
+      <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId}
         onSelect={(id) => onChange({ ...selection, synthesis: id })} />
-      <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled}
+      <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled} levelId={levelId}
         onSelect={(id) => onChange({ ...selection, judge: id })} />
       {validationError && <p className="text-xs text-err" role="alert">{validationError}</p>}
       {replay?.replay && (

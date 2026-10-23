@@ -166,6 +166,22 @@ export interface IngestStatusResponse {
   readonly last_runs_source?: string;
   /** Fully-qualified BigQuery table the counts were read from (server-provided; never hardcoded). */
   readonly table?: string;
+  /** Level 5 (provisional): Vertex AI Search data store status; absent on pre-Level-5 backends. */
+  readonly managed_vertex?: ManagedVertexIngestStatus | null;
+}
+
+/** `GET /api/v1/ingest/status` → `managed_vertex` (provisional; every field optional, shown verbatim). */
+export interface ManagedVertexIngestStatus {
+  readonly document_count?: number | null;
+  readonly data_store_state?: string | null;
+  readonly engine_state?: string | null;
+  readonly indexed?: number | null;
+  readonly search_tier?: string | null;
+  /** Resource name of the data store / engine (masked in safe mode). */
+  readonly data_store?: string | null;
+  readonly engine?: string | null;
+  readonly available?: boolean;
+  readonly reason?: string | null;
 }
 
 export interface IngestJobCreated {
@@ -177,7 +193,7 @@ export interface IngestJobCreated {
 // ---------------------------------------------------------------------------
 
 export type ModelRole = "synthesis" | "judge";
-export type ModelProvider = "vertex_gemini" | "anthropic_vertex" | (string & {});
+export type ModelProvider = "vertex_gemini" | "anthropic_vertex" | "vertex_ai_search" | (string & {});
 
 export interface ModelCatalogEntry {
   readonly id: string;
@@ -192,6 +208,11 @@ export interface ModelCatalogEntry {
   readonly available: boolean;
   readonly unavailable_reason: string | null;
   readonly verified_at: string | null;
+  /** Level ids this model is valid on (empty/absent = every level); backend key `allowed_levels`, `levels` tolerated. */
+  readonly allowed_levels?: readonly string[] | null;
+  readonly levels?: readonly string[] | null;
+  /** Request-priced managed models (Vertex AI Search summary): USD per 1,000 requests. */
+  readonly usd_per_1k_requests?: number | null;
 }
 
 export interface RecordedPair {

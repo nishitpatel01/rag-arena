@@ -7,16 +7,22 @@ import { MiniMarkdown } from "../../components/ui/MiniMarkdown";
 import { formatMs, formatPct, formatUsd } from "../../lib/format";
 import { ELEMENT_LABEL } from "../../lib/elements";
 import { AlignLeft, Network, Table2 } from "lucide-react";
+import { parseManagedSynthesize } from "./level5Payloads";
+import { SynthModeBadge } from "./level5Views";
 
 export interface AnswerPanelProps {
   readonly timeline: EngineTimeline | undefined;
   readonly running: boolean;
   readonly selectedCitation: Citation | null;
   readonly onSelectCitation: (c: Citation) => void;
+  /** Catalog label for a model id (Level 5 mode badge). */
+  readonly labelFor?: (id: string | null) => string | null;
 }
 
-export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, selectedCitation, onSelectCitation }) => {
+export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, selectedCitation, onSelectCitation, labelFor }) => {
   const answer = timeline?.answer ?? null;
+  // Level 5: which synthesis path produced this answer (managed summary vs catalog model over segments).
+  const managedSynth = parseManagedSynthesize(timeline?.stages.synthesize?.payload ?? null);
   if (timeline?.error && !answer) {
     return (
       <div role="alert" className="rounded-md border border-err p-3 text-xs">
@@ -35,6 +41,7 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
     <div className="flex flex-col gap-3">
       <MiniMarkdown text={answer.answer} />
       <div className="flex flex-wrap gap-1.5">
+        {managedSynth && <SynthModeBadge view={managedSynth} labelFor={labelFor} />}
         <Pill tone={answer.flags.reranker_used ? "ok" : "neutral"}>reranker {answer.flags.reranker_used ? "used" : "not used"}</Pill>
         <Pill tone={answer.flags.adk_runner_used ? "ok" : "neutral"}>ADK runner {answer.flags.adk_runner_used ? "used" : "not used"}</Pill>
         {answer.flags.layout_source && <Pill tone="info" mono>layout: {answer.flags.layout_source}</Pill>}
@@ -60,6 +67,11 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
                     <span className="font-mono">[{i + 1}]</span> {c.doc_name} p.{c.page_number}
                     {c.section_id ? ` · ${c.section_id}` : ""}
                     <CitationElementTag elementType={c.element_type} layoutSource={c.layout_source ?? null} />
+                    {c.bbox_source === "page" && c.element_type !== "table" && c.element_type !== "diagram" && (
+                      <span className="ml-1 font-mono text-ink-3" title="bbox_source page: page-level citation from the extractive segment's page number (no region located)">
+                        · page-level
+                      </span>
+                    )}
                   </button>
                 </li>
               );

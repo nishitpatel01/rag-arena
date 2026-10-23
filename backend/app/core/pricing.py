@@ -96,6 +96,27 @@ PRICE_TABLE: dict[str, ModelPrice] = {
             "of up to 100 documents; each further started block of 100 documents is another count (132 docs = 2)."
         ),
     ),
+    "vertex-ai-search-enterprise": ModelPrice(
+        model="vertex-ai-search-enterprise",
+        usd_per_1k_requests=4.00,
+        source=_DISCOVERY_PRICING_URL,
+        price_as_of="2026-10-23",
+        note=(
+            "Agent Search General Pricing: 'Search Enterprise Edition includes Core Generative Answers (AI Mode)' "
+            "$4.00 / 1,000 query (pay-as-you-go list price; the 10,000 queries/account/month free trial is NOT deducted)."
+        ),
+    ),
+    "vertex-ai-search-summary": ModelPrice(
+        model="vertex-ai-search-summary",
+        usd_per_1k_requests=4.00,
+        source=_DISCOVERY_PRICING_URL,
+        price_as_of="2026-10-23",
+        note=(
+            "Pseudo synthesis model (search summary, engine with SEARCH_ADD_ON_LLM): 'Advanced Generative Answers' "
+            "+$4.00 / 1,000 user input query, charged here on every summary-requesting query (conservative: the page "
+            "lists summaries under Core Generative Answers included in Enterprise). No per-token charges."
+        ),
+    ),
 }
 
 
@@ -135,6 +156,18 @@ def judge_cost_usd(model: str, *, input_tokens: int, output_tokens: int) -> floa
 RANK_DOCUMENTS_PER_COUNT = 100
 
 
+def vais_query_cost_usd(*, searches: int, summary_queries: int) -> float:
+    """USD of Vertex AI Search calls: Enterprise per search + the generative add-on per summary-requesting search."""
+    for name, value in (("searches", searches), ("summary_queries", summary_queries)):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"{name} must be an integer >= 0, got {value!r}")
+    if summary_queries > searches:
+        raise ValueError("summary_queries cannot exceed searches")
+    total = searches * PRICE_TABLE["vertex-ai-search-enterprise"].usd_per_1k_requests
+    total += summary_queries * PRICE_TABLE["vertex-ai-search-summary"].usd_per_1k_requests
+    return round(total / 1000.0, 8)
+
+
 def rank_cost_usd(requests: int) -> float:
     """USD cost of ``requests`` billable Ranking API counts (see ``rank_billed_counts``)."""
     if not isinstance(requests, int) or isinstance(requests, bool) or requests < 0:
@@ -158,4 +191,5 @@ __all__ = [
     "price_for_model",
     "rank_billed_counts",
     "rank_cost_usd",
+    "vais_query_cost_usd",
 ]

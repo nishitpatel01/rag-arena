@@ -1,0 +1,1012 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-10-23T14:22:47.473Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "779dad7f608f6c9f1e42239fa70b7241a597f0ec",
+    "app_version": "3.0.0",
+    "engine": "managed_vertex",
+    "question_id": "q_vpc_failover_diagram",
+    "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+    "run_id": "run_3251427998cc"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-10-23T14:22:26.580Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "prepared_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+        "expansions": [
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          }
+        ],
+        "sent_to": "Vertex AI Search search.query"
+      },
+      "ts": "2026-10-23T14:22:26.580Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "retrieve",
+      "label": "Vertex AI Search (extractive segments)",
+      "service": "Vertex AI Search \u00b7 search",
+      "request": {
+        "method": "POST",
+        "endpoint": "engines/rag-arena-procurement-search/servingConfigs/default_search:search",
+        "body": {
+          "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+          "pageSize": 10,
+          "contentSearchSpec": {
+            "snippetSpec": {
+              "returnSnippet": true
+            },
+            "extractiveContentSpec": {
+              "maxExtractiveSegmentCount": 3,
+              "returnExtractiveSegmentScore": true
+            }
+          }
+        }
+      },
+      "ts": "2026-10-23T14:22:26.580Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "retrieve",
+      "duration_ms": 595,
+      "payload": {
+        "api_request": {
+          "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+          "pageSize": 10,
+          "contentSearchSpec": {
+            "snippetSpec": {
+              "returnSnippet": true
+            },
+            "extractiveContentSpec": {
+              "maxExtractiveSegmentCount": 3,
+              "returnExtractiveSegmentScore": true
+            }
+          }
+        },
+        "serving_config": "engines/rag-arena-procurement-search/servingConfigs/default_search",
+        "location": "global",
+        "total_size": 10,
+        "rows_returned": 10,
+        "results": [
+          {
+            "rank": 1,
+            "document_id": "46e373efb358c87308a6107c9bb2dd77",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/03_Technical_Exhibit_Architecture.pdf",
+            "title": "03_Technical_Exhibit_Architecture",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "... <b>regions</b> routing <b>privately</b> to <b>BigQuery</b> and <b>Vertex AI</b> without traversing the public internet. VECTOR <b>DIAGRAM</b>: SOL-2026-<b>CLOUD</b>-<b>01 Multi</b>-<b>Region VPC</b> &amp; <b>HA VPN Topology</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\n\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=\n\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\nenforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\nCloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\ncross-region replica and automated failover to Secondary Region us-east4.\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\nprivately to BigQuery and Vertex AI without traversing the public internet.\n\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\n\nCloud Armor WAF + Global LB\n\nCloud HA VPN (BGP ASN 64512)\n\nPrimary VPC: us-central1\n\nFailover VPC: us-east4\n\nPrivate Service Connect (PSC)\n\nBigQuery + Vertex AI Endpoints\n\nP",
+                "page_number": 1,
+                "relevance_score": 0.8294467926025391
+              }
+            ]
+          },
+          {
+            "rank": 2,
+            "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+            "title": "06_Amendment_0001_Scope_Update",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "SOL-2026-<b>CLOUD</b>-<b>01</b> | <b>06_Amendment_0001_Scope_Update</b>.<b>pdf AMENDMENT 0001</b>: MANDATORY <b>RTO</b>/<b>RPO</b> TIGHTENING &amp; CLIN-0004-AB RATE REVISION DOC_TYPE=<b>AMENDMENT</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume",
+                "page_number": 1,
+                "relevance_score": 0.7234804034233093
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "title": "01_RFP_Base_Solicitation",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "SOL-2026-<b>CLOUD</b>-<b>01</b> | <b>01_RFP_Base_Solicitation</b>.<b>pdf</b> SECTION <b>1</b> ... <b>Primary Region</b> us-central1 and <b>Failover</b> us-east4. ... <b>amendments</b>. <b>All</b> proposals must comply&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7178207039833069
+              }
+            ]
+          },
+          {
+            "rank": 4,
+            "document_id": "710df224f7ca6659920e0d6541887939",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+            "title": "08_Vendor_A_Proposal_Redacted",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "SOL-2026-<b>CLOUD</b>-<b>01</b> | 08_Vendor_A_Proposal_Redacted.<b>pdf</b> ... <b>RTO</b> and 0-minute <b>RPO</b> mandate via <b>Cloud</b> Spanner &amp; <b>Cloud</b> SQL <b>HA</b>. ... <b>Amendment 0001</b>. Page <b>1</b> of <b>1</b>&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\n\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS\n\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7243669033050537
+              }
+            ]
+          },
+          {
+            "rank": 5,
+            "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+            "title": "04_Pricing_Schedule_CLINs",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "SOL-2026-<b>CLOUD</b>-<b>01</b> | 04_Pricing_Schedule_CLINs.<b>pdf</b> SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX DOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Rec",
+                "page_number": 1,
+                "relevance_score": 0.6931232213973999
+              }
+            ]
+          },
+          {
+            "rank": 6,
+            "document_id": "0368201ebb8db0abd2843c7ca9d0f9c3",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/07_Amendment_0002_Vendor_QA.pdf",
+            "title": "07_Amendment_0002_Vendor_QA",
+            "solicitation_id": "solicitation_01",
+            "snippets": [
+              "SOL-2026-<b>CLOUD</b>-<b>01</b> | 07_Amendment_0002_Vendor_QA.<b>pdf AMENDMENT</b> 0002: OFFICIAL VENDOR Q&amp;A AND KMS KEY ROTATION CLARIFICATION DOC_TYPE=<b>AMENDMENT</b> | SECTION=AMD&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\n\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0002-QA | ELEMENT=narrative_text | AMENDMENT=2 | EFFECTIVE=2026-04-02 | AMENDS=SEC-4.\n\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.7018847465515137
+              }
+            ]
+          },
+          {
+            "rank": 7,
+            "document_id": "3bc93a0539249be35311fdf6692dcb94",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/02_Architecture_Requirements.pdf",
+            "title": "02_Architecture_Requirements",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "... <b>BIGQUERY</b> MEDALLION <b>TOPOLOGY</b> DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=<b>diagram</b> | <b>AMENDMENT</b>=0 | EFFECTIVE=2026-02-<b>01</b> | AMENDS&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\n\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS\n\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\n\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\n\nCloud Pub/Sub Ingest\n\nDataflow + Cloud DLP\n\nBigQuery Bronze (Raw)\n\nBigQuery Silver (Curated)\n\nBigQuery Gold (Governed)\n\nVertex AI Feature Store\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.6975470781326294
+              }
+            ]
+          },
+          {
+            "rank": 8,
+            "document_id": "91a12a68389c756811d74357b176f213",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/01_RFP_Data_Platform.pdf",
+            "title": "01_RFP_Data_Platform",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "SOL-2026-DATA-02 | <b>01_RFP_Data_Platform</b>.<b>pdf SOLICITATION</b> SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE &amp; <b>AI</b> PLATFORM DOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\n\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\nCatalog governance, column-level policy tags, and fine-grained row-level security.\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.6891253590583801
+              }
+            ]
+          },
+          {
+            "rank": 9,
+            "document_id": "d888bce6163b37b485c6af4d07862e69",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+            "title": "05_Amendments_and_Addenda",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "... [<b>AMENDMENT 0001</b> - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004] <b>Solicitation</b>: SOL-2026-DATA-02 | Addendum Number: <b>0001</b> | Effective Date: 2026-03-20 <b>1</b>. STREAMING&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\n\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DAT\n\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\nTo support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\nis amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\nstreaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\nBigQuery Storage Write API committed streams.\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\nFor Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\na 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\n($1,224,000 annual total for 6,000 TB instead of $1,440,000).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.6872461438179016
+              }
+            ]
+          },
+          {
+            "rank": 10,
+            "document_id": "db63fe61650b9515409c2d5919cb25bf",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/04_Compliance_and_SOC2_Matrix.pdf",
+            "title": "04_Compliance_and_SOC2_Matrix",
+            "solicitation_id": "solicitation_02",
+            "snippets": [
+              "... <b>VPC</b> SERVICE CONTROLS COMPLIANCE MATRIX DOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | <b>AMENDMENT</b>=0 | EFFECTIVE=2026-02-<b>01</b> | AMENDS=NONE&nbsp;..."
+            ],
+            "extractive_segments": [
+              {
+                "content": "SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\n\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\nDOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                "page_number": 1,
+                "relevance_score": 0.6976689696311951
+              }
+            ]
+          }
+        ],
+        "segments_returned": 10,
+        "attribution_token": "6QP06AEKDAii2-3WBhCmyraDAxIkNmI1N2ExZDctMDAwMC0yNDg4LTk4NzItZDRmNTQ3ZWQ2YzAwIgdHRU5FUklDKpwCgdzjOcGDjDnOh6U5muSuOdrQwzneysU5gqfOOYm23DmFp845oM3UOcLwnhX92vg4hOOAOZ2gljmH3OM5qa_mOeTC7zj44vQ52eCkOaW55jrD8Pg4p4X5OJD3sjDYs4I52f79ON78rDmqhfk4mcH0OJfkrjm9vbo5hqjaOYOo2jnLh6U5r8byN7jM7DjT2N841tjfOP_k6TqC3ZMymNa3LaCgljnGsPM43dDDOYjfqTjDsPM4stOXOefC7zjL2qk51bOCOa_TlzmCwe85h-OAOZzB9Dirmr454crFOfra-DjUsp0V_uL0OZWSxTDA8Pg41v79ONuS8jm-g4w54sqdObvM7DiOvp0Vm9a3La6AkzeGttw54fysObq9ujkwAVKIAXByb2plY3RzLzYxNDQxOTQ5MzY3Ny9sb2NhdGlvbnMvZ2xvYmFsL2NvbGxlY3Rpb25zL2RlZmF1bHRfY29sbGVjdGlvbi9lbmdpbmVzL3JhZy1hcmVuYS1wcm9jdXJlbWVudC1zZWFyY2gvc2VydmluZ0NvbmZpZ3MvZGVmYXVsdF9zZWFyY2g",
+        "api_ms": 595,
+        "attempts": 1,
+        "summary_requested": false,
+        "solicitation_filter": "not supported (unstructured data store without filterable metadata)"
+      },
+      "ts": "2026-10-23T14:22:27.176Z",
+      "t_rel_ms": 596
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the question using ONLY the extractive segments below (returned by Vertex AI Search). Each segment is headed by its document and page. Cite the document name and page for every claim. If the segments do not contain the answer, say so.\n\nContext:\n[03_Technical_Exhibit_Architecture.pdf \u00b7 p.1 \u00b7 vais_46e373efb358c87308a6107c_p1_s1]\nSOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\n\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=\n\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\nenforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\nCloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\ncross-region replica and automated failover to Secondary Region us-east4.\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\nprivately to BigQuery and Vertex AI without traversing the public internet.\n\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\n\nCloud Armor WAF + Global LB\n\nCloud HA VPN (BGP ASN 64512)\n\nPrimary VPC: us-central1\n\nFailover VPC: us-east4\n\nPrivate Service Connect (PSC)\n\nBigQuery + Vertex AI Endpoints\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record\n\n[06_Amendment_0001_Scope_Update.pdf \u00b7 p.1 \u00b7 vais_4102e8c07a57f611ca9a46fd_p1_s1]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000\n* $245.00 * (1 - 0.05) = $465,500.00 net total.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record\n\n[01_RFP_Base_Solicitation.pdf \u00b7 p.1 \u00b7 vais_85bfbbd683157d7988d4b0e3_p1_s1]\nSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record\n\n[08_Vendor_A_Proposal_Redacted.pdf \u00b7 p.1 \u00b7 vais_710df224f7ca6659920e0d65_p1_s1]\nSOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\n\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS\n\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record\n\n[04_Pricing_Schedule_CLINs.pdf \u00b7 p.1 \u00b7 vais_5635503c795c0d62aef25a7d_p1_s1]\nSOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record\n\nQuestion: According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-10-23T14:22:27.176Z",
+      "t_rel_ms": 596
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "synthesize",
+      "duration_ms": 15821,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 2408,
+        "output_tokens": 313,
+        "thinking_tokens": 787,
+        "stop_reason": "STOP",
+        "response_id": "o23bao3pDqunw8cP1auMuAo",
+        "attempts": 1,
+        "answer": "Based on the provided documents, here are the requested details:\n\n* **Primary and Failover GCP Regions:** The Primary Region (Primary VPC) is **us-central1** and the Failover/Secondary Region (Failover VPC) is **us-east4** [03_Technical_Exhibit_Architecture.pdf, p.1; 06_Amendment_0001_Scope_Update.pdf, p.1].\n* **Cloud HA VPN BGP ASN:** The Cloud HA VPN uses dynamic BGP **ASN 64512** (connecting to On-Premises ASN 65001) [03_Technical_Exhibit_Architecture.pdf, p.1].\n* **Private Connectivity Mechanism to BigQuery/Vertex AI:** Connectivity is handled via **Private Service Connect (PSC)** endpoints in both regions, which route privately to BigQuery and Vertex AI without traversing the public internet [03_Technical_Exhibit_Architecture.pdf, p.1].\n* **Amended RTO/RPO Targets:** Amendment 0001 tightens the required Recovery Time Objective (RTO) from 4 hours to **15 minutes**, and tightens the Recovery Point Objective (RPO) from 1 hour to **0 minutes** (utilizing synchronous zero-data-loss cross-region replication between us-central1 and us-east4) [06_Amendment_0001_Scope_Update.pdf, p.1].",
+        "thinking_level": "HIGH",
+        "context_source": "Vertex AI Search extractive segments",
+        "context_segments": 5,
+        "context_results": 5
+      },
+      "ts": "2026-10-23T14:22:42.998Z",
+      "t_rel_ms": 16418
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-10-23T14:22:42.998Z",
+      "t_rel_ms": 16418
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_3251427998cc",
+      "engine": "managed_vertex",
+      "stage": "evaluate",
+      "duration_ms": 4474,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 0.97,
+        "context_precision": 0.65,
+        "reference_answer_used": true,
+        "input_tokens": 4296,
+        "output_tokens": 394,
+        "judge_cost_usd": 0.025064,
+        "rationale": "Every claim (us-central1/us-east4, BGP ASN 64512 with on-prem 65001, PSC endpoints, RTO 15 min and RPO 0 min superseding SEC-4.2.1) is directly supported by the Technical Exhibit and Amendment 0001 chunks, with accurate citations. The answer addresses all four requested items and matches the reference; it only omits the incidental Cloud Armor WAF detail and the explicit SEC-4.2.1 clause reference. The architecture and amendment chunks are highly relevant and the base RFP chunk adds useful context, but the Vendor A proposal and CLIN pricing schedule chunks are largely off-topic.",
+        "judge_response_id": "msg_vrtx_011CgKKTymLsSmW9xkY9fLN2"
+      },
+      "ts": "2026-10-23T14:22:47.473Z",
+      "t_rel_ms": 20893
+    }
+  ],
+  "result": {
+    "engine_id": "managed_vertex",
+    "engine_label": "Level 5: Managed Vertex AI Search",
+    "answer": "Based on the provided documents, here are the requested details:\n\n* **Primary and Failover GCP Regions:** The Primary Region (Primary VPC) is **us-central1** and the Failover/Secondary Region (Failover VPC) is **us-east4** [03_Technical_Exhibit_Architecture.pdf, p.1; 06_Amendment_0001_Scope_Update.pdf, p.1].\n* **Cloud HA VPN BGP ASN:** The Cloud HA VPN uses dynamic BGP **ASN 64512** (connecting to On-Premises ASN 65001) [03_Technical_Exhibit_Architecture.pdf, p.1].\n* **Private Connectivity Mechanism to BigQuery/Vertex AI:** Connectivity is handled via **Private Service Connect (PSC)** endpoints in both regions, which route privately to BigQuery and Vertex AI without traversing the public internet [03_Technical_Exhibit_Architecture.pdf, p.1].\n* **Amended RTO/RPO Targets:** Amendment 0001 tightens the required Recovery Time Objective (RTO) from 4 hours to **15 minutes**, and tightens the Recovery Point Objective (RPO) from 1 hour to **0 minutes** (utilizing synchronous zero-data-loss cross-region replication between us-central1 and us-east4) [06_Amendment_0001_Scope_Update.pdf, p.1].",
+    "citations": [
+      {
+        "chunk_id": "vais_46e373efb358c87308a6107c_p1_s1",
+        "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf  TECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=  Arc",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_4102e8c07a57f611ca9a46fd_p1_s1",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf  AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION DOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=S",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_85bfbbd683157d7988d4b0e3_p1_s1",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf  SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES DOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE  Solicita",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_710df224f7ca6659920e0d65_p1_s1",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf  VENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION) DOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS  Submitt",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_5635503c795c0d62aef25a7d_p1_s1",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "extractive_segment",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf  SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX DOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE  Base Solicitatio",
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "vais_46e373efb358c87308a6107c_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\n\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=\n\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\nenforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\nCloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\ncross-region replica and automated failover to Secondary Region us-east4.\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\nprivately to BigQuery and Vertex AI without traversing the public internet.\n\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\n\nCloud Armor WAF + Global LB\n\nCloud HA VPN (BGP ASN 64512)\n\nPrimary VPC: us-central1\n\nFailover VPC: us-east4\n\nPrivate Service Connect (PSC)\n\nBigQuery + Vertex AI Endpoints\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.8294,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_4102e8c07a57f611ca9a46fd_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000\n* $245.00 * (1 - 0.05) = $465,500.00 net total.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7235,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_85bfbbd683157d7988d4b0e3_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7178,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_710df224f7ca6659920e0d65_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\n\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS\n\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.7244,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "vais_5635503c795c0d62aef25a7d_p1_s1",
+        "tier_profile": "vertex_ai_search",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "extractive_segment",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.6931,
+        "layout_source": "vertex_ai_search",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 16418,
+    "cost_usd": 0.019816,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-10-23T14:22:26.580Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets?",
+          "prepared_query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+          "expansions": [
+            {
+              "term": "RTO",
+              "expansion": "Recovery Time Objective"
+            },
+            {
+              "term": "RPO",
+              "expansion": "Recovery Point Objective"
+            },
+            {
+              "term": "VPC",
+              "expansion": "Virtual Private Cloud"
+            },
+            {
+              "term": "VPN",
+              "expansion": "Virtual Private Network"
+            },
+            {
+              "term": "BGP",
+              "expansion": "Border Gateway Protocol"
+            },
+            {
+              "term": "ASN",
+              "expansion": "Autonomous System Number"
+            }
+          ],
+          "sent_to": "Vertex AI Search search.query"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "Vertex AI Search (extractive segments)",
+        "service": "Vertex AI Search \u00b7 search",
+        "status": "completed",
+        "started_at": "2026-10-23T14:22:26.580Z",
+        "duration_ms": 595,
+        "request": {},
+        "payload": {
+          "api_request": {
+            "query": "According to the Multi-Region VPC topology diagram in Solicitation 01 (03_Technical_Exhibit_Architecture.pdf) and Amendment 0001, what are the Primary and Failover GCP regions, the Cloud HA VPN BGP ASN, the private connectivity mechanism to BigQuery/Vertex AI, and the amended RTO/RPO targets? (RTO = Recovery Time Objective; RPO = Recovery Point Objective; VPC = Virtual Private Cloud; VPN = Virtual Private Network; BGP = Border Gateway Protocol; ASN = Autonomous System Number)",
+            "pageSize": 10,
+            "contentSearchSpec": {
+              "snippetSpec": {
+                "returnSnippet": true
+              },
+              "extractiveContentSpec": {
+                "maxExtractiveSegmentCount": 3,
+                "returnExtractiveSegmentScore": true
+              }
+            }
+          },
+          "serving_config": "engines/rag-arena-procurement-search/servingConfigs/default_search",
+          "location": "global",
+          "total_size": 10,
+          "rows_returned": 10,
+          "results": [
+            {
+              "rank": 1,
+              "document_id": "46e373efb358c87308a6107c9bb2dd77",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/03_Technical_Exhibit_Architecture.pdf",
+              "title": "03_Technical_Exhibit_Architecture",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "... <b>regions</b> routing <b>privately</b> to <b>BigQuery</b> and <b>Vertex AI</b> without traversing the public internet. VECTOR <b>DIAGRAM</b>: SOL-2026-<b>CLOUD</b>-<b>01 Multi</b>-<b>Region VPC</b> &amp; <b>HA VPN Topology</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\n\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=\n\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\nenforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\nCloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\ncross-region replica and automated failover to Secondary Region us-east4.\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\nprivately to BigQuery and Vertex AI without traversing the public internet.\n\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\n\nCloud Armor WAF + Global LB\n\nCloud HA VPN (BGP ASN 64512)\n\nPrimary VPC: us-central1\n\nFailover VPC: us-east4\n\nPrivate Service Connect (PSC)\n\nBigQuery + Vertex AI Endpoints\n\nP",
+                  "page_number": 1,
+                  "relevance_score": 0.8294467926025391
+                }
+              ]
+            },
+            {
+              "rank": 2,
+              "document_id": "4102e8c07a57f611ca9a46fd06408e54",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+              "title": "06_Amendment_0001_Scope_Update",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "SOL-2026-<b>CLOUD</b>-<b>01</b> | <b>06_Amendment_0001_Scope_Update</b>.<b>pdf AMENDMENT 0001</b>: MANDATORY <b>RTO</b>/<b>RPO</b> TIGHTENING &amp; CLIN-0004-AB RATE REVISION DOC_TYPE=<b>AMENDMENT</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\n\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1\n\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume",
+                  "page_number": 1,
+                  "relevance_score": 0.7234804034233093
+                }
+              ]
+            },
+            {
+              "rank": 3,
+              "document_id": "85bfbbd683157d7988d4b0e3f2943f35",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "title": "01_RFP_Base_Solicitation",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "SOL-2026-<b>CLOUD</b>-<b>01</b> | <b>01_RFP_Base_Solicitation</b>.<b>pdf</b> SECTION <b>1</b> ... <b>Primary Region</b> us-central1 and <b>Failover</b> us-east4. ... <b>amendments</b>. <b>All</b> proposals must comply&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\n\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\nThe Contractor shall maintain multi-region cloud infrastructure with an original\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\n\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7178207039833069
+                }
+              ]
+            },
+            {
+              "rank": 4,
+              "document_id": "710df224f7ca6659920e0d6541887939",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+              "title": "08_Vendor_A_Proposal_Redacted",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "SOL-2026-<b>CLOUD</b>-<b>01</b> | 08_Vendor_A_Proposal_Redacted.<b>pdf</b> ... <b>RTO</b> and 0-minute <b>RPO</b> mandate via <b>Cloud</b> Spanner &amp; <b>Cloud</b> SQL <b>HA</b>. ... <b>Amendment 0001</b>. Page <b>1</b> of <b>1</b>&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\n\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS\n\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7243669033050537
+                }
+              ]
+            },
+            {
+              "rank": 5,
+              "document_id": "5635503c795c0d62aef25a7dc4b9e9f0",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+              "title": "04_Pricing_Schedule_CLINs",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "SOL-2026-<b>CLOUD</b>-<b>01</b> | 04_Pricing_Schedule_CLINs.<b>pdf</b> SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX DOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\n\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\n\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Rec",
+                  "page_number": 1,
+                  "relevance_score": 0.6931232213973999
+                }
+              ]
+            },
+            {
+              "rank": 6,
+              "document_id": "0368201ebb8db0abd2843c7ca9d0f9c3",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/07_Amendment_0002_Vendor_QA.pdf",
+              "title": "07_Amendment_0002_Vendor_QA",
+              "solicitation_id": "solicitation_01",
+              "snippets": [
+                "SOL-2026-<b>CLOUD</b>-<b>01</b> | 07_Amendment_0002_Vendor_QA.<b>pdf AMENDMENT</b> 0002: OFFICIAL VENDOR Q&amp;A AND KMS KEY ROTATION CLARIFICATION DOC_TYPE=<b>AMENDMENT</b> | SECTION=AMD&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\n\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\nDOC_TYPE=AMENDMENT | SECTION=AMD-0002-QA | ELEMENT=narrative_text | AMENDMENT=2 | EFFECTIVE=2026-04-02 | AMENDS=SEC-4.\n\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.7018847465515137
+                }
+              ]
+            },
+            {
+              "rank": 7,
+              "document_id": "3bc93a0539249be35311fdf6692dcb94",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/02_Architecture_Requirements.pdf",
+              "title": "02_Architecture_Requirements",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "... <b>BIGQUERY</b> MEDALLION <b>TOPOLOGY</b> DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=<b>diagram</b> | <b>AMENDMENT</b>=0 | EFFECTIVE=2026-02-<b>01</b> | AMENDS&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\n\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS\n\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\n\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\n\nCloud Pub/Sub Ingest\n\nDataflow + Cloud DLP\n\nBigQuery Bronze (Raw)\n\nBigQuery Silver (Curated)\n\nBigQuery Gold (Governed)\n\nVertex AI Feature Store\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.6975470781326294
+                }
+              ]
+            },
+            {
+              "rank": 8,
+              "document_id": "91a12a68389c756811d74357b176f213",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/01_RFP_Data_Platform.pdf",
+              "title": "01_RFP_Data_Platform",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "SOL-2026-DATA-02 | <b>01_RFP_Data_Platform</b>.<b>pdf SOLICITATION</b> SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE &amp; <b>AI</b> PLATFORM DOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\n\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\nCatalog governance, column-level policy tags, and fine-grained row-level security.\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.6891253590583801
+                }
+              ]
+            },
+            {
+              "rank": 9,
+              "document_id": "d888bce6163b37b485c6af4d07862e69",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+              "title": "05_Amendments_and_Addenda",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "... [<b>AMENDMENT 0001</b> - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004] <b>Solicitation</b>: SOL-2026-DATA-02 | Addendum Number: <b>0001</b> | Effective Date: 2026-03-20 <b>1</b>. STREAMING&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\n\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DAT\n\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\nTo support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\nis amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\nstreaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\nBigQuery Storage Write API committed streams.\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\nFor Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\na 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\n($1,224,000 annual total for 6,000 TB instead of $1,440,000).\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.6872461438179016
+                }
+              ]
+            },
+            {
+              "rank": 10,
+              "document_id": "db63fe61650b9515409c2d5919cb25bf",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/04_Compliance_and_SOC2_Matrix.pdf",
+              "title": "04_Compliance_and_SOC2_Matrix",
+              "solicitation_id": "solicitation_02",
+              "snippets": [
+                "... <b>VPC</b> SERVICE CONTROLS COMPLIANCE MATRIX DOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | <b>AMENDMENT</b>=0 | EFFECTIVE=2026-02-<b>01</b> | AMENDS=NONE&nbsp;..."
+              ],
+              "extractive_segments": [
+                {
+                  "content": "SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\n\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\nDOC_TYPE=SLA_MATRIX | SECTION=CTRL-SOC2-MATRIX | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\n\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+                  "page_number": 1,
+                  "relevance_score": 0.6976689696311951
+                }
+              ]
+            }
+          ],
+          "segments_returned": 10,
+          "attribution_token": "6QP06AEKDAii2-3WBhCmyraDAxIkNmI1N2ExZDctMDAwMC0yNDg4LTk4NzItZDRmNTQ3ZWQ2YzAwIgdHRU5FUklDKpwCgdzjOcGDjDnOh6U5muSuOdrQwzneysU5gqfOOYm23DmFp845oM3UOcLwnhX92vg4hOOAOZ2gljmH3OM5qa_mOeTC7zj44vQ52eCkOaW55jrD8Pg4p4X5OJD3sjDYs4I52f79ON78rDmqhfk4mcH0OJfkrjm9vbo5hqjaOYOo2jnLh6U5r8byN7jM7DjT2N841tjfOP_k6TqC3ZMymNa3LaCgljnGsPM43dDDOYjfqTjDsPM4stOXOefC7zjL2qk51bOCOa_TlzmCwe85h-OAOZzB9Dirmr454crFOfra-DjUsp0V_uL0OZWSxTDA8Pg41v79ONuS8jm-g4w54sqdObvM7DiOvp0Vm9a3La6AkzeGttw54fysObq9ujkwAVKIAXByb2plY3RzLzYxNDQxOTQ5MzY3Ny9sb2NhdGlvbnMvZ2xvYmFsL2NvbGxlY3Rpb25zL2RlZmF1bHRfY29sbGVjdGlvbi9lbmdpbmVzL3JhZy1hcmVuYS1wcm9jdXJlbWVudC1zZWFyY2gvc2VydmluZ0NvbmZpZ3MvZGVmYXVsdF9zZWFyY2g",
+          "api_ms": 595,
+          "attempts": 1,
+          "summary_requested": false,
+          "solicitation_filter": "not supported (unstructured data store without filterable metadata)"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-10-23T14:22:27.176Z",
+        "duration_ms": 15821,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 2408,
+          "output_tokens": 313,
+          "thinking_tokens": 787,
+          "stop_reason": "STOP",
+          "response_id": "o23bao3pDqunw8cP1auMuAo",
+          "attempts": 1,
+          "answer": "Based on the provided documents, here are the requested details:\n\n* **Primary and Failover GCP Regions:** The Primary Region (Primary VPC) is **us-central1** and the Failover/Secondary Region (Failover VPC) is **us-east4** [03_Technical_Exhibit_Architecture.pdf, p.1; 06_Amendment_0001_Scope_Update.pdf, p.1].\n* **Cloud HA VPN BGP ASN:** The Cloud HA VPN uses dynamic BGP **ASN 64512** (connecting to On-Premises ASN 65001) [03_Technical_Exhibit_Architecture.pdf, p.1].\n* **Private Connectivity Mechanism to BigQuery/Vertex AI:** Connectivity is handled via **Private Service Connect (PSC)** endpoints in both regions, which route privately to BigQuery and Vertex AI without traversing the public internet [03_Technical_Exhibit_Architecture.pdf, p.1].\n* **Amended RTO/RPO Targets:** Amendment 0001 tightens the required Recovery Time Objective (RTO) from 4 hours to **15 minutes**, and tightens the Recovery Point Objective (RPO) from 1 hour to **0 minutes** (utilizing synchronous zero-data-loss cross-region replication between us-central1 and us-east4) [06_Amendment_0001_Scope_Update.pdf, p.1].",
+          "thinking_level": "HIGH",
+          "context_source": "Vertex AI Search extractive segments",
+          "context_segments": 5,
+          "context_results": 5
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 2408,
+      "output_tokens": 313,
+      "embedding_tokens": 0,
+      "thinking_tokens": 787,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": false,
+      "adk_runner_used": false,
+      "layout_source": "vertex_ai_search"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 0.97,
+      "context_precision": 0.65
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 4474,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4296,
+    "output_tokens": 394,
+    "judge_cost_usd": 0.025064,
+    "rationale": "Every claim (us-central1/us-east4, BGP ASN 64512 with on-prem 65001, PSC endpoints, RTO 15 min and RPO 0 min superseding SEC-4.2.1) is directly supported by the Technical Exhibit and Amendment 0001 chunks, with accurate citations. The answer addresses all four requested items and matches the reference; it only omits the incidental Cloud Armor WAF detail and the explicit SEC-4.2.1 clause reference. The architecture and amendment chunks are highly relevant and the base RFP chunk adds useful context, but the Vendor A proposal and CLIN pricing schedule chunks are largely off-topic.",
+    "judge_response_id": "msg_vrtx_011CgKKTymLsSmW9xkY9fLN2"
+  }
+}

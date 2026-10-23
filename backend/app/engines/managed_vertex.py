@@ -1,8 +1,23 @@
-"""Level 5: Managed Vertex AI Search (Discovery Engine data store + extractive segments + summary).
+"""Level 5: Managed Vertex AI Search (Discovery Engine data store + search app; extractive segments; summary).
 
-v2 implementation — to be rebuilt in Phase 5. The live body runs under a single measured ``legacy`` stage
-(see ``app.engines._legacy``); it is disabled by default (``ENABLED_LEVELS``). The v2 local-search
-impersonation of the managed answer has been deleted: a failing search call now fails the stage (spec P2).
+Stages (spec §3), all emitted from inside this engine at the moment they happen (spec P1):
+
+* ``query_prep`` — Level 2 acronym expansions; the prepared query is what the search call receives.
+* ``retrieve`` — ONE REST call ``engines/<engine>/servingConfigs/default_search:search`` with ``extractiveContentSpec``
+  (segments + scores) and ``snippetSpec``; when the synthesis model is the pseudo model ``vertex-ai-search-summary``
+  the SAME request also carries ``summarySpec`` (the service generates the summary inside this call, so its
+  generation time is part of the measured retrieve ``api_ms``). Payload: request body, total_size, results with
+  extractive segments (page numbers), attribution token, api_ms.
+* ``synthesize`` — two honest modes chosen by the run's synthesis model:
+  (a) ``vertex-ai-search-summary`` → the summary returned by the retrieve call (no second call; payload says so),
+  (b) any other catalog model → the common synthesize stage over the extractive segments ("buy retrieval, build
+  generation").
+* ``evaluate`` — owned by the evaluator; the judge context is the extractive segments of the top
+  ``VAIS_SUMMARY_RESULT_COUNT`` results (the same documents the summary model reads), in both modes.
+
+Fail loud (spec P2): no local search, no fallback model. Any HTTP error, a result without segments/page numbers, or a
+skipped summary → ``stage_failed`` → ``engine_error``. Solicitation filters are not supported (the data store holds
+unstructured PDFs with no filterable metadata) and are rejected.
 """
 
 from __future__ import annotations
@@ -11,143 +26,186 @@ import time
 from typing import Any
 
 from app.core.config import ArenaSettings
-from app.core.gcp_clients import _ensure_live_settings, get_search_client
-from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
+from app.core.gcp_clients import get_access_token
+from app.core.models import DocumentChunk, EngineFlags, EngineResult, TokenUsage
+from app.core.models_catalog import PROVIDER_VERTEX_AI_SEARCH, ModelSpec, spec_for_settings_model
+from app.core.pricing import cost_from_usage, vais_query_cost_usd
 from app.core.telemetry import StageEmitter
-from app.engines._legacy import run_legacy_body
+from app.core.vertex_search import DiscoveryEngineClient, VaisResources
 from app.engines.base import BaseRAGEngine
+from app.engines.common_stages import synthesize_stage
+from app.engines.level2_hybrid import ACRONYM_EXPANSIONS, PreparedQuery, prepare_query
+from app.engines.vais_search import (
+    BBOX_SOURCE,
+    LAYOUT_SOURCE,
+    SearchOutcome,
+    build_search_body,
+    hit_payload,
+    parse_search_response,
+    segment_chunks,
+)
+
+SEARCH_SERVICE = "Vertex AI Search · search"
+SUMMARY_MODEL_ID = "vertex-ai-search-summary"
+MODEL_INSTRUCTION = (
+    "Answer the question using ONLY the extractive segments below (returned by Vertex AI Search). Each segment is "
+    "headed by its document and page. Cite the document name and page for every claim. If the segments do not "
+    "contain the answer, say so."
+)
 
 
-def _execute_vertex_search(
-    settings: ArenaSettings,
-    data_store_id: str,
-    cleaned_query: str,
-) -> Any:
-    """Execute synchronous Discovery Engine SearchServiceClient.search inside a worker thread."""
-    try:
-        from google.cloud import discoveryengine_v1 as discoveryengine
-    except ImportError as exc:
-        raise RuntimeError("google-cloud-discoveryengine is required for live ManagedVertexSearchEngine") from exc
-
-    client = get_search_client(settings)
-    serving_config = (
-        f"projects/{settings.gcp_project_id}/locations/global/collections/default_collection/"
-        f"dataStores/{data_store_id}/servingConfigs/default_search"
-    )
-    content_spec = discoveryengine.SearchRequest.ContentSearchSpec(
-        extractive_content_spec=discoveryengine.SearchRequest.ContentSearchSpec.ExtractiveContentSpec(
-            max_extractive_segment_count=3,
-        ),
-        summary_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec(
-            summary_result_count=5,
-            include_citations=True,
-            ignore_adversarial_query=True,
-            ignore_non_summary_seeking_query=True,
-        ),
-    )
-    request = discoveryengine.SearchRequest(
-        serving_config=serving_config,
-        query=cleaned_query,
-        page_size=5,
-        content_search_spec=content_spec,
-    )
-    return client.search(
-        request=request,
-        timeout=min(6.0, float(settings.query_timeout_seconds)),
-    )
-
-
-def _segments_to_chunks(response: Any, solicitation_filter: str | None, query: str) -> list[DocumentChunk]:
-    """Convert Vertex AI Search extractive segments into DocumentChunks (v2 shape; rebuilt in Phase 5)."""
-    chunks: list[DocumentChunk] = []
-    for idx, res in enumerate(list(response.results)[:5], start=1):
-        doc_struct = dict(res.document.derived_struct_data) if res.document.derived_struct_data else {}
-        title = str(doc_struct.get("title") or res.document.id or f"doc_{idx}.pdf")
-        segments = doc_struct.get("extractive_segments") or []
-        if not segments:
-            raise ValueError(f"Vertex AI Search result {idx} ('{title}') returned no extractive_segments")
-        seg_text = str(segments[0].get("content", ""))
-        page_num = max(1, int(segments[0].get("pageNumber", 1)))
-        chunks.append(
-            DocumentChunk(
-                chunk_id=f"vertex_seg_{idx}",
-                tier_profile="hybrid",
-                solicitation_id=solicitation_filter or "managed_vertex_store",
-                doc_name=title,
-                doc_type="BASE_RFP",
-                element_type="narrative_text",
-                section_id=None,
-                amendment_number=0,
-                effective_date=None,
-                amends_section=None,
-                page_number=page_num,
-                bbox=BoundingBox(page=page_num, x0=0.0, y0=0.0, x1=1.0, y1=1.0),
-                content=seg_text,
-                score=0.0,
-            )
+def _check_resources(settings: ArenaSettings) -> VaisResources:
+    if not settings.vais_engine_id or not settings.vais_data_store_id:
+        raise RuntimeError(
+            "managed_vertex needs VAIS_DATA_STORE_ID and VAIS_ENGINE_ID (run scripts/provision_vertex_search.py and add "
+            "the printed short ids to the git-ignored .env)"
         )
-    return chunks
+    return VaisResources(settings.gcp_project_id, settings.vais_location, settings.vais_data_store_id, settings.vais_engine_id)
+
+
+def build_search_client(settings: ArenaSettings) -> DiscoveryEngineClient:
+    """Bounded-retry REST client inside the query budget (attempt ≤ VAIS_TIMEOUT_SECONDS)."""
+    return DiscoveryEngineClient(
+        project_id=settings.gcp_project_id, location=settings.vais_location,
+        token_provider=lambda: get_access_token(settings), attempt_timeout_seconds=float(settings.vais_timeout_seconds),
+        budget_seconds=float(min(settings.vais_timeout_seconds * 2, settings.query_timeout_seconds)),
+    )
+
+
+def segments_context(chunks: list[DocumentChunk]) -> str:
+    """Prompt context: ``[doc · p.N · segment id]`` header + segment text, in result order."""
+    return "\n\n".join(f"[{c.doc_name} · p.{c.page_number} · {c.chunk_id}]\n{c.content}" for c in chunks)
 
 
 class ManagedVertexSearchEngine(BaseRAGEngine):
-    """Managed baseline: Vertex AI Search with extractive segments and summary (v2 body; rebuilt in Phase 5)."""
+    """Build vs. Buy baseline: Vertex AI Search retrieval + (managed summary | catalog model synthesis)."""
 
     engine_id: str = "managed_vertex"
     engine_label: str = "Level 5: Managed Vertex AI Search"
-    tier_profile: str = "hybrid"
+    tier_profile: str = "vertex_ai_search"
     stages: tuple[str, ...] = ("query_prep", "retrieve", "synthesize", "evaluate")
 
     def __init__(
-        self,
-        settings: ArenaSettings | None = None,
-        data_store_id: str = "procurement-corpus-store",
+        self, settings: ArenaSettings | None = None, *, synthesis_model: ModelSpec | None = None,
+        client: DiscoveryEngineClient | None = None,
     ) -> None:
         super().__init__(settings=settings)
-        if not isinstance(data_store_id, str) or not data_store_id.strip():
-            raise ValueError("data_store_id must be a non-empty string")
-        self.data_store_id = data_store_id.strip()
+        if synthesis_model is not None and not isinstance(synthesis_model, ModelSpec):
+            raise TypeError("synthesis_model must be a ModelSpec or None")
+        self.synthesis_model: ModelSpec = synthesis_model or spec_for_settings_model(self.settings, self.settings.gemini_fast_model)
+        self._client = client
+
+    @property
+    def summary_mode(self) -> bool:
+        return self.synthesis_model.provider == PROVIDER_VERTEX_AI_SEARCH
+
+    async def _query_prep(self, query: str, emitter: StageEmitter) -> PreparedQuery:
+        async with self.stage(
+            emitter, "query_prep", label="Query preparation (acronym expansion)", service="Engine (local)",
+            request={"query": query, "acronym_map": [{"term": t, "expansion": e} for t, e in ACRONYM_EXPANSIONS]},
+        ) as ctx:
+            prepared = prepare_query(query)
+            ctx.payload = {**prepared.payload(), "sent_to": "Vertex AI Search search.query"}
+        return prepared
+
+    def _search_body(self, prepared: str) -> dict[str, Any]:
+        s = self.settings
+        return build_search_body(
+            prepared, page_size=s.vais_page_size, max_segments=s.vais_max_segments,
+            summary_result_count=min(s.vais_summary_result_count, s.vais_page_size) if self.summary_mode else None,
+            summary_model_version=s.vais_summary_model_version,
+        )
+
+    def _retrieve_payload(self, body: dict[str, Any], outcome: SearchOutcome, api_ms: int, attempts: int, res: VaisResources) -> dict[str, Any]:
+        return {
+            "api_request": body, "serving_config": res.serving_config_label, "location": res.location,
+            "total_size": outcome.total_size, "rows_returned": len(outcome.hits),
+            "results": [hit_payload(h, self.settings.gcs_corpus_bucket) for h in outcome.hits],
+            "segments_returned": sum(len(h.segments) for h in outcome.hits), "attribution_token": outcome.attribution_token,
+            "api_ms": api_ms, "attempts": attempts, "summary_requested": self.summary_mode,
+            "solicitation_filter": "not supported (unstructured data store without filterable metadata)",
+        }
+
+    async def _retrieve(self, prepared: PreparedQuery, emitter: StageEmitter) -> SearchOutcome:
+        res = _check_resources(self.settings)
+        body = self._search_body(prepared.prepared)
+        client = self._client or build_search_client(self.settings)
+        service = SEARCH_SERVICE + (" + summary" if self.summary_mode else "")
+        async with self.stage(
+            emitter, "retrieve", label="Vertex AI Search (extractive segments)", service=service,
+            request={"method": "POST", "endpoint": f"{res.serving_config_label}:search", "body": body},
+        ) as ctx:
+            t0 = time.perf_counter()
+            doc, attempts = await self.blocking(client.request, "POST", f"{res.serving_config_path}:search", body=body)
+            api_ms = max(1, int((time.perf_counter() - t0) * 1000))
+            outcome = parse_search_response(doc, summary_requested=self.summary_mode)
+            ctx.payload = self._retrieve_payload(body, outcome, api_ms, attempts, res)
+        return outcome
+
+    def _context_hits(self, outcome: SearchOutcome) -> tuple:
+        return outcome.hits[: min(self.settings.vais_summary_result_count, len(outcome.hits))]
+
+    async def _synthesize_summary(self, outcome: SearchOutcome, emitter: StageEmitter) -> tuple[str, TokenUsage, list[DocumentChunk], str]:
+        summary = outcome.summary
+        spec = self.synthesis_model
+        cited_hits = tuple(h for h in outcome.hits if h.rank in set(summary.cited_ranks)) if summary else ()
+        async with self.stage(
+            emitter, "synthesize", label="Vertex AI Search summary", service=f"Vertex AI Search · summary ({spec.label})",
+            request={"source": "summarySpec on the retrieve search call (same request, no second call)",
+                     "summarySpec": self._search_body("q")["contentSearchSpec"]["summarySpec"]},
+        ) as ctx:
+            if summary is None:
+                raise RuntimeError("summary mode but the retrieve call returned no summary")
+            cites = segment_chunks(cited_hits) if cited_hits else segment_chunks(self._context_hits(outcome))
+            source = "summary_citations" if cited_hits else "summary_input_results (no citation markers returned)"
+            ctx.payload = {
+                "model": spec.id, "provider": spec.provider, "answer": summary.text, "generated_in_stage": "retrieve",
+                "model_version_requested": self.settings.vais_summary_model_version,
+                "model_version_used": "not returned by the API", "summary_skipped_reasons": list(summary.skipped_reasons),
+                "safety_attributes": summary.safety_attributes, "cited_result_ranks": list(summary.cited_ranks),
+                "citation_metadata": list(summary.citation_metadata), "references": list(summary.references),
+                "citation_source": source, "prompt_tokens": 0, "output_tokens": 0,
+            }
+        return summary.text, TokenUsage(model=spec.id), cites, source
+
+    async def _synthesize_model(self, query: str, outcome: SearchOutcome, emitter: StageEmitter) -> tuple[str, TokenUsage, list[DocumentChunk], str]:
+        chunks = segment_chunks(self._context_hits(outcome))
+        answer, usage = await synthesize_stage(
+            self, self.synthesis_model, query, segments_context(chunks), len(chunks), emitter, 0,
+            instruction=MODEL_INSTRUCTION,
+            extra_payload={"context_source": "Vertex AI Search extractive segments", "context_segments": len(chunks),
+                           "context_results": len(self._context_hits(outcome))},
+        )
+        return answer, usage, chunks, "context_segments"
+
+    def _cost(self, usage: TokenUsage) -> float:
+        search = vais_query_cost_usd(searches=1, summary_queries=1 if self.summary_mode else 0)
+        return round(search + (0.0 if self.summary_mode else cost_from_usage(usage, self.synthesis_model.id)), 8)
 
     async def run_query(
-        self,
-        query: str,
-        *,
-        question_id: str | None,
-        solicitation_filter: str | None,
-        emitter: StageEmitter,
+        self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter
     ) -> EngineResult:
-        """Run the v2 managed-search body under one measured ``legacy`` stage (live/record only)."""
-        cleaned_query = self.validate_query_inputs(query, solicitation_filter)
+        """prep → search (segments [+ summary]) → summary | model synthesis; live/record only."""
+        cleaned = self.validate_query_inputs(query, solicitation_filter)
         if not self.settings.is_live:
-            raise RuntimeError(
-                "ManagedVertexSearchEngine only runs in DEMO_MODE=live|record; replay is served by ReplayRAGEngine"
-            )
-        if solicitation_filter and solicitation_filter.startswith("upload_"):
-            raise ValueError("Uploaded sessions are not in the managed data store; upload ingestion is not available")
-        return await run_legacy_body(
-            self,
-            emitter,
-            phase="Phase 5",
-            query=cleaned_query,
-            body=lambda: self._legacy_live(cleaned_query, solicitation_filter),
+            raise RuntimeError("ManagedVertexSearchEngine only runs in DEMO_MODE=live|record; replay is served by ReplayRAGEngine")
+        if solicitation_filter:
+            raise ValueError("managed_vertex does not support solicitation_filter (no filterable metadata in the data store)")
+        start = time.perf_counter()
+        prepared = await self._query_prep(cleaned, emitter)
+        outcome = await self._retrieve(prepared, emitter)
+        if self.summary_mode:
+            answer, usage, cites, _ = await self._synthesize_summary(outcome, emitter)
+        else:
+            answer, usage, cites, _ = await self._synthesize_model(cleaned, outcome, emitter)
+        context = segment_chunks(self._context_hits(outcome))
+        return EngineResult(
+            engine_id=self.engine_id, engine_label=self.engine_label, answer=answer,
+            citations=self.chunks_to_citations(cites, max_citations=min(len(cites), 50)), retrieved_chunks=context,
+            agent_steps=[], latency_ms=max(1, int((time.perf_counter() - start) * 1000)), cost_usd=self._cost(usage),
+            stage_log=self.stage_log_of(emitter), usage=usage,
+            flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=LAYOUT_SOURCE),
         )
 
-    async def _legacy_live(self, cleaned_query: str, solicitation_filter: str | None) -> EngineResult:
-        _ensure_live_settings(self.settings)
-        start_ts = time.perf_counter()
-        response = await self.blocking(_execute_vertex_search, self.settings, self.data_store_id, cleaned_query)
-        summary_text = str(getattr(response.summary, "summary_text", "") or "").strip()
-        if not summary_text:
-            raise ValueError("Vertex AI Search returned no summary_text")
-        chunks = _segments_to_chunks(response, solicitation_filter, cleaned_query)
-        return EngineResult(
-            engine_id=self.engine_id,
-            engine_label=self.engine_label,
-            answer=summary_text,
-            citations=self.chunks_to_citations(chunks, max_citations=5),
-            retrieved_chunks=chunks,
-            agent_steps=[],
-            latency_ms=max(1, int((time.perf_counter() - start_ts) * 1000)),
-            cost_usd=0.0,
-            usage=TokenUsage(),
-            flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=""),
-        )
+
+__all__ = ["BBOX_SOURCE", "MODEL_INSTRUCTION", "ManagedVertexSearchEngine", "SUMMARY_MODEL_ID", "build_search_client", "segments_context"]

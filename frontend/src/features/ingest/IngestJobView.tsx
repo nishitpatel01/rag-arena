@@ -11,6 +11,9 @@ import { deriveIngestProgress } from "../levels/model";
 import { INGEST_STAGE_IDS } from "../../types/arena";
 import { ingestParseItems, isReleaseCandidateChannel, parseIngestParse } from "../levels/level3Payloads";
 import type { IngestJobStream } from "./useIngestJobStream";
+import { MANAGED_INGEST_STAGES, importErrorSamples, ingestStageOrder, managedIngestItems } from "../levels/level5Payloads";
+import { isManagedLevel } from "./ingestStatus";
+import { STAGE_LABELS } from "../levels/StageRail";
 
 export interface IngestJobViewProps {
   readonly level: LevelDescriptor;
@@ -23,7 +26,14 @@ export interface IngestJobViewProps {
 export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, selectedStage, onSelectStage }) => {
   const timeline = job.state.timelines[level.level_id];
   const progress = deriveIngestProgress(job.state.events);
-  const stageIds = timeline?.stageOrder.length ? [...new Set([...INGEST_STAGE_IDS, ...timeline.stageOrder])] : [...INGEST_STAGE_IDS];
+  const stageIds = ingestStageOrder(level.level_id, INGEST_STAGE_IDS, timeline?.stageOrder ?? []);
+  const managed = isManagedLevel(level.level_id);
+  const skipped = Object.entries(timeline?.stages ?? {}).filter(([, st]) => st.status === "skipped");
+  const embedSkipped = timeline?.stages.embed?.status === "skipped";
+  const managedRows = managed
+    ? MANAGED_INGEST_STAGES.map((id) => ({ id, items: managedIngestItems(id, timeline?.stages[id]?.payload ?? null), status: timeline?.stages[id]?.status ?? "idle" }))
+    : [];
+  const importErrors = managed ? importErrorSamples(timeline?.stages.import_documents?.payload ?? null) : [];
   // tier_profile the backend reports for this job (job_started), e.g. "hybrid" for Level 2.
   const startedEvent = job.state.events.find((e) => e.event === "job_started");
   const jobTier = startedEvent && startedEvent.event === "job_started" ? startedEvent.tier_profile : null;
@@ -63,7 +73,11 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
         ))}
       </Panel>
 
-      <Panel title="Ingestion architecture" subtitle="corpus → parser → chunker → embeddings → BigQuery → indexes" className="xl:col-span-2">
+      <Panel
+        title="Ingestion architecture"
+        subtitle={managed ? "corpus → Cloud Storage → Vertex AI Search import → document count" : "corpus → parser → chunker → embeddings → BigQuery → indexes"}
+        className="xl:col-span-2"
+      >
         <ArchitectureDiagram
           title={`${level.label} ingestion architecture`}
           nodes={level.architecture.ingest_nodes}
@@ -77,6 +91,45 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
       </Panel>
 
       <div className="grid min-w-0 gap-4 xl:col-span-2 xl:grid-cols-2">
+        {managed && (
+          <Panel title="Managed import" subtitle="upload_gcs / import_documents / verify_counts payloads (counts as reported)" className="xl:col-span-2">
+            <div className="flex flex-col gap-3" data-testid="managed-import-summary">
+              <div className="grid gap-3 md:grid-cols-3">
+                {managedRows.map((row) => (
+                  <section key={row.id} aria-label={`Stage ${row.id}`} className="flex min-w-0 flex-col gap-1 rounded-md border border-line bg-surface-0 p-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-xs font-semibold text-ink-1">{STAGE_LABELS[row.id] ?? row.id}</span>
+                      <Pill tone={row.status === "done" ? "ok" : row.status === "failed" ? "err" : row.status === "active" ? "active" : row.status === "skipped" ? "locked" : "neutral"}>{row.status}</Pill>
+                    </div>
+                    {row.items.length > 0 ? <KeyValue items={row.items} /> : <p className="text-xs text-ink-3">{row.status === "done" ? "No counts in the payload (see stage detail)." : "—"}</p>}
+                  </section>
+                ))}
+              </div>
+              {importErrors.length > 0 && (
+                <div role="alert" className="rounded-md border border-err p-2 text-xs">
+                  <p className="mb-1 font-semibold text-err">Import errors reported by Vertex AI Search (verbatim, first {importErrors.length})</p>
+                  <ul className="list-disc pl-5 font-mono text-ink-1">
+                    {importErrors.map((e, i) => (
+                      <li key={i} className="break-words">{e}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {skipped.length > 0 && (
+                <div className="rounded-md border border-dashed border-line p-2 text-xs" data-testid="managed-skipped-stages">
+                  <p className="mb-1 font-semibold text-ink-2">Stages not run by this app (stage_skipped, reason verbatim)</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {skipped.map(([id, st]) => (
+                      <li key={id} className="break-words">
+                        <span className="font-mono text-ink-1">{id}</span> — <span className="text-ink-2">{st.skipReason ?? "no reason given"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </Panel>
+        )}
         {parseView && (
           <Panel title="Parse summary" subtitle="parse stage payload · Document AI layout + Gemini vision" className="xl:col-span-2">
             <div className="flex flex-col gap-3" data-testid="ingest-parse-summary">
@@ -123,6 +176,7 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
             </div>
           </Panel>
         )}
+        {!embedSkipped && (
         <Panel title="Embedding progress" subtitle="embed_progress events">
           {progress.embed ? (
             <div className="flex flex-col gap-1.5">
@@ -140,6 +194,7 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
             <p className="text-xs text-ink-3">No embed_progress yet.</p>
           )}
         </Panel>
+        )}
         <Panel title="Documents" subtitle="doc_progress events">
           <DataTable
             caption="Per-document ingestion progress"

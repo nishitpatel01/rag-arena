@@ -9,6 +9,7 @@
 
 import type { LeaderboardResponse, LeaderboardRow, ModelsResponse } from "../../types/arena";
 import { leaderboardRows } from "../../pages/leaderboardModel";
+import { findModel, isLevelRestricted } from "./modelSelection";
 
 export const BASELINE_ENGINE = "level1_naive";
 
@@ -147,4 +148,29 @@ export function teaserMatrix(entries: readonly BaselineEntry[], current: Current
   const perLevel = entries.map((e) => teaserMetrics(e.view, current));
   const template = teaserMetrics({ pairKnown: false, pairRecorded: false, questionRecorded: false, row: null, runs: null, syntheticRuns: 0 }, current);
   return template.map((m, i) => ({ key: m.key, label: m.label, unit: m.unit, current: m.current, baselines: perLevel.map((rows) => rows[i].baseline) }));
+}
+
+// ---------------------------------------------------------------------------
+// Level 5: baselines for a level-restricted synthesis model (managed summary)
+// ---------------------------------------------------------------------------
+
+export interface BaselinePair {
+  /** Synthesis model used to look up lower-level rows (the run's own model unless it is level-restricted). */
+  readonly synthesisModel: string | null;
+  readonly judgeModel: string | null;
+  /** True when the run's synthesis model cannot exist on lower levels and the server default is used instead. */
+  readonly substituted: boolean;
+}
+
+/**
+ * Lower levels cannot run a level-restricted synthesis model (e.g. `vertex-ai-search-summary`), so the same pair
+ * never exists there. The baseline then uses the catalog's default synthesis model with the SAME judge; the UI
+ * labels the substitution. Otherwise the run's own pair is used unchanged.
+ */
+export function baselinePair(catalog: ModelsResponse | null, synthesisModel: string | null, judgeModel: string | null): BaselinePair {
+  const entry = findModel(catalog, synthesisModel);
+  if (catalog && entry && isLevelRestricted(entry)) {
+    return { synthesisModel: catalog.defaults.synthesis_model, judgeModel, substituted: true };
+  }
+  return { synthesisModel, judgeModel, substituted: false };
 }

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { ArrowDown, ArrowUp, Equal, GitMerge, Sparkles, Spline, Type } from "lucide-react";
-import type { JsonObject } from "../../types/arena";
+import type { Citation, JsonObject } from "../../types/arena";
+import { parseManagedRetrieve, parseManagedSynthesize } from "./level5Payloads";
+import { ManagedRetrieveDetail, ManagedSynthesizeDetail } from "./level5Views";
 import { AmendmentChip, ElementFilterChips, ElementMetaCell, ElementTypeBadge, LayoutSourceBadge } from "../../components/ElementBadges";
 import { Pill as Chip } from "../../components/ui/Pill";
 import { countElementTypes, matchesElementFilter, type ElementFilter, type ElementMeta } from "../../lib/elements";
@@ -429,14 +431,33 @@ export const SynthesizeDetail: React.FC<{ readonly view: SynthesizeL3View }> = (
 /** Payload keys rendered by a dedicated view (omitted from the generic code blocks; still in raw JSON). */
 export const DEDICATED_KEYS: Readonly<Record<string, readonly string[]>> = {
   query_prep: ["expansions", "element_intent", "intent_matches"],
-  retrieve: ["candidates", "element_types", "layout_sources"],
+  retrieve: ["candidates", "element_types", "layout_sources", "results", "request", "api_request", "attribution_token", "total_size", "api_ms"],
   rerank: ["results"],
-  synthesize: ["authority_headers", "element_mix"],
+  synthesize: ["authority_headers", "element_mix", "summary", "references", "summary_skipped_reasons", "model_version_used", "model_version_requested"],
 };
 
 /** Payloads of other stages of the same run that a dedicated view may join with (e.g. rerank ← retrieve). */
 export interface StageViewContext {
   readonly retrievePayload?: JsonObject | null;
+  /** Level 5: answer citations (summary references link to them) and the drawer opener. */
+  readonly citations?: readonly Citation[];
+  readonly onSelectCitation?: (c: Citation) => void;
+  /** Catalog label for a model id (mode badge "<model> over extractive segments"). */
+  readonly labelFor?: (id: string | null) => string | null;
+  /** `stage_started.request` of this stage (Level 5 retrieve skips its request block when identical). */
+  readonly stageRequest?: JsonObject | null;
+}
+
+/** Structural equality of two JSON objects (bounded by JSON.stringify; payloads are ≤ 8 KB). */
+function sameJson(a: JsonObject | null, b: JsonObject | null): boolean {
+  if (a === null || b === null) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/** `stage_started.request.body` when the request wraps the API body as {method, endpoint, body}. */
+function requestBody(req: JsonObject | null): JsonObject | null {
+  const b = req?.body;
+  return typeof b === "object" && b !== null && !Array.isArray(b) ? (b as JsonObject) : null;
 }
 
 /** Dedicated renderer for a stage payload, or null when the stage/payload has none (generic view only). */
@@ -446,10 +467,14 @@ export function dedicatedStageView(stageId: string, payload: JsonObject | null, 
     return v ? <QueryPrepDetail view={v} elementIntent={parseElementIntent(payload)} intentMatches={parseIntentMatches(payload)} /> : null;
   }
   if (stageId === "synthesize") {
+    const managed = parseManagedSynthesize(payload);
+    if (managed) return <ManagedSynthesizeDetail view={managed} citations={ctx.citations} onSelectCitation={ctx.onSelectCitation} labelFor={ctx.labelFor} />;
     const v = parseSynthesizeL3(payload);
     return v ? <SynthesizeDetail view={v} /> : null;
   }
   if (stageId === "retrieve") {
+    const managed = parseManagedRetrieve(payload);
+    if (managed) return <ManagedRetrieveDetail view={managed} requestShownAbove={sameJson(managed.request, ctx.stageRequest ?? null) || sameJson(managed.request, requestBody(ctx.stageRequest ?? null))} />;
     const v = parseHybridRetrieve(payload);
     return v ? <HybridRetrieveDetail view={v} l3={parseRetrieveL3Summary(payload)} /> : null;
   }

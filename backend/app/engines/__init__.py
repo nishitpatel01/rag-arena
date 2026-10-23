@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.architectures import get_architecture_descriptor
+from app.core.architectures import get_architecture_descriptor, ingest_stages_for
 from app.core.config import ALL_LEVEL_IDS, ArenaSettings, get_settings
 from app.core.models_catalog import RunModels
 from app.engines.base import BaseRAGEngine
@@ -43,15 +43,17 @@ def _resolve(settings: ArenaSettings | None) -> ArenaSettings:
 def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | None = None) -> BaseRAGEngine:
     """Instantiate the engine for ``level_id`` for one run: live class in live/record, a replay player in replay.
 
-    ``models`` is the run's (synthesis, judge) selection. Levels 1–3 synthesize with ``models.synthesis``; Level 4 runs
-    its ADK agent on ``models.synthesis`` (Gemini only — a Claude selection raises ``ValueError`` → HTTP 400); replay
-    plays the recording of exactly that pair. The legacy level (5) cannot switch models yet and rejects any
-    synthesis model other than ``GEMINI_FAST_MODEL`` (fail loud, never a silent substitution).
+    ``models`` is the run's (synthesis, judge) selection. Levels 1–3 and 5 synthesize with ``models.synthesis``;
+    Level 4 runs its ADK agent on ``models.synthesis`` (Gemini only — a Claude selection raises ``ValueError`` → HTTP
+    400); replay plays the recording of exactly that pair. A model restricted to other levels (the pseudo model
+    ``vertex-ai-search-summary`` is ``managed_vertex`` only) raises ``ModelSelectionError`` → HTTP 400, in every mode.
     """
     if level_id not in _ENGINE_CLASS_BY_ID:
         raise KeyError(f"Unknown level '{level_id}'")
     if models is not None and not isinstance(models, RunModels):
         raise TypeError("models must be a RunModels or None")
+    if models is not None:
+        models.synthesis.check_level(level_id)
     cls = _ENGINE_CLASS_BY_ID[level_id]
     if settings.demo_mode == "replay":
         return ReplayRAGEngine(
@@ -62,23 +64,23 @@ def build_engine(level_id: str, settings: ArenaSettings, models: RunModels | Non
             settings=settings,
             models=models,
         )
-    if cls in (Level1NaiveEngine, Level2HybridEngine, Level3MultimodalEngine, Level4AgenticEngine):
-        return cls(settings=settings, synthesis_model=models.synthesis if models else None)
-    if models is not None and models.synthesis.id != settings.gemini_fast_model:
-        raise ValueError(
-            f"{level_id} does not support synthesis model selection yet (uses GEMINI_FAST_MODEL="
-            f"{settings.gemini_fast_model}); requested synthesis_model={models.synthesis.id}"
-        )
-    return cls(settings=settings)
+    return cls(settings=settings, synthesis_model=models.synthesis if models else None)
 
 
-def get_engine_registry(settings: ArenaSettings | None = None, models: RunModels | None = None) -> dict[str, BaseRAGEngine]:
-    """Engines keyed by id, restricted to ``settings.enabled_levels`` in delivery order (built for one run)."""
+def get_engine_registry(
+    settings: ArenaSettings | None = None, models: RunModels | None = None, level_ids: tuple[str, ...] | None = None
+) -> dict[str, BaseRAGEngine]:
+    """Engines keyed by id, restricted to ``settings.enabled_levels`` in delivery order (built for one run).
+
+    ``level_ids`` (optional) further restricts the build to the levels a request actually selected, so a model that
+    one level rejects (e.g. Claude on Level 4, the Vertex AI Search summary outside Level 5) does not fail a run that
+    never touches that level."""
     resolved = _resolve(settings)
+    wanted = resolved.enabled_levels if level_ids is None else tuple(level_ids)
     return {
         level_id: build_engine(level_id, resolved, models)
         for level_id in ALL_LEVEL_IDS
-        if level_id in resolved.enabled_levels
+        if level_id in resolved.enabled_levels and level_id in wanted
     }
 
 
@@ -95,6 +97,7 @@ def list_levels(settings: ArenaSettings | None = None) -> list[dict[str, Any]]:
                 "order": order,
                 "enabled": level_id in resolved.enabled_levels,
                 "stages": list(cls.stages),
+                "ingest_stages": list(ingest_stages_for(level_id)),
                 "tier_profile": cls.tier_profile,
                 "architecture": get_architecture_descriptor(level_id, resolved).to_dict(),
             }

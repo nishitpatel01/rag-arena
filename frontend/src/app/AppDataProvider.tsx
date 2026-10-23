@@ -4,18 +4,25 @@ import { isMockRequested } from "../features/levels/useBattleStream";
 import { LEVEL_IDS, QUERY_STAGE_IDS, type ArchitectureDescriptor, type HealthResponse, type LevelDescriptor } from "../types/arena";
 
 /** Levels that have a DEV `?mock=1` battle fixture. */
-const DEV_FIXTURE_LEVELS: readonly string[] = ["level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic"];
+const DEV_FIXTURE_LEVELS: readonly string[] = ["level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic", "managed_vertex"];
 
-/** DEV fixture descriptors: Levels 1–4 enabled with the fixture architectures; the rest locked. */
-function devFixtureLevels(arch1: ArchitectureDescriptor, arch2: ArchitectureDescriptor, arch3: ArchitectureDescriptor, arch4: ArchitectureDescriptor): LevelDescriptor[] {
+/** DEV fixture descriptors: Levels 1–5 enabled with the fixture architectures. */
+function devFixtureLevels(
+  arch1: ArchitectureDescriptor,
+  arch2: ArchitectureDescriptor,
+  arch3: ArchitectureDescriptor,
+  arch4: ArchitectureDescriptor,
+  arch5: ArchitectureDescriptor
+): LevelDescriptor[] {
   const empty: ArchitectureDescriptor = { level_id: "level1_naive", nodes: [], edges: [], ingest_nodes: [], ingest_edges: [] };
   const labels: Record<string, string> = {
     level1_naive: "Naive Vector RAG (dev fixture)",
     level2_hybrid: "BigQuery Hybrid + Reranker (dev fixture)",
     level3_multimodal: "Layout-Aware Multimodal RAG (dev fixture)",
     level4_agentic: "Agentic RAG with Google ADK (dev fixture)",
+    managed_vertex: "Managed Vertex AI Search (dev fixture)",
   };
-  const arch: Record<string, ArchitectureDescriptor> = { level1_naive: arch1, level2_hybrid: arch2, level3_multimodal: arch3, level4_agentic: arch4 };
+  const arch: Record<string, ArchitectureDescriptor> = { level1_naive: arch1, level2_hybrid: arch2, level3_multimodal: arch3, level4_agentic: arch4, managed_vertex: arch5 };
   return LEVEL_IDS.map((id, i) => ({
     level_id: id,
     label: labels[id] ?? id,
@@ -25,6 +32,8 @@ function devFixtureLevels(arch1: ArchitectureDescriptor, arch2: ArchitectureDesc
     stages:
       id === "level4_agentic"
         ? ["query_prep", "agent_turn", "synthesize", "evaluate"]
+        : id === "managed_vertex"
+        ? ["query_prep", "retrieve", "synthesize", "evaluate"]
         : QUERY_STAGE_IDS.filter((s) => s !== "agent_turn" && (s !== "rerank" || id === "level2_hybrid" || id === "level3_multimodal")),
     architecture: arch[id] ?? { ...empty, level_id: id },
   }));
@@ -74,8 +83,9 @@ export const AppDataProvider: React.FC<{ readonly children: React.ReactNode }> =
         const { LEVEL2_DEV_ARCHITECTURE } = await import("../dev/fixtures/level2_run");
         const { LEVEL3_DEV_ARCHITECTURE } = await import("../dev/fixtures/level3_run");
         const { LEVEL4_DEV_ARCHITECTURE } = await import("../dev/fixtures/level4_run");
+        const { LEVEL5_DEV_ARCHITECTURE } = await import("../dev/fixtures/level5_run");
         if (cancelled) return;
-        setLevels(devFixtureLevels(LEVEL1_DEV_ARCHITECTURE, LEVEL2_DEV_ARCHITECTURE, LEVEL3_DEV_ARCHITECTURE, LEVEL4_DEV_ARCHITECTURE));
+        setLevels(devFixtureLevels(LEVEL1_DEV_ARCHITECTURE, LEVEL2_DEV_ARCHITECTURE, LEVEL3_DEV_ARCHITECTURE, LEVEL4_DEV_ARCHITECTURE, LEVEL5_DEV_ARCHITECTURE));
         setHealth((prev) => prev ?? { status: "dev_fixture", demo_mode: "dev_fixture", project_id: null, gcs_bucket: null });
         problems.length = 0;
       } else if (import.meta.env.DEV && isMockRequested() && l.status === "fulfilled") {

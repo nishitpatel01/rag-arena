@@ -19,12 +19,13 @@ export const ELEMENT_LABEL: Readonly<Record<ElementType, string>> = {
   narrative_text: "TEXT",
 };
 
-export type LayoutSource = "documentai_layout" | "gemini_vision" | "pymupdf";
+export type LayoutSource = "documentai_layout" | "gemini_vision" | "pymupdf" | "vertex_ai_search";
 
 export const LAYOUT_SOURCE_LABEL: Readonly<Record<LayoutSource, string>> = {
   documentai_layout: "Document AI layout",
   gemini_vision: "Gemini vision",
   pymupdf: "PyMuPDF",
+  vertex_ai_search: "Vertex AI Search",
 };
 
 /**
@@ -69,7 +70,7 @@ export function isElementType(v: unknown): v is ElementType {
 }
 
 export function isLayoutSource(v: unknown): v is LayoutSource {
-  return v === "documentai_layout" || v === "gemini_vision" || v === "pymupdf";
+  return v === "documentai_layout" || v === "gemini_vision" || v === "pymupdf" || v === "vertex_ai_search";
 }
 
 /** Badge text: TABLE / DIAGRAM / TEXT for known types, the raw value upper-cased otherwise. */

@@ -36,8 +36,12 @@ function writeStored(sel: ModelSelection): void {
   }
 }
 
-/** Loads GET /api/v1/models once per level page and keeps the persisted, catalog-validated selection. */
-export function useModelCatalog(): ModelCatalogState {
+/**
+ * Loads GET /api/v1/models once per level page and keeps the persisted, catalog-validated selection. A stored
+ * selection that is not valid on `levelId` (e.g. the Level 5 summary pseudo model on Level 1) falls back to the
+ * server defaults for this page without overwriting the stored preference.
+ */
+export function useModelCatalog(levelId: string | null = null): ModelCatalogState {
   const [catalog, setCatalog] = useState<ModelsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +54,7 @@ export function useModelCatalog(): ModelCatalogState {
       if (!Array.isArray(res.models) || !res.defaults) throw new Error("GET /api/v1/models returned an unexpected shape (missing models/defaults)");
       setCatalog(res);
       setIsFixture(fixture);
-      setSelectionState(loadSelection(res, readStored()));
+      setSelectionState(loadSelection(res, readStored(), levelId));
       setError(null);
     };
     fetchModels()
@@ -78,7 +82,7 @@ export function useModelCatalog(): ModelCatalogState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [levelId]);
 
   const setSelection = useCallback((sel: ModelSelection): void => {
     setSelectionState(sel);

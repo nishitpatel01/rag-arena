@@ -2,7 +2,7 @@
 
 The RAG Arena is a Google Cloud reference application that climbs the production RAG maturity curve one level at a time on **Enterprise IT & Cloud Procurement** (RFPs, SOWs, CLIN rate cards, SLA matrices, architecture exhibits, superseding amendments). You pick a level, ask a question, and watch the real pipeline execute: every stage lights up when the backend enters it, shows the exact SQL or API request sent, what came back, and the measured duration, cost and LLM-judge scores.
 
-**Status: Levels 1–4 live · Level 5 in progress.** Levels 1–4 have each run end-to-end on a live GCP project (ingestion, queries, recordings). Compare, Level 5 and Cloud Run deployment are planned and marked as such below.
+**Status: Levels 1–5 live · Compare and Cloud Run in progress.** All five levels have run end-to-end on a live GCP project (ingestion, queries, recordings). Compare and Cloud Run deployment are planned and marked as such below.
 
 ---
 
@@ -31,9 +31,9 @@ hardcoded evaluation scores. v3 rebuilds the product around six rules:
 | 2 | `level2_hybrid` | Acronym expansion; BigQuery `VECTOR_SEARCH` ⨝ `SEARCH()` lexical over one-chunk-per-page lineage chunks → RRF (k=60) top-50 → Discovery Engine Ranking API (`semantic-ranker-default@latest`) → top-5 | Exact identifier recall; reranker precision | ✅ live |
 | 3 | `level3_multimodal` | Document AI Layout Parser v1.5 (release candidate) elements + Gemini vision transcription of diagram pages → element-aware chunks with `gemini-embedding-2` multimodal vectors; hybrid RRF + Ranking API; authority headers (latest amendment first) | Tables and diagrams answered correctly | ✅ live |
 | 4 | `level4_agentic` | Real Google ADK `LlmAgent` + `InMemoryRunner` (Gemini on Vertex AI, ≤8 turns) with `search_procurement_corpus` (Level 3 hybrid RRF + rerank), `check_amendments` (BigQuery supersession query), `calculate_contract_pricing` (AST calculator) and `verify_citations` (claim check + one repair turn) | Multi-hop supersession, deterministic math, self-verification | ✅ live |
-| 5 | `managed_vertex` | Vertex AI Search data store (extractive segments + summary) | Build vs. buy baseline | 🔒 planned |
+| 5 | `managed_vertex` | Vertex AI Search (Enterprise + LLM add-on) over the same 45 PDFs imported from Cloud Storage: extractive segments with page numbers, answered either by the managed summary or by a selectable model over the segments | Build vs. buy baseline | ✅ live |
 
-Level 5 still contains its v2 body in `backend/app/engines/` (`legacy` stage + `stage_skipped` for canonical stages until Phase 5 rebuilds it). `ENABLED_LEVELS` defaults to `level1_naive,level2_hybrid,level3_multimodal,level4_agentic` (the signed-off levels). Vertex AI Vector Search 2.0 and AlloyDB ScaNN are parked in `backend/app/engines/parked/`.
+`ENABLED_LEVELS` defaults to all five levels (Level 5 needs the `VAIS_*` keys in live mode). Vertex AI Vector Search 2.0 and AlloyDB ScaNN are parked in `backend/app/engines/parked/`.
 
 ---
 
@@ -51,17 +51,7 @@ flowchart LR
     EV --> OUT["answer + citations + metrics<br/>latency · tokens · run cost"]
 ```
 
-**Ingestion path** (`backend/app/ingestion/jobs.py`, `backend/app/ingestion/live_backends.py`):
-
-```mermaid
-flowchart LR
-    C["discover_docs<br/>data/sample_docs/procurement_corpus<br/>(45 PDFs)"] --> P["parse<br/>PyMuPDF pages + bbox"]
-    P --> K["chunk<br/>360-char windows, 60 overlap"]
-    K --> E["embed<br/>gemini-embedding-2 · RETRIEVAL_DOCUMENT<br/>≤32 texts/batch, bounded retries"]
-    E --> L["load_bigquery<br/>load jobs → per-job staging table →<br/>one transaction: DELETE tier rows; INSERT"]
-    L --> I["build_indexes<br/>CREATE VECTOR / SEARCH INDEX<br/>poll INFORMATION_SCHEMA ≤60 s"]
-    I --> V["verify_counts<br/>COUNT(*) by tier_profile<br/>+ ingest_runs row"]
-```
+**Ingestion path** (`backend/app/ingestion/{jobs,live_backends}.py`): `discover_docs → parse` (PyMuPDF) `→ chunk` (360/60) `→ embed` (`gemini-embedding-2`) `→ load_bigquery` (staging + transactional tier replace) `→ build_indexes → verify_counts`.
 
 The UI draws the same graph live from `GET /api/v1/levels` (design metadata only — nodes, edges, code
 references); all state on it comes from SSE events.
@@ -92,17 +82,7 @@ flowchart LR
 Both legs and the fusion run as **one parameterized BigQuery statement**, scoring
 `1/(60 + vector_rank) + 1/(60 + lexical_rank)` (SQL shape in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
 
-**Ingestion path** (`hybrid` tier, same job runner as Level 1):
-
-```mermaid
-flowchart LR
-    C["discover_docs<br/>local corpus (45 PDFs)"] --> P["parse<br/>PyMuPDF pages"]
-    P --> K["chunk<br/>one chunk per page, prefixed with a<br/>Contextual Lineage header (solicitation ·<br/>document · doc type · section)"]
-    K --> E["embed<br/>gemini-embedding-2 · RETRIEVAL_DOCUMENT"]
-    E --> L["load_bigquery<br/>staging table → transactional replace of tier hybrid"]
-    L --> I["build_indexes<br/>VECTOR INDEX (IVF, COSINE) + SEARCH INDEX on content"]
-    I --> V["verify_counts"]
-```
+**Ingestion path** (`hybrid` tier, same job runner): one chunk per page prefixed with a Contextual Lineage header (solicitation · document · doc type · section), then embed → staged load → vector + search index → verify.
 
 CUAD agreements are labelled `doc_type = COMMERCIAL_AGREEMENT`, so the lineage header tells the ranker and the
 synthesis model what kind of document a page comes from.
@@ -167,6 +147,28 @@ flowchart LR
 
 ---
 
+## Level 5 architecture (managed baseline)
+
+**Query path** (`backend/app/engines/{managed_vertex,vais_search}.py`, `backend/app/core/vertex_search.py`):
+
+```mermaid
+flowchart LR
+    U["User question"] --> QP["query_prep<br/>acronym expansion"]
+    QP --> RT["retrieve · Vertex AI Search<br/>servingConfigs/default_search:search<br/>extractive segments + page numbers"]
+    RT --> SA["synthesize (mode a)<br/>managed summary (summarySpec,<br/>same search call)"]
+    RT --> SB["synthesize (mode b)<br/>selectable model over the segments"]
+    SA --> EV["evaluate · LLM judge (≠ synthesis)"]
+    SB --> EV
+```
+
+**Ingestion** (`backend/app/ingestion/{gcs_sync,managed_job}.py`): `discover_docs → upload_gcs` (md5 diff, no deletes) `→ import_documents` (`documents:import`, INCREMENTAL, bounded LRO poll) `→ verify_counts`; parse / chunk / embed / index are `stage_skipped` — "managed by Vertex AI Search". Provisioned by `scripts/provision_vertex_search.py` (default digital parser: layout-based chunking would disable extractive segments).
+
+![Level 5: Vertex AI Search results with extractive segments and the managed summary](docs/screenshots/21-level5.png)
+
+The synthesis picker adds a Level-5-only pseudo model `vertex-ai-search-summary` (HTTP 400 on other levels). Citations are page-level (`bbox_source: "page"`).
+
+---
+
 ## What each stage shows
 
 Every value is read from the stage event payloads the engine emits (and that recordings store verbatim in
@@ -218,11 +220,12 @@ Other billable services (details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 | :-- | :-- | :-- | :-- |
 | `gemini-embedding-2` | all levels | $0.20 / 1M input tokens | `pricing.py`, 2026-10-20 |
 | Discovery Engine Ranking API | Levels 2–3 (`rerank`) | $1.00 / 1,000 counts; 1 count = 1 query of ≤ 100 docs (50 records = $0.001) | `pricing.py`, 2026-10-21 |
+| Vertex AI Search (Enterprise + LLM add-on) | Level 5 | $4 / 1,000 queries + $4 / 1,000 for generative answers; index storage free ≤ 10 GiB | `pricing.py`, 2026-10-23 |
 | Document AI Layout Parser | Level 3 ingestion | $10 / 1,000 pages; online requests ≤ 15 pages, so PDFs are split | `multimodal_job.py`, 2026-10-22 |
 
 ---
 
-## Results so far (Levels 1–4)
+## Results so far (Levels 1–5)
 
 Each level ran the 8 golden questions live (`DEMO_MODE=record`) with two (synthesis, judge) pairs: **Argon** =
 `gemini-4-argon` + `claude-opus-5-5`, **Flash** = `gemini-3.8-flash` + `claude-opus-5-5` (Level 4 Flash has 7/8 recorded: `q_sla_credit_calculation` timed out at 120 s across 6 live attempts when single Flash turns stalled 46–110 s, so it is left unrecorded and returns `ReplayUnavailableError` in replay). G / QA / CP =
@@ -235,10 +238,13 @@ judge; run cost = engine + judge, mean per question (total in brackets).
 | 2 · hybrid + rerank | 0.971 / 0.838 / 0.644 | 28.6 s | $0.0471 ($0.377) | 0.984 / 0.855 / 0.637 | 13.8 s | $0.0309 ($0.247) |
 | 3 · multimodal | 0.932 / 0.825 / 0.694 | 26.7 s | $0.0428 ($0.342) | 0.963 / 0.825 / 0.704 | 18.4 s | $0.0271 ($0.217) |
 | 4 · agentic (ADK) | 0.929 / 0.981 / 0.637 | 47.2 s | $0.1183 ($0.946) | 0.984 / 0.973 / 0.750 *(7/8)* | 44.0 s | $0.0477 ($0.334) |
+| 5 · Vertex AI Search, Argon over segments | 0.974 / 0.905 / 0.706 | 26.9 s | $0.0542 ($0.434) | — | — | — |
+| 5 · Vertex AI Search managed summary | 0.531 / 0.312 / 0.706 | 3.5 s | $0.0326 ($0.261) | — | — | — |
 
 Level 2 lifts QA relevance on amendment and table questions, and Level 3 recovers context precision on tables and
 diagrams. Level 4 closes the multi-hop and arithmetic gaps (`q_soc_p1_response_matrix` QA 0.55 → 1.00,
 `q_cross_solicitation_total_cost` QA 0.35 → 1.00 with exact `$2,765,500.00` via `calculate_contract_pricing`) at ~1.7× latency and ~2.8× Argon cost.
+Level 5's retrieval is strong (Argon over its segments: QA 0.905), but its managed summary often says the sources lack facts that the top segment contains (QA 0.312) — fastest and cheapest, least correct.
 Per-question scores, SQL, tool traces, prompts, judge rationales and provenance headers are in [`data/recordings/`](data/recordings/).
 
 ---
@@ -263,7 +269,7 @@ cd frontend && npm install && npm run dev
 
 Open `http://localhost:5173`, pick a level, a golden question and a recorded pair (`gemini-4-argon` or
 `gemini-3.8-flash` with judge `claude-opus-5-5`), and press Run; events replay with their recorded timing and
-ad-hoc questions return `engine_error`. Levels 1–4 are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
+ad-hoc questions return `engine_error`. All five levels are enabled by default. (`docker-compose.yml` predates v3 — use the two commands above.)
 
 ### (b) Live on your own GCP project
 
@@ -340,7 +346,7 @@ backend/app/
   core/         config, telemetry (StageEmitter), models_catalog, pricing, ranking, architectures, …
   engines/      level1_naive, level2_hybrid, level3_multimodal, level4_agentic, agent_runtime, agent_tools,
                 agent_calculator, agent_verify, agent_ledger, common_stages, synthesis, replay_engine;
-                managed_vertex not enabled; parked/
+                managed_vertex, vais_search; parked/
   evaluation/   judges, evaluator, scoring
   ingestion/    jobs, live_backends, parsers, bq_indexer, documentai_client, layout_documentai,
                 vision_transcribe, multimodal, multimodal_job, …
@@ -361,8 +367,8 @@ infra/main.tf   Terraform (APIs, bucket, dataset, table, Layout Parser processor
 ## Testing
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 221 passed (2026-10-22)
-cd frontend && npm test                                 # 102 node test runner checks
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 245 passed (2026-10-23)
+cd frontend && npm test                                 # 124 node test runner checks
 cd frontend && npm run build                            # tsc + vite build
 ```
 
@@ -385,8 +391,8 @@ timers in `routes.py`, no silent fallbacks, recording redaction, judge ≠ synth
 | 2 | Level 2 BigQuery Hybrid RRF + Discovery Engine Ranking API (rerank before/after scores) | ✅ live |
 | 3 | Level 3 Document AI Layout Parser + Gemini vision, multimodal embeddings, authority headers | ✅ live |
 | 4 | Level 4 real Google ADK runner with retrieval, amendment, pricing and citation-check tools | ✅ live |
-| 5 | Managed Vertex AI Search baseline — **next** | 🔒 planned |
-| 6 | Compare page, leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
+| 5 | Managed Vertex AI Search baseline (managed summary vs. model over extractive segments) | ✅ live |
+| 6 | **Next:** Compare page, leaderboard from `query_runs`, updated compose, **Cloud Run** deployment (single container, least-privilege service account, IAP-protected live service, optional public replay service) | 🔒 planned |
 
 ## Data & license
 

@@ -3,7 +3,7 @@ import { IngestPage } from "../features/ingest/IngestPage";
 import { LevelPage } from "../features/levels/LevelPage";
 import { OverviewPage } from "../pages/OverviewPage";
 import { ComparePage } from "../features/compare/ComparePage";
-import { LeaderboardPage } from "../pages/PlaceholderPages";
+import { LeaderboardPage } from "../pages/LeaderboardPage";
 import { EmptyState } from "../components/ui/EmptyState";
 
 export const routes: RouteObject[] = [

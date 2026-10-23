@@ -19,7 +19,17 @@ import {
 import { reduceStreamEvents, type TimelineEvent } from "../src/features/levels/model";
 import { resolveNodeService } from "../src/features/levels/diagramModel";
 import { backendErrorText } from "../src/lib/api";
-import { groupLeaderboard } from "../src/pages/leaderboardModel";
+import {
+  BATTLE_SCORE_FOOTNOTE,
+  defaultSource,
+  formatBattleScore,
+  groupLeaderboard,
+  leaderboardRows,
+  provenanceDetails,
+  provenanceSummary,
+  sourceOptions,
+} from "../src/pages/leaderboardModel";
+import { leaderboardSearch } from "../src/lib/api";
 import type { ArchNode, ModelCatalogEntry, ModelsResponse } from "../src/types/arena";
 
 const entry = (id: string, available = true, reason: string | null = null): ModelCatalogEntry => ({
@@ -141,19 +151,63 @@ test("backend {error} bodies are surfaced verbatim; other bodies are bounded raw
   assert.equal(backendErrorText("", "Bad Request"), "Bad Request");
 });
 
-test("leaderboard groups rows by (synthesis, judge) and tolerates the old shape", () => {
-  const old = groupLeaderboard({ source: "recordings", engines: [{ engine: E, runs: 3, avg_battle_score: 70 }] });
-  assert.equal(old.grouped, false);
-  assert.equal(old.totalRows, 1);
-  const v = groupLeaderboard({
-    rows: [
-      { engine: E, synthesis_model: "argon", judge_model: "claude-opus", runs: 2, avg_battle_score: 71.5 },
-      { engine: E, synthesis_model: "flash", judge_model: "claude-opus", runs: 1, avg_battle_score: 64 },
-      { engine: "level2_hybrid", synthesis_model: "argon", judge_model: "claude-opus", runs: 1, avg_battle_score: 80 },
-    ],
-  });
-  assert.equal(v.grouped, true);
-  assert.deepEqual(v.groups.map((g) => [g.key, g.rows.length]), [["argon|claude-opus", 2], ["flash|claude-opus", 1]]);
-  assert.deepEqual(v.metricKeys, ["avg_battle_score"]);
-  assert.equal(groupLeaderboard(null).grouped, false);
+const BOARD = {
+  source: "query_runs",
+  groups: [
+    { synthesis_model: "argon", judge_model: "claude-opus", pair_known: true, note: null, rows: [
+      { engine: "level2_hybrid", level_label: "L2", runs: 2, avg_battle_score: 80, avg_cost_usd: 0.05 },
+      { engine: E, level_label: "L1", runs: 0, failures: 1, avg_battle_score: null },
+      { engine: "level3_multimodal", runs: 1, avg_battle_score: 71.5 },
+    ] },
+    { synthesis_model: "flash", judge_model: "claude-opus", rows: [{ engine: E, runs: 1, avg_battle_score: 64 }] },
+    { synthesis_model: "unknown", judge_model: "unknown", pair_known: false, note: "kept apart", rows: [{ engine: E, runs: 3, avg_battle_score: 90 }] },
+    { synthesis_model: "", judge_model: "x", rows: [{ engine: E }] },
+  ],
+};
+
+test("leaderboard keeps the server's per-pair groups, ranks scored rows only, isolates unknown pairs", () => {
+  const groups = groupLeaderboard(BOARD);
+  assert.deepEqual(groups.map((g) => [g.key, g.pairKnown, g.rows.length]), [
+    ["argon|claude-opus", true, 3], ["flash|claude-opus", true, 1], ["unknown|unknown", false, 1],
+  ]);
+  assert.deepEqual(groups[0].rows.map((r) => [r.row.engine, r.rank]), [["level2_hybrid", 1], [E, null], ["level3_multimodal", 2]]);
+  assert.equal(groups[2].note, "kept apart");
+  assert.deepEqual(groupLeaderboard(null), []);
+  assert.deepEqual(groupLeaderboard({ source: "recordings" }), []);
+});
+
+test("leaderboardRows flattens groups and stamps each row with its pair (Compare / teaser lookups)", () => {
+  const rows = leaderboardRows(BOARD);
+  assert.equal(rows.length, 5);
+  assert.deepEqual([rows[0].engine, rows[0].synthesis_model, rows[0].judge_model], ["level2_hybrid", "argon", "claude-opus"]);
+  assert.equal(rows.filter((r) => r.engine === E && r.synthesis_model === "flash").length, 1);
+});
+
+test("source toggle: replay disables Live runs with a reason; live/record default to query_runs", () => {
+  assert.equal(defaultSource("replay"), "recordings");
+  assert.equal(defaultSource(null), "recordings");
+  assert.equal(defaultSource("live"), "query_runs");
+  assert.equal(defaultSource("record"), "query_runs");
+  const replay = sourceOptions("replay");
+  assert.deepEqual(replay.map((o) => [o.value, o.disabled]), [["recordings", false], ["query_runs", true]]);
+  assert.match(replay[1].reason ?? "", /replay mode never reads/);
+  assert.equal(sourceOptions("live")[1].disabled, false);
+  assert.equal(leaderboardSearch({}), "");
+  assert.equal(leaderboardSearch({ source: "query_runs", questionId: "q 1", engine: "" }), "?source=query_runs&question_id=q+1");
+});
+
+test("provenance text: recordings files/range, query_runs table/modes, details list full SHAs", () => {
+  const rec = { kind: "recording", files: 8, recorded_at: { first: "2026-10-21T18:11:48Z", last: "2026-10-23T01:00:00Z" }, git_shas: ["a", "b"] };
+  assert.equal(provenanceSummary(rec), "8 recording files · recorded 2026-10-21 → 2026-10-23 · 2 git SHAs");
+  const live = { kind: "query_runs", table: "rag_arena.query_runs", demo_modes: { live: 3, record: 1 }, git_shas: ["abc"] };
+  assert.equal(provenanceSummary(live), "rag_arena.query_runs · live 3, record 1 · 1 git SHA");
+  assert.deepEqual(provenanceDetails(live), [
+    ["source", "query_runs"], ["table", "rag_arena.query_runs"], ["demo_mode live", "3"], ["demo_mode record", "1"], ["git SHAs", "abc"],
+  ]);
+  assert.equal(provenanceSummary(undefined), "provenance not reported");
+  assert.equal(formatBattleScore(71.46), "71.5");
+  assert.equal(formatBattleScore(null), "—");
+  assert.match(BATTLE_SCORE_FOOTNOTE, /40% QA relevance \+ 35% groundedness \+ 15% context precision \+ 10% efficiency/);
+  assert.match(BATTLE_SCORE_FOOTNOTE, /60 s/);
+  assert.match(BATTLE_SCORE_FOOTNOTE, /\$0\.20/);
 });

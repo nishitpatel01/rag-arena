@@ -12,8 +12,8 @@ from app.evaluation.scoring import (
     battle_score,
     diagnostics,
     efficiency_score,
-    leaderboard_from_recordings,
 )
+from app.evaluation.leaderboard import leaderboard_from_recordings
 from app.recording.store import RecordingStore
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -68,13 +68,12 @@ def test_leaderboard_from_recordings_carries_provenance_and_never_aggregates_dev
     strict = leaderboard_from_recordings(RecordingStore(root, allow_dev_fixtures=False))
     assert strict["source"] == "recordings"
     permissive = leaderboard_from_recordings(RecordingStore(root, allow_dev_fixtures=True))
-    for board in (strict, permissive):
-        assert all(not p["synthetic_dev_fixture"] for row in board["engines"] for p in row["provenance"])
-        assert all(p["question_id"] != "dev_q01" for row in board["engines"] for p in row["provenance"])
-    assert permissive["engines"] == strict["engines"]  # allowing fixtures to replay never changes the leaderboard
-    l1 = next(row for row in permissive["engines"] if row["engine"] == "level1_naive")
+    rows = [row for g in permissive["groups"] for row in g["rows"]]
+    assert all(row["provenance"]["kind"] == "recording" for row in rows)
+    assert [g["rows"] for g in permissive["groups"]] == [g["rows"] for g in strict["groups"]]  # fixtures never change it
+    l1 = next(row for row in rows if row["engine"] == "level1_naive")
     assert l1["runs"] >= 1 and 0.0 <= l1["avg_battle_score"] <= 100.0
-    prov = l1["provenance"][0]
-    assert {"question_id", "recorded_at", "git_sha", "model_ids", "synthetic_dev_fixture"} <= set(prov)
+    assert {"files", "recorded_at", "git_shas"} <= set(l1["provenance"])
+    assert l1["provenance"]["files"] == l1["runs"] + l1["failures"]
     store = RecordingStore(root, allow_dev_fixtures=True)
     assert any(r.is_dev_fixture for r in store.list_recordings(include_dev=True))  # the fixture exists, just excluded

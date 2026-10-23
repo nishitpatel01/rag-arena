@@ -33,7 +33,7 @@ from app.engines import build_engine
 from app.engines.level1_naive import Level1NaiveEngine
 from app.engines.synthesis import AnthropicVertexSynthesizer, build_prompt
 from app.evaluation.evaluator import run_evaluation
-from app.evaluation.scoring import leaderboard_from_recordings
+from app.evaluation.leaderboard import leaderboard_from_recordings
 from app.ingestion import live_backends as lb
 from app.main import create_app
 from app.recording.recorder import build_recording, record_run
@@ -379,8 +379,7 @@ def test_leaderboard_groups_by_engine_and_model_pair_without_averaging_across_pa
     _record(root, "gemini-4-argon", "claude-opus-5-5")
     _record(root, "claude-opus-5-5", "gemini-3.8-flash")
     board = leaderboard_from_recordings(RecordingStore(root))
-    assert board["grouped_by"] == ["engine", "synthesis_model", "judge_model"]
-    keys = sorted((r["engine"], r["synthesis_model"], r["judge_model"], r["runs"]) for r in board["engines"])
+    keys = sorted((r["engine"], g["synthesis_model"], g["judge_model"], r["runs"]) for g in board["groups"] for r in g["rows"])
     assert keys == [("level1_naive", "claude-opus-5-5", "gemini-3.8-flash", 1), ("level1_naive", "gemini-4-argon", "claude-opus-5-5", 1)]
 
 

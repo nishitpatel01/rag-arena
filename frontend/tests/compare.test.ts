@@ -116,10 +116,12 @@ test("replay: only levels with a recording for (question, pair) can run", () => 
 
 test("cost estimate: sum of recorded avg run cost for the exact pair, unknown when a level lacks recordings", () => {
   const lb = {
-    engines: [
-      { engine: IDS[0], synthesis_model: "gemini-4-argon", judge_model: "claude-opus-5-5", runs: 8, avg_cost_usd: 0.01 },
-      { engine: IDS[1], synthesis_model: "gemini-4-argon", judge_model: "claude-opus-5-5", runs: 8, avg_cost_usd: 0.02 },
-      { engine: IDS[2], synthesis_model: "gemini-3.8-flash", judge_model: "claude-opus-5-5", runs: 8, avg_cost_usd: 9 },
+    groups: [
+      { synthesis_model: "gemini-4-argon", judge_model: "claude-opus-5-5", rows: [
+        { engine: IDS[0], runs: 8, avg_cost_usd: 0.01 },
+        { engine: IDS[1], runs: 8, avg_cost_usd: 0.02 },
+      ] },
+      { synthesis_model: "gemini-3.8-flash", judge_model: "claude-opus-5-5", rows: [{ engine: IDS[2], runs: 8, avg_cost_usd: 9 }] },
     ],
   };
   const known = costEstimate(lb, [IDS[0], IDS[1]], ARGON_OPUS);

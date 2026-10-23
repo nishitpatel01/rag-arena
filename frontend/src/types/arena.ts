@@ -230,30 +230,65 @@ export interface ModelsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Leaderboard (GET /api/v1/leaderboard) — tolerant of the pre-picker shape (rows without models)
+// Leaderboard (GET /api/v1/leaderboard?source=recordings|query_runs) — one shape for both sources
 // ---------------------------------------------------------------------------
 
+export type LeaderboardSource = "recordings" | "query_runs";
+
+/** Per-row provenance: recordings → files + recorded_at range; query_runs → table + demo-mode counts. */
 export interface LeaderboardProvenance {
-  readonly question_id?: string | null;
-  readonly recorded_at?: string | null;
-  readonly git_sha?: string | null;
-  readonly model_ids?: unknown;
-  readonly synthetic_dev_fixture?: boolean;
+  readonly kind: "recording" | "query_runs" | string;
+  readonly files?: number;
+  readonly recorded_at?: { readonly first: string; readonly last: string } | null;
+  readonly table?: string | null;
+  readonly demo_modes?: Readonly<Record<string, number>>;
+  readonly git_shas?: readonly string[];
 }
 
 export interface LeaderboardRow {
   readonly engine: string;
+  readonly level_label?: string;
+  /** Set by `leaderboardRows` when flattening groups (not sent per row by the server). */
   readonly synthesis_model?: string | null;
   readonly judge_model?: string | null;
   readonly runs?: number;
-  readonly provenance?: readonly LeaderboardProvenance[];
+  readonly avg_battle_score?: number | null;
+  readonly avg_efficiency?: number | null;
+  readonly avg_groundedness?: number | null;
+  readonly avg_qa_relevance?: number | null;
+  readonly avg_context_precision?: number | null;
+  readonly avg_latency_ms?: number | null;
+  readonly avg_cost_usd?: number | null;
+  readonly questions_covered?: number;
+  readonly failures?: number;
+  readonly first_run_at?: string | null;
+  readonly last_run_at?: string | null;
+  readonly provenance?: LeaderboardProvenance;
   readonly [metric: string]: unknown;
 }
 
+export interface LeaderboardGroupResponse {
+  readonly synthesis_model: string;
+  readonly judge_model: string;
+  readonly pair_known?: boolean;
+  readonly note?: string | null;
+  readonly rows: readonly LeaderboardRow[];
+}
+
+export interface LeaderboardStats {
+  readonly rows_read?: number;
+  readonly rows_matching?: number;
+  readonly max_rows?: number | null;
+  readonly bytes_processed?: number | null;
+}
+
 export interface LeaderboardResponse {
-  readonly source?: string;
-  readonly engines?: readonly LeaderboardRow[];
-  readonly rows?: readonly LeaderboardRow[];
+  readonly source?: LeaderboardSource | string;
+  readonly generated_at?: string;
+  readonly filters?: { readonly question_id?: string | null; readonly engine?: string | null };
+  readonly notes?: readonly string[];
+  readonly stats?: LeaderboardStats;
+  readonly groups?: readonly LeaderboardGroupResponse[];
 }
 
 // ---------------------------------------------------------------------------

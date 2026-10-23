@@ -34,7 +34,7 @@ function useLeaderboard(): { data: LeaderboardResponse | null; error: string | n
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    api.leaderboard().then(
+    api.leaderboard({ source: "recordings" }).then(
       (res) => !cancelled && setData(res),
       (err: unknown) => !cancelled && setError(err instanceof Error ? err.message : String(err))
     );

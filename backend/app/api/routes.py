@@ -25,6 +25,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
+from app.api.query_runs_reader import QueryRunsReadError, leaderboard_from_query_runs
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
@@ -36,10 +37,11 @@ from app.core.models_catalog import (
     load_catalog,
 )
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
-from app.engines import BaseRAGEngine, get_engine_registry, list_levels
+from app.engines import BaseRAGEngine, engine_labels, get_engine_registry, list_levels
 from app.engines.replay_engine import ReplayUnavailableError, recording_store_for
 from app.evaluation.evaluator import run_evaluation
-from app.evaluation.scoring import battle_score, leaderboard_from_recordings
+from app.evaluation.leaderboard import SOURCES as LEADERBOARD_SOURCES, leaderboard_from_recordings, parse_filters
+from app.evaluation.scoring import battle_score
 from app.ingestion.jobs import IngestJobRunner
 from app.ingestion.parsers import parse_pdf_Fallback_or_fitz
 from app.ingestion.session_store import store_uploaded_session_chunks
@@ -346,13 +348,48 @@ async def levels_endpoint(request: Request) -> JSONResponse:
     return JSONResponse({"enabled_levels": list(settings.enabled_levels), "demo_mode": settings.demo_mode, "levels": list_levels(settings)})
 
 
+LEADERBOARD_REQUEST_TIMEOUT_SECONDS = 45.0
+
+
+def _leaderboard_source(request: Request, settings: ArenaSettings) -> str:
+    """``source`` query param, defaulting to ``query_runs`` in live/record and ``recordings`` in replay."""
+    source = (request.query_params.get("source") or "").strip() or ("query_runs" if settings.is_live else "recordings")
+    if source not in LEADERBOARD_SOURCES:
+        raise ValueError(f"source must be one of {', '.join(LEADERBOARD_SOURCES)}, got {source[:40]!r}")
+    if source == "query_runs" and not settings.is_live:
+        raise ValueError(
+            "source=query_runs needs DEMO_MODE=live or record (replay mode never calls BigQuery); use source=recordings"
+        )
+    return source
+
+
 async def leaderboard_endpoint(request: Request) -> JSONResponse:
-    """GET /api/v1/leaderboard: aggregates of recorded live runs with provenance (empty until recordings exist)."""
+    """GET /api/v1/leaderboard?source=recordings|query_runs&question_id=&engine= — one shape for both sources,
+    grouped per (synthesis, judge) pair with per-row provenance. BigQuery failures → 502 with the redacted error."""
     settings = _settings_of(request)
     try:
-        summary = await asyncio.to_thread(leaderboard_from_recordings, recording_store_for(settings))
-    except (ValueError, RuntimeError) as exc:
-        return JSONResponse({"error": f"Leaderboard unavailable: {exc}"}, status_code=500)
+        source = _leaderboard_source(request, settings)
+        filters = parse_filters(request.query_params.get("question_id"), request.query_params.get("engine"))
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    labels = engine_labels()
+    if source == "recordings":
+        try:
+            summary = await asyncio.to_thread(leaderboard_from_recordings, recording_store_for(settings), filters, labels)
+        except (ValueError, RuntimeError) as exc:
+            return JSONResponse({"error": f"Leaderboard unavailable: {exc}"}, status_code=500)
+        return JSONResponse(summary)
+    try:
+        summary = await asyncio.wait_for(
+            asyncio.to_thread(leaderboard_from_query_runs, settings, filters, labels),
+            timeout=LEADERBOARD_REQUEST_TIMEOUT_SECONDS,
+        )
+    except QueryRunsReadError as exc:
+        return JSONResponse({"error": f"BigQuery query_runs read failed: {exc}"}, status_code=502)
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            {"error": f"BigQuery query_runs read timed out after {LEADERBOARD_REQUEST_TIMEOUT_SECONDS:.0f} s"}, status_code=502
+        )
     return JSONResponse(summary)
 
 

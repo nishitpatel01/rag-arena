@@ -354,10 +354,12 @@ test("teaser matrix: one baseline column per lower level, same question/pair loo
     ],
   } as ModelsResponse;
   const lb: LeaderboardResponse = {
-    rows: [
-      { engine: "level1_naive", synthesis_model: "s", judge_model: "j", runs: 8, avg_groundedness: 0.95, avg_qa_relevance: 0.69, avg_context_precision: 0.71, avg_latency_ms: 24600 },
-      { engine: "level2_hybrid", synthesis_model: "s", judge_model: "j", runs: 8, avg_groundedness: 0.97, avg_qa_relevance: 0.84, avg_context_precision: 0.64, avg_latency_ms: 28600 },
-      { engine: "level2_hybrid", synthesis_model: "other", judge_model: "j", runs: 8, avg_groundedness: 0.1 },
+    groups: [
+      { synthesis_model: "s", judge_model: "j", rows: [
+        { engine: "level1_naive", runs: 8, avg_groundedness: 0.95, avg_qa_relevance: 0.69, avg_context_precision: 0.71, avg_latency_ms: 24600 },
+        { engine: "level2_hybrid", runs: 8, avg_groundedness: 0.97, avg_qa_relevance: 0.84, avg_context_precision: 0.64, avg_latency_ms: 28600 },
+      ] },
+      { synthesis_model: "other", judge_model: "j", rows: [{ engine: "level2_hybrid", runs: 8, avg_groundedness: 0.1 }] },
     ],
   };
   const lower = lowerEnabledLevels(LEVELS, { order: 3 });

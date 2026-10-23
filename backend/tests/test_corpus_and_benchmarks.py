@@ -4,7 +4,6 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_DIR = PROJECT_ROOT / "data" / "sample_docs" / "procurement_corpus"
 BENCHMARK_FILE = PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
-REPLAY_FILE = PROJECT_ROOT / "data" / "golden_benchmarks" / "precomputed_runs.json"
 
 
 def test_interconnected_solicitation_pdfs_exist():

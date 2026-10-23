@@ -181,19 +181,20 @@ const CATALOG = {
 } as unknown as ModelsResponse;
 const BOARD: LeaderboardResponse = {
   source: "recordings",
-  engines: [
-    { engine: "level1_naive", synthesis_model: "s", judge_model: "j", runs: 9, avg_groundedness: 0.94, avg_qa_relevance: 0.687, avg_context_precision: 0.7, avg_latency_ms: 22068.9,
-      provenance: [{ question_id: "dev_q01", synthetic_dev_fixture: true }, { question_id: "q1", synthetic_dev_fixture: false }] },
-    { engine: "level1_naive", synthesis_model: "other", judge_model: "j", runs: 8, avg_groundedness: 0.1 },
+  groups: [
+    { synthesis_model: "s", judge_model: "j", rows: [
+      { engine: "level1_naive", runs: 9, avg_groundedness: 0.94, avg_qa_relevance: 0.687, avg_context_precision: 0.7, avg_latency_ms: 22068.9,
+        provenance: { kind: "recording", files: 9, recorded_at: null, git_shas: [] } },
+    ] },
+    { synthesis_model: "other", judge_model: "j", rows: [{ engine: "level1_naive", runs: 8, avg_groundedness: 0.1 }] },
   ],
 };
 
-test("baselineFor finds the Level 1 row for the exact pair and flags synthetic provenance", () => {
+test("baselineFor finds the Level 1 row for the exact pair", () => {
   const v = baselineFor(CATALOG, BOARD, { engine: "level1_naive", synthesisModel: "s", judgeModel: "j", questionId: "q1" });
   assert.equal(v.pairRecorded, true);
   assert.equal(v.questionRecorded, true);
   assert.equal(v.runs, 9);
-  assert.equal(v.syntheticRuns, 1);
   const m = teaserMetrics(v, { groundedness: 1, qaRelevance: 0.9, contextPrecision: 0.8, latencyMs: 6130 });
   assert.deepEqual(m.map((x) => [x.key, x.current, x.baseline]), [
     ["groundedness", 1, 0.94], ["qa_relevance", 0.9, 0.687], ["context_precision", 0.8, 0.7], ["latency", 6130, 22068.9],

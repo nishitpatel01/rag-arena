@@ -170,9 +170,9 @@ def test_stream_emits_stream_warning_when_max_sse_frames_is_reached() -> None:
 
 def test_leaderboard_endpoint_aggregates_recordings_with_provenance() -> None:
     body = _client().get("/api/v1/leaderboard").json()
-    assert body["source"] == "recordings"
-    l1 = next(row for row in body["engines"] if row["engine"] == "level1_naive")
-    assert l1["runs"] >= 1 and all(p["synthetic_dev_fixture"] is False for p in l1["provenance"])
+    assert body["source"] == "recordings" and body["filters"] == {"question_id": None, "engine": None}
+    l1 = next(row for g in body["groups"] for row in g["rows"] if row["engine"] == "level1_naive")
+    assert l1["runs"] >= 1 and l1["provenance"]["kind"] == "recording" and l1["level_label"]
 
 
 def test_upload_endpoint_parses_without_claiming_indexing() -> None:

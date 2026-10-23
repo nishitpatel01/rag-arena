@@ -8,6 +8,7 @@ import type {
   IngestJobCreated,
   IngestStatusResponse,
   LeaderboardResponse,
+  LeaderboardSource,
   LevelsResponse,
   ModelsResponse,
 } from "../types/arena";
@@ -76,12 +77,32 @@ export function fetchModels(): Promise<ModelsResponse> {
   return requestJson<ModelsResponse>("/models", {}, MODELS_TIMEOUT_MS);
 }
 
+/** The live source reads BigQuery `query_runs` (server bound 45 s); allow it to answer or fail first. */
+const LEADERBOARD_TIMEOUT_MS = 60_000;
+
+export interface LeaderboardQuery {
+  readonly source?: LeaderboardSource;
+  readonly questionId?: string;
+  readonly engine?: string;
+}
+
+/** `?source=&question_id=&engine=` with empty values omitted (server applies its mode default). */
+export function leaderboardSearch(query: LeaderboardQuery): string {
+  const params = new URLSearchParams();
+  if (query.source) params.set("source", query.source);
+  if (query.questionId) params.set("question_id", query.questionId);
+  if (query.engine) params.set("engine", query.engine);
+  const text = params.toString();
+  return text ? `?${text}` : "";
+}
+
 export const api = {
   health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health"),
   levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels"),
   benchmarks: (): Promise<BenchmarksResponse> => requestJson<BenchmarksResponse>("/benchmarks"),
   models: fetchModels,
-  leaderboard: (): Promise<LeaderboardResponse> => requestJson<LeaderboardResponse>("/leaderboard", {}, 20_000),
+  leaderboard: (query: LeaderboardQuery = {}): Promise<LeaderboardResponse> =>
+    requestJson<LeaderboardResponse>(`/leaderboard${leaderboardSearch(query)}`, {}, LEADERBOARD_TIMEOUT_MS),
   ingestStatus: (): Promise<IngestStatusResponse> => requestJson<IngestStatusResponse>("/ingest/status", {}, INGEST_STATUS_TIMEOUT_MS),
   createIngestJob: (level: string): Promise<IngestJobCreated> =>
     requestJson<IngestJobCreated>("/ingest/jobs", {

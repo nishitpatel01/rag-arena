@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.models import EngineFlags, EvalMetrics, StageRecord
-from app.recording.codec import eval_outcome_from_dict, stage_record_from_dict
-from app.recording.store import RecordingStore
+from app.recording.codec import stage_record_from_dict
 
 SCORE_WEIGHTS: dict[str, float] = {
     "qa_relevance": 0.40,
@@ -127,63 +126,6 @@ def diagnostics(flags: EngineFlags, stage_log: tuple[StageRecord, ...], metrics:
     return tuple(lines[:_MAX_DIAGNOSTICS])
 
 
-def _leaderboard_row_key(rec: Any) -> tuple[str, str, str]:
-    synthesis, judge = rec.pair
-    return rec.engine, synthesis, judge
-
-
-def leaderboard_from_recordings(store: RecordingStore) -> dict[str, Any]:
-    """Aggregate recorded (live-measured) runs per (engine, synthesis_model, judge_model); never across pairs.
-
-    Every row carries its provenance (spec §7.4). Two pairs on the same engine are two rows: their judges differ,
-    so averaging them would mix incomparable scales. Synthetic dev fixtures (header ``synthetic_dev_fixture: true``)
-    are never aggregated, in any mode — they may still be replayed when ``ALLOW_DEV_FIXTURES=1``.
-    """
-    if not isinstance(store, RecordingStore):
-        raise TypeError("store must be a RecordingStore")
-    rows: dict[tuple[str, str, str], dict[str, Any]] = {}
-    for rec in store.list_recordings(include_dev=store.allow_dev_fixtures):
-        if rec.evaluation is None or rec.is_dev_fixture:
-            continue
-        outcome = eval_outcome_from_dict(rec.evaluation)
-        latency = int(rec.result.get("latency_ms", 0))
-        cost = float(rec.result.get("cost_usd", 0.0)) + outcome.judge_cost_usd  # run cost includes the judge
-        breakdown = battle_score(outcome.metrics, latency, cost)
-        key = _leaderboard_row_key(rec)
-        row = rows.setdefault(
-            key,
-            {"engine": key[0], "synthesis_model": key[1], "judge_model": key[2], "runs": 0,
-             "sum": {k: 0.0 for k in breakdown.to_dict()}, "provenance": []},
-        )
-        row["runs"] += 1
-        for metric, value in breakdown.to_dict().items():
-            row["sum"][metric] += float(value)
-        row["provenance"].append(
-            {
-                "question_id": rec.question_id,
-                "recorded_at": rec.header.get("recorded_at"),
-                "git_sha": rec.header.get("git_sha"),
-                "model_ids": rec.header.get("model_ids"),
-                "synthetic_dev_fixture": rec.is_dev_fixture,
-            }
-        )
-    entries = []
-    for row in rows.values():
-        n = max(1, row["runs"])
-        entries.append(
-            {
-                "engine": row["engine"],
-                "synthesis_model": row["synthesis_model"],
-                "judge_model": row["judge_model"],
-                "runs": row["runs"],
-                **{f"avg_{k}": round(v / n, 3) for k, v in row["sum"].items()},
-                "provenance": row["provenance"][:50],
-            }
-        )
-    entries.sort(key=lambda r: r["avg_battle_score"], reverse=True)
-    return {"source": "recordings", "grouped_by": ["engine", "synthesis_model", "judge_model"], "engines": entries}
-
-
 def stage_log_from_dicts(raw: list[dict[str, Any]]) -> tuple[StageRecord, ...]:
     """Helper for callers holding serialized stage logs (query_runs rows, recordings)."""
     return tuple(stage_record_from_dict(item) for item in list(raw)[:100])
@@ -195,6 +137,5 @@ __all__ = [
     "battle_score",
     "diagnostics",
     "efficiency_score",
-    "leaderboard_from_recordings",
     "stage_log_from_dicts",
 ]

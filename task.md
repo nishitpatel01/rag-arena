@@ -129,8 +129,8 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
 Owner decisions: bucket auto-created by default with explicit permission / org-policy errors (no silent fallback); uploads kept until manually deleted; no app-imposed size, page, file-count or daily caps; all five levels; Leaderboard winner highlighting by a user-selected metric; uploads for anyone who can open the deployed live app, never on the replay copy.
 
 - [ ] **Step 1 — upload bucket + upload flow** — branch `v1.1/step1-upload-bucket`
-  - [ ] 1a `upload_bucket.py`: ensure → exists / create (PAP enforced, UBLA on, optional CMEK, no lifecycle) → privacy verify; typed outcomes `ok · created · permission_denied · org_policy · name_conflict · not_found · unsafe_bucket · unreachable · error` with remedies (placeholders only)
-  - [ ] 1b config: `UPLOAD_BUCKET_MODE=auto|existing`, `UPLOAD_BUCKET`, `UPLOAD_BUCKET_KMS_KEY`; remove `MAX_UPLOAD_BYTES/PAGES`
+  - [x] 1a `upload_bucket.py`: ensure → exists / create (PAP enforced, UBLA on, optional CMEK, no lifecycle) → privacy verify; typed outcomes `ok · created · permission_denied · org_policy · name_conflict · not_found · unsafe_bucket · unreachable · error` with remedies (placeholders only)
+  - [x] 1b config: `UPLOAD_BUCKET_MODE=auto|existing`, `UPLOAD_BUCKET` (default `<project>-rag-arena-uploads`, must differ from the corpus bucket), `UPLOAD_BUCKET_KMS_KEY`; env templates. (`MAX_UPLOAD_BYTES/PAGES` removed with the legacy endpoint in 1d)
   - [ ] 1c scripts: provision CLI; bootstrap + deploy create bucket as deployer and grant readers (Cloud Run SA `roles/storage.objectUser`; Discovery Engine service agent `roles/storage.objectViewer` for L5 import); teardown removes grants (bucket kept)
   - [ ] 1d upload API: workspace create → resumable session URI (browser uploads straight to GCS) → finalize (streaming PDF validation) → delete
   - [ ] 1e bucket status / create endpoints for the Ingest page

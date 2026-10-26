@@ -140,6 +140,9 @@ class ArenaSettings:
     gcp_location: str = "us-central1"
     vertex_genai_location: str = "global"
     gcs_corpus_bucket: str = ""
+    upload_bucket: str = ""  # v1.1 private bucket for user documents (default <project>-rag-arena-uploads)
+    upload_bucket_mode: str = "auto"  # auto = create if missing (fails loud on permission/org policy); existing = never create
+    upload_bucket_kms_key: str = ""  # optional CMEK for a bucket the app creates
     cloudsdk_config: str = ""
     google_application_credentials: str = ""
     bq_dataset: str = "rag_arena"
@@ -251,6 +254,7 @@ class ArenaSettings:
         self._validate_level3()
         self._validate_agent()
         self._validate_vais()
+        self._validate_upload_bucket()
 
     def _validate_vais(self) -> None:
         """Level 5 Vertex AI Search location/ids (empty id = not provisioned) and request bounds."""
@@ -396,6 +400,21 @@ class ArenaSettings:
         if self.max_upload_pages < 1 or self.max_upload_pages > 100:
             raise ValueError("max_upload_pages must be between 1 and 100")
 
+    def _validate_upload_bucket(self) -> None:
+        from app.ingestion.upload_bucket import MODES, validate_bucket_name
+
+        if self.upload_bucket_mode not in MODES:
+            raise ValueError(f"UPLOAD_BUCKET_MODE must be one of {sorted(MODES)}, got {self.upload_bucket_mode!r}")
+        if self.upload_bucket:
+            validate_bucket_name(self.upload_bucket)
+            if self.upload_bucket == self.gcs_corpus_bucket:
+                raise ValueError("UPLOAD_BUCKET must differ from GCS_CORPUS_BUCKET (user uploads never share the corpus bucket)")
+        if self.upload_bucket_kms_key and not _KMS_KEY_RE.match(self.upload_bucket_kms_key):
+            raise ValueError("UPLOAD_BUCKET_KMS_KEY must look like projects/P/locations/L/keyRings/R/cryptoKeys/K")
+
+
+_KMS_KEY_RE = re.compile(r"^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$")
+
 
 def _parse_enabled_levels(raw: str) -> tuple[str, ...]:
     """Parse the ENABLED_LEVELS comma list; empty input is a configuration error (fail at startup)."""
@@ -449,6 +468,9 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
     bucket = source.get("GCS_CORPUS_BUCKET", "").strip()
     if not bucket and project_id:
         bucket = f"{project_id}-rag-arena-corpus"  # same derivation as scripts/bootstrap_gcp.sh and infra/main.tf
+    upload_bucket = source.get("UPLOAD_BUCKET", "").strip()
+    if not upload_bucket and project_id:
+        upload_bucket = f"{project_id}-rag-arena-uploads"  # same derivation as upload_bucket.default_bucket_name
 
     return ArenaSettings(
         demo_mode=mode,
@@ -456,6 +478,9 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         gcp_location=source.get("GCP_LOCATION", "us-central1").strip(),
         vertex_genai_location=source.get("VERTEX_GENAI_LOCATION", "global").strip(),
         gcs_corpus_bucket=bucket,
+        upload_bucket=upload_bucket,
+        upload_bucket_mode=source.get("UPLOAD_BUCKET_MODE", "auto").strip().lower(),
+        upload_bucket_kms_key=source.get("UPLOAD_BUCKET_KMS_KEY", "").strip(),
         cloudsdk_config=source.get("CLOUDSDK_CONFIG", "").strip(),
         google_application_credentials=source.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip(),
         bq_dataset=source.get("BQ_DATASET", "rag_arena").strip(),

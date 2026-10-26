@@ -103,8 +103,25 @@ class FakeServices:
         return self._store
 
 
+class _RowsLoader:
+    """Ingest loader stand-in for upload API tests: records scoped deletes only."""
+
+    table_fqn = "test-project.rag_arena.document_chunks"
+
+    def __init__(self) -> None:
+        self.deleted_scopes: list[str] = []
+
+    def delete_scope(self, scope: str) -> int:
+        self.deleted_scopes.append(scope)
+        return 0
+
+
 def _client(state: BucketState = BucketState.OK) -> tuple[TestClient, FakeManager, FakeStore]:
-    app = create_app(settings=live_settings(), query_run_writer=object())
+    from app.ingestion.jobs import IngestBackends
+
+    loader = _RowsLoader()
+    app = create_app(settings=live_settings(), query_run_writer=object(),
+                     ingest_backend_factory=lambda s: IngestBackends(None, loader))  # type: ignore[arg-type]
     manager, store = FakeManager(state), FakeStore()
     app.state.upload_services = FakeServices(manager, store)
     return TestClient(app), manager, store
@@ -288,3 +305,113 @@ def test_store_failures_return_json_errors_not_500() -> None:
     store.write_manifest = boom  # type: ignore[method-assign]
     resp = client.post("/api/v1/uploads", headers=_ALICE, json={})
     assert resp.status_code == 502 and "credentials" in resp.json()["error"]
+
+
+# ---------- v1.1 step 2: ingest an upload workspace (L1/L2), battle scope checks, delete BigQuery rows ----------
+
+def _ingest_client() -> tuple[TestClient, FakeStore, Any]:
+    import json as _json  # noqa: F401 - parity with SSE helpers
+
+    from app.ingestion.jobs import IngestBackends, IngestJobRunner
+    from test_ingest_jobs_api import FakeEmbedder
+    from test_upload_ingest import ScopedLoader
+
+    loader = ScopedLoader()
+    loader.deleted_scopes = []  # type: ignore[attr-defined]
+    loader.delete_scope = lambda scope: loader.deleted_scopes.append(scope) or 0  # type: ignore[attr-defined]
+    settings = live_settings(ingest_job_timeout_seconds=120, enabled_levels=("level1_naive", "level2_hybrid"))
+    factory = lambda s: IngestBackends(FakeEmbedder(), loader)  # noqa: E731
+    app = create_app(settings=settings, query_run_writer=object(), ingest_backend_factory=factory)
+    app.state.ingest_runner = IngestJobRunner(settings, backend_factory=factory)
+    store = FakeStore()
+    app.state.upload_services = FakeServices(FakeManager(), store)
+    return TestClient(app), store, loader
+
+
+def _corpus_pdf() -> bytes:
+    path = (Path(__file__).resolve().parents[2] / "data" / "sample_docs" / "procurement_corpus"
+            / "solicitation_01_cloud_infrastructure" / "04_Pricing_Schedule_CLINs.pdf")
+    return path.read_bytes()
+
+
+def _sse(text: str) -> list[dict[str, Any]]:
+    import json as _json
+
+    return [_json.loads(line[5:].strip()) for line in text.splitlines() if line.startswith("data:")]
+
+
+def test_ingest_workspace_level1_records_completion_in_manifest() -> None:
+    client, store, loader = _ingest_client()
+    with client:
+        ws = _workspace(client)
+        _upload(client, store, ws, _corpus_pdf(), name="Pricing.pdf")
+        resp = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level1_naive"})
+        assert resp.status_code == 202, resp.text
+        job_id = resp.json()["job"]["job_id"]
+        assert resp.json()["job"]["scope"] == ws
+        events = _sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream").text)
+        assert events[-1]["event"] == "job_complete"
+        level = client.get(f"/api/v1/uploads/{ws}", headers=_ALICE).json()["workspace"]["levels"]["level1_naive"]
+    assert level["status"] == "completed" and level["job_id"] == job_id and level["chunks"] == len(loader.rows) > 0
+    assert len(level["file_ids"]) == 1
+    assert {r["solicitation_id"] for r in loader.rows} == {ws}
+
+
+def test_ingest_refuses_unbuilt_levels_no_ready_files_and_parallel_runs() -> None:
+    client, store, _ = _ingest_client()
+    with client:
+        ws = _workspace(client)
+        empty = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level1_naive"})
+        assert empty.status_code == 409 and "ready" in empty.json()["error"]
+        _upload(client, store, ws, _corpus_pdf(), name="Pricing.pdf")
+        l3 = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level3_multimodal"})
+        assert l3.status_code == 400 and "not available for uploads yet" in l3.json()["error"]
+        manifest, gen = store.manifests[ws]
+        store.manifests[ws] = ({**manifest, "levels": {"level2_hybrid": {"status": "running"}}}, gen)
+        busy = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level2_hybrid"})
+        assert busy.status_code == 409 and "already" in busy.json()["error"]
+        other = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_BOB, json={"level": "level1_naive"})
+        assert other.status_code == 404
+
+
+def test_duplicate_file_names_in_one_workspace_are_refused() -> None:
+    client, _, store = _client()
+    ws = _workspace(client)
+    _upload(client, store, ws, _pdf(), name="Scope.pdf")
+    dup = client.post(f"/api/v1/uploads/{ws}/files", headers=_ALICE, json={"filename": "Scope.pdf", "size_bytes": 1})
+    assert dup.status_code == 409 and "already" in dup.json()["error"]
+
+
+def test_battle_on_a_workspace_requires_ownership_and_ingested_levels() -> None:
+    client, _, _store = _client()
+    ws = _workspace(client)
+    body = {"query": "What is the CLIN 0001 price?", "engines": ["level1_naive"], "solicitation_filter": ws}
+    not_ingested = client.post("/api/v1/battle/stream", headers=_ALICE, json=body)
+    assert not_ingested.status_code == 400 and "level1_naive" in not_ingested.json()["error"]
+    assert client.post("/api/v1/battle/stream", headers=_BOB, json=body).status_code == 404
+    unknown = client.post("/api/v1/battle/stream", headers=_ALICE, json={**body, "solicitation_filter": "upl_ffffffffffff"})
+    assert unknown.status_code == 404
+
+
+def test_battle_scope_check_maps_level4_to_level3_data() -> None:
+    from app.api.uploads_api import missing_upload_levels
+
+    manifest = {"levels": {"level1_naive": {"status": "completed"}, "level3_multimodal": {"status": "completed"},
+                           "level2_hybrid": {"status": "failed"}}}
+    assert missing_upload_levels(manifest, ["level1_naive", "level4_agentic"]) == []
+    assert missing_upload_levels(manifest, ["level2_hybrid", "managed_vertex"]) == ["level2_hybrid", "managed_vertex"]
+
+
+def test_battle_with_upload_scope_on_replay_copy_is_refused() -> None:
+    client = TestClient(create_app(settings=live_settings(demo_mode="replay", gcp_project_id="")))
+    resp = client.post("/api/v1/battle/stream", json={"query": "q", "solicitation_filter": "upl_0123456789ab"})
+    assert resp.status_code == 404 and "live" in resp.json()["error"]
+
+
+def test_delete_workspace_also_deletes_its_bigquery_rows() -> None:
+    client, store, loader = _ingest_client()
+    with client:
+        ws = _workspace(client)
+        resp = client.delete(f"/api/v1/uploads/{ws}", headers=_ALICE)
+    assert resp.status_code == 200 and loader.deleted_scopes == [ws]
+    assert resp.json()["bigquery"] == {"deleted_scope": ws}

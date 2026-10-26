@@ -316,7 +316,7 @@ def test_hybrid_ingest_tier_replace_is_scoped_to_hybrid_only() -> None:
     rows = [{**{n: None for n in names}, "chunk_id": f"c{i}_hybrid", "tier_profile": "hybrid", "ingest_run_id": "ing_abc123", "content": "x"} for i in range(2)]
     assert loader.load_rows(rows) == 2
     script, config = bq.queries[-1]
-    assert "DELETE FROM `test-project.rag_arena.document_chunks_v3` WHERE tier_profile = @tier;" in script
+    assert "DELETE FROM `test-project.rag_arena.document_chunks_v3` WHERE tier_profile = @tier AND NOT STARTS_WITH(solicitation_id, 'upl_');" in script
     assert [(p.name, p.value) for p in config.query_parameters] == [("tier", "hybrid")]
     assert "document_chunks`" not in script.replace("document_chunks_v3`", "") and "TRUNCATE" not in script.upper()
     assert bq.deleted == ["test-project.rag_arena._staging_ing_abc123"]

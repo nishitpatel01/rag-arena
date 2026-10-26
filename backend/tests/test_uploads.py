@@ -234,3 +234,15 @@ def test_list_workspace_ids_reads_manifests_only() -> None:
                  f"{UPLOAD_PREFIX}upl_ffffffffffff/workspace.json"):
         fake.objects[name] = {"data": json.dumps({"id": "x"}).encode(), "generation": 1}
     assert _store(fake).list_workspace_ids() == ["upl_0123456789ab", "upl_ffffffffffff"]
+
+
+def test_store_credential_failure_raises_typed_store_error() -> None:
+    from app.ingestion.uploads import UploadStoreError
+
+    def broken_token() -> str:
+        raise RuntimeError("no ADC")
+
+    store = UploadStore(bucket=_BUCKET, token_provider=broken_token, timeout_seconds=5, send=FakeStorage(),
+                        sleep=lambda _s: None)
+    with pytest.raises(UploadStoreError, match="credentials"):
+        store.list_workspace_ids()

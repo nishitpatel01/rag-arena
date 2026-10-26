@@ -139,9 +139,11 @@ def test_uploads_do_not_exist_on_the_replay_copy() -> None:
 
 # ---------- bucket status / create ----------
 
-def test_bucket_status_is_read_only() -> None:
+def test_bucket_status_is_read_only_and_always_200() -> None:
     client, manager, _ = _client(BucketState.NOT_FOUND)
-    body = client.get("/api/v1/uploads/bucket").json()
+    resp = client.get("/api/v1/uploads/bucket")
+    assert resp.status_code == 200  # a status report; the state field carries the outcome
+    body = resp.json()
     assert body["state"] == "not_found" and body["usable"] is False
     assert manager.check_calls == 1 and manager.ensure_calls == 0
 
@@ -273,3 +275,16 @@ def test_delete_workspace_removes_everything() -> None:
 def test_legacy_capped_upload_endpoint_is_gone() -> None:
     client, _, _ = _client()
     assert client.post("/api/v1/ingest/upload", json={}).status_code in (404, 405)
+
+
+def test_store_failures_return_json_errors_not_500() -> None:
+    from app.ingestion.uploads import UploadStoreError
+
+    client, _, store = _client()
+
+    def boom(*_a, **_k):
+        raise UploadStoreError(0, "Cloud Storage credentials unavailable: no ADC")
+
+    store.write_manifest = boom  # type: ignore[method-assign]
+    resp = client.post("/api/v1/uploads", headers=_ALICE, json={})
+    assert resp.status_code == 502 and "credentials" in resp.json()["error"]

@@ -277,3 +277,14 @@ def test_check_existing_mode_missing_says_never_created() -> None:
 def test_check_reports_private_bucket_ok() -> None:
     fake = FakeGcs({("GET", _B): [(200, _PRIVATE_META)], ("GET", f"{_B}/iam"): [(200, _PRIVATE_IAM)]})
     assert _manager(fake).check().state is BucketState.OK
+
+
+def test_credential_failure_is_a_typed_error_not_an_exception() -> None:
+    def broken_token() -> str:
+        raise RuntimeError("Application Default Credentials not found")
+
+    mgr = UploadBucketManager(project_id=_PROJECT, bucket=_BUCKET, location="us-central1", mode="auto", kms_key="",
+                              token_provider=broken_token, timeout_seconds=5, send=FakeGcs({}), sleep=lambda _s: None)
+    for status in (mgr.check(), mgr.ensure()):
+        assert status.state is BucketState.ERROR and not status.usable
+        assert "credentials" in status.message.lower()

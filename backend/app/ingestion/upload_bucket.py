@@ -175,8 +175,14 @@ class UploadBucketManager:
         out = _PROJECT_NUM_RE.sub("projects/${PROJECT_NUMBER}", _EMAIL_RE.sub("${ACCOUNT}", out))
         return out[:_MAX_DETAIL_CHARS]
 
+    def _bearer(self) -> str:
+        try:
+            return self._token()
+        except Exception as exc:  # noqa: BLE001 - surfaced as a typed ERROR status, never swallowed
+            raise _HttpFailure(-1, self._redact(f"{type(exc).__name__}: {exc}")) from exc
+
     def _call(self, method: str, url: str, **kwargs: Any) -> dict[str, Any]:
-        headers = {"Authorization": f"Bearer {self._token()}"}
+        headers = {"Authorization": f"Bearer {self._bearer()}"}
         last: _HttpFailure | None = None
         for attempt in range(1, MAX_ATTEMPTS + 1):
             try:
@@ -200,6 +206,9 @@ class UploadBucketManager:
         return BucketStatus(state=state, bucket=self.bucket, message=message, remedy=remedy, **kw)
 
     def _failure_status(self, exc: _HttpFailure, action: str) -> BucketStatus:
+        if exc.status_code == -1:
+            return self._status(BucketState.ERROR, f"Cloud Storage credentials unavailable: {exc.text}",
+                                "Locally run `gcloud auth application-default login`; on Cloud Run check the service account.")
         if exc.status_code == 0:
             return self._status(BucketState.UNREACHABLE, f"Cloud Storage {action} {exc.text} after {MAX_ATTEMPTS} attempts.",
                                 "Check network access to storage.googleapis.com and retry.")

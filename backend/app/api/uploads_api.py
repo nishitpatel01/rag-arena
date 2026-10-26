@@ -156,7 +156,8 @@ async def bucket_status_endpoint(request: Request) -> JSONResponse:
     services = _services(request)
     if services is None:
         return _unavailable()
-    return _bucket_response(await run_in_threadpool(services.bucket_manager().check))
+    status = await run_in_threadpool(services.bucket_manager().check)
+    return JSONResponse(status.to_dict(safe=False))  # a status report: always 200, the state field is the outcome
 
 
 async def bucket_create_endpoint(request: Request) -> JSONResponse:
@@ -300,7 +301,23 @@ async def file_finalize_endpoint(request: Request) -> JSONResponse:
     return JSONResponse({"file": _public_file(updated)})
 
 
+def _store_errors_as_json(endpoint: Any) -> Any:
+    """Cloud Storage failures (incl. missing credentials) become a 502 JSON error naming the cause, never a bare 500."""
+    async def wrapped(request: Request) -> JSONResponse:
+        try:
+            return await endpoint(request)
+        except UploadStoreError as exc:
+            return _error(str(exc), 502)
+    wrapped.__name__ = endpoint.__name__
+    return wrapped
+
+
 def get_upload_routes() -> list[Route]:
+    return [Route(r.path, endpoint=_store_errors_as_json(r.endpoint), methods=sorted(r.methods or []))
+            for r in _raw_routes()]
+
+
+def _raw_routes() -> list[Route]:
     return [
         Route("/api/v1/uploads/bucket", endpoint=bucket_status_endpoint, methods=["GET"]),
         Route("/api/v1/uploads/bucket", endpoint=bucket_create_endpoint, methods=["POST"]),

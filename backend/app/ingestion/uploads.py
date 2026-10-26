@@ -196,7 +196,11 @@ class UploadStore:
         return text.replace(self.bucket, "${UPLOAD_BUCKET}")[:_MAX_ERROR_CHARS]
 
     def _call(self, method: str, url: str, *, ok: tuple[int, ...] = (200,), **kwargs: Any) -> httpx.Response:
-        headers = {"Authorization": f"Bearer {self._token()}", **kwargs.pop("headers", {})}
+        try:
+            token = self._token()
+        except Exception as exc:  # noqa: BLE001 - re-raised as a typed store error
+            raise UploadStoreError(0, self._redact(f"Cloud Storage credentials unavailable: {type(exc).__name__}: {exc}")) from exc
+        headers = {"Authorization": f"Bearer {token}", **kwargs.pop("headers", {})}
         last: UploadStoreError | None = None
         for attempt in range(1, MAX_ATTEMPTS + 1):
             try:

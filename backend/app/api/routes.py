@@ -23,6 +23,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
 from app.api.query_runs_reader import QueryRunsReadError, leaderboard_from_query_runs
+from app.api.uploads_api import upload_scope_error
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
@@ -431,6 +432,10 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
         registry = get_engine_registry(settings, models=models, level_ids=tuple(selected_engines))
     except (ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
+    if sol_filter and sol_filter.startswith("upl_"):
+        scope_error = await upload_scope_error(request, sol_filter, selected_engines)
+        if scope_error is not None:
+            return scope_error
 
     event_generator = _stream_battle_events(
         query=query, question_id=q_id, selected_engines=selected_engines,

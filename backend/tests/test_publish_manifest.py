@@ -23,9 +23,9 @@ def _dotenv_value(key: str) -> str:
 
 
 def _identity_tokens() -> list[str]:
-    """Identity-specific forbidden tokens: project id, bucket, and PUBLISH_SCRUB_TOKENS keys from .env."""
+    """Identity-specific forbidden tokens: project id, buckets, and PUBLISH_SCRUB_TOKENS keys from .env."""
     tokens: list[str] = []
-    for key in ("GCP_PROJECT_ID", "GCS_CORPUS_BUCKET"):
+    for key in ("GCP_PROJECT_ID", "GCS_CORPUS_BUCKET", "UPLOAD_BUCKET"):
         value = _dotenv_value(key)
         if value and value not in _EXAMPLE_PROJECT_IDS:
             tokens.append(value)

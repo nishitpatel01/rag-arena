@@ -704,3 +704,68 @@ def test_second_vector_index_conflict_is_reported_verbatim_without_leaking_the_p
 
     with pytest.raises(Conflict):
         lb.BigQueryLiveLoader(live_settings(bq_table="document_chunks_v3"), client=_FirstIndexConflictBQ(), sleep=lambda s: None).build_indexes()
+
+
+# ---------------------------------------------------------------- v1.1 step 3: Level 3 over an upload workspace
+
+_UPL = "upl_0123456789ab"
+
+
+class _ScopedMMLoader(_FakeLoader):
+    def __init__(self) -> None:
+        super().__init__()
+        self.scopes: list[str | None] = []
+
+    def load_rows(self, rows: list[dict[str, Any]], scope: str | None = None) -> int:  # type: ignore[override]
+        self.scopes.append(scope)
+        return super().load_rows(rows)
+
+    def count_scope(self, tier: str, scope: str) -> int:
+        return sum(1 for r in self.rows if r["tier_profile"] == tier and r["solicitation_id"] == scope)
+
+
+def _upload_source(finished: list[Any]) -> Any:
+    from app.ingestion.jobs import UploadSource
+
+    def fetch(obj: str, dest: Path) -> int:
+        shutil.copy(_EXHIBIT, dest)
+        return dest.stat().st_size
+
+    return UploadSource(workspace_id=_UPL, files=((f"uploads/{_UPL}/f_0123456789ab-Exhibit.pdf", "Exhibit.pdf"),),
+                        fetch=fetch, on_finish=finished.append)
+
+
+def _run_upload_job(backends: IngestBackends, finished: list[Any]) -> Any:
+    runner = IngestJobRunner(live_settings(enabled_levels=("level3_multimodal",)), backend_factory=lambda s: backends)
+
+    async def scenario():
+        job = runner.start("level3_multimodal", upload=_upload_source(finished))
+        await runner._tasks[job.job_id]
+        return job
+
+    return run(scenario())
+
+
+def test_level3_upload_job_loads_only_its_scope_with_honest_metadata() -> None:
+    loader, finished = _ScopedMMLoader(), []
+    job = _run_upload_job(IngestBackends(embedder=_TextEmbedder(), loader=loader, layout_parser=_FakeLayoutParser(),
+                                         vision=_FakeVision(), mm_embedder=_FakeMMEmbedder()), finished)
+    assert job.status == "completed", job.error
+    assert loader.scopes == [_UPL] and {r["solicitation_id"] for r in loader.rows} == {_UPL}
+    assert {r["doc_name"] for r in loader.rows} == {"Exhibit.pdf"}
+    assert {r["element_type"] for r in loader.rows} == {"narrative_text", "table", "diagram"}
+    assert [j.status for j in finished] == ["completed"]
+
+
+def test_vision_page_bound_applies_to_the_corpus_not_to_uploads() -> None:
+    from unittest import mock
+
+    with mock.patch("app.ingestion.multimodal_job.MAX_VISION_PAGES", 0):
+        corpus_job, _ = _run_job(IngestBackends(embedder=_TextEmbedder(), loader=_FakeLoader(),
+                                                layout_parser=_FakeLayoutParser(), vision=_FakeVision(),
+                                                mm_embedder=_FakeMMEmbedder()))
+        upload_job = _run_upload_job(IngestBackends(embedder=_TextEmbedder(), loader=_ScopedMMLoader(),
+                                                    layout_parser=_FakeLayoutParser(), vision=_FakeVision(),
+                                                    mm_embedder=_FakeMMEmbedder()), [])
+    assert corpus_job.status == "failed" and "MAX_VISION_PAGES" in (corpus_job.error or "")
+    assert upload_job.status == "completed", upload_job.error  # owner decision: no page limits on uploads

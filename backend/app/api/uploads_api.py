@@ -47,6 +47,13 @@ BUCKET_TIMEOUT_SECONDS = 30.0
 STORE_TIMEOUT_SECONDS = 60.0
 _LOCAL_ORIGIN_RE = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
 MANIFEST_WRITE_ATTEMPTS = 3
+# Level 3 cost estimate. Document AI Layout Parser is billed per page (exact list price in multimodal_job). Gemini
+# vision runs only on diagram pages, which are unknown before parsing, so the confirmed amount is the UPPER bound
+# "every page is a diagram", priced with these per-page token assumptions (Phase 3 fakes/measurements: ≈1.7k image+
+# prompt tokens in, ≈0.8k output+thinking tokens out per page).
+VISION_TOKENS_IN_PER_PAGE = 1_800
+VISION_TOKENS_OUT_PER_PAGE = 900
+CONFIRM_LEVELS: frozenset[str] = frozenset({"level3_multimodal"})
 # Level 4's agent searches the Level 3 rows, so a workspace is ready for L4 once L3 ingestion completed.
 DATA_LEVEL_OF: dict[str, str] = {"level4_agentic": "level3_multimodal"}
 _STATE_HTTP = {
@@ -355,6 +362,47 @@ def _level_recorder(store: Any, ws: str, level: str, file_ids: list[str]) -> Any
     return record
 
 
+def estimate_cost(level: str, pages: int, vision_model: str) -> dict[str, Any]:
+    """Pre-ingest cost estimate for an upload workspace; Level 3 must be confirmed against ``max_usd``."""
+    from app.core.pricing import PRICE_TABLE
+    from app.ingestion.multimodal_job import DOCAI_USD_PER_PAGE
+
+    if level not in CONFIRM_LEVELS:
+        return {"level": level, "pages": pages, "requires_confirmation": False, "max_usd": 0.0,
+                "basis": "embeddings only (gemini-embedding-2): fractions of a cent for typical documents"}
+    price = PRICE_TABLE.get(vision_model)
+    if price is None:
+        raise ValueError(f"no list price for vision model {vision_model}; cannot estimate Level 3 cost")
+    per_page = (VISION_TOKENS_IN_PER_PAGE * price.input_usd_per_1m + VISION_TOKENS_OUT_PER_PAGE * price.output_usd_per_1m) / 1e6
+    docai = round(pages * DOCAI_USD_PER_PAGE, 4)
+    vision_max = round(pages * per_page, 4)
+    return {
+        "level": level, "pages": pages, "requires_confirmation": True, "vision_model": vision_model,
+        "documentai_usd": docai, "vision_max_usd": vision_max, "max_usd": round(docai + vision_max, 4),
+        "basis": (f"Document AI Layout Parser ${DOCAI_USD_PER_PAGE * 1000:.0f}/1,000 pages (exact) + Gemini vision on "
+                  "diagram pages only; the maximum assumes every page is a diagram"),
+    }
+
+
+def _ready_pages(manifest: dict[str, Any]) -> int:
+    return sum(int(f.get("pages") or 0) for f in manifest.get("files", []) if f.get("status") == "ready")
+
+
+async def workspace_estimate_endpoint(request: Request) -> JSONResponse:
+    services = _services(request)
+    if services is None:
+        return _unavailable()
+    found = await _owned_manifest(request, services.store(), request.path_params["workspace_id"])
+    if isinstance(found, JSONResponse):
+        return found
+    level = request.query_params.get("level", "").strip()
+    try:
+        estimate = estimate_cost(level, _ready_pages(found[0]), request.app.state.settings.vision_model)
+    except ValueError as exc:
+        return _error(str(exc), 400)
+    return JSONResponse({"estimate": estimate})
+
+
 async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
     from app.ingestion.jobs import UPLOAD_LEVELS, UploadSource
 
@@ -367,9 +415,11 @@ async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
         return found
     manifest, generation = found
     try:
-        level = str((await _json_body(request)).get("level", "")).strip()
-    except ValueError as exc:
-        return _error(str(exc), 400)
+        body = await _json_body(request)
+        level = str(body.get("level", "")).strip()
+        confirmed = float(body.get("confirm_cost_usd") or 0)
+    except (ValueError, TypeError) as exc:
+        return _error(f"invalid request: {exc}", 400)
     if level not in UPLOAD_LEVELS:
         return _error(f"{level or 'level'} ingestion is not available for uploads yet (available: {', '.join(UPLOAD_LEVELS)})", 400)
     ready = [f for f in manifest.get("files", []) if f.get("status") == "ready"]
@@ -377,6 +427,14 @@ async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
         return _error("this workspace has no ready files (upload and finalize at least one PDF)", 409)
     if (manifest.get("levels", {}).get(level) or {}).get("status") in ("starting", "running"):
         return _error(f"{level} is already being ingested for this workspace", 409)
+    if level in CONFIRM_LEVELS:
+        try:
+            estimate = estimate_cost(level, _ready_pages(manifest), request.app.state.settings.vision_model)
+        except ValueError as exc:
+            return _error(str(exc), 400)
+        if confirmed + 1e-9 < estimate["max_usd"]:
+            return _error(f"{level} costs up to ${estimate['max_usd']:.4f} for this workspace; confirm it to start",
+                          409, needs_confirmation=True, estimate=estimate)
     file_ids = [f["id"] for f in ready]
     starting = {**manifest, "levels": {**manifest.get("levels", {}), level: {"status": "starting", "file_ids": file_ids,
                                                                              "started_at": utc_now_iso()}}}
@@ -416,6 +474,7 @@ def _raw_routes() -> list[Route]:
         Route("/api/v1/uploads/{workspace_id}", endpoint=workspace_delete_endpoint, methods=["DELETE"]),
         Route("/api/v1/uploads/{workspace_id}/files", endpoint=file_session_endpoint, methods=["POST"]),
         Route("/api/v1/uploads/{workspace_id}/ingest", endpoint=workspace_ingest_endpoint, methods=["POST"]),
+        Route("/api/v1/uploads/{workspace_id}/estimate", endpoint=workspace_estimate_endpoint, methods=["GET"]),
         Route("/api/v1/uploads/{workspace_id}/files/{file_id}/finalize", endpoint=file_finalize_endpoint,
               methods=["POST"]),
     ]

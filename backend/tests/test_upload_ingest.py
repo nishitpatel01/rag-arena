@@ -86,7 +86,7 @@ def test_upload_job_failure_is_reported_and_callback_still_runs() -> None:
 
 def test_upload_levels_not_built_yet_are_refused_loudly() -> None:
     runner = IngestJobRunner(_settings())
-    for level in ("level3_multimodal", "level4_agentic", "managed_vertex"):
+    for level in ("level4_agentic", "managed_vertex"):
         with pytest.raises(ValueError, match="not available for uploads yet"):
             runner.start(level, upload=_source([], []))
 

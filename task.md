@@ -125,6 +125,23 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - Progress 2026-10-23 (`6f742a4`, `d1a873e`): configurable deploy (`deploy/cloudrun.env.example`, `scripts/deploy_cloudrun.sh`, teardown, Terraform parity, v3 compose); owner setup deployed in us-central1 — live service behind IAP (owner only; unauthenticated → IAP 302), public replay copy (health identity empty; replayed L4 run streamed 82 s); served-content leak scan clean. Redeploy `aa4d20a` fixed Level 4 on Cloud Run (image had resolved google-adk 1.14.1 → now public-PyPI lock with 2.12.0; thinking via BuiltInPlanner). Gate ✅ 2026-10-23: owner signed in, live run (incl. Level 4) and ingestion job succeeded from the deployed UI (owner: "both look good").
 - [x] Parked `vertex_vector_v2` / `alloydb_scann`: owner decided keep parked (2026-10-23); code only, excluded from the registry, no GCP resources → $0/month.
 
+## v1.1 — Your own documents (plan approved 2026-10-26)
+Owner decisions: bucket auto-created by default with explicit permission / org-policy errors (no silent fallback); uploads kept until manually deleted; no app-imposed size, page, file-count or daily caps; all five levels; Leaderboard winner highlighting by a user-selected metric; uploads for anyone who can open the deployed live app, never on the replay copy.
+
+- [ ] **Step 1 — upload bucket + upload flow** — branch `v1.1/step1-upload-bucket`
+  - [ ] 1a `upload_bucket.py`: ensure → exists / create (PAP enforced, UBLA on, optional CMEK, no lifecycle) → privacy verify; typed outcomes `ok · created · permission_denied · org_policy · name_conflict · not_found · unsafe_bucket · unreachable · error` with remedies (placeholders only)
+  - [ ] 1b config: `UPLOAD_BUCKET_MODE=auto|existing`, `UPLOAD_BUCKET`, `UPLOAD_BUCKET_KMS_KEY`; remove `MAX_UPLOAD_BYTES/PAGES`
+  - [ ] 1c scripts: provision CLI; bootstrap + deploy create bucket as deployer and grant readers (Cloud Run SA `roles/storage.objectUser`; Discovery Engine service agent `roles/storage.objectViewer` for L5 import); teardown removes grants (bucket kept)
+  - [ ] 1d upload API: workspace create → resumable session URI (browser uploads straight to GCS) → finalize (streaming PDF validation) → delete
+  - [ ] 1e bucket status / create endpoints for the Ingest page
+  - [ ] Gate: offline tests green; live bucket auto-create (owner approval) + permission-denied smoke + browser resumable upload verified
+- [ ] Step 2 — L1 + L2 scoped ingest and engines (L4 scope wiring)
+- [ ] Step 3 — L3 upload ingest with cost confirmation
+- [ ] Step 4 — L5 uploads data store + filtered search
+- [ ] Step 5 — UI: upload panel, scope selector, reference-free labels, Compare on uploads, Leaderboard scope + winner highlighting
+- [ ] Step 6 — security suite + live security / large-file smoke + deployed E2E
+- [ ] Step 7 — docs, CHANGELOG 1.1.0, redeploy, tag `v1.1.0`
+
 ---
 
 ## v2.0 history (closed)

@@ -160,7 +160,7 @@ async def _parse(runner: IngestJobRunner, job: IngestJob, emitter: Any, tracker:
         results, failures = await _vision_all(runner, job, targets, vision)
         vision_wall_ms = int((time.perf_counter() - t1) * 1000)
         parsed = [
-            ParsedDoc(d, lay, await asyncio.to_thread(page_metadata, d.path, lay.pages), dp,
+            ParsedDoc(d, lay, await asyncio.to_thread(lambda d=d, lay=lay: page_metadata(d.path, lay.pages, upload=d.solicitation_id.startswith("upl_"))), dp,
                       {p: results[(d.path.name, p)] for p in dp if (d.path.name, p) in results})
             for d, lay, dp in zip(docs, layouts, diagram_pages)
         ]

@@ -204,18 +204,27 @@ def _split_naive_windows(
     return windows
 
 
+UPLOAD_DOC_TYPE = "UPLOADED_DOCUMENT"
+
+
 def _extract_page_metadata_and_body(
     lines: list[str],
     pdf_name: str,
+    *,
+    upload: bool = False,
 ) -> tuple[str, str | None, str, int, str | None, str | None, str]:
-    """Extract procurement metadata banner and clean body text from page lines."""
+    """Extract procurement metadata banner and clean body text from page lines.
+
+    ``upload=True`` (user documents, v1.1): no corpus filename rules and no default effective date — the type is
+    ``UPLOADED_DOCUMENT`` and dates/amendments are only what a metadata banner on the page states.
+    """
     if not isinstance(lines, list) or not isinstance(pdf_name, str):
         raise TypeError("lines must be a list and pdf_name must be a string")
 
-    doc_type, amendment_num = _infer_doc_type_from_filename(pdf_name)
+    doc_type, amendment_num = (UPLOAD_DOC_TYPE, 0) if upload else _infer_doc_type_from_filename(pdf_name)
     section_id: str | None = None
     element_type = "narrative_text"
-    effective_date: str | None = "2026-01-15"
+    effective_date: str | None = None if upload else "2026-01-15"
     amends_section: str | None = None
     body_lines: list[str] = []
 
@@ -269,7 +278,7 @@ def _build_chunks_from_page_lines(
         effective_date,
         amends_section,
         content_text,
-    ) = _extract_page_metadata_and_body(lines, pdf_name)
+    ) = _extract_page_metadata_and_body(lines, pdf_name, upload=solicitation_id.startswith("upl_"))
     stem = pdf_name[:-4].lower() if pdf_name.lower().endswith(".pdf") else pdf_name.lower()
 
     if tier_profile == "naive":

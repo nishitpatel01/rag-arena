@@ -241,16 +241,21 @@ class BigQueryLiveLoader:
             raise RuntimeError(f"BigQuery load job into {table_fqn} loaded {loaded} rows for {len(rows)} submitted")
         return loaded
 
-    def load_rows(self, rows: list[dict[str, Any]]) -> int:
-        """Load job → ``_staging_<job_id>`` → transactional tier-scoped replace → drop that staging table."""
+    def load_rows(self, rows: list[dict[str, Any]], scope: str | None = None) -> int:
+        """Load job → ``_staging_<job_id>`` → transactional replace → drop that staging table.
+
+        ``scope=None`` (corpus): replaces the tier's corpus rows only (never ``upl_*`` rows). ``scope="upl_<12 hex>"``
+        (v1.1 upload workspace): replaces only that workspace's rows in the tier; every row must carry that scope.
+        """
         tier, job_id = _validate_chunk_rows(rows)
+        _validate_rows_scope(rows, scope)
         self._check_row_cap(len(rows))
         staging_fqn = self._fq(staging_table_name(job_id))
         self._create_staging(staging_fqn)
         try:
             for start in range(0, len(rows), LOAD_BATCH_ROWS):
                 self._load_json(rows[start : start + LOAD_BATCH_ROWS], staging_fqn, _CHUNK_SCHEMA)
-            inserted = self._replace_tier_from_staging(staging_fqn, tier)
+            inserted = self._replace_tier_from_staging(staging_fqn, tier, scope)
         finally:
             self._client.delete_table(staging_fqn, not_found_ok=False)
         if inserted != len(rows):
@@ -269,17 +274,23 @@ class BigQueryLiveLoader:
         table.expires = datetime.now(timezone.utc) + STAGING_TTL  # safety net if the explicit drop never runs
         self._client.create_table(table, exists_ok=False)
 
-    def _replace_tier_from_staging(self, staging_fqn: str, tier: str) -> int:
+    def _replace_tier_from_staging(self, staging_fqn: str, tier: str, scope: str | None = None) -> int:
         from google.cloud import bigquery
 
         cols = ", ".join(name for name, _, _ in _CHUNK_SCHEMA)
+        params = [bigquery.ScalarQueryParameter("tier", "STRING", tier)]
+        if scope is None:
+            where = f"tier_profile = @tier AND NOT STARTS_WITH(solicitation_id, '{UPLOAD_SCOPE_PREFIX}')"
+        else:
+            where = "tier_profile = @tier AND solicitation_id = @scope"
+            params.append(bigquery.ScalarQueryParameter("scope", "STRING", scope))
         script = (
             "BEGIN TRANSACTION;\n"
-            f"DELETE FROM `{self.table_fqn}` WHERE tier_profile = @tier;\n"
+            f"DELETE FROM `{self.table_fqn}` WHERE {where};\n"
             f"INSERT INTO `{self.table_fqn}` ({cols})\nSELECT {cols} FROM `{staging_fqn}`;\n"
             "COMMIT TRANSACTION;\n"
         )
-        job, _ = self._query(script, [bigquery.ScalarQueryParameter("tier", "STRING", tier)])
+        job, _ = self._query(script, params)
         children = list(self._client.list_jobs(parent_job=job.job_id, max_results=_MAX_CHILD_JOBS))
         inserts = [c for c in children if getattr(c, "statement_type", None) == "INSERT"]
         if len(inserts) != 1 or getattr(inserts[0], "dml_stats", None) is None:
@@ -377,6 +388,24 @@ class BigQueryLiveLoader:
         _, rows = self._read(self._query, sql)
         return {str(r.tier_profile): int(r.n) for r in rows}
 
+    def delete_scope(self, scope: str) -> int:
+        """Delete every row of ONE upload workspace (all tiers); corpus rows can never match."""
+        from google.cloud import bigquery
+
+        job, _ = self._query(f"DELETE FROM `{self.table_fqn}` WHERE solicitation_id = @scope",
+                             [bigquery.ScalarQueryParameter("scope", "STRING", check_upload_scope(scope))])
+        return int(getattr(getattr(job, "dml_stats", None), "deleted_row_count", 0) or 0)
+
+    def count_scope(self, tier: str, scope: str) -> int:
+        from google.cloud import bigquery
+
+        if tier not in _VALID_TIERS:
+            raise ValueError(f"Invalid tier_profile {tier!r}")
+        sql = f"SELECT COUNT(*) AS n FROM `{self.table_fqn}` WHERE tier_profile = @tier AND solicitation_id = @scope"
+        _, rows = self._read(self._query, sql, [bigquery.ScalarQueryParameter("tier", "STRING", tier),
+                                                  bigquery.ScalarQueryParameter("scope", "STRING", check_upload_scope(scope))])
+        return int(rows[0].n) if rows else 0
+
     def recent_ingest_runs(self, limit: int = 20) -> list[dict[str, Any]]:
         """Most recent ``ingest_runs`` rows (provenance for the /ingest page)."""
         from google.cloud import bigquery
@@ -406,6 +435,28 @@ def _indexes_settled(rows: dict[str, tuple[str, str | None, float | None]], stat
         if table_bytes >= threshold and (cov is None or cov < 100.0):
             return False
     return True
+
+
+UPLOAD_SCOPE_PREFIX = "upl_"
+_UPLOAD_SCOPE_RE = re.compile(r"^upl_[0-9a-f]{12}$")
+
+
+def check_upload_scope(scope: str) -> str:
+    if not isinstance(scope, str) or not _UPLOAD_SCOPE_RE.match(scope):
+        raise ValueError("upload scope must look like upl_<12 hex>")
+    return scope
+
+
+def _validate_rows_scope(rows: list[dict[str, Any]], scope: str | None) -> None:
+    """Corpus loads may not carry upload rows; upload loads must carry exactly their own scope."""
+    sols = {str(r.get("solicitation_id", "")) for r in rows}
+    if scope is None:
+        if any(s.startswith(UPLOAD_SCOPE_PREFIX) for s in sols):
+            raise ValueError("corpus load contains upload-scope rows (pass scope= for upload workspaces)")
+        return
+    check_upload_scope(scope)
+    if sols != {scope}:
+        raise ValueError(f"upload load for scope {scope} contains rows of {sorted(sols - {scope})}")
 
 
 def _validate_chunk_rows(rows: list[dict[str, Any]]) -> tuple[str, str]:

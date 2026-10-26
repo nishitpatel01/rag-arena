@@ -393,3 +393,53 @@ def test_large_batches_are_loaded_into_staging_with_bounded_multiple_load_jobs()
     assert sum(1 for s, _ in bq.queries if "BEGIN TRANSACTION" in s) == 1 and len(bq.deleted) == 1
     with pytest.raises(ValueError, match="at most"):
         lb.BigQueryLiveLoader(_settings(), client=_FakeBQ())._check_row_cap(lb.MAX_ROWS_PER_JOB + 1)
+
+
+# ---------------------------------------------------------------- v1.1 upload scopes
+
+
+def _upl_row(chunk_id: str, scope: str = "upl_0123456789ab", tier: str = "naive") -> dict[str, Any]:
+    return {**_row(chunk_id, tier=tier), "solicitation_id": scope}
+
+
+def test_corpus_replace_never_deletes_upload_rows() -> None:
+    bq = _FakeBQ(inserted=1)
+    lb.BigQueryLiveLoader(_settings(), client=bq).load_rows([_row("c1")])
+    sql = next(s for s, _ in bq.queries if "BEGIN TRANSACTION" in s)
+    assert "WHERE tier_profile = @tier AND NOT STARTS_WITH(solicitation_id, 'upl_');" in sql
+
+
+def test_upload_replace_is_scoped_to_tier_and_workspace() -> None:
+    bq = _FakeBQ(inserted=2)
+    loader = lb.BigQueryLiveLoader(_settings(), client=bq)
+    assert loader.load_rows([_upl_row("u1"), _upl_row("u2")], scope="upl_0123456789ab") == 2
+    sql, cfg = next((s, c) for s, c in bq.queries if "BEGIN TRANSACTION" in s)
+    assert "WHERE tier_profile = @tier AND solicitation_id = @scope;" in sql
+    assert {p.name: p.value for p in cfg.query_parameters} == {"tier": "naive", "scope": "upl_0123456789ab"}
+
+
+def test_scope_mismatches_fail_loud() -> None:
+    loader = lb.BigQueryLiveLoader(_settings(), client=_FakeBQ())
+    with pytest.raises(ValueError, match="scope"):
+        loader.load_rows([_upl_row("u1"), _upl_row("u2", scope="upl_ffffffffffff")], scope="upl_0123456789ab")
+    with pytest.raises(ValueError, match="scope"):
+        loader.load_rows([_upl_row("u1")])  # upload rows without a scope would be a corpus load
+    with pytest.raises(ValueError, match="scope"):
+        loader.load_rows([_row("c1")], scope="solicitation_01")
+    with pytest.raises(ValueError, match="scope"):
+        loader.load_rows([_row("c1")], scope="upl_0123456789ab")  # corpus row inside an upload scope
+
+
+def test_delete_and_count_scope_only_touch_one_workspace() -> None:
+    bq = _FakeBQ()
+    loader = lb.BigQueryLiveLoader(_settings(), client=bq)
+    loader.delete_scope("upl_0123456789ab")
+    sql, cfg = bq.queries[-1]
+    assert sql.strip() == "DELETE FROM `test-project.rag_arena.document_chunks_v3` WHERE solicitation_id = @scope"
+    assert {p.name: p.value for p in cfg.query_parameters} == {"scope": "upl_0123456789ab"}
+    loader.count_scope("hybrid", "upl_0123456789ab")
+    sql, cfg = bq.queries[-1]
+    assert "WHERE tier_profile = @tier AND solicitation_id = @scope" in sql
+    for bad in ("solicitation_01", "upl_x", "upl_0123456789ab' OR '1'='1"):
+        with pytest.raises(ValueError):
+            loader.delete_scope(bad)

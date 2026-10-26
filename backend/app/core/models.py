@@ -282,21 +282,3 @@ class BattleRequest(_SerializableMixin):
             raise ValueError("BattleRequest query exceeds 4000 character bound")
 
 
-@dataclass(frozen=True)
-class UploadMetadata(_SerializableMixin):
-    """Metadata returned after validating a user-uploaded PDF document."""
-
-    session_id: str
-    filename: str
-    size_bytes: int
-    page_count: int
-    sha256_hex: str
-    expires_at: str
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.session_id, str) or not self.session_id.strip():
-            raise ValueError("session_id must be a non-empty string")
-        if not isinstance(self.size_bytes, int) or self.size_bytes < 1:
-            raise ValueError("size_bytes must be an integer >= 1")
-        if not isinstance(self.page_count, int) or self.page_count < 1:
-            raise ValueError("page_count must be an integer >= 1")

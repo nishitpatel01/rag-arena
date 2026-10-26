@@ -262,20 +262,45 @@ class UploadBucketManager:
         verb = "Created private upload bucket" if created else "Upload bucket is private"
         return self._status(state, f"{verb}: public access prevention enforced, uniform access on.{note}", created=created)
 
-    def ensure(self) -> BucketStatus:
+    def _read_or_status(self) -> dict[str, Any] | BucketStatus | None:
+        """Bucket metadata, ``None`` when missing (404), or a failure status."""
         try:
-            return self._verify(self._read_meta(), created=False)
+            return self._read_meta()
         except _HttpFailure as exc:
+            if exc.status_code == 404:
+                return None
             if exc.status_code == 403:
                 return self._status(
                     BucketState.PERMISSION_DENIED, "This identity cannot read the upload bucket.",
                     "Needs storage.buckets.get on the bucket (for example roles/storage.legacyBucketReader) plus "
                     "roles/storage.objectUser; re-run scripts/deploy_cloudrun.sh or ask an admin to grant them.")
-            if exc.status_code != 404:
-                return self._failure_status(exc, "bucket read")
+            return self._failure_status(exc, "bucket read")
+
+    def check(self) -> BucketStatus:
+        """Read-only status (never creates): what the Ingest page shows before anything is uploaded."""
+        found = self._read_or_status()
+        if isinstance(found, BucketStatus):
+            return found
+        if found is not None:
+            return self._verify(found, created=False)
+        return self._missing_status()
+
+    def _missing_status(self) -> BucketStatus:
         if self.mode == "existing":
             return self._status(BucketState.NOT_FOUND, "UPLOAD_BUCKET does not exist and UPLOAD_BUCKET_MODE=existing.",
                                 "Create the bucket, fix UPLOAD_BUCKET, or set UPLOAD_BUCKET_MODE=auto.")
+        return self._status(BucketState.NOT_FOUND, "The private upload bucket does not exist yet.",
+                            "It is created automatically on first upload (or press Create bucket).")
+
+    def ensure(self) -> BucketStatus:
+        """check() + create when missing and UPLOAD_BUCKET_MODE=auto (typed failure, never a silent fallback)."""
+        found = self._read_or_status()
+        if isinstance(found, BucketStatus):
+            return found
+        if found is not None:
+            return self._verify(found, created=False)
+        if self.mode == "existing":
+            return self._missing_status()
         failure = self._create()
         if failure is not None:
             return failure

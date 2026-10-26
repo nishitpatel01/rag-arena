@@ -10,6 +10,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from app.api.documents import get_document_routes
 from app.api.spa import resolve_static_dir, spa_routes
+from app.api.uploads_api import UploadServices, get_upload_routes
 from app.api.routes import get_api_routes
 from app.core.config import ArenaSettings, get_settings
 from app.api.query_runs import QueryRunWriter
@@ -51,6 +52,7 @@ def create_app(
     if not routes:
         raise RuntimeError("API route table must not be empty")
     routes.extend(get_document_routes())
+    routes.extend(get_upload_routes())
 
     static_dir = resolve_static_dir(resolved.static_dir, _FRONTEND_DIST)
     if static_dir is not None:
@@ -64,7 +66,7 @@ def create_app(
                 "CORS_ALLOW_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
             ),
             allow_credentials=True,
-            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
             allow_headers=["*"],
         )
     ]
@@ -77,6 +79,8 @@ def create_app(
     managed = ingest_managed_factory or (live_managed_backends if resolved.is_live else managed_unavailable)
     application.state.ingest_runner = IngestJobRunner(resolved, backend_factory=factory, managed_factory=managed)
     application.state.query_run_writer = writer
+    # v1.1 uploads: live service only (replay copy answers 404); GCS identity = ADC (you locally, the SA on Cloud Run)
+    application.state.upload_services = UploadServices(resolved) if resolved.is_live and resolved.upload_bucket else None
     return application
 
 

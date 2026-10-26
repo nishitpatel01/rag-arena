@@ -256,3 +256,24 @@ def test_status_to_dict_masks_bucket_in_safe_mode() -> None:
     assert status.to_dict(safe=True)["bucket"] == "${UPLOAD_BUCKET}"
     assert status.to_dict(safe=False)["bucket"] == _BUCKET
     assert status.to_dict(safe=True)["state"] == "ok"
+
+
+# ---------- check(): read-only status for the Ingest page ----------
+
+def test_check_never_creates_missing_bucket() -> None:
+    fake = FakeGcs({("GET", _B): [(404, _err(404, "Not Found", "notFound"))]})
+    status = _manager(fake).check()
+    assert status.state is BucketState.NOT_FOUND and not status.usable
+    assert "created" in status.remedy.lower()
+    assert all(m == "GET" for m, _, _ in fake.calls)
+
+
+def test_check_existing_mode_missing_says_never_created() -> None:
+    fake = FakeGcs({("GET", _B): [(404, _err(404, "Not Found", "notFound"))]})
+    status = _manager(fake, mode="existing").check()
+    assert status.state is BucketState.NOT_FOUND and "UPLOAD_BUCKET_MODE=existing" in status.message
+
+
+def test_check_reports_private_bucket_ok() -> None:
+    fake = FakeGcs({("GET", _B): [(200, _PRIVATE_META)], ("GET", f"{_B}/iam"): [(200, _PRIVATE_IAM)]})
+    assert _manager(fake).check().state is BucketState.OK

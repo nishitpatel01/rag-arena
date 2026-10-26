@@ -157,8 +157,6 @@ class ArenaSettings:
     multimodal_embedding_model: str = DEFAULT_EMBEDDING_MODEL
     reranker_model: str = "semantic-ranker-default@latest"
     query_timeout_seconds: int = 90
-    max_upload_bytes: int = 10 * 1024 * 1024
-    max_upload_pages: int = 30
     enabled_levels: tuple[str, ...] = DEFAULT_ENABLED_LEVELS
     replay_speed: float = 1.0
     max_sse_frames: int = DEFAULT_MAX_SSE_FRAMES
@@ -395,10 +393,6 @@ class ArenaSettings:
             )
         if self.query_timeout_seconds < 1 or self.query_timeout_seconds > 120:
             raise ValueError("query_timeout_seconds must be between 1 and 120")
-        if self.max_upload_bytes < 1024 or self.max_upload_bytes > 50 * 1024 * 1024:
-            raise ValueError("max_upload_bytes must be between 1 KB and 50 MB")
-        if self.max_upload_pages < 1 or self.max_upload_pages > 100:
-            raise ValueError("max_upload_pages must be between 1 and 100")
 
     def _validate_upload_bucket(self) -> None:
         from app.ingestion.upload_bucket import MODES, validate_bucket_name
@@ -455,8 +449,6 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
 
     mode = source.get("DEMO_MODE", "replay").strip().lower()
     timeout_raw = source.get("QUERY_TIMEOUT_SECONDS", "90").strip()
-    max_bytes_raw = source.get("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)).strip()
-    max_pages_raw = source.get("MAX_UPLOAD_PAGES", "30").strip()
     pro_model = (
         source.get("GEMINI_PRO_MODEL")
         or source.get("GEMINI_REASONING_MODEL")
@@ -497,8 +489,6 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         ).strip(),
         reranker_model=source.get("RERANKER_MODEL", "semantic-ranker-default@latest").strip(),
         query_timeout_seconds=_parse_int(timeout_raw, "QUERY_TIMEOUT_SECONDS"),
-        max_upload_bytes=_parse_int(max_bytes_raw, "MAX_UPLOAD_BYTES"),
-        max_upload_pages=_parse_int(max_pages_raw, "MAX_UPLOAD_PAGES"),
         enabled_levels=_parse_enabled_levels(source.get("ENABLED_LEVELS", ",".join(DEFAULT_ENABLED_LEVELS))),
         replay_speed=_parse_float(source.get("REPLAY_SPEED", "1.0"), "REPLAY_SPEED"),
         max_sse_frames=_parse_int(source.get("MAX_SSE_FRAMES", str(DEFAULT_MAX_SSE_FRAMES)), "MAX_SSE_FRAMES"),

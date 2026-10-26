@@ -175,14 +175,3 @@ def test_leaderboard_endpoint_aggregates_recordings_with_provenance() -> None:
     assert l1["runs"] >= 1 and l1["provenance"]["kind"] == "recording" and l1["level_label"]
 
 
-def test_upload_endpoint_parses_without_claiming_indexing() -> None:
-    client = _client()
-    payload = {"filename": "upload_test.pdf", "content_base64": base64.b64encode(_SAMPLE_PDF.read_bytes()).decode("ascii")}
-    resp = client.post("/api/v1/ingest/upload", json=payload)
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["status"] == "parsed" and body["indexed"] is False and body["solicitation_id"].startswith("upload_")
-    assert body["chunks_parsed"]["naive"] > 0
-    bad = client.post("/api/v1/ingest/upload", json={"filename": "x.pdf", "content_base64": base64.b64encode(b"not a pdf").decode("ascii")})
-    assert bad.status_code == 400
-    session_store.clear_uploaded_sessions()

@@ -82,6 +82,13 @@ def test_valid_pdf_reports_pages_size_and_sha256() -> None:
     assert info.pages == 3 and info.size_bytes == len(data) and len(info.sha256) == 64
 
 
+def test_real_corpus_pdf_passes_safety_checks() -> None:
+    sample = (Path(__file__).resolve().parents[2] / "data" / "sample_docs" / "procurement_corpus"
+              / "solicitation_01_cloud_infrastructure" / "06_Amendment_0001_Scope_Update.pdf")
+    info = validate_pdf_file(sample)
+    assert info.pages >= 1 and info.size_bytes == sample.stat().st_size and len(info.sha256) == 64
+
+
 def test_large_page_counts_are_accepted_no_app_limit() -> None:
     assert validate_pdf_file(_write(_pdf_bytes(pages=120))).pages == 120
 

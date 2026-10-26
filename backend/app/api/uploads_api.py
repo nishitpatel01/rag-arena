@@ -46,6 +46,9 @@ MANIFEST_VERSION = 1
 BUCKET_TIMEOUT_SECONDS = 30.0
 STORE_TIMEOUT_SECONDS = 60.0
 _LOCAL_ORIGIN_RE = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
+MANIFEST_WRITE_ATTEMPTS = 3
+# Level 4's agent searches the Level 3 rows, so a workspace is ready for L4 once L3 ingestion completed.
+DATA_LEVEL_OF: dict[str, str] = {"level4_agentic": "level3_multimodal"}
 _STATE_HTTP = {
     BucketState.OK: 200, BucketState.CREATED: 200, BucketState.PERMISSION_DENIED: 403,
     BucketState.ORG_POLICY: 409, BucketState.NAME_CONFLICT: 409, BucketState.NOT_FOUND: 409,
@@ -209,6 +212,7 @@ async def workspace_get_endpoint(request: Request) -> JSONResponse:
 
 
 async def workspace_delete_endpoint(request: Request) -> JSONResponse:
+    """BigQuery rows first (scoped DELETE), then the bucket prefix: a failure leaves the workspace intact to retry."""
     services = _services(request)
     if services is None:
         return _unavailable()
@@ -216,8 +220,14 @@ async def workspace_delete_endpoint(request: Request) -> JSONResponse:
     found = await _owned_manifest(request, store, ws)
     if isinstance(found, JSONResponse):
         return found
+    runner = request.app.state.ingest_runner
+    try:
+        loader = runner.backend_factory(runner.settings).loader
+        await run_in_threadpool(loader.delete_scope, ws)
+    except Exception as exc:  # boundary: reported, objects are NOT deleted so the user can retry
+        return _error(f"could not delete the workspace's BigQuery rows ({type(exc).__name__}: {exc}); nothing was deleted", 502)
     deleted = await run_in_threadpool(store.delete_workspace, ws)
-    return JSONResponse({"deleted": ws, "deleted_objects": deleted})
+    return JSONResponse({"deleted": ws, "deleted_objects": deleted, "bigquery": {"deleted_scope": ws}})
 
 
 # ---------------------------------------------------------------------------------------------------- files
@@ -240,6 +250,8 @@ async def file_session_endpoint(request: Request) -> JSONResponse:
         origin = _origin_for_session(request)
     except ValueError as exc:
         return _error(str(exc), 400)
+    if any(f.get("name") == safe_name and f.get("status") != "rejected" for f in manifest.get("files", [])):
+        return _error(f"a file named {safe_name} already exists in this workspace", 409)
     file_id = new_file_id()
     session_uri = await run_in_threadpool(lambda: store.start_resumable(ws, file_id, safe_name, origin=origin))
     entry = {"id": file_id, "name": safe_name, "object": object_name(ws, file_id, safe_name), "status": "uploading",
@@ -301,6 +313,83 @@ async def file_finalize_endpoint(request: Request) -> JSONResponse:
     return JSONResponse({"file": _public_file(updated)})
 
 
+# ---------------------------------------------------------------------------------------------------- ingestion
+
+def missing_upload_levels(manifest: dict[str, Any], engines: list[str]) -> list[str]:
+    """Engines whose data level has not completed ingestion for this workspace (L4 reads L3 data)."""
+    levels = manifest.get("levels", {}) or {}
+    return [e for e in engines if (levels.get(DATA_LEVEL_OF.get(e, e)) or {}).get("status") != "completed"]
+
+
+async def upload_scope_error(request: Request, scope: str, engines: list[str]) -> JSONResponse | None:
+    """None when ``scope`` is the caller's workspace and every engine's level is ingested; else the error response."""
+    services = _services(request)
+    if services is None:
+        return _unavailable()
+    found = await _owned_manifest(request, services.store(), scope)
+    if isinstance(found, JSONResponse):
+        return found
+    missing = missing_upload_levels(found[0], engines)
+    if missing:
+        return _error(f"workspace {scope} is not ingested for: {', '.join(missing)} (run its ingestion first)", 400)
+    return None
+
+
+def _level_recorder(store: Any, ws: str, level: str, file_ids: list[str]) -> Any:
+    """on_finish callback: write the job outcome into the manifest (bounded retries on concurrent changes)."""
+    def record(job: Any) -> None:
+        for attempt in range(1, MANIFEST_WRITE_ATTEMPTS + 1):
+            found = store.read_manifest(ws)
+            if found is None:
+                raise RuntimeError(f"workspace {ws} disappeared during ingestion")
+            manifest, generation = found
+            entry = {"status": job.status, "job_id": job.job_id, "chunks": job.chunks, "tier_profile": job.tier_profile,
+                     "file_ids": file_ids, "error": job.error, "finished_at": job.finished_at or utc_now_iso()}
+            try:
+                store.write_manifest(ws, {**manifest, "levels": {**manifest.get("levels", {}), level: entry}},
+                                     if_generation=generation)
+                return
+            except RuntimeError:
+                if attempt == MANIFEST_WRITE_ATTEMPTS:
+                    raise
+    return record
+
+
+async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
+    from app.ingestion.jobs import UPLOAD_LEVELS, UploadSource
+
+    services = _services(request)
+    if services is None:
+        return _unavailable()
+    store, ws = services.store(), request.path_params["workspace_id"]
+    found = await _owned_manifest(request, store, ws)
+    if isinstance(found, JSONResponse):
+        return found
+    manifest, generation = found
+    try:
+        level = str((await _json_body(request)).get("level", "")).strip()
+    except ValueError as exc:
+        return _error(str(exc), 400)
+    if level not in UPLOAD_LEVELS:
+        return _error(f"{level or 'level'} ingestion is not available for uploads yet (available: {', '.join(UPLOAD_LEVELS)})", 400)
+    ready = [f for f in manifest.get("files", []) if f.get("status") == "ready"]
+    if not ready:
+        return _error("this workspace has no ready files (upload and finalize at least one PDF)", 409)
+    if (manifest.get("levels", {}).get(level) or {}).get("status") in ("starting", "running"):
+        return _error(f"{level} is already being ingested for this workspace", 409)
+    file_ids = [f["id"] for f in ready]
+    starting = {**manifest, "levels": {**manifest.get("levels", {}), level: {"status": "starting", "file_ids": file_ids,
+                                                                             "started_at": utc_now_iso()}}}
+    try:
+        await run_in_threadpool(lambda: store.write_manifest(ws, starting, if_generation=generation))
+    except RuntimeError as exc:
+        return _error(str(exc), 409)
+    source = UploadSource(workspace_id=ws, files=tuple((f["object"], f["name"]) for f in ready),
+                          fetch=store.download_to, on_finish=_level_recorder(store, ws, level, file_ids))
+    job = request.app.state.ingest_runner.start(level, upload=source)
+    return JSONResponse({"job": job.to_dict(), "level": level, "files": len(ready)}, status_code=202)
+
+
 def _store_errors_as_json(endpoint: Any) -> Any:
     """Cloud Storage failures (incl. missing credentials) become a 502 JSON error naming the cause, never a bare 500."""
     async def wrapped(request: Request) -> JSONResponse:
@@ -326,9 +415,11 @@ def _raw_routes() -> list[Route]:
         Route("/api/v1/uploads/{workspace_id}", endpoint=workspace_get_endpoint, methods=["GET"]),
         Route("/api/v1/uploads/{workspace_id}", endpoint=workspace_delete_endpoint, methods=["DELETE"]),
         Route("/api/v1/uploads/{workspace_id}/files", endpoint=file_session_endpoint, methods=["POST"]),
+        Route("/api/v1/uploads/{workspace_id}/ingest", endpoint=workspace_ingest_endpoint, methods=["POST"]),
         Route("/api/v1/uploads/{workspace_id}/files/{file_id}/finalize", endpoint=file_finalize_endpoint,
               methods=["POST"]),
     ]
 
 
-__all__ = ["ANONYMOUS", "IAP_EMAIL_HEADER", "UploadServices", "get_upload_routes"]
+__all__ = ["ANONYMOUS", "IAP_EMAIL_HEADER", "UploadServices", "get_upload_routes", "missing_upload_levels",
+           "upload_scope_error"]

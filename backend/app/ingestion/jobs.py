@@ -12,6 +12,8 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
+import shutil
+import tempfile
 import time
 from typing import Any, AsyncIterator, Callable, Protocol
 import uuid
@@ -48,6 +50,8 @@ _MAX_JOB_EVENTS = 5000
 _EMBED_BATCH_SIZE = 32
 _MAX_EMBED_BATCHES = 10_000
 _STREAM_POLL_SECONDS = 1.0
+# v1.1: levels whose ingestion already accepts an upload workspace (L3 + L5 arrive in steps 3 and 4).
+UPLOAD_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid")
 
 
 class IngestBackendUnavailable(RuntimeError):
@@ -114,6 +118,35 @@ class TierOutcome:
     embedding_model: str = ""
 
 
+@dataclass(frozen=True)
+class UploadSource:
+    """One upload workspace to ingest: ready files (object name, sanitized display name) + how to fetch them.
+
+    ``fetch(object_name, dest_path) -> bytes written`` copies a file from the private bucket to local disk;
+    ``on_finish(job)`` runs after the job ends (completed or failed) so the workspace manifest can record it.
+    """
+
+    workspace_id: str
+    files: tuple[tuple[str, str], ...]
+    fetch: Callable[[str, Path], int]
+    on_finish: Callable[["IngestJob"], None] | None = None
+
+    def __post_init__(self) -> None:
+        from app.ingestion.uploads import check_workspace_id, sanitize_filename
+
+        check_workspace_id(self.workspace_id)
+        if not self.files:
+            raise ValueError("an upload ingestion needs at least one ready file")
+        names = [name for _, name in self.files]
+        if len(set(names)) != len(names):
+            raise ValueError("file names in one upload workspace must be unique")
+        for obj, name in self.files:
+            if not obj.startswith(f"uploads/{self.workspace_id}/") or sanitize_filename(name) != name:
+                raise ValueError(f"file {name!r} is not a sanitized file of {self.workspace_id}")
+        if not callable(self.fetch) or (self.on_finish is not None and not callable(self.on_finish)):
+            raise ValueError("fetch (and on_finish when given) must be callable")
+
+
 BackendFactory = Callable[[ArenaSettings], IngestBackends]
 # Level 5: returns ``app.ingestion.managed_job.ManagedBackends`` (GCS + Discovery Engine REST clients).
 ManagedFactory = Callable[[ArenaSettings], Any]
@@ -141,6 +174,8 @@ class IngestJob:
     chunks: int = 0
     error: str | None = None
     failed_stage: str | None = None
+    scope: str | None = None  # upl_<12 hex> for an upload workspace job; None = the fixed corpus
+    settled: bool = False  # True once post-job work (download cleanup, workspace manifest) has finished
     events: list[dict[str, Any]] = field(default_factory=list)
     notify: asyncio.Event = field(default_factory=asyncio.Event)
 
@@ -152,7 +187,7 @@ class IngestJob:
 
     @property
     def done(self) -> bool:
-        return self.status in ("completed", "failed")
+        return self.status in ("completed", "failed") and self.settled
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -166,6 +201,7 @@ class IngestJob:
             "chunks": self.chunks,
             "error": self.error,
             "failed_stage": self.failed_stage,
+            "scope": self.scope,
             "events": len(self.events),
         }
 
@@ -216,6 +252,7 @@ class IngestJobRunner:
         self.corpus_dir = DEFAULT_CORPUS_DIR if corpus_dir is None else corpus_dir
         self._jobs: dict[str, IngestJob] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._uploads: dict[str, UploadSource] = {}
 
     def get(self, job_id: str) -> IngestJob:
         if not isinstance(job_id, str) or job_id not in self._jobs:
@@ -225,18 +262,23 @@ class IngestJobRunner:
     def list_jobs(self) -> list[IngestJob]:
         return list(self._jobs.values())
 
-    def start(self, level: str) -> IngestJob:
-        """Create and schedule a job for ``level`` (must be a known level id)."""
+    def start(self, level: str, *, upload: UploadSource | None = None) -> IngestJob:
+        """Create and schedule a job for ``level`` over the corpus, or over one upload workspace (``upload``)."""
         if level not in ALL_LEVEL_IDS:
             raise ValueError(f"Unknown level '{level}'; valid levels: {ALL_LEVEL_IDS}")
+        if upload is not None and level not in UPLOAD_LEVELS:
+            raise ValueError(f"{level} ingestion is not available for uploads yet (available: {', '.join(UPLOAD_LEVELS)})")
         if len(self._jobs) >= _MAX_JOBS:
             oldest_done = next((jid for jid, j in self._jobs.items() if j.done), None)
             if oldest_done is None:
                 raise RuntimeError(f"Too many concurrent ingestion jobs (> {_MAX_JOBS})")
             self._jobs.pop(oldest_done)
             self._tasks.pop(oldest_done, None)
-        job = IngestJob(job_id=f"ing_{uuid.uuid4().hex[:12]}", level=level, tier_profile=LEVEL_TIER_PROFILES[level])
+        job = IngestJob(job_id=f"ing_{uuid.uuid4().hex[:12]}", level=level, tier_profile=LEVEL_TIER_PROFILES[level],
+                        scope=upload.workspace_id if upload else None)
         self._jobs[job.job_id] = job
+        if upload is not None:
+            self._uploads[job.job_id] = upload
         self._tasks[job.job_id] = asyncio.create_task(self._run_bounded(job))
         return job
 
@@ -256,16 +298,52 @@ class IngestJobRunner:
                 {"event": "job_failed", "error_type": type(exc).__name__, "error": str(exc), "failed_stage": job.failed_stage},
             )
         finally:
-            job.notify.set()
+            try:
+                await self._after_upload_job(job)
+            finally:
+                job.settled = True
+                job.notify.set()
+
+    async def _after_upload_job(self, job: IngestJob) -> None:
+        """Remove the job's download dir and let the workspace record the outcome (failures become events)."""
+        source = self._uploads.pop(job.job_id, None)
+        if source is None:
+            return
+        shutil.rmtree(Path(tempfile.gettempdir()) / f"rag_arena_ingest_{job.job_id}", ignore_errors=True)
+        if source.on_finish is None:
+            return
+        try:
+            await asyncio.to_thread(source.on_finish, job)
+        except Exception as exc:  # boundary: visible on the job, never swallowed
+            job.error = f"{job.error or ''} | workspace manifest update failed: {type(exc).__name__}: {exc}".strip(" |")
+            await self._put(job, {"event": "stream_warning", "message": f"workspace manifest update failed: {exc}"})
+
+    async def _discover_upload(self, job: IngestJob, emitter: "_JobEmitter", tracker: "_StageTracker") -> list[_DiscoveredDoc]:
+        source = self._uploads[job.job_id]
+        workdir = Path(tempfile.gettempdir()) / f"rag_arena_ingest_{job.job_id}"
+        request = {"workspace": source.workspace_id, "files": len(source.files)}
+        async with tracker.scope(emitter, "discover_docs", "Download uploaded documents", "Cloud Storage · private upload bucket", request) as sc:
+            workdir.mkdir(mode=0o700, exist_ok=False)
+            docs: list[_DiscoveredDoc] = []
+            total = 0
+            for obj, name in source.files:
+                total += await asyncio.to_thread(source.fetch, obj, workdir / name)
+                docs.append(_DiscoveredDoc(path=workdir / name, solicitation_id=source.workspace_id))
+            sc.payload = {"docs": len(docs), "doc_names": [d.path.name for d in docs[:50]], "bytes": total,
+                          "source": "upload workspace", "workspace": source.workspace_id}
+        return docs
 
     async def _run(self, job: IngestJob) -> None:
         job.status = "running"
         emitter = _JobEmitter(self, job)
         await self._put(job, {"event": "job_started", "level": job.level, "tier_profile": job.tier_profile})
         tracker = _StageTracker(job)
-        async with tracker.scope(emitter, "discover_docs", "Discover corpus documents", "Local corpus", {"corpus_dir": str(self.corpus_dir)}) as sc:
-            docs = await asyncio.to_thread(discover_corpus_docs, self.corpus_dir)
-            sc.payload = {"docs": len(docs), "solicitations": len({d.solicitation_id for d in docs}), "doc_names": [d.path.name for d in docs[:50]]}
+        if job.scope is not None:
+            docs = await self._discover_upload(job, emitter, tracker)
+        else:
+            async with tracker.scope(emitter, "discover_docs", "Discover corpus documents", "Local corpus", {"corpus_dir": str(self.corpus_dir)}) as sc:
+                docs = await asyncio.to_thread(discover_corpus_docs, self.corpus_dir)
+                sc.payload = {"docs": len(docs), "solicitations": len({d.solicitation_id for d in docs}), "doc_names": [d.path.name for d in docs[:50]]}
         if job.level == "managed_vertex":
             from app.ingestion.managed_job import run_managed_job
 
@@ -299,6 +377,11 @@ class IngestJobRunner:
         async with tracker.scope(emitter, "verify_counts", "Verify row counts", "BigQuery", {"table": backends.loader.table_fqn}) as sc:
             counts = await asyncio.to_thread(backends.loader.count_by_tier)
             sc.payload = {"counts_by_tier": counts}
+            if job.scope is not None:
+                scoped = await asyncio.to_thread(backends.loader.count_scope, job.tier_profile, job.scope)
+                sc.payload.update({"scope": job.scope, "scope_rows": scoped})
+                if scoped != len(chunks):
+                    raise RuntimeError(f"{job.scope} has {scoped} {job.tier_profile} rows after load, expected {len(chunks)}")
         job.counts_by_tier = dict(counts)
         job.chunks = len(chunks)
         await asyncio.to_thread(
@@ -381,7 +464,10 @@ class IngestJobRunner:
                 for c, v in zip(chunks, vectors)
             ]
             await asyncio.to_thread(backends.loader.ensure_schema)
-            loaded = await asyncio.to_thread(backends.loader.load_rows, rows)
+            if job.scope is None:
+                loaded = await asyncio.to_thread(backends.loader.load_rows, rows)
+            else:
+                loaded = await asyncio.to_thread(lambda: backends.loader.load_rows(rows, scope=job.scope))
             if loaded != len(rows):
                 raise RuntimeError(f"BigQuery loader reported {loaded} rows loaded for {len(rows)} submitted")
             sc.payload = {"loaded": loaded, "table": backends.loader.table_fqn}
@@ -511,6 +597,8 @@ __all__ = [
     "IngestJob",
     "IngestJobRunner",
     "LEVEL_TIER_PROFILES",
+    "UPLOAD_LEVELS",
+    "UploadSource",
     "discover_corpus_docs",
     "unavailable_backends",
 ]

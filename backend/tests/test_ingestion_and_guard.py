@@ -10,11 +10,9 @@ from app.core.models import (
     DocumentChunk,
     EngineResult,
     EvalMetrics,
-    UploadMetadata,
 )
 from app.ingestion.bq_indexer import build_bigquery_ddl, build_hybrid_rrf_sql
 from app.ingestion.parsers import parse_pdf_Fallback_or_fitz
-from app.ingestion.upload_guard import UploadGuardError, validate_pdf_upload
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_DIR = PROJECT_ROOT / "data" / "sample_docs" / "procurement_corpus"
@@ -35,8 +33,6 @@ def test_settings_default_to_2026_models_and_replay_mode():
     assert settings.text_embedding_model == "gemini-embedding-2"
     assert settings.multimodal_embedding_model == "gemini-embedding-2"
     assert settings.reranker_model == "semantic-ranker-default@latest"
-    assert settings.max_upload_bytes == 10 * 1024 * 1024
-    assert settings.max_upload_pages == 30
 
     custom = get_settings(
         {
@@ -65,33 +61,6 @@ def test_settings_default_to_2026_models_and_replay_mode():
 
     with pytest.raises(ValueError, match="Deprecated or forbidden Gemini model"):
         ArenaSettings(text_embedding_model="gemini-embedding-001")
-
-
-def test_upload_guard_rejects_non_pdf_and_oversized_files():
-    with pytest.raises(UploadGuardError, match="Invalid PDF magic header"):
-        validate_pdf_upload(b"NOT_A_PDF_CONTENT", filename="malicious.pdf")
-
-    with pytest.raises(UploadGuardError, match="must end with .pdf"):
-        validate_pdf_upload(b"%PDF-1.4\n", filename="malicious.exe")
-
-    oversized = b"%PDF-1.4\n" + (b"0" * (10 * 1024 * 1024 + 100))
-    with pytest.raises(UploadGuardError, match="exceeds 10 MB limit"):
-        validate_pdf_upload(oversized, filename="huge.pdf")
-
-
-def test_upload_guard_accepts_valid_solicitation_pdf():
-    sample_pdf = (
-        CORPUS_DIR
-        / "solicitation_01_cloud_infrastructure"
-        / "06_Amendment_0001_Scope_Update.pdf"
-    )
-    meta = validate_pdf_upload(sample_pdf.read_bytes(), filename=sample_pdf.name)
-    assert isinstance(meta, UploadMetadata)
-    assert meta.page_count >= 1
-    assert meta.size_bytes == len(sample_pdf.read_bytes())
-    assert len(meta.sha256_hex) == 64
-    assert meta.session_id
-    assert meta.expires_at is not None
 
 
 def test_pdf_parser_extracts_chunks_with_normalized_bboxes_and_amendment_metadata():

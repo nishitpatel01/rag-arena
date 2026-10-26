@@ -136,3 +136,36 @@ def test_judge_settings_are_validated() -> None:
     for env in bad_envs:
         with pytest.raises(ValueError):
             get_settings(env)
+
+
+# ---------- v1.1 upload bucket settings ----------
+
+def test_upload_bucket_defaults_to_auto_and_project_derived_name() -> None:
+    settings = get_settings(_env(GCP_PROJECT_ID="example-project"))
+    assert settings.upload_bucket_mode == "auto"
+    assert settings.upload_bucket == "example-project-rag-arena-uploads"
+    assert settings.upload_bucket_kms_key == ""
+
+
+def test_upload_bucket_explicit_values_and_existing_mode() -> None:
+    settings = get_settings(_env(UPLOAD_BUCKET="team-private-docs", UPLOAD_BUCKET_MODE="EXISTING",
+                                 UPLOAD_BUCKET_KMS_KEY="projects/p/locations/l/keyRings/r/cryptoKeys/k"))
+    assert settings.upload_bucket == "team-private-docs"
+    assert settings.upload_bucket_mode == "existing"
+    assert settings.upload_bucket_kms_key.endswith("/cryptoKeys/k")
+
+
+def test_upload_bucket_rejects_bad_mode_name_and_corpus_reuse() -> None:
+    with pytest.raises(ValueError):
+        get_settings(_env(UPLOAD_BUCKET_MODE="sometimes"))
+    with pytest.raises(ValueError):
+        get_settings(_env(UPLOAD_BUCKET="Bad/Bucket"))
+    with pytest.raises(ValueError):
+        get_settings(_env(UPLOAD_BUCKET="shared-bkt", GCS_CORPUS_BUCKET="shared-bkt"))
+    with pytest.raises(ValueError):
+        get_settings(_env(UPLOAD_BUCKET_KMS_KEY="not-a-key"))
+
+
+def test_upload_bucket_empty_without_project() -> None:
+    settings = get_settings({"DEMO_MODE": "replay"})
+    assert settings.upload_bucket == ""

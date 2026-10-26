@@ -243,6 +243,6 @@ def test_genuinely_blank_documents_are_reported_but_do_not_fail_parse() -> None:
 
 def test_pdf_code_imports_pymupdf_not_deprecated_fitz() -> None:
     root = _PROJECT_ROOT / "backend" / "app" / "ingestion"
-    for name in ("parsers.py", "pipeline.py", "upload_guard.py"):
+    for name in ("parsers.py", "pipeline.py", "uploads.py"):
         src = (root / name).read_text(encoding="utf-8")
         assert "import fitz" not in src and "import pymupdf" in src, name

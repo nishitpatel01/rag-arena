@@ -159,53 +159,6 @@ def test_i1_and_i4_session_store_canonical_key_bound_and_file_persistence() -> N
     session_store.clear_uploaded_sessions()
 
 
-def test_i1_and_i4_upload_content_length_guard_and_mime_multipart_boundary() -> None:
-    """Verify pre-read Content-Length enforcement and standard MIME multipart boundary parsing."""
-    app = create_app(settings=ArenaSettings(demo_mode="replay"))
-    client = TestClient(app)
-
-    # 1. Oversized Content-Length header rejected immediately
-    resp_oversized = client.post(
-        "/api/v1/ingest/upload",
-        content=b"%PDF-1.4 small body %%EOF",
-        headers={
-            "Content-Type": "application/pdf",
-            "Content-Length": str(50 * 1024 * 1024),
-        },
-    )
-    assert resp_oversized.status_code == 400
-    assert "exceeds maximum" in resp_oversized.json()["error"].lower()
-
-    # 2. Multipart form-data with decoy %PDF- / %%EOF in an earlier text field
-    sample_pdf = (
-        CORPUS_DIR
-        / "solicitation_01_cloud_infrastructure"
-        / "06_Amendment_0001_Scope_Update.pdf"
-    )
-    valid_pdf_bytes = sample_pdf.read_bytes()
-
-    boundary = "----RagArenaBoundary987654321"
-    multipart_body = (
-        f"--{boundary}\r\n"
-        'Content-Disposition: form-data; name="metadata_note"\r\n\r\n'
-        "Decoy header with %PDF-fake-stream and trailing %%EOF marker inside text field\r\n"
-        f"--{boundary}\r\n"
-        'Content-Disposition: form-data; name="file"; filename="boundary_test.pdf"\r\n'
-        "Content-Type: application/pdf\r\n\r\n"
-    ).encode("latin-1") + valid_pdf_bytes + f"\r\n--{boundary}--\r\n".encode("latin-1")
-
-    resp_multi = client.post(
-        "/api/v1/ingest/upload",
-        content=multipart_body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-    )
-    assert resp_multi.status_code == 200
-    payload = resp_multi.json()
-    assert payload["status"] == "parsed" and payload["indexed"] is False
-    assert payload["upload"]["filename"] == "boundary_test.pdf"
-    session_store.clear_uploaded_sessions()
-
-
 def test_i3_bigquery_ddl_clustering_dual_embeddings_and_single_page_pdf_slice() -> None:
     """Verify BigQuery DDL includes clustering + multimodal vector column and pipeline slices 1 PDF page."""
     ddl = build_bigquery_ddl("demo-proj", "rag_arena", "document_chunks")

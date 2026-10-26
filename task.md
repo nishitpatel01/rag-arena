@@ -125,6 +125,29 @@ Deviations recorded: Levels 2–5 run their v2 bodies under one measured `legacy
   - Progress 2026-10-23 (`6f742a4`, `d1a873e`): configurable deploy (`deploy/cloudrun.env.example`, `scripts/deploy_cloudrun.sh`, teardown, Terraform parity, v3 compose); owner setup deployed in us-central1 — live service behind IAP (owner only; unauthenticated → IAP 302), public replay copy (health identity empty; replayed L4 run streamed 82 s); served-content leak scan clean. Redeploy `aa4d20a` fixed Level 4 on Cloud Run (image had resolved google-adk 1.14.1 → now public-PyPI lock with 2.12.0; thinking via BuiltInPlanner). Gate ✅ 2026-10-23: owner signed in, live run (incl. Level 4) and ingestion job succeeded from the deployed UI (owner: "both look good").
 - [x] Parked `vertex_vector_v2` / `alloydb_scann`: owner decided keep parked (2026-10-23); code only, excluded from the registry, no GCP resources → $0/month.
 
+## v1.1 — Your own documents (plan approved 2026-10-26)
+Owner decisions: bucket auto-created by default with explicit permission / org-policy errors (no silent fallback); uploads kept until manually deleted; no app-imposed size, page, file-count or daily caps; all five levels; Leaderboard winner highlighting by a user-selected metric; uploads for anyone who can open the deployed live app, never on the replay copy.
+
+- [x] **Step 1 — upload bucket + upload flow** — branch `v1.1/step1-upload-bucket`
+  - [x] 1a `upload_bucket.py`: ensure → exists / create (PAP enforced, UBLA on, optional CMEK, no lifecycle) → privacy verify; typed outcomes `ok · created · permission_denied · org_policy · name_conflict · not_found · unsafe_bucket · unreachable · error` with remedies (placeholders only)
+  - [x] 1b config: `UPLOAD_BUCKET_MODE=auto|existing`, `UPLOAD_BUCKET` (default `<project>-rag-arena-uploads`, must differ from the corpus bucket), `UPLOAD_BUCKET_KMS_KEY`; env templates. (`MAX_UPLOAD_BYTES/PAGES` removed with the legacy endpoint in 1d)
+  - [x] 1c `deploy_cloudrun.sh` (+ `--upload-bucket-only`): deployer creates/verifies the bucket, typed failures (exit 3 in upload-only; full deploy continues with uploads disabled + loud warning); readers granted: Cloud Run SA `roles/storage.objectUser` + `roles/storage.legacyBucketReader` (bucket metadata for the in-app privacy check), Vertex AI Search service agent `roles/storage.objectViewer` (L5 import). Document AI and Gemini vision get bytes inline from the backend, so they need no bucket access. Replay SA gets nothing. Teardown removes the grants, keeps the bucket. Local dev: the app creates it with your ADC (1e).
+  - [x] 1d upload API (`backend/app/api/uploads_api.py`, `backend/app/ingestion/uploads.py`): workspace create → resumable session URI (created server-side, `ifGenerationMatch=0`, Origin-bound; browser uploads straight to GCS, so no Cloud Run 32 MiB cap) → finalize (ranged download to disk + safety checks: real PDF, not encrypted, no JavaScript / launch actions / embedded files; no size/page limit) → delete. Workspace manifest = `uploads/<upl_id>/workspace.json` in the private bucket (generation preconditions) instead of a BigQuery table; owner stored as SHA-256 of the IAP identity; other owners get 404. Legacy capped `POST /api/v1/ingest/upload`, `upload_guard.py`, `UploadMetadata`, `MAX_UPLOAD_BYTES/PAGES` removed (frontend `DocumentUpload.tsx` replaced in step 5).
+  - [x] 1e `GET /api/v1/uploads/bucket` (read-only `check()`), `POST /api/v1/uploads/bucket` (`ensure()`; also run by the first `POST /api/v1/uploads`) with typed state → HTTP (403 permission_denied, 409 org_policy/name_conflict/not_found/unsafe, 503 unreachable). Replay copy: every upload route 404.
+  - [x] Gate evidence (live, 2026-10-26, owner approved "go"):
+    - Bucket: `GET /api/v1/uploads/bucket` → `not_found` (read-only); `POST` → `created` (HTTP 200); second `POST` → `ok`. `gcloud storage buckets describe`: `public_access_prevention: enforced`, `uniform_bucket_level_access: True`, `US-CENTRAL1`, `lifecycle_config: None` (no auto-delete), soft delete 7 days (project default). Unauthenticated `GET …/o` → HTTP 401.
+    - Readers: `deploy_cloudrun.sh --upload-bucket-only` → `UPLOAD BUCKET ok`, exit 0; bucket IAM = `rag-arena-run` objectUser + legacyBucketReader, Vertex AI Search service agent objectViewer, project-default legacy roles; no `allUsers` / `allAuthenticatedUsers`.
+    - Permission denied (real API, your ADC, create targeted at a project you have no rights in): `state permission_denied`, `created False`, remedy names `storage.buckets.create` + `roles/storage.admin` + the gcloud command. (Impersonating the zero-role replay SA was not possible: no `iam.serviceAccounts.getAccessToken`; not granted.)
+    - Browser (headless Chrome on the Vite UI origin, real CORS): workspace 201 → session 201 (`Upload_Smoke_browser_.pdf`) → browser PUT straight to Cloud Storage 200 (no bucket CORS config needed; Origin bound to the session) → finalize 200 `ready`, 1 page, 616 bytes, sha256 → delete 200 (2 objects) → get 404; bucket listed empty afterwards.
+    - Fixes from the live run: bucket status GET always 200 (state carries the outcome); missing credentials → typed `error` / 502 JSON instead of an uncaught exception.
+    - Tests: backend `346 passed`; frontend unchanged.
+- [ ] Step 2 — L1 + L2 scoped ingest and engines (L4 scope wiring)
+- [ ] Step 3 — L3 upload ingest with cost confirmation
+- [ ] Step 4 — L5 uploads data store + filtered search
+- [ ] Step 5 — UI: upload panel, scope selector, reference-free labels, Compare on uploads, Leaderboard scope + winner highlighting
+- [ ] Step 6 — security suite + live security / large-file smoke + deployed E2E
+- [ ] Step 7 — docs, CHANGELOG 1.1.0, redeploy, tag `v1.1.0`
+
 ---
 
 ## v2.0 history (closed)

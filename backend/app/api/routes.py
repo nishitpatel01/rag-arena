@@ -13,11 +13,8 @@ unknown id, an unavailable model, a role that is not allowed, or judge == synthe
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 from pathlib import Path
-import re
-import tempfile
 from typing import Any, AsyncIterator
 import uuid
 
@@ -43,9 +40,6 @@ from app.evaluation.evaluator import run_evaluation
 from app.evaluation.leaderboard import SOURCES as LEADERBOARD_SOURCES, leaderboard_from_recordings, parse_filters
 from app.evaluation.scoring import battle_score
 from app.ingestion.jobs import IngestJobRunner
-from app.ingestion.parsers import parse_pdf_Fallback_or_fitz
-from app.ingestion.session_store import store_uploaded_session_chunks
-from app.ingestion.upload_guard import UploadGuardError, validate_pdf_upload
 from app.recording.codec import eval_outcome_to_dict
 from app.recording.recorder import build_recording, record_run
 
@@ -53,11 +47,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
 _MAX_ENGINES_PER_BATTLE = 5
 _MAX_QUERY_CHARS = 4000
-_MAX_MULTIPART_PARTS = 16
 _MAX_CITATIONS_IN_FRAME = 10
 _QUEUE_IDLE_GRACE_SECONDS = 10.0
-_BOUNDARY_RE = re.compile(r'boundary=(?:"([^"]+)"|([^;\s]+))', re.IGNORECASE)
-_FILENAME_RE = re.compile(r'filename="([^"]+)"', re.IGNORECASE)
 
 
 def _format_sse_event(payload: dict[str, Any]) -> str:
@@ -504,129 +495,6 @@ async def ingest_status_endpoint(request: Request) -> JSONResponse:
     return JSONResponse(await _ingest_runner(request).status())
 
 
-async def _read_bounded_request_body(request: Request, max_bytes: int) -> bytes:
-    """Pre-check Content-Length and read request stream with a strict byte ceiling."""
-    if max_bytes <= 0:
-        raise ValueError("max_bytes must be a positive integer")
-    wire_ceiling = int(max_bytes * 1.4) + 65536
-    content_len_hdr = request.headers.get("content-length")
-    if content_len_hdr is not None:
-        try:
-            declared_len = int(content_len_hdr.strip())
-        except ValueError as exc:
-            raise UploadGuardError("Invalid Content-Length header") from exc
-        if declared_len > wire_ceiling:
-            raise UploadGuardError(
-                f"Upload Content-Length ({declared_len} bytes) exceeds maximum allowed limit ({max_bytes} bytes)"
-            )
-
-    buf = bytearray()
-    async for chunk in request.stream():
-        buf.extend(chunk)
-        if len(buf) > wire_ceiling:
-            raise UploadGuardError(f"Upload payload stream exceeds maximum allowed limit ({max_bytes} bytes)")
-    return bytes(buf)
-
-
-def _extract_multipart_pdf_part(raw_body: bytes, content_type: str, default_filename: str) -> tuple[str, bytes]:
-    """Parse MIME multipart/form-data boundaries to isolate the uploaded PDF file part."""
-    boundary_match = _BOUNDARY_RE.search(content_type)
-    boundary_bytes: bytes | None = None
-    if boundary_match:
-        b_str = boundary_match.group(1) or boundary_match.group(2)
-        boundary_bytes = f"--{b_str}".encode("latin-1")
-    elif raw_body.startswith(b"--"):
-        first_line = raw_body.split(b"\r\n", 1)[0].strip()
-        if first_line:
-            boundary_bytes = first_line
-
-    if boundary_bytes:
-        parts = raw_body.split(boundary_bytes)[:_MAX_MULTIPART_PARTS]
-        for part in parts:
-            if not part or part.startswith(b"--"):
-                continue
-            sep = b"\r\n\r\n" if b"\r\n\r\n" in part else (b"\n\n" if b"\n\n" in part else None)
-            if sep is None:
-                continue
-            hdr_bytes, part_body = part.split(sep, 1)
-            hdr_text = hdr_bytes.decode("latin-1", errors="ignore")
-            fn_match = _FILENAME_RE.search(hdr_text)
-            if fn_match or "application/pdf" in hdr_text.lower():
-                filename = (fn_match.group(1).strip() if fn_match else default_filename) or default_filename
-                if part_body.endswith(b"\r\n"):
-                    part_body = part_body[:-2]
-                elif part_body.endswith(b"\n"):
-                    part_body = part_body[:-1]
-                pdf_start = part_body.find(b"%PDF-")
-                pdf_eof = part_body.rfind(b"%%EOF")
-                if pdf_start != -1 and pdf_eof != -1 and pdf_eof > pdf_start:
-                    return filename, part_body[pdf_start : pdf_eof + 5]
-                return filename, part_body
-
-    pdf_start = raw_body.find(b"%PDF-")
-    pdf_eof = raw_body.rfind(b"%%EOF")
-    if pdf_start != -1 and pdf_eof != -1 and pdf_eof > pdf_start:
-        return default_filename, raw_body[pdf_start : pdf_eof + 5]
-    raise UploadGuardError("Multipart upload does not contain a valid %PDF-...%%EOF stream")
-
-
-async def _extract_upload_payload(request: Request, max_bytes: int) -> tuple[str, bytes]:
-    """Extract filename and raw PDF bytes from JSON base64, multipart/form-data, or raw binary body."""
-    content_type = request.headers.get("content-type", "")
-    raw_body = await _read_bounded_request_body(request, max_bytes=max_bytes)
-    if not raw_body:
-        raise UploadGuardError("Request body is empty")
-
-    lower_ct = content_type.lower()
-    if "application/json" in lower_ct:
-        try:
-            data = json.loads(raw_body.decode("utf-8"))
-            filename = str(data.get("filename", "uploaded_document.pdf")).strip()
-            b64_str = str(data.get("content_base64", "")).strip()
-            return filename, base64.b64decode(b64_str, validate=True)
-        except (ValueError, AttributeError, UnicodeDecodeError) as exc:
-            raise UploadGuardError(f"Invalid base64 JSON upload payload: {exc}") from exc
-
-    default_filename = request.headers.get("x-filename", "uploaded_document.pdf").strip() or "uploaded_document.pdf"
-    if "multipart/form-data" in lower_ct:
-        return _extract_multipart_pdf_part(raw_body, content_type, default_filename)
-    return default_filename, raw_body
-
-
-async def ingest_upload_endpoint(request: Request) -> JSONResponse:
-    """POST /api/v1/ingest/upload: guard + parse an uploaded PDF across tiers (parsed only — NOT embedded/indexed)."""
-    settings = _settings_of(request)
-    try:
-        filename, raw_bytes = await _extract_upload_payload(request, max_bytes=settings.max_upload_bytes)
-        meta = validate_pdf_upload(
-            raw_bytes=raw_bytes, filename=filename, max_bytes=settings.max_upload_bytes, max_pages=settings.max_upload_pages
-        )
-        safe_name = Path(meta.filename).name
-        sol_id = f"upload_{meta.session_id[:8]}"
-        with tempfile.TemporaryDirectory(prefix="rag_arena_upload_") as tmp_dir:
-            tmp_pdf = Path(tmp_dir) / safe_name
-            tmp_pdf.write_bytes(raw_bytes)
-            chunks_by_tier = {
-                tier: parse_pdf_Fallback_or_fitz(pdf_path=tmp_pdf, solicitation_id=sol_id, tier_profile=tier)
-                for tier in ("naive", "hybrid", "multimodal")
-            }
-        persisted_sol_id = store_uploaded_session_chunks(meta.session_id, chunks_by_tier)
-    except (UploadGuardError, ValueError) as exc:
-        return JSONResponse({"error": str(exc)}, status_code=400)
-
-    return JSONResponse(
-        {
-            "status": "parsed",
-            "indexed": False,
-            "note": "Uploaded PDFs are parsed and kept in a session store; BigQuery indexing of uploads is not available yet.",
-            "solicitation_id": persisted_sol_id,
-            "upload": meta.to_dict(),
-            "chunks_parsed": {tier: len(chunks) for tier, chunks in chunks_by_tier.items()},
-            "sample_chunks": [c.to_dict() for c in chunks_by_tier["multimodal"][:3]],
-        }
-    )
-
-
 def get_api_routes() -> list[Route]:
     """Return the Starlette Route table for The RAG Arena v1 API."""
     routes = [
@@ -640,8 +508,7 @@ def get_api_routes() -> list[Route]:
         Route("/api/v1/ingest/jobs/{job_id}", endpoint=ingest_job_get_endpoint, methods=["GET"]),
         Route("/api/v1/ingest/jobs/{job_id}/stream", endpoint=ingest_job_stream_endpoint, methods=["GET"]),
         Route("/api/v1/ingest/status", endpoint=ingest_status_endpoint, methods=["GET"]),
-        Route("/api/v1/ingest/upload", endpoint=ingest_upload_endpoint, methods=["POST"]),
     ]
-    if len(routes) < 11:
+    if len(routes) < 10:
         raise RuntimeError("Incomplete route registration")
     return routes

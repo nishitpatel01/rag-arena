@@ -243,6 +243,10 @@ def test_deploy_dry_run_plans_exactly_the_expected_resources() -> None:
         "iam project roles/documentai.apiUser -> rag-arena-run",
         "iam project roles/discoveryengine.editor -> rag-arena-run",
         "iam bucket demo-project-1-rag-arena-corpus roles/storage.objectUser -> rag-arena-run",
+        "upload-bucket demo-project-1-rag-arena-uploads (auto: create if missing; private; us-central1)",
+        "iam bucket demo-project-1-rag-arena-uploads roles/storage.objectUser -> rag-arena-run",
+        "iam bucket demo-project-1-rag-arena-uploads roles/storage.legacyBucketReader -> rag-arena-run",
+        "iam bucket demo-project-1-rag-arena-uploads roles/storage.objectViewer -> discoveryengine-service-agent",
         "service rag-arena (live, iap, sa=rag-arena-run, min=0, max=2, cpu=1, memory=2Gi, timeout=900s)",
         "iap-service-agent identity",
         "iam service rag-arena roles/run.invoker -> iap-service-agent",
@@ -308,6 +312,9 @@ def test_deploy_rejects_missing_and_invalid_keys() -> None:
     _assert_rejected({"MEMORY": "2GB"}, "MEMORY")
     _assert_rejected({"DEMO_MODE": "replay"}, "DEMO_MODE must be live")
     _assert_rejected({"GCS_CORPUS_BUCKET": "Bad Bucket"}, "GCS_CORPUS_BUCKET")
+    _assert_rejected({"UPLOAD_BUCKET": "Bad Bucket"}, "UPLOAD_BUCKET")
+    _assert_rejected({"UPLOAD_BUCKET_MODE": "sometimes"}, "UPLOAD_BUCKET_MODE must be auto or existing")
+    _assert_rejected({"UPLOAD_BUCKET_KMS_KEY": "not-a-key"}, "UPLOAD_BUCKET_KMS_KEY")
 
 
 def test_deploy_requires_yes_or_dry_run_and_rejects_unknown_flags() -> None:
@@ -329,6 +336,7 @@ def test_teardown_dry_run_lists_only_script_owned_resources() -> None:
         "service rag-arena-replay (us-central1)",
         "service rag-arena (us-central1)",
         "iam project/dataset/bucket bindings of rag-arena-run",
+        "iam upload-bucket bindings of rag-arena-run + discoveryengine-service-agent",
         "service-account rag-arena-replay",
         "service-account rag-arena-run",
         "artifact-repo rag-arena (us-central1)",

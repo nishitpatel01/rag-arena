@@ -4,10 +4,14 @@
 #   cp deploy/cloudrun.env.example deploy/cloudrun.env   # git-ignored; fill in your values
 #   scripts/deploy_cloudrun.sh --dry-run                  # validate + print the plan (never calls gcloud)
 #   scripts/deploy_cloudrun.sh --yes                      # apply (idempotent; safe to re-run)
+#   scripts/deploy_cloudrun.sh --upload-bucket-only       # only create/verify the private upload bucket + grants
 #
 # Creates only: an Artifact Registry repo, one Cloud Build image, the live runtime service account (+ least-privilege
 # bindings), the live Cloud Run service (IAP or public) and, when DEPLOY_REPLAY=true, a role-less replay service
 # account + a public replay-only service. scripts/teardown_cloudrun.sh removes exactly these.
+# Also (v1.1): the private upload bucket for user documents (UPLOAD_BUCKET) is created by YOUR identity when missing
+# (UPLOAD_BUCKET_MODE=auto) and its readers are granted; a denied create is reported, never silently skipped.
+# Teardown removes the bucket grants but keeps the bucket and your documents.
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,7 +24,8 @@ readonly INFRA_KEYS="GCP_PROJECT_ID REGION SERVICE_NAME ACCESS_MODE IAP_MEMBERS 
 ARTIFACT_REPO RUNTIME_SA_NAME REPLAY_SA_NAME LIVE_INGEST IMAGE_TAG MIN_INSTANCES MAX_INSTANCES REPLAY_MAX_INSTANCES
 CPU MEMORY REPLAY_MEMORY TIMEOUT REPLAY_TIMEOUT CONCURRENCY REPLAY_CONCURRENCY LEAK_SCAN_TOKENS"
 # App settings forwarded to the LIVE service as env vars (same names as .env).
-readonly APP_KEYS="DEMO_MODE GCP_LOCATION VERTEX_GENAI_LOCATION GCS_CORPUS_BUCKET BQ_DATASET BQ_TABLE ENABLED_LEVELS
+readonly APP_KEYS="DEMO_MODE GCP_LOCATION VERTEX_GENAI_LOCATION GCS_CORPUS_BUCKET UPLOAD_BUCKET UPLOAD_BUCKET_MODE
+UPLOAD_BUCKET_KMS_KEY BQ_DATASET BQ_TABLE ENABLED_LEVELS
 GEMINI_FAST_MODEL GEMINI_PRO_MODEL GEMINI_REASONING_MODEL GEMINI_THINKING_LEVEL TEXT_EMBEDDING_MODEL
 MULTIMODAL_EMBEDDING_MODEL RERANKER_MODEL JUDGE_PROVIDER JUDGE_MODEL JUDGE_LOCATION JUDGE_MAX_TOKENS
 JUDGE_TIMEOUT_SECONDS SYNTHESIS_MAX_TOKENS SYNTHESIS_TIMEOUT_SECONDS DOCAI_LOCATION DOCAI_PROCESSOR_ID
@@ -28,7 +33,7 @@ DOCAI_PROCESSOR_VERSION DOCAI_TIMEOUT_SECONDS VISION_MODEL VAIS_LOCATION VAIS_DA
 VAIS_PAGE_SIZE VAIS_MAX_SEGMENTS VAIS_SUMMARY_RESULT_COUNT VAIS_TIMEOUT_SECONDS VAIS_SUMMARY_MODEL_VERSION
 HYBRID_CANDIDATE_K RERANK_TOP_N RANKING_TIMEOUT_SECONDS AGENT_MAX_TURNS AGENT_MAX_TOOL_CALLS_PER_TURN
 AGENT_THINKING_LEVEL AGENT_MODEL_CALL_TIMEOUT_SECONDS QUERY_TIMEOUT_SECONDS INGEST_JOB_TIMEOUT_SECONDS
-MAX_UPLOAD_BYTES MAX_UPLOAD_PAGES MAX_SSE_FRAMES REPLAY_SPEED APP_VERSION CORS_ALLOW_ORIGIN_REGEX"
+MAX_SSE_FRAMES REPLAY_SPEED APP_VERSION CORS_ALLOW_ORIGIN_REGEX"
 # Local-only keys tolerated (e.g. pasted from .env) but NEVER forwarded to Cloud Run.
 readonly LOCAL_ONLY_KEYS="CLOUDSDK_CONFIG GOOGLE_APPLICATION_CREDENTIALS PUBLISH_SCRUB_TOKENS ALLOW_DEV_FIXTURES
 RECORDINGS_DIR MODEL_VERIFICATION_FILE STATIC_DIR ALLOYDB_DSN ALLOYDB_TABLE VVS2_COLLECTION"
@@ -36,6 +41,10 @@ readonly APIS_BASE="run.googleapis.com artifactregistry.googleapis.com cloudbuil
 readonly CMD_TIMEOUT=600      # seconds per gcloud call
 readonly BUILD_TIMEOUT=2400   # seconds for Cloud Build (npm ci + pip install)
 readonly IAM_RETRIES=6        # new service accounts take a few seconds to become bindable
+readonly UPLOAD_FAIL_EXIT=3   # --upload-bucket-only: bucket not usable (permission, org policy, conflict, unsafe)
+readonly UPLOAD_SA_ROLES="roles/storage.objectUser roles/storage.legacyBucketReader"
+readonly CREATE_HINT='gcloud storage buckets create gs://${UPLOAD_BUCKET} --project=${GCP_PROJECT_ID} --location=${REGION} --uniform-bucket-level-access --public-access-prevention'
+UPLOAD_STATE="not-run"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 warn() { echo "WARNING: $*" >&2; }
@@ -45,10 +54,11 @@ in_list() { local needle="$1" word; shift; for word in $*; do [[ "$word" == "$ne
 
 usage() {
   cat <<'EOF'
-Usage: scripts/deploy_cloudrun.sh [--env-file PATH] (--dry-run | --yes)
-  --env-file PATH  deploy config (default: deploy/cloudrun.env, copy of deploy/cloudrun.env.example)
-  --dry-run        validate the config and print the plan; never calls gcloud
-  --yes            apply the plan (idempotent)
+Usage: scripts/deploy_cloudrun.sh [--env-file PATH] (--dry-run | --yes | --upload-bucket-only)
+  --env-file PATH       deploy config (default: deploy/cloudrun.env, copy of deploy/cloudrun.env.example)
+  --dry-run             validate the config and print the plan; never calls gcloud
+  --yes                 apply the plan (idempotent)
+  --upload-bucket-only  only create/verify the private upload bucket and grant its readers (exit 3 if not usable)
 EOF
 }
 
@@ -58,6 +68,7 @@ parse_args() {
       --env-file) (($# >= 2)) || die "--env-file needs a path"; ENV_FILE="$2"; shift 2 ;;
       --dry-run) MODE="dry-run"; shift ;;
       --yes) MODE="apply"; shift ;;
+      --upload-bucket-only) MODE="upload-only"; shift ;;
       -h|--help) usage; exit 0 ;;
       *) usage >&2; die "unknown argument: $1" ;;
     esac
@@ -95,6 +106,8 @@ set_defaults() {
     key="${def%%=*}"; [[ -n "${CFG[$key]:-}" ]] || CFG["$key"]="${def#*=}"
   done
   [[ -n "${CFG[GCS_CORPUS_BUCKET]:-}" || -z "${CFG[GCP_PROJECT_ID]:-}" ]] || CFG[GCS_CORPUS_BUCKET]="${CFG[GCP_PROJECT_ID]}-rag-arena-corpus"
+  [[ -n "${CFG[UPLOAD_BUCKET]:-}" || -z "${CFG[GCP_PROJECT_ID]:-}" ]] || CFG[UPLOAD_BUCKET]="${CFG[GCP_PROJECT_ID]}-rag-arena-uploads"
+  [[ -n "${CFG[UPLOAD_BUCKET_MODE]:-}" ]] || CFG[UPLOAD_BUCKET_MODE]="auto"
 }
 
 check_re() { [[ "$(cfg "$1")" =~ $2 ]] || die "$1 is invalid ('$(cfg "$1")'): $3"; }
@@ -114,9 +127,20 @@ validate_names() {
   check_re REPLAY_SA_NAME '^[a-z][a-z0-9-]{4,28}[a-z0-9]$' "6-30 chars service account id"
   check_re GCS_CORPUS_BUCKET '^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$' "a Cloud Storage bucket name"
   check_re BQ_DATASET '^[A-Za-z0-9_]{1,1024}$' "a BigQuery dataset id"
+  validate_upload_bucket
   [[ "$(cfg REPLAY_SERVICE_NAME)" != "$(cfg SERVICE_NAME)" ]] || die "REPLAY_SERVICE_NAME must differ from SERVICE_NAME"
   [[ "$(cfg REPLAY_SA_NAME)" != "$(cfg RUNTIME_SA_NAME)" ]] || die "REPLAY_SA_NAME must differ from RUNTIME_SA_NAME"
   [[ -z "$(cfg IMAGE_TAG)" ]] || check_re IMAGE_TAG '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$' "a docker tag"
+}
+
+validate_upload_bucket() {
+  check_re UPLOAD_BUCKET '^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$' "a Cloud Storage bucket name"
+  [[ "$(cfg UPLOAD_BUCKET)" != *google* && "$(cfg UPLOAD_BUCKET)" != goog* ]] || die "UPLOAD_BUCKET may not contain 'google' or start with 'goog'"
+  [[ "$(cfg UPLOAD_BUCKET)" != "$(cfg GCS_CORPUS_BUCKET)" ]] || die "UPLOAD_BUCKET must differ from GCS_CORPUS_BUCKET"
+  [[ "$(cfg UPLOAD_BUCKET_MODE)" == "auto" || "$(cfg UPLOAD_BUCKET_MODE)" == "existing" ]] \
+    || die "UPLOAD_BUCKET_MODE must be auto or existing, got '$(cfg UPLOAD_BUCKET_MODE)'"
+  [[ -z "$(cfg UPLOAD_BUCKET_KMS_KEY)" ]] || check_re UPLOAD_BUCKET_KMS_KEY \
+    '^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$' "projects/P/locations/L/keyRings/R/cryptoKeys/K"
 }
 
 validate_access() {
@@ -186,6 +210,12 @@ print_plan() {
   plan "iam project roles/documentai.apiUser -> $sa"
   plan "iam project $de_role -> $sa"
   plan "iam bucket $(cfg GCS_CORPUS_BUCKET) $gcs_role -> $sa"
+  if [[ "$(cfg UPLOAD_BUCKET_MODE)" == "auto" ]]; then
+    plan "upload-bucket $(cfg UPLOAD_BUCKET) (auto: create if missing; private; $(cfg REGION))"
+  else plan "upload-bucket $(cfg UPLOAD_BUCKET) (existing: verify only; never created)"; fi
+  local role
+  for role in $UPLOAD_SA_ROLES; do plan "iam bucket $(cfg UPLOAD_BUCKET) $role -> $sa"; done
+  plan "iam bucket $(cfg UPLOAD_BUCKET) roles/storage.objectViewer -> discoveryengine-service-agent"
   access="$(cfg ACCESS_MODE)"
   plan "service $(cfg SERVICE_NAME) (live, $access, sa=$sa, min=$(cfg MIN_INSTANCES), max=$(cfg MAX_INSTANCES), cpu=$(cfg CPU), memory=$(cfg MEMORY), timeout=$(cfg TIMEOUT)s)"
   if [[ "$access" == "iap" ]]; then
@@ -270,7 +300,7 @@ ensure_repo() {
 
 leak_tokens() {
   local token
-  for token in "$(cfg GCP_PROJECT_ID)" "$PROJECT_NUMBER" "$(cfg GCS_CORPUS_BUCKET)" "$ACTIVE_ACCOUNT"; do
+  for token in "$(cfg GCP_PROJECT_ID)" "$PROJECT_NUMBER" "$(cfg GCS_CORPUS_BUCKET)" "$(cfg UPLOAD_BUCKET)" "$ACTIVE_ACCOUNT"; do
     [[ -n "$token" ]] && echo "$token"
   done
   IFS=',' read -r -a _extra <<< "$(cfg LEAK_SCAN_TOKENS)"
@@ -350,6 +380,121 @@ grant_live_roles() {
   retry_iam gc storage buckets add-iam-policy-binding "gs://$(cfg GCS_CORPUS_BUCKET)" --member="$member" --role="$gcs_role"
 }
 
+# ---------------------------------------------------------------------------------------------- upload bucket (v1.1)
+
+upload_report() {  # state message [remedy]
+  UPLOAD_STATE="$1"
+  echo "UPLOAD BUCKET $1: $2"
+  [[ -z "${3:-}" ]] || echo "    remedy: $3" >&2
+}
+
+classify_create_failure() {  # stderr of a failed create -> sets UPLOAD_STATE + prints remedy
+  local err="$1" constraints
+  echo "    gcloud said: $(head -c 600 <<< "$err" | tr '\n' ' ')" >&2
+  constraints="$(grep -o 'constraints/[A-Za-z0-9_.]*' <<< "$err" | sort -u | tr '\n' ' ' || true)"
+  if [[ -n "$constraints" ]] || grep -qi 'organization policy' <<< "$err"; then
+    upload_report org_policy "creating the bucket was blocked by organization policy: ${constraints:-unnamed constraint}" \
+      "ask your organization admin to allow it for this project, or set UPLOAD_BUCKET to an approved private bucket with UPLOAD_BUCKET_MODE=existing"
+  elif grep -q "HTTPError 403\|storage.buckets.create access\|Permission 'storage.buckets.create'" <<< "$err"; then
+    upload_report permission_denied "your identity cannot create buckets in this project" \
+      "needs permission storage.buckets.create (for example role roles/storage.admin); ask a project admin to grant it or to run: $CREATE_HINT"
+  elif grep -q 'HTTPError 409\|not available' <<< "$err"; then
+    upload_report name_conflict "the bucket name is already taken by another project (bucket names are global)" \
+      "set UPLOAD_BUCKET to a different, unique name in $ENV_FILE and re-run"
+  else
+    upload_report error "bucket create failed (see gcloud output above)" "fix the error above and re-run with --upload-bucket-only"
+  fi
+}
+
+upload_privacy_problems() {  # describe JSON on stdin -> one problem per line (empty = private)
+  python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+if d.get("public_access_prevention") != "enforced":
+    print("public access prevention is not enforced")
+if d.get("uniform_bucket_level_access") is not True:
+    print("uniform bucket-level access is off (object ACLs could make files public)")
+'
+}
+
+describe_upload_bucket() {  # -> 0 + JSON on stdout | 1 missing | 2 denied | 3 other (stderr kept in UPLOAD_ERR)
+  local out errf rc=0
+  errf="$(mktemp)"; TMP_FILES+=("$errf")
+  out="$(gc storage buckets describe "gs://$(cfg UPLOAD_BUCKET)" --format=json 2>"$errf")" || rc=$?
+  UPLOAD_ERR="$(cat "$errf")"
+  if ((rc == 0)); then echo "$out"; return 0; fi
+  if grep -q 'not found: 404\|HTTPError 404' <<< "$UPLOAD_ERR"; then return 1; fi
+  if grep -q 'HTTPError 403\|storage.buckets.get access' <<< "$UPLOAD_ERR"; then return 2; fi
+  return 3
+}
+
+create_upload_bucket() {  # -> 0 created | 1 failed (UPLOAD_STATE set)
+  local errf args
+  errf="$(mktemp)"; TMP_FILES+=("$errf")
+  args=(storage buckets create "gs://$(cfg UPLOAD_BUCKET)" --location="$(cfg REGION)" --uniform-bucket-level-access
+        --public-access-prevention)
+  [[ -z "$(cfg UPLOAD_BUCKET_KMS_KEY)" ]] || args+=(--default-encryption-key="$(cfg UPLOAD_BUCKET_KMS_KEY)")
+  echo "==> creating private upload bucket gs://$(cfg UPLOAD_BUCKET) as $ACTIVE_ACCOUNT"
+  if gc "${args[@]}" >/dev/null 2>"$errf"; then return 0; fi
+  classify_create_failure "$(cat "$errf")"
+  return 1
+}
+
+grant_upload_readers() {
+  local role member="serviceAccount:$LIVE_SA" agent
+  echo "==> upload bucket readers: $(cfg RUNTIME_SA_NAME) ($UPLOAD_SA_ROLES) + Vertex AI Search service agent (objectViewer)"
+  for role in $UPLOAD_SA_ROLES; do
+    retry_iam gc storage buckets add-iam-policy-binding "gs://$(cfg UPLOAD_BUCKET)" --member="$member" --role="$role"
+  done
+  if ! timeout "$CMD_TIMEOUT" gcloud beta services identity create --service=discoveryengine.googleapis.com \
+      --project="$(cfg GCP_PROJECT_ID)" --quiet >/dev/null 2>&1; then
+    warn "could not ensure the Vertex AI Search service agent (is discoveryengine.googleapis.com enabled?)"
+    warn "Level 5 imports of uploaded documents will fail until it exists; re-run with --upload-bucket-only"
+    return 0
+  fi
+  agent="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-discoveryengine.iam.gserviceaccount.com"
+  retry_iam gc storage buckets add-iam-policy-binding "gs://$(cfg UPLOAD_BUCKET)" --member="$agent" --role=roles/storage.objectViewer
+}
+
+ensure_upload_bucket() {  # -> 0 usable | 1 not usable (UPLOAD_STATE + remedy printed)
+  local meta rc=0 problems created=false
+  meta="$(describe_upload_bucket)" || rc=$?
+  case "$rc" in
+    0) ;;
+    1)
+      if [[ "$(cfg UPLOAD_BUCKET_MODE)" == "existing" ]]; then
+        upload_report not_found "gs://$(cfg UPLOAD_BUCKET) does not exist and UPLOAD_BUCKET_MODE=existing" \
+          "create the bucket, fix UPLOAD_BUCKET, or set UPLOAD_BUCKET_MODE=auto"
+        return 1
+      fi
+      create_upload_bucket || return 1
+      created=true
+      rc=0; meta="$(describe_upload_bucket)" || rc=$?
+      ((rc == 0)) || { upload_report error "bucket created but cannot be read back" "re-run with --upload-bucket-only"; return 1; }
+      ;;
+    2) upload_report permission_denied "your identity cannot read gs://$(cfg UPLOAD_BUCKET)" \
+         "needs storage.buckets.get on the bucket (for example roles/storage.admin), or ask the bucket owner"; return 1 ;;
+    *) echo "    gcloud said: $(head -c 600 <<< "$UPLOAD_ERR" | tr '\n' ' ')" >&2
+       upload_report error "cannot read gs://$(cfg UPLOAD_BUCKET)" "fix the error above and re-run with --upload-bucket-only"; return 1 ;;
+  esac
+  problems="$(upload_privacy_problems <<< "$meta")"
+  if [[ -n "$problems" ]]; then
+    upload_report unsafe_bucket "gs://$(cfg UPLOAD_BUCKET) is not private: $(tr '\n' ';' <<< "$problems")" \
+      "fix those settings or choose another bucket; this script never changes an existing bucket"
+    return 1
+  fi
+  grant_upload_readers
+  if [[ "$created" == "true" ]]; then upload_report created "gs://$(cfg UPLOAD_BUCKET) created private (public access prevention enforced, uniform access on, no auto-delete)"
+  else upload_report ok "gs://$(cfg UPLOAD_BUCKET) is private (public access prevention enforced, uniform access on)"; fi
+}
+
+upload_bucket_only() {
+  TMP_FILES=()
+  trap 'rm -f "${TMP_FILES[@]:-}"' EXIT
+  preflight
+  ensure_upload_bucket || exit "$UPLOAD_FAIL_EXIT"
+}
+
 write_env_yaml() {
   local out="$1" pair key value
   : > "$out"; chmod 600 "$out"
@@ -421,6 +566,10 @@ apply_plan() {
   build_image
   ensure_sa "$(cfg RUNTIME_SA_NAME)" "RAG Arena live runtime"
   grant_live_roles
+  if ! ensure_upload_bucket; then
+    warn "uploads will be DISABLED in the app until the upload bucket is usable ($UPLOAD_STATE; remedy above)."
+    warn "fix it, then run: scripts/deploy_cloudrun.sh --upload-bucket-only"
+  fi
   deploy_live
   configure_iap
   deploy_replay
@@ -432,12 +581,14 @@ main() {
   load_env_file
   set_defaults
   validate_all
+  if [[ "$MODE" == "upload-only" ]]; then upload_bucket_only; return 0; fi
   print_warnings
   print_plan
   print_env
   if [[ "$MODE" == "dry-run" ]]; then echo "DRY RUN: nothing was created (re-run with --yes to apply)"; return 0; fi
   apply_plan
-  echo "DONE"
+  if [[ "$UPLOAD_STATE" == "ok" || "$UPLOAD_STATE" == "created" ]]; then echo "DONE"
+  else echo "DONE (uploads disabled: upload bucket $UPLOAD_STATE)"; fi
 }
 
 main "$@"

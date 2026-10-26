@@ -364,8 +364,8 @@ def test_ingest_refuses_unbuilt_levels_no_ready_files_and_parallel_runs() -> Non
         empty = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level1_naive"})
         assert empty.status_code == 409 and "ready" in empty.json()["error"]
         _upload(client, store, ws, _corpus_pdf(), name="Pricing.pdf")
-        l3 = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level3_multimodal"})
-        assert l3.status_code == 400 and "not available for uploads yet" in l3.json()["error"]
+        l5 = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "managed_vertex"})
+        assert l5.status_code == 400 and "not available for uploads yet" in l5.json()["error"]
         manifest, gen = store.manifests[ws]
         store.manifests[ws] = ({**manifest, "levels": {"level2_hybrid": {"status": "running"}}}, gen)
         busy = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level2_hybrid"})
@@ -415,3 +415,34 @@ def test_delete_workspace_also_deletes_its_bigquery_rows() -> None:
         resp = client.delete(f"/api/v1/uploads/{ws}", headers=_ALICE)
     assert resp.status_code == 200 and loader.deleted_scopes == [ws]
     assert resp.json()["bigquery"] == {"deleted_scope": ws}
+
+
+# ---------- v1.1 step 3: Level 3 needs an explicit cost confirmation ----------
+
+def test_level3_estimate_and_confirmation_gate() -> None:
+    client, store, _ = _ingest_client()
+    with client:
+        ws = _workspace(client)
+        _upload(client, store, ws, _pdf(pages=4), name="Four.pdf")
+        est = client.get(f"/api/v1/uploads/{ws}/estimate?level=level3_multimodal", headers=_ALICE)
+        assert est.status_code == 200, est.text
+        e = est.json()["estimate"]
+        assert e["pages"] == 4 and e["documentai_usd"] == 0.04 and e["max_usd"] >= e["documentai_usd"]
+        assert "Document AI" in e["basis"] and e["vision_model"]
+        unconfirmed = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level3_multimodal"})
+        assert unconfirmed.status_code == 409 and unconfirmed.json()["needs_confirmation"] is True
+        assert unconfirmed.json()["estimate"]["max_usd"] == e["max_usd"]
+        too_low = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE,
+                              json={"level": "level3_multimodal", "confirm_cost_usd": e["max_usd"] / 2})
+        assert too_low.status_code == 409
+        manifest, _ = store.manifests[ws]
+        assert "level3_multimodal" not in manifest["levels"]  # nothing started without confirmation
+
+
+def test_level1_and_level2_need_no_confirmation() -> None:
+    client, store, _ = _ingest_client()
+    with client:
+        ws = _workspace(client)
+        _upload(client, store, ws, _pdf(pages=1), name="One.pdf")
+        est = client.get(f"/api/v1/uploads/{ws}/estimate?level=level1_naive", headers=_ALICE).json()["estimate"]
+        assert est["requires_confirmation"] is False

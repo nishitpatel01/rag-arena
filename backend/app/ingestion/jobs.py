@@ -50,8 +50,8 @@ _MAX_JOB_EVENTS = 5000
 _EMBED_BATCH_SIZE = 32
 _MAX_EMBED_BATCHES = 10_000
 _STREAM_POLL_SECONDS = 1.0
-# v1.1: levels whose ingestion already accepts an upload workspace (L3 + L5 arrive in steps 3 and 4).
-UPLOAD_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid")
+# v1.1: levels whose ingestion accepts an upload workspace (L4 reuses L3 rows; L5 arrives in step 4).
+UPLOAD_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal")
 
 
 class IngestBackendUnavailable(RuntimeError):

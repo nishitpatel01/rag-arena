@@ -154,13 +154,14 @@ async def _parse(runner: IngestJobRunner, job: IngestJob, emitter: Any, tracker:
         docai_wall_ms = int((time.perf_counter() - t0) * 1000)
         diagram_pages = [await asyncio.to_thread(detect_diagram_pages, d.path, list(range(1, lay.pages + 1)), lay.figure_pages) for d, lay in zip(docs, layouts)]
         targets = [(d, p, r) for d, pages in zip(docs, diagram_pages) for p, r in sorted(pages.items())]
-        if len(targets) > MAX_VISION_PAGES:
+        # Corpus bound only: uploads have no page limits (owner decision 2026-10-26); the job timeout still bounds them.
+        if job.scope is None and len(targets) > MAX_VISION_PAGES:
             raise RuntimeError(f"{len(targets)} diagram pages exceed MAX_VISION_PAGES={MAX_VISION_PAGES}: {[(d.path.name, p) for d, p, _ in targets[:10]]}…")
         t1 = time.perf_counter()
         results, failures = await _vision_all(runner, job, targets, vision)
         vision_wall_ms = int((time.perf_counter() - t1) * 1000)
         parsed = [
-            ParsedDoc(d, lay, await asyncio.to_thread(page_metadata, d.path, lay.pages), dp,
+            ParsedDoc(d, lay, await asyncio.to_thread(lambda d=d, lay=lay: page_metadata(d.path, lay.pages, upload=d.solicitation_id.startswith("upl_"))), dp,
                       {p: results[(d.path.name, p)] for p in dp if (d.path.name, p) in results})
             for d, lay, dp in zip(docs, layouts, diagram_pages)
         ]

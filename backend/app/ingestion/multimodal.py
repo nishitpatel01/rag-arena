@@ -64,8 +64,9 @@ class MultimodalChunk:
     item: EmbedItem
 
 
-def page_metadata(pdf_path: Path, pages: int) -> dict[int, PageMeta]:
-    """Corpus metadata line per page from the PDF text layer (CUAD agreements fall back to the filename rule)."""
+def page_metadata(pdf_path: Path, pages: int, *, upload: bool = False) -> dict[int, PageMeta]:
+    """Corpus metadata line per page from the PDF text layer (CUAD agreements fall back to the filename rule);
+    ``upload=True``: user documents get ``UPLOADED_DOCUMENT`` and no invented dates."""
     import pymupdf
 
     out: dict[int, PageMeta] = {}
@@ -73,7 +74,7 @@ def page_metadata(pdf_path: Path, pages: int) -> dict[int, PageMeta]:
         for idx in range(min(pages, len(doc))):
             text = doc[idx].get_text("text", clip=pymupdf.INFINITE_RECT())
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-            doc_type, section, _elem, amendment, effective, amends, _body = _extract_page_metadata_and_body(lines, pdf_path.name)
+            doc_type, section, _elem, amendment, effective, amends, _body = _extract_page_metadata_and_body(lines, pdf_path.name, upload=upload)
             out[idx + 1] = PageMeta(doc_type, section, amendment, effective, amends)
     return out
 

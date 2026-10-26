@@ -86,7 +86,7 @@ def test_upload_job_failure_is_reported_and_callback_still_runs() -> None:
 
 def test_upload_levels_not_built_yet_are_refused_loudly() -> None:
     runner = IngestJobRunner(_settings())
-    for level in ("level3_multimodal", "level4_agentic", "managed_vertex"):
+    for level in ("level4_agentic", "managed_vertex"):
         with pytest.raises(ValueError, match="not available for uploads yet"):
             runner.start(level, upload=_source([], []))
 
@@ -101,3 +101,36 @@ def test_upload_source_validates_inputs() -> None:
     with pytest.raises(ValueError):
         UploadSource(workspace_id=_WS, files=((f"uploads/{_WS}/a.pdf", "a.pdf"), (f"uploads/{_WS}/b.pdf", "a.pdf")),
                      fetch=lambda n, d: 0)
+
+
+# ---------- step 3a: uploaded documents get honest metadata (no corpus defaults) ----------
+
+def test_uploaded_pages_are_not_given_corpus_labels_or_invented_dates() -> None:
+    from app.ingestion.parsers import chunk_pages
+
+    lines = [["Statement of Work", "The vendor shall deliver 12 reports per year."]]
+    for tier in ("naive", "hybrid"):
+        up = chunk_pages(lines, pdf_name="Pricing_amendment_v2.pdf", solicitation_id=_WS, tier_profile=tier)
+        assert up and all(c.doc_type == "UPLOADED_DOCUMENT" and c.effective_date is None and c.amendment_number == 0
+                          for c in up), [(c.doc_type, c.effective_date, c.amendment_number) for c in up]
+    corpus = chunk_pages(lines, pdf_name="05_Pricing.pdf", solicitation_id="solicitation_01", tier_profile="naive")
+    assert corpus[0].doc_type != "UPLOADED_DOCUMENT"  # corpus behaviour unchanged
+
+
+def test_uploaded_page_metadata_for_level3_is_honest() -> None:
+    from app.ingestion.multimodal import page_metadata
+
+    import tempfile
+
+    import pymupdf
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 72), "Master Services Agreement - amendment notes, no banner")
+    path = Path(tempfile.mkdtemp()) / "02_MSA_amendment.pdf"  # corpus-looking name must not leak corpus labels
+    doc.save(str(path))
+    metas = page_metadata(path, 1, upload=True)
+    assert metas[1].doc_type == "UPLOADED_DOCUMENT" and metas[1].effective_date is None
+    assert metas[1].amendment_number == 0
+    # a metadata banner printed on the page itself is still honoured (it is the document's own statement)
+    banner = page_metadata(_PDF, 1, upload=True)
+    assert banner[1].doc_type != "UPLOADED_DOCUMENT"

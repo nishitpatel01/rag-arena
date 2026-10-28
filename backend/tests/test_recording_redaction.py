@@ -22,6 +22,7 @@ def _settings():
         demo_mode="record",
         gcp_project_id="acme-secret-proj",
         gcs_corpus_bucket="acme-secret-proj-rag-arena-corpus",
+        upload_bucket="acme-secret-proj-rag-arena-uploads",
         cloudsdk_config=f"{_HOME}/.config/gcloud-profile-x",
         google_application_credentials=f"{_HOME}/.config/gcloud-profile-x/adc-credentials.json",
     )
@@ -34,6 +35,7 @@ def test_redaction_tokens_cover_identity_values_longest_first() -> None:
     mapping = dict(tokens)
     assert mapping["acme-secret-proj"] == "${GCP_PROJECT_ID}"
     assert mapping["acme-secret-proj-rag-arena-corpus"] == "${GCS_CORPUS_BUCKET}"
+    assert mapping["acme-secret-proj-rag-arena-uploads"] == "${UPLOAD_BUCKET}"
     assert mapping[f"{_HOME}/.config/gcloud-profile-x"] == "${CLOUDSDK_CONFIG}"
     assert mapping[_HOME] == "${HOME}"
     assert mapping[f"{_HOME}/.config/gcloud-profile-x/adc-credentials.json"] == "${GOOGLE_APPLICATION_CREDENTIALS}"
@@ -43,7 +45,11 @@ def test_redact_value_is_recursive_over_keys_lists_and_substrings() -> None:
     settings = _settings()
     doc = {
         "sql": "SELECT * FROM `acme-secret-proj.rag_arena.document_chunks_v3`",
-        "nested": [{"uri": "gs://acme-secret-proj-rag-arena-corpus/sample_docs/a.pdf"}, ("x", f"{_HOME}/tmp/file")],
+        "nested": [
+            {"uri": "gs://acme-secret-proj-rag-arena-corpus/sample_docs/a.pdf"},
+            {"upload_uri": "gs://acme-secret-proj-rag-arena-uploads/uploads/upl_0123456789ab/f.pdf"},
+            ("x", f"{_HOME}/tmp/file"),
+        ],
         "acme-secret-proj": 3,
         "n": 1.5,
         "none": None,
@@ -51,11 +57,20 @@ def test_redact_value_is_recursive_over_keys_lists_and_substrings() -> None:
     out = redact_value(doc, redaction_tokens(settings))
     assert out["sql"] == "SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks_v3`"
     assert out["nested"][0]["uri"] == "gs://${GCS_CORPUS_BUCKET}/sample_docs/a.pdf"
-    assert out["nested"][1] == ["x", "${HOME}/tmp/file"]
+    assert out["nested"][1]["upload_uri"] == "gs://${UPLOAD_BUCKET}/uploads/upl_0123456789ab/f.pdf"
+    assert out["nested"][2] == ["x", "${HOME}/tmp/file"]
     assert out["${GCP_PROJECT_ID}"] == 3 and out["n"] == 1.5 and out["none"] is None
     assert_redacted(out, redaction_tokens(settings))
     with pytest.raises(RedactionError, match="GCP_PROJECT_ID"):
         assert_redacted({"leak": "acme-secret-proj"}, redaction_tokens(settings))
+    custom_upload = live_settings(
+        demo_mode="record",
+        gcp_project_id="acme-secret-proj",
+        gcs_corpus_bucket="acme-secret-proj-rag-arena-corpus",
+        upload_bucket="custom-team-uploads-bkt",
+    )
+    with pytest.raises(RedactionError, match="UPLOAD_BUCKET"):
+        assert_redacted({"leak": "custom-team-uploads-bkt"}, redaction_tokens(custom_upload))
 
 
 def test_recordings_written_in_record_mode_contain_no_identity_values() -> None:

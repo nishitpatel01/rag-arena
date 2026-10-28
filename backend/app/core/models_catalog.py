@@ -246,9 +246,13 @@ def _spec(model_id: str, label: str, provider: str, settings: ArenaSettings, ent
 def _pseudo_spec(model_id: str, label: str, level_id: str, settings: ArenaSettings) -> ModelSpec:
     """Synthesis-only managed model: available when its published price exists and (live) VAIS ids are configured."""
     price = PRICE_TABLE.get(model_id)
+    has_vais = bool(
+        (settings.vais_engine_id and settings.vais_data_store_id)
+        or (settings.vais_uploads_engine_id and settings.vais_uploads_data_store_id)
+    )
     if price is None or not price.source or price.usd_per_1k_requests <= 0:
         available, reason = False, PRICE_NOT_VERIFIED
-    elif settings.is_live and not (settings.vais_engine_id and settings.vais_data_store_id):
+    elif settings.is_live and not has_vais:
         available, reason = False, VAIS_NOT_CONFIGURED
     else:
         available, reason = True, None

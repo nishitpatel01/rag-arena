@@ -169,3 +169,46 @@ def test_upload_bucket_rejects_bad_mode_name_and_corpus_reuse() -> None:
 def test_upload_bucket_empty_without_project() -> None:
     settings = get_settings({"DEMO_MODE": "replay"})
     assert settings.upload_bucket == ""
+
+
+def test_vais_uploads_ids_parse_validate_and_forbid_corpus_reuse() -> None:
+    from app.core.models_catalog import VAIS_SUMMARY_MODEL_ID, load_catalog
+    from fakes import write_verification_file
+
+    defaults = get_settings(_env())
+    assert defaults.vais_uploads_data_store_id == ""
+    assert defaults.vais_uploads_engine_id == ""
+
+    parsed = get_settings(
+        _env(
+            VAIS_DATA_STORE_ID="rag-arena-procurement",
+            VAIS_ENGINE_ID="rag-arena-procurement-search",
+            VAIS_UPLOADS_DATA_STORE_ID="rag-arena-uploads",
+            VAIS_UPLOADS_ENGINE_ID="rag-arena-uploads-search",
+        )
+    )
+    assert parsed.vais_uploads_data_store_id == "rag-arena-uploads"
+    assert parsed.vais_uploads_engine_id == "rag-arena-uploads-search"
+
+    for bad in (
+        _env(VAIS_UPLOADS_DATA_STORE_ID="projects/p/locations/global/dataStores/x"),
+        _env(VAIS_UPLOADS_ENGINE_ID="Bad Engine!"),
+        _env(VAIS_DATA_STORE_ID="shared-store", VAIS_UPLOADS_DATA_STORE_ID="shared-store"),
+        _env(VAIS_ENGINE_ID="shared-engine", VAIS_UPLOADS_ENGINE_ID="shared-engine"),
+    ):
+        with pytest.raises(ValueError):
+            get_settings(bad)
+
+    vfile = str(write_verification_file())
+    uploads_only = get_settings(
+        _env(
+            DEMO_MODE="live",
+            MODEL_VERIFICATION_FILE=vfile,
+            VAIS_UPLOADS_DATA_STORE_ID="rag-arena-uploads",
+            VAIS_UPLOADS_ENGINE_ID="rag-arena-uploads-search",
+        )
+    )
+    assert load_catalog(uploads_only).get(VAIS_SUMMARY_MODEL_ID).available is True
+    neither = get_settings(_env(DEMO_MODE="live", MODEL_VERIFICATION_FILE=vfile))
+    assert load_catalog(neither).get(VAIS_SUMMARY_MODEL_ID).available is False
+

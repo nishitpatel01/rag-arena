@@ -161,7 +161,7 @@ class DiscoveryEngineClient:
         self, method: str, path: str, *, body: dict[str, Any] | None = None, params: dict[str, Any] | None = None
     ) -> tuple[dict[str, Any], int]:
         """``(json, attempts)``; ``path`` is relative to ``/v1/`` (e.g. ``projects/.../dataStores``)."""
-        if method not in ("GET", "POST", "PATCH"):
+        if method not in ("GET", "POST", "PATCH", "DELETE"):
             raise ValueError(f"unsupported method {method!r}")
         url = f"{self.host}/v1/{path.lstrip('/')}"
         deadline = self._clock() + self._budget
@@ -176,8 +176,8 @@ class DiscoveryEngineClient:
             except httpx.TimeoutException as exc:
                 last = exc
             else:
-                if response.status_code == 200:
-                    return response.json(), attempt
+                if response.status_code in (200, 204):
+                    return (response.json() if response.text.strip() else {}), attempt
                 last = self._error(response, method, path)
                 if response.status_code not in RETRYABLE_STATUS:
                     raise last
@@ -196,6 +196,16 @@ class DiscoveryEngineClient:
                 return None
             raise
         return doc
+
+    def delete_if_exists(self, path: str) -> bool:
+        """DELETE a resource; ``True`` when deleted, ``False`` only on HTTP 404 (every other error raises)."""
+        try:
+            self.request("DELETE", path)
+        except DiscoveryEngineHTTPError as exc:
+            if exc.status_code == 404:
+                return False
+            raise
+        return True
 
     def poll_operation(
         self, operation: dict[str, Any], *, deadline_seconds: float, interval_seconds: float = 5.0,

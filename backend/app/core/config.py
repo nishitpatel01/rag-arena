@@ -188,11 +188,14 @@ class ArenaSettings:
     agent_max_tool_calls_per_turn: int = DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN
     agent_thinking_level: str = DEFAULT_AGENT_THINKING_LEVEL
     agent_model_call_timeout_seconds: int = DEFAULT_AGENT_MODEL_CALL_TIMEOUT_SECONDS
-    # Level 5 (env: VAIS_LOCATION, VAIS_DATA_STORE_ID, VAIS_ENGINE_ID, VAIS_PAGE_SIZE, VAIS_MAX_SEGMENTS,
-    # VAIS_SUMMARY_RESULT_COUNT, VAIS_TIMEOUT_SECONDS, VAIS_SUMMARY_MODEL_VERSION).
+    # Level 5 (env: VAIS_LOCATION, VAIS_DATA_STORE_ID, VAIS_ENGINE_ID, VAIS_UPLOADS_DATA_STORE_ID,
+    # VAIS_UPLOADS_ENGINE_ID, VAIS_PAGE_SIZE, VAIS_MAX_SEGMENTS, VAIS_SUMMARY_RESULT_COUNT, VAIS_TIMEOUT_SECONDS,
+    # VAIS_SUMMARY_MODEL_VERSION).
     vais_location: str = DEFAULT_VAIS_LOCATION
     vais_data_store_id: str = ""
     vais_engine_id: str = ""
+    vais_uploads_data_store_id: str = ""
+    vais_uploads_engine_id: str = ""
     vais_page_size: int = DEFAULT_VAIS_PAGE_SIZE
     vais_max_segments: int = DEFAULT_VAIS_MAX_SEGMENTS
     vais_summary_result_count: int = DEFAULT_VAIS_SUMMARY_RESULT_COUNT
@@ -258,9 +261,18 @@ class ArenaSettings:
         """Level 5 Vertex AI Search location/ids (empty id = not provisioned) and request bounds."""
         if not isinstance(self.vais_location, str) or not _VAIS_LOCATION_RE.fullmatch(self.vais_location):
             raise ValueError(f"VAIS_LOCATION is not a valid Discovery Engine location: {self.vais_location!r}")
-        for name, value in (("VAIS_DATA_STORE_ID", self.vais_data_store_id), ("VAIS_ENGINE_ID", self.vais_engine_id)):
+        for name, value in (
+            ("VAIS_DATA_STORE_ID", self.vais_data_store_id),
+            ("VAIS_ENGINE_ID", self.vais_engine_id),
+            ("VAIS_UPLOADS_DATA_STORE_ID", self.vais_uploads_data_store_id),
+            ("VAIS_UPLOADS_ENGINE_ID", self.vais_uploads_engine_id),
+        ):
             if not isinstance(value, str) or (value and not _VAIS_ID_RE.fullmatch(value)):
                 raise ValueError(f"{name} must be a short Discovery Engine id (not a resource name), got {value!r}")
+        if self.vais_uploads_data_store_id and self.vais_uploads_data_store_id == self.vais_data_store_id:
+            raise ValueError("VAIS_UPLOADS_DATA_STORE_ID must differ from VAIS_DATA_STORE_ID (uploads never share the corpus store)")
+        if self.vais_uploads_engine_id and self.vais_uploads_engine_id == self.vais_engine_id:
+            raise ValueError("VAIS_UPLOADS_ENGINE_ID must differ from VAIS_ENGINE_ID (uploads never share the corpus engine)")
         for name, value, (low, high) in (
             ("VAIS_PAGE_SIZE", self.vais_page_size, _VAIS_PAGE_SIZE_RANGE),
             ("VAIS_MAX_SEGMENTS", self.vais_max_segments, _VAIS_MAX_SEGMENTS_RANGE),
@@ -546,6 +558,8 @@ def _vais_kwargs(source: Mapping[str, str]) -> dict[str, object]:
         "vais_location": source.get("VAIS_LOCATION", DEFAULT_VAIS_LOCATION).strip(),
         "vais_data_store_id": source.get("VAIS_DATA_STORE_ID", "").strip(),
         "vais_engine_id": source.get("VAIS_ENGINE_ID", "").strip(),
+        "vais_uploads_data_store_id": source.get("VAIS_UPLOADS_DATA_STORE_ID", "").strip(),
+        "vais_uploads_engine_id": source.get("VAIS_UPLOADS_ENGINE_ID", "").strip(),
         "vais_summary_model_version": source.get("VAIS_SUMMARY_MODEL_VERSION", DEFAULT_VAIS_SUMMARY_MODEL_VERSION).strip(),
     })
     return out

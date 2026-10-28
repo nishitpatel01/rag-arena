@@ -59,6 +59,18 @@ variable "vais_engine_id" {
   default     = "rag-arena-procurement-search"
 }
 
+variable "vais_uploads_data_store_id" {
+  description = "v1.1 Level 5 uploads data store id (VAIS_UPLOADS_DATA_STORE_ID in .env; separate from the corpus store)"
+  type        = string
+  default     = "rag-arena-uploads"
+}
+
+variable "vais_uploads_engine_id" {
+  description = "v1.1 Level 5 uploads search app (engine) id (VAIS_UPLOADS_ENGINE_ID in .env)"
+  type        = string
+  default     = "rag-arena-uploads-search"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -200,6 +212,57 @@ output "vais_data_store_id" {
 output "vais_engine_id" {
   description = "Short engine id for VAIS_ENGINE_ID"
   value       = google_discovery_engine_search_engine.procurement.engine_id
+}
+
+# v1.1 Level 5 uploads data store + schema + search app (separate from the corpus store; filtered by workspace_id).
+resource "google_discovery_engine_data_store" "uploads" {
+  location                    = var.vais_location
+  data_store_id               = var.vais_uploads_data_store_id
+  display_name                = var.vais_uploads_data_store_id
+  industry_vertical           = "GENERIC"
+  content_config              = "CONTENT_REQUIRED"
+  solution_types              = ["SOLUTION_TYPE_SEARCH"]
+  create_advanced_site_search = false
+  depends_on                  = [google_project_service.rag_arena_apis]
+}
+
+resource "google_discovery_engine_schema" "uploads_default" {
+  location      = google_discovery_engine_data_store.uploads.location
+  data_store_id = google_discovery_engine_data_store.uploads.data_store_id
+  schema_id     = "default_schema"
+  json_schema = jsonencode({
+    "$schema"               = "https://json-schema.org/draft/2020-12/schema"
+    type                    = "object"
+    datetime_detection      = true
+    geolocation_detection   = true
+    properties = {
+      workspace_id = { type = "string", indexable = true, retrievable = true, dynamicFacetable = false }
+      doc_name     = { type = "string", indexable = true, retrievable = true }
+    }
+  })
+}
+
+resource "google_discovery_engine_search_engine" "uploads" {
+  engine_id         = var.vais_uploads_engine_id
+  collection_id     = "default_collection"
+  location          = google_discovery_engine_data_store.uploads.location
+  display_name      = var.vais_uploads_engine_id
+  industry_vertical = "GENERIC"
+  data_store_ids    = [google_discovery_engine_data_store.uploads.data_store_id]
+  search_engine_config {
+    search_tier    = "SEARCH_TIER_ENTERPRISE"
+    search_add_ons = ["SEARCH_ADD_ON_LLM"]
+  }
+}
+
+output "vais_uploads_data_store_id" {
+  description = "Short uploads data store id for VAIS_UPLOADS_DATA_STORE_ID"
+  value       = google_discovery_engine_data_store.uploads.data_store_id
+}
+
+output "vais_uploads_engine_id" {
+  description = "Short uploads engine id for VAIS_UPLOADS_ENGINE_ID"
+  value       = google_discovery_engine_search_engine.uploads.engine_id
 }
 
 # =====================================================================================================================

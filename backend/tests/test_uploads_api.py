@@ -91,16 +91,31 @@ class FakeStore:
     def list_workspace_ids(self) -> list[str]:
         return sorted(self.manifests)
 
+    def write_jsonl_manifest(self, ws: str, records: list[dict[str, Any]]) -> str:
+        import json as _json
+
+        name = f"{UPLOAD_PREFIX}{ws}/_vais_import.jsonl"
+        self.objects[name] = ("\n".join(_json.dumps(r, sort_keys=True) for r in records) + "\n").encode("utf-8")
+        return name
+
 
 class FakeServices:
     def __init__(self, manager: FakeManager, store: FakeStore) -> None:
         self._manager, self._store = manager, store
+        self.deleted_vais_docs: list[str] = []
+        self.fail_vais_delete = False
 
     def bucket_manager(self) -> FakeManager:
         return self._manager
 
     def store(self) -> FakeStore:
         return self._store
+
+    def delete_vais_docs(self, doc_ids: list[str]) -> int:
+        if self.fail_vais_delete:
+            raise RuntimeError("Discovery Engine 503 unavailable")
+        self.deleted_vais_docs.extend(doc_ids)
+        return len(doc_ids)
 
 
 class _RowsLoader:
@@ -364,8 +379,8 @@ def test_ingest_refuses_unbuilt_levels_no_ready_files_and_parallel_runs() -> Non
         empty = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level1_naive"})
         assert empty.status_code == 409 and "ready" in empty.json()["error"]
         _upload(client, store, ws, _corpus_pdf(), name="Pricing.pdf")
-        l5 = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "managed_vertex"})
-        assert l5.status_code == 400 and "not available for uploads yet" in l5.json()["error"]
+        l4 = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level4_agentic"})
+        assert l4.status_code == 400 and "not available for uploads" in l4.json()["error"]
         manifest, gen = store.manifests[ws]
         store.manifests[ws] = ({**manifest, "levels": {"level2_hybrid": {"status": "running"}}}, gen)
         busy = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level2_hybrid"})
@@ -446,3 +461,93 @@ def test_level1_and_level2_need_no_confirmation() -> None:
         _upload(client, store, ws, _pdf(pages=1), name="One.pdf")
         est = client.get(f"/api/v1/uploads/{ws}/estimate?level=level1_naive", headers=_ALICE).json()["estimate"]
         assert est["requires_confirmation"] is False
+
+
+# ---------- v1.1 step 4: Level 5 upload ingest, estimate, and synchronous VAIS document delete ----------
+
+def test_managed_vertex_upload_ingest_and_delete_cleans_vais_docs_or_keeps_workspace_on_failure() -> None:
+    import json as _json
+    import httpx
+    from app.core.vertex_search import DiscoveryEngineClient, VaisResources
+    from app.ingestion.jobs import IngestBackends, IngestJobRunner
+    from app.ingestion.managed_upload_job import ManagedUploadBackends
+    from app.ingestion.uploads import upload_doc_id
+    from test_ingest_jobs_api import FakeEmbedder
+    from test_upload_ingest import ScopedLoader
+
+    loader = ScopedLoader()
+    loader.deleted_scopes = []  # type: ignore[attr-defined]
+    loader.delete_scope = lambda scope: loader.deleted_scopes.append(scope) or 0  # type: ignore[attr-defined]
+    store = FakeStore()
+    store.bucket = "acme-uploads"  # type: ignore[attr-defined]
+    services = FakeServices(FakeManager(), store)
+
+    def send(method: str, url: str, **kw: Any) -> httpx.Response:
+        req = httpx.Request(method, url)
+        if method == "POST" and url.endswith("/documents:import"):
+            op = {"name": "projects/1/locations/global/operations/imp", "done": True,
+                  "metadata": {"successCount": "1", "failureCount": "0", "totalCount": "1"}, "response": {}}
+            return httpx.Response(200, text=_json.dumps(op), request=req)
+        if method == "GET" and "/documents/upl_" in url:
+            doc_id = url.rsplit("/", 1)[-1]
+            ws_id = "_".join(doc_id.split("_")[:2])
+            doc = {"id": doc_id, "structData": {"workspace_id": ws_id, "doc_name": "Pricing.pdf"},
+                   "indexTime": "2026-10-27T00:00:00Z"}
+            return httpx.Response(200, text=_json.dumps(doc), request=req)
+        raise AssertionError(f"unexpected {method} {url}")
+
+    vais = DiscoveryEngineClient(
+        project_id="test-project", location="global", token_provider=lambda: "t",
+        attempt_timeout_seconds=5, budget_seconds=10, sleep=lambda s: None, send=send,
+    )
+    upload_managed = ManagedUploadBackends(
+        store=store, vais=vais,
+        resources=VaisResources("test-project", "global", "rag-arena-uploads", "rag-arena-uploads-search"),
+        write_ingest_run=lambda r: None,
+    )
+    settings = live_settings(
+        ingest_job_timeout_seconds=120,
+        enabled_levels=("level1_naive", "managed_vertex"),
+        vais_uploads_data_store_id="rag-arena-uploads",
+        vais_uploads_engine_id="rag-arena-uploads-search",
+    )
+    factory = lambda s: IngestBackends(FakeEmbedder(), loader)  # noqa: E731
+    app = create_app(
+        settings=settings, query_run_writer=object(),
+        ingest_backend_factory=factory, ingest_upload_managed_factory=lambda s: upload_managed,
+    )
+    app.state.ingest_runner = IngestJobRunner(
+        settings, backend_factory=factory, upload_managed_factory=lambda s: upload_managed,
+    )
+    app.state.upload_services = services
+    client = TestClient(app)
+    with client:
+        ws = _workspace(client)
+        file_id, _ = _upload(client, store, ws, _corpus_pdf(), name="Pricing.pdf")
+        est = client.get(f"/api/v1/uploads/{ws}/estimate?level=managed_vertex", headers=_ALICE)
+        assert est.status_code == 200
+        assert est.json()["estimate"]["requires_confirmation"] is False
+        assert "Vertex AI Search" in est.json()["estimate"]["basis"]
+
+        resp = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "managed_vertex"})
+        assert resp.status_code == 202, resp.text
+        job_id = resp.json()["job"]["job_id"]
+        events = _sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream").text)
+        assert events[-1]["event"] == "job_complete"
+        mv = client.get(f"/api/v1/uploads/{ws}", headers=_ALICE).json()["workspace"]["levels"]["managed_vertex"]
+        assert mv["status"] == "completed" and mv["tier_profile"] == "vertex_ai_search"
+
+        # If VAIS delete fails, workspace manifest and GCS objects remain intact so user can retry
+        services.fail_vais_delete = True
+        failed_del = client.delete(f"/api/v1/uploads/{ws}", headers=_ALICE)
+        assert failed_del.status_code == 502 and "Vertex AI Search" in failed_del.json()["error"]
+        assert ws in store.manifests
+
+        # Retry succeeds and deletes deterministic doc id before removing GCS objects
+        services.fail_vais_delete = False
+        ok_del = client.delete(f"/api/v1/uploads/{ws}", headers=_ALICE)
+        assert ok_del.status_code == 200, ok_del.text
+        assert services.deleted_vais_docs == [upload_doc_id(ws, file_id)]
+        assert ok_del.json()["vertex_ai_search"] == {"deleted_docs": 1}
+        assert ws not in store.manifests
+

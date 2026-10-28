@@ -54,7 +54,8 @@ class _Router:
         for i, (m, needle, answer) in enumerate(self.rules):
             if m == method and needle in url:
                 status, body = answer(kw) if callable(answer) else answer
-                return httpx.Response(status, text=json.dumps(body), request=httpx.Request(method, url))
+                text = "" if body is None else json.dumps(body)
+                return httpx.Response(status, text=text, request=httpx.Request(method, url))
         raise AssertionError(f"unexpected call {method} {url}")
 
 
@@ -258,3 +259,81 @@ def test_provisioning_is_idempotent_and_refuses_foreign_resources() -> None:
     with pytest.raises(RuntimeError):
         prov.provision(_de_client(foreign), _prov_settings())
     assert all(c["method"] == "GET" for c in foreign.calls)
+
+
+def test_discovery_engine_delete_if_exists_handles_200_204_404_and_redacts_errors() -> None:
+    from app.core.vertex_search import DiscoveryEngineHTTPError
+
+    ok_200 = _Router([("DELETE", "/documents/upl_0123456789ab_f_0", (200, {}))])
+    assert _de_client(ok_200).delete_if_exists("projects/acme-proj/locations/global/documents/upl_0123456789ab_f_0") is True
+
+    ok_204 = _Router([("DELETE", "/documents/upl_0123456789ab_f_1", (204, None))])
+    assert _de_client(ok_204).delete_if_exists("projects/acme-proj/locations/global/documents/upl_0123456789ab_f_1") is True
+
+    missing = _Router([("DELETE", "/documents/upl_0123456789ab_f_2", (404, {"error": {"code": 404}}))])
+    assert _de_client(missing).delete_if_exists("projects/acme-proj/locations/global/documents/upl_0123456789ab_f_2") is False
+
+    denied = _Router([("DELETE", "/documents/upl_0123456789ab_f_3", (403, {"error": "denied on projects/76543 for acme-proj"}))])
+    try:
+        _de_client(denied).delete_if_exists("projects/acme-proj/locations/global/documents/upl_0123456789ab_f_3")
+    except DiscoveryEngineHTTPError as exc:
+        assert exc.status_code == 403
+        assert "acme-proj" not in str(exc) and "76543" not in str(exc)
+        assert "${GCP_PROJECT_ID}" in str(exc) and "projects/${GCP_PROJECT_NUMBER}" in str(exc)
+    else:
+        raise AssertionError("403 on DELETE must fail loud")
+
+
+def test_provision_uploads_creates_store_filterable_schema_and_engine_idempotently() -> None:
+    op = {"name": "projects/1/operations/u", "done": True, "response": {}}
+    default_schema = {
+        "name": "projects/1/locations/global/collections/default_collection/dataStores/rag-arena-uploads/schemas/default_schema",
+        "jsonSchema": json.dumps({"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}),
+    }
+    router = _Router([
+        ("GET", "/dataStores/rag-arena-uploads/schemas/default_schema", (200, default_schema)),
+        ("PATCH", "/dataStores/rag-arena-uploads/schemas/default_schema", (200, op)),
+        ("GET", "/dataStores/rag-arena-uploads", (404, {"error": {"code": 404}})),
+        ("GET", "/engines/rag-arena-uploads-search", (404, {"error": {"code": 404}})),
+        ("POST", "/collections/default_collection/dataStores", (200, op)),
+        ("POST", "/collections/default_collection/engines", (200, op)),
+    ])
+    outcome = prov.provision_uploads(_de_client(router), _prov_settings())
+    assert outcome == {"uploads_data_store": "created", "uploads_schema": "updated", "uploads_engine": "created"}
+    posts = [c for c in router.calls if c["method"] == "POST"]
+    assert posts[0]["params"] == {"dataStoreId": "rag-arena-uploads"}
+    assert posts[0]["json"]["contentConfig"] == "CONTENT_REQUIRED" and "documentProcessingConfig" not in posts[0]["json"]
+    assert posts[1]["params"] == {"engineId": "rag-arena-uploads-search"}
+    assert posts[1]["json"]["dataStoreIds"] == ["rag-arena-uploads"]
+    assert posts[1]["json"]["searchEngineConfig"] == {"searchTier": "SEARCH_TIER_ENTERPRISE", "searchAddOns": ["SEARCH_ADD_ON_LLM"]}
+    patches = [c for c in router.calls if c["method"] == "PATCH"]
+    assert len(patches) == 1
+    schema_obj = json.loads(patches[0]["json"]["jsonSchema"])
+    props = schema_obj["properties"]
+    assert props["workspace_id"]["indexable"] is True and props["workspace_id"]["retrievable"] is True
+    assert props["doc_name"]["indexable"] is True and props["doc_name"]["retrievable"] is True
+
+    configured_schema = {"jsonSchema": patches[0]["json"]["jsonSchema"]}
+    existing_store = {"displayName": "rag-arena-uploads", "contentConfig": "CONTENT_REQUIRED"}
+    existing_engine = {
+        "displayName": "rag-arena-uploads-search",
+        "dataStoreIds": ["rag-arena-uploads"],
+        "searchEngineConfig": {"searchTier": "SEARCH_TIER_ENTERPRISE", "searchAddOns": ["SEARCH_ADD_ON_LLM"]},
+    }
+    idem = _Router([
+        ("GET", "/dataStores/rag-arena-uploads/schemas/default_schema", (200, configured_schema)),
+        ("GET", "/dataStores/rag-arena-uploads", (200, existing_store)),
+        ("GET", "/engines/rag-arena-uploads-search", (200, existing_engine)),
+    ])
+    assert prov.provision_uploads(_de_client(idem), _prov_settings()) == {
+        "uploads_data_store": "exists",
+        "uploads_schema": "exists",
+        "uploads_engine": "exists",
+    }
+    assert all(c["method"] == "GET" for c in idem.calls)
+
+    foreign = _Router([("GET", "/dataStores/rag-arena-uploads", (200, {"displayName": "other-team-uploads"}))])
+    with pytest.raises(RuntimeError):
+        prov.provision_uploads(_de_client(foreign), _prov_settings())
+    assert all(c["method"] == "GET" for c in foreign.calls)
+

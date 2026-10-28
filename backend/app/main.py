@@ -17,6 +17,7 @@ from app.api.query_runs import QueryRunWriter
 from app.ingestion.jobs import BackendFactory, IngestJobRunner, ManagedFactory, unavailable_backends
 from app.ingestion.live_backends import LiveQueryRunWriter, live_backends
 from app.ingestion.managed_job import live_managed_backends, managed_unavailable
+from app.ingestion.managed_upload_job import live_managed_upload_backends, managed_upload_unavailable
 
 _FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
@@ -34,6 +35,7 @@ def create_app(
     settings: ArenaSettings | None = None,
     ingest_backend_factory: BackendFactory | None = None,
     ingest_managed_factory: ManagedFactory | None = None,
+    ingest_upload_managed_factory: ManagedFactory | None = None,
     query_run_writer: QueryRunWriter | None | object = None,
 ) -> Starlette:
     """Create the Starlette app; settings are validated once here (startup fails loud on bad config).
@@ -77,7 +79,12 @@ def create_app(
         writer = LiveQueryRunWriter(resolved)
     application.state.settings = resolved
     managed = ingest_managed_factory or (live_managed_backends if resolved.is_live else managed_unavailable)
-    application.state.ingest_runner = IngestJobRunner(resolved, backend_factory=factory, managed_factory=managed)
+    upload_managed = ingest_upload_managed_factory or (
+        live_managed_upload_backends if resolved.is_live else managed_upload_unavailable
+    )
+    application.state.ingest_runner = IngestJobRunner(
+        resolved, backend_factory=factory, managed_factory=managed, upload_managed_factory=upload_managed
+    )
     application.state.query_run_writer = writer
     # v1.1 uploads: live service only (replay copy answers 404); GCS identity = ADC (you locally, the SA on Cloud Run)
     application.state.upload_services = UploadServices(resolved) if resolved.is_live and resolved.upload_bucket else None

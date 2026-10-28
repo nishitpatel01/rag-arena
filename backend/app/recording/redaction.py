@@ -33,6 +33,7 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
     candidates = (
         (settings.gcp_project_id, "${GCP_PROJECT_ID}"),
         (settings.gcs_corpus_bucket, "${GCS_CORPUS_BUCKET}"),
+        (settings.upload_bucket, "${UPLOAD_BUCKET}"),
         (settings.cloudsdk_config, "${CLOUDSDK_CONFIG}"),
         (settings.google_application_credentials, "${GOOGLE_APPLICATION_CREDENTIALS}"),
         (home_dir, "${HOME}"),

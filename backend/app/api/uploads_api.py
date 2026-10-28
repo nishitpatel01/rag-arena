@@ -37,6 +37,7 @@ from app.ingestion.uploads import (
     object_name,
     owner_key,
     sanitize_filename,
+    upload_doc_id,
     validate_pdf_file,
 )
 
@@ -90,6 +91,22 @@ class UploadServices:
     def store(self) -> UploadStore:
         return UploadStore(bucket=self._settings.upload_bucket, token_provider=self._token,
                            timeout_seconds=STORE_TIMEOUT_SECONDS)
+
+    def delete_vais_docs(self, doc_ids: list[str]) -> int:
+        """Delete deterministic upload documents from the Vertex AI Search uploads store (404 = already absent)."""
+        from app.core.vertex_search import DiscoveryEngineClient, VaisResources
+
+        if not doc_ids:
+            return 0
+        s = self._settings
+        if not s.vais_uploads_data_store_id:
+            raise RuntimeError("VAIS_UPLOADS_DATA_STORE_ID is not configured; cannot delete Vertex AI Search documents")
+        resources = VaisResources(s.gcp_project_id, s.vais_location, s.vais_uploads_data_store_id, s.vais_uploads_engine_id)
+        client = DiscoveryEngineClient(
+            project_id=s.gcp_project_id, location=s.vais_location, token_provider=self._token,
+            attempt_timeout_seconds=float(s.vais_timeout_seconds), budget_seconds=float(s.vais_timeout_seconds) * 3,
+        )
+        return sum(1 for doc_id in doc_ids if client.delete_if_exists(f"{resources.branch_path}/documents/{doc_id}"))
 
 
 # ---------------------------------------------------------------------------------------------------- helpers
@@ -218,8 +235,19 @@ async def workspace_get_endpoint(request: Request) -> JSONResponse:
     return JSONResponse({"workspace": _public_manifest(found[0])})
 
 
+def _vais_doc_ids_for_delete(ws: str, manifest: dict[str, Any]) -> list[str]:
+    levels = manifest.get("levels") or {}
+    if "managed_vertex" not in levels:
+        return []
+    seen: list[str] = []
+    for fid in [*(f.get("id") for f in manifest.get("files", [])), *((levels.get("managed_vertex") or {}).get("file_ids") or [])]:
+        if isinstance(fid, str) and fid and fid not in seen:
+            seen.append(fid)
+    return [upload_doc_id(ws, fid) for fid in seen]
+
+
 async def workspace_delete_endpoint(request: Request) -> JSONResponse:
-    """BigQuery rows first (scoped DELETE), then the bucket prefix: a failure leaves the workspace intact to retry."""
+    """BigQuery rows first, then Vertex AI Search upload docs, then the bucket prefix: failures leave state to retry."""
     services = _services(request)
     if services is None:
         return _unavailable()
@@ -227,14 +255,31 @@ async def workspace_delete_endpoint(request: Request) -> JSONResponse:
     found = await _owned_manifest(request, store, ws)
     if isinstance(found, JSONResponse):
         return found
+    manifest, _ = found
     runner = request.app.state.ingest_runner
     try:
         loader = runner.backend_factory(runner.settings).loader
         await run_in_threadpool(loader.delete_scope, ws)
     except Exception as exc:  # boundary: reported, objects are NOT deleted so the user can retry
         return _error(f"could not delete the workspace's BigQuery rows ({type(exc).__name__}: {exc}); nothing was deleted", 502)
+    doc_ids = _vais_doc_ids_for_delete(ws, manifest)
+    deleted_vais = 0
+    if doc_ids:
+        try:
+            deleted_vais = await run_in_threadpool(services.delete_vais_docs, doc_ids)
+        except Exception as exc:  # boundary: reported, GCS manifest + objects remain so the user can retry
+            return _error(
+                f"could not delete the workspace's Vertex AI Search documents ({type(exc).__name__}: {exc}); "
+                "workspace files were kept so you can retry",
+                502,
+            )
     deleted = await run_in_threadpool(store.delete_workspace, ws)
-    return JSONResponse({"deleted": ws, "deleted_objects": deleted, "bigquery": {"deleted_scope": ws}})
+    return JSONResponse({
+        "deleted": ws,
+        "deleted_objects": deleted,
+        "bigquery": {"deleted_scope": ws},
+        "vertex_ai_search": {"deleted_docs": deleted_vais},
+    })
 
 
 # ---------------------------------------------------------------------------------------------------- files
@@ -367,6 +412,9 @@ def estimate_cost(level: str, pages: int, vision_model: str) -> dict[str, Any]:
     from app.core.pricing import PRICE_TABLE
     from app.ingestion.multimodal_job import DOCAI_USD_PER_PAGE
 
+    if level == "managed_vertex":
+        return {"level": level, "pages": pages, "requires_confirmation": False, "max_usd": 0.0,
+                "basis": "Vertex AI Search digital parser + indexing: free under 10 GiB data store tier"}
     if level not in CONFIRM_LEVELS:
         return {"level": level, "pages": pages, "requires_confirmation": False, "max_usd": 0.0,
                 "basis": "embeddings only (gemini-embedding-2): fractions of a cent for typical documents"}

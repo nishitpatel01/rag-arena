@@ -30,6 +30,7 @@ import httpx
 STORAGE_HOST = "https://storage.googleapis.com"
 UPLOAD_PREFIX = "uploads/"
 MANIFEST_NAME = "workspace.json"
+VAIS_IMPORT_MANIFEST = "_vais_import.jsonl"
 MAX_ATTEMPTS = 3
 RETRYABLE_STATUS: frozenset[int] = frozenset({429, 500, 502, 503, 504})
 MAX_LIST_PAGES = 20
@@ -118,6 +119,27 @@ def object_name(workspace_id: str, file_id: str, safe_name: str) -> str:
 
 def manifest_object(workspace_id: str) -> str:
     return f"{UPLOAD_PREFIX}{check_workspace_id(workspace_id)}/{MANIFEST_NAME}"
+
+
+def vais_manifest_object(workspace_id: str) -> str:
+    return f"{UPLOAD_PREFIX}{check_workspace_id(workspace_id)}/{VAIS_IMPORT_MANIFEST}"
+
+
+def parse_upload_object(workspace_id: str, obj: str) -> tuple[str, str]:
+    """Split ``uploads/<upl_id>/<file_id>-<safe_name>`` into ``(file_id, safe_name)`` after validating every part."""
+    check_workspace_id(workspace_id)
+    prefix = f"{UPLOAD_PREFIX}{workspace_id}/"
+    if not isinstance(obj, str) or not obj.startswith(prefix) or "/" in obj[len(prefix):]:
+        raise ValueError(f"object {obj!r} does not belong to workspace {workspace_id}")
+    file_id, sep, safe_name = obj[len(prefix):].partition("-")
+    if not sep or sanitize_filename(safe_name) != safe_name:
+        raise ValueError(f"object {obj!r} does not match <file_id>-<safe_name>")
+    return check_file_id(file_id), safe_name
+
+
+def upload_doc_id(workspace_id: str, file_id: str) -> str:
+    """Deterministic Vertex AI Search document id ``upl_<12hex>_f_<12hex>`` (matches ``[a-zA-Z0-9-_]{1,128}``)."""
+    return f"{check_workspace_id(workspace_id)}_{check_file_id(file_id)}"
 
 
 # ---------------------------------------------------------------------------------------------------- PDF safety
@@ -335,6 +357,18 @@ class UploadStore:
             raise
         return int(resp.json().get("generation") or 0)
 
+    def write_jsonl_manifest(self, workspace_id: str, records: list[dict[str, Any]]) -> str:
+        """Write ``uploads/<upl_id>/_vais_import.jsonl`` for Vertex AI Search ``dataSchema=document`` imports."""
+        name = vais_manifest_object(workspace_id)
+        if not isinstance(records, list) or not records:
+            raise ValueError("records must be a non-empty list of JSON objects")
+        if any(not isinstance(r, dict) for r in records):
+            raise ValueError("every JSONL record must be a dict")
+        body = ("\n".join(json.dumps(r, sort_keys=True) for r in records) + "\n").encode("utf-8")
+        self._call("POST", self._upload_url(), headers={"Content-Type": "application/x-ndjson"}, content=body,
+                   params={"uploadType": "media", "name": name})
+        return name
+
 
 __all__ = [
     "MANIFEST_NAME",
@@ -343,6 +377,7 @@ __all__ = [
     "UPLOAD_PREFIX",
     "UploadStore",
     "UploadStoreError",
+    "VAIS_IMPORT_MANIFEST",
     "check_file_id",
     "check_workspace_id",
     "manifest_object",
@@ -350,6 +385,9 @@ __all__ = [
     "new_workspace_id",
     "object_name",
     "owner_key",
+    "parse_upload_object",
     "sanitize_filename",
+    "upload_doc_id",
+    "vais_manifest_object",
     "validate_pdf_file",
 ]

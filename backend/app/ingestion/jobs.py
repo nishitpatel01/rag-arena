@@ -50,8 +50,8 @@ _MAX_JOB_EVENTS = 5000
 _EMBED_BATCH_SIZE = 32
 _MAX_EMBED_BATCHES = 10_000
 _STREAM_POLL_SECONDS = 1.0
-# v1.1: levels whose ingestion accepts an upload workspace (L4 reuses L3 rows; L5 arrives in step 4).
-UPLOAD_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal")
+# v1.1: levels whose ingestion accepts an upload workspace (L4 reuses L3 rows).
+UPLOAD_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal", "managed_vertex")
 
 
 class IngestBackendUnavailable(RuntimeError):
@@ -235,6 +235,7 @@ class IngestJobRunner:
         backend_factory: BackendFactory = unavailable_backends,
         corpus_dir: Path | None = None,
         managed_factory: ManagedFactory | None = None,
+        upload_managed_factory: ManagedFactory | None = None,
     ) -> None:
         if not isinstance(settings, ArenaSettings):
             raise TypeError("settings must be an ArenaSettings instance")
@@ -249,6 +250,13 @@ class IngestJobRunner:
         if not callable(managed_factory):
             raise TypeError("managed_factory must be callable")
         self.managed_factory = managed_factory
+        if upload_managed_factory is None:
+            from app.ingestion.managed_upload_job import managed_upload_unavailable
+
+            upload_managed_factory = managed_upload_unavailable
+        if not callable(upload_managed_factory):
+            raise TypeError("upload_managed_factory must be callable")
+        self.upload_managed_factory = upload_managed_factory
         self.corpus_dir = DEFAULT_CORPUS_DIR if corpus_dir is None else corpus_dir
         self._jobs: dict[str, IngestJob] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -338,6 +346,11 @@ class IngestJobRunner:
         emitter = _JobEmitter(self, job)
         await self._put(job, {"event": "job_started", "level": job.level, "tier_profile": job.tier_profile})
         tracker = _StageTracker(job)
+        if job.scope is not None and job.level == "managed_vertex":
+            from app.ingestion.managed_upload_job import run_managed_upload_job
+
+            await run_managed_upload_job(self, job, emitter, tracker, self._uploads[job.job_id])
+            return
         if job.scope is not None:
             docs = await self._discover_upload(job, emitter, tracker)
         else:

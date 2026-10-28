@@ -26,6 +26,8 @@ _MAX_SEGMENTS_PER_RESULT = 10
 _MAX_SNIPPETS = 3
 _MAX_TEXT_CHARS = 8000
 _MARKER_RE = re.compile(r"\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]")
+_UPLOAD_FILE_PREFIX_RE = re.compile(r"^f_[0-9a-f]{12}-")
+_UPLOAD_WS_RE = re.compile(r"^upl_[0-9a-f]{12}$")
 
 
 class VaisResponseError(ValueError):
@@ -70,13 +72,21 @@ class SearchOutcome:
 
 
 def build_search_body(
-    query: str, *, page_size: int, max_segments: int, summary_result_count: int | None, summary_model_version: str
+    query: str,
+    *,
+    page_size: int,
+    max_segments: int,
+    summary_result_count: int | None,
+    summary_model_version: str,
+    filter_expr: str | None = None,
 ) -> dict[str, Any]:
     """The exact JSON body sent; ``summary_result_count=None`` → no ``summarySpec`` (model-synthesis mode)."""
     if not isinstance(query, str) or not query.strip() or len(query) > 4000:
         raise ValueError("query must be a non-empty string of at most 4000 characters")
     if not 1 <= page_size <= 20 or not 1 <= max_segments <= _MAX_SEGMENTS_PER_RESULT:
         raise ValueError("page_size must be in [1, 20] and max_segments in [1, 10]")
+    if filter_expr is not None and (not isinstance(filter_expr, str) or not filter_expr.strip()):
+        raise ValueError("filter_expr must be a non-empty string when given")
     spec: dict[str, Any] = {
         "snippetSpec": {"returnSnippet": True},
         "extractiveContentSpec": {"maxExtractiveSegmentCount": max_segments, "returnExtractiveSegmentScore": True},
@@ -88,7 +98,10 @@ def build_search_body(
             "summaryResultCount": summary_result_count, "includeCitations": True, "ignoreAdversarialQuery": True,
             "ignoreNonSummarySeekingQuery": False, "modelSpec": {"version": summary_model_version},
         }
-    return {"query": query.strip(), "pageSize": page_size, "contentSearchSpec": spec}
+    body: dict[str, Any] = {"query": query.strip(), "pageSize": page_size, "contentSearchSpec": spec}
+    if filter_expr is not None:
+        body["filter"] = filter_expr.strip()
+    return body
 
 
 def _int_page(raw: Any, where: str) -> int:
@@ -115,9 +128,17 @@ def _segment(raw: Any, where: str) -> Segment:
 
 
 def solicitation_of(uri: str) -> str:
-    """``.../solicitation_01_cloud_infrastructure/x.pdf`` → ``solicitation_01`` (same rule as ingestion discovery)."""
+    """``.../solicitation_01_.../x.pdf`` → ``solicitation_01``; ``.../uploads/upl_<12hex>/...`` → ``upl_<12hex>``."""
     parent = PurePosixPath(uri.split("://", 1)[-1]).parent.name
-    return "_".join(parent.split("_")[:2]) if parent.startswith("solicitation_") else "unknown"
+    if parent.startswith("solicitation_"):
+        return "_".join(parent.split("_")[:2])
+    if _UPLOAD_WS_RE.match(parent):
+        return parent
+    return "unknown"
+
+
+def _clean_doc_name(raw_name: str) -> str:
+    return _UPLOAD_FILE_PREFIX_RE.sub("", raw_name)
 
 
 def _hit(rank: int, raw: Any) -> SearchHit:
@@ -125,6 +146,7 @@ def _hit(rank: int, raw: Any) -> SearchHit:
     data = doc.get("derivedStructData") if isinstance(doc, dict) else None
     if not isinstance(data, dict):
         raise VaisResponseError(f"result {rank}: document.derivedStructData missing")
+    struct_data = doc.get("structData") if isinstance(doc, dict) and isinstance(doc.get("structData"), dict) else {}
     doc_id = str(doc.get("id") or raw.get("id") or "").strip()
     uri = str(data.get("link") or "").strip()
     where = f"result {rank} (document {doc_id or '?'})"
@@ -134,9 +156,12 @@ def _hit(rank: int, raw: Any) -> SearchHit:
     if not segments:
         raise VaisResponseError(f"{where}: returned no extractive_segments")
     snippets = tuple(str(s.get("snippet", "")) for s in (data.get("snippets") or [])[:_MAX_SNIPPETS] if isinstance(s, dict))
+    doc_name = str(struct_data.get("doc_name") or "").strip() or _clean_doc_name(PurePosixPath(uri).name)
+    solicitation_id = str(struct_data.get("workspace_id") or "").strip() or solicitation_of(uri)
+    title = _UPLOAD_FILE_PREFIX_RE.sub("", str(data.get("title") or ""))
     return SearchHit(
-        rank=rank, document_id=doc_id, doc_name=PurePosixPath(uri).name, uri=uri, title=str(data.get("title") or ""),
-        solicitation_id=solicitation_of(uri), segments=tuple(segments), snippets=snippets,
+        rank=rank, document_id=doc_id, doc_name=doc_name, uri=uri, title=title,
+        solicitation_id=solicitation_id, segments=tuple(segments), snippets=snippets,
     )
 
 
@@ -157,11 +182,16 @@ def _cited_ranks(text: str, metadata: list[dict[str, Any]], references: list[dic
     return tuple(dict.fromkeys(ranks))
 
 
-def _reference(ref: Any) -> dict[str, Any]:
-    """Summary reference without the document resource name (it embeds the project number): short id + title."""
+def _reference(ref: Any, by_doc: dict[str, SearchHit]) -> dict[str, Any]:
+    """Summary reference without the document resource name (it embeds the project number): short id + clean title."""
     ref = ref if isinstance(ref, dict) else {}
-    return {"title": str(ref.get("title", "")), "document_id": str(ref.get("document", "")).rsplit("/", 1)[-1],
-            "uri": str(ref.get("uri", ""))}
+    doc_id = str(ref.get("document", "")).rsplit("/", 1)[-1]
+    title = _UPLOAD_FILE_PREFIX_RE.sub("", str(ref.get("title", "")))
+    out: dict[str, Any] = {"title": title, "document_id": doc_id, "uri": str(ref.get("uri", ""))}
+    matched = by_doc.get(doc_id)
+    if matched is not None and matched.solicitation_id.startswith("upl_"):
+        out["doc_name"] = matched.doc_name
+    return out
 
 
 def parse_summary(raw: Any, hits: tuple[SearchHit, ...]) -> SummaryOutcome:
@@ -175,9 +205,11 @@ def parse_summary(raw: Any, hits: tuple[SearchHit, ...]) -> SummaryOutcome:
     references = list(meta.get("references", []) or [])
     if reasons or not text:
         raise VaisResponseError(f"Vertex AI Search summary skipped: summarySkippedReasons={list(reasons)} summaryText={text[:300]!r}")
+    by_doc = {h.document_id: h for h in hits}
     return SummaryOutcome(
         text=text[:_MAX_TEXT_CHARS], skipped_reasons=reasons, safety_attributes=raw.get("safetyAttributes"),
-        cited_ranks=_cited_ranks(text, citations, references, hits), references=tuple(_reference(r) for r in references[:20]),
+        cited_ranks=_cited_ranks(text, citations, references, hits),
+        references=tuple(_reference(r, by_doc) for r in references[:20]),
         citation_metadata=tuple(citations[:50]),
     )
 
@@ -200,10 +232,11 @@ def segment_chunks(hits: tuple[SearchHit, ...]) -> list[DocumentChunk]:
     """One DocumentChunk per extractive segment (hit order, then segment order); bbox = the whole page."""
     chunks: list[DocumentChunk] = []
     for hit in hits:
+        doc_type = "UPLOADED_DOCUMENT" if hit.solicitation_id.startswith("upl_") else "UNKNOWN"
         for idx, seg in enumerate(hit.segments, start=1):
             chunks.append(DocumentChunk(
                 chunk_id=f"vais_{hit.document_id[:24]}_p{seg.page_number}_s{idx}", tier_profile=LAYOUT_SOURCE,
-                solicitation_id=hit.solicitation_id, doc_name=hit.doc_name, doc_type="UNKNOWN",
+                solicitation_id=hit.solicitation_id, doc_name=hit.doc_name, doc_type=doc_type,
                 element_type="extractive_segment", section_id=None, amendment_number=0, effective_date=None,
                 amends_section=None, page_number=seg.page_number,
                 bbox=BoundingBox(page=seg.page_number, x0=0.0, y0=0.0, x1=1.0, y1=1.0), content=seg.content,
@@ -213,9 +246,19 @@ def segment_chunks(hits: tuple[SearchHit, ...]) -> list[DocumentChunk]:
     return chunks
 
 
-def hit_payload(hit: SearchHit, bucket: str) -> dict[str, Any]:
-    """Retrieve-stage row (uri redacted to ``${GCS_CORPUS_BUCKET}``; no resource names)."""
-    uri = hit.uri.replace(bucket, "${GCS_CORPUS_BUCKET}") if bucket else hit.uri
+def redact_vais_uri(uri: str, *, corpus_bucket: str = "", upload_bucket: str = "") -> str:
+    """Replace corpus/upload bucket names with placeholders (longest non-empty token first)."""
+    out = str(uri or "")
+    pairs = [(b.strip(), label) for b, label in ((upload_bucket, "${UPLOAD_BUCKET}"), (corpus_bucket, "${GCS_CORPUS_BUCKET}"))
+             if isinstance(b, str) and b.strip()]
+    for bucket, label in sorted(pairs, key=lambda item: -len(item[0])):
+        out = out.replace(bucket, label)
+    return out
+
+
+def hit_payload(hit: SearchHit, bucket: str, *, upload_bucket: str = "") -> dict[str, Any]:
+    """Retrieve-stage row (uri redacted to ``${GCS_CORPUS_BUCKET}`` or ``${UPLOAD_BUCKET}``; no resource names)."""
+    uri = redact_vais_uri(hit.uri, corpus_bucket=bucket, upload_bucket=upload_bucket)
     return {
         "rank": hit.rank, "document_id": hit.document_id, "doc_name": hit.doc_name, "uri": uri, "title": hit.title,
         "solicitation_id": hit.solicitation_id, "snippets": list(hit.snippets),
@@ -238,6 +281,7 @@ __all__ = [
     "hit_payload",
     "parse_search_response",
     "parse_summary",
+    "redact_vais_uri",
     "segment_chunks",
     "solicitation_of",
 ]

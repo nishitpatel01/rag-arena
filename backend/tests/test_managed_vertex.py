@@ -266,3 +266,125 @@ def test_no_local_search_fallback_code_paths_in_engine_module() -> None:
     with patch("app.engines.managed_vertex.build_search_client") as built:
         built.side_effect = AssertionError("client injected; factory must not be used")
         _engine("gemini-4-argon", _Send())
+
+
+# ---------- v1.1 step 4c: scoped upload search on rag-arena-uploads ----------
+
+_UPLOAD_BKT = "acme-proj-rag-arena-uploads"
+_WS = "upl_0123456789ab"
+
+
+def _upload_result(doc_id: str, file_id: str, safe_name: str, segs: list[tuple[str, Any]], *, ws: str = _WS,
+                   with_struct: bool = True) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "name": f"projects/76543/locations/global/collections/default_collection/dataStores/rag-arena-uploads/branches/0/documents/{doc_id}",
+        "id": doc_id,
+        "derivedStructData": {
+            "link": f"gs://{_UPLOAD_BKT}/uploads/{ws}/{file_id}-{safe_name}",
+            "title": f"{file_id}-{safe_name.removesuffix('.pdf')}",
+            "extractive_segments": [{"content": c, "pageNumber": p, "relevanceScore": 0.92} for c, p in segs],
+            "snippets": [{"snippet": "CLIN-0001 …", "snippet_status": "SUCCESS"}],
+        },
+    }
+    if with_struct:
+        doc["structData"] = {"workspace_id": ws, "doc_name": safe_name}
+    return {"id": doc_id, "document": doc}
+
+
+def test_search_body_filter_and_upload_hit_parsing_prefers_struct_data_and_strips_prefix_fallback() -> None:
+    from app.engines.vais_search import segment_chunks
+
+    filtered = build_search_body(
+        "CLIN rate?", page_size=10, max_segments=3, summary_result_count=None, summary_model_version="stable",
+        filter_expr=f'workspace_id: ANY("{_WS}")',
+    )
+    assert filtered["filter"] == f'workspace_id: ANY("{_WS}")'
+    with pytest.raises(ValueError):
+        build_search_body("q", page_size=10, max_segments=3, summary_result_count=None, summary_model_version="stable",
+                          filter_expr="   ")
+
+    doc = {
+        "results": [
+            _upload_result(f"{_WS}_f_0123456789ab", "f_0123456789ab", "Pricing.pdf", [("Rate is $45,000/mo", "1")], with_struct=True),
+            _upload_result(f"{_WS}_f_abcdef012345", "f_abcdef012345", "SOW_v2.pdf", [("Deliver 12 reports", 2)], with_struct=False),
+        ],
+        "totalSize": 2,
+        "attributionToken": "tok-up",
+    }
+    out = parse_search_response(doc, summary_requested=False)
+    assert [h.doc_name for h in out.hits] == ["Pricing.pdf", "SOW_v2.pdf"]
+    assert [h.solicitation_id for h in out.hits] == [_WS, _WS]
+    assert all("f_0123456789ab" not in h.title and "f_abcdef012345" not in h.title for h in out.hits)
+    chunks = segment_chunks(out.hits)
+    assert [c.doc_type for c in chunks] == ["UPLOADED_DOCUMENT", "UPLOADED_DOCUMENT"]
+    assert [c.doc_name for c in chunks] == ["Pricing.pdf", "SOW_v2.pdf"]
+
+
+def test_upload_scoped_query_targets_uploads_engine_filters_redacts_and_enforces_workspace_isolation() -> None:
+    doc_id = f"{_WS}_f_0123456789ab"
+    summary = {
+        "summaryText": "CLIN-0001 is $45,000/mo [1].",
+        "summarySkippedReasons": [],
+        "safetyAttributes": {"categories": [], "scores": []},
+        "summaryWithMetadata": {
+            "summary": "x",
+            "citationMetadata": {"citations": [{"startIndex": "0", "endIndex": "9", "sources": [{"referenceIndex": "0"}]}]},
+            "references": [{
+                "title": "f_0123456789ab-Pricing",
+                "uri": f"gs://{_UPLOAD_BKT}/uploads/{_WS}/f_0123456789ab-Pricing.pdf",
+                "document": f"projects/76543/locations/global/collections/default_collection/dataStores/rag-arena-uploads/branches/0/documents/{doc_id}",
+            }],
+        },
+    }
+    search_resp = {
+        "results": [_upload_result(doc_id, "f_0123456789ab", "Pricing.pdf", [("CLIN-0001 is $45,000/mo", "1")])],
+        "totalSize": 1,
+        "attributionToken": "tok-u",
+        "summary": summary,
+    }
+    settings = _settings(
+        upload_bucket=_UPLOAD_BKT,
+        vais_uploads_data_store_id="rag-arena-uploads",
+        vais_uploads_engine_id="rag-arena-uploads-search",
+    )
+    send = _Send((200, search_resp))
+    engine = _engine("vertex-ai-search-summary", send, settings=settings)
+    emitter = RecordingStageEmitter(run_id="r", engine="managed_vertex")
+    result = run(engine.run_query("CLIN-0001 price?", question_id=None, solicitation_filter=_WS, emitter=emitter))
+
+    assert len(send.calls) == 1
+    assert send.calls[0]["url"].endswith(
+        "/v1/projects/acme-proj/locations/global/collections/default_collection/engines/rag-arena-uploads-search/servingConfigs/default_search:search"
+    )
+    assert send.calls[0]["json"]["filter"] == f'workspace_id: ANY("{_WS}")'
+    assert [c.doc_name for c in result.citations] == ["Pricing.pdf"]
+    blob = json.dumps(emitter.events)
+    assert _UPLOAD_BKT not in blob and "acme-proj" not in blob and "76543" not in blob and "projects/" not in blob
+    assert "${UPLOAD_BUCKET}" in blob
+    synth = next(e for e in emitter.events if e["event"] == "stage_completed" and e["stage"] == "synthesize")["payload"]
+    assert synth["references"][0]["doc_name"] == "Pricing.pdf"
+    assert "f_0123456789ab" not in synth["references"][0]["title"]
+
+    # Defense-in-depth: if Discovery Engine ever returns a hit from another workspace, fail loud
+    leaked_resp = {
+        "results": [_upload_result("upl_ffffffffffff_f_0123456789ab", "f_0123456789ab", "Other.pdf",
+                                   [("Other tenant secret", "1")], ws="upl_ffffffffffff")],
+        "totalSize": 1,
+        "attributionToken": "tok-leak",
+    }
+    send_leak = _Send((200, leaked_resp))
+    with fake_clients(genai=FakeGenaiClient(answer="never reached")):
+        leak_engine = _engine("gemini-4-argon", send_leak, settings=settings)
+        with pytest.raises(VaisResponseError, match="outside workspace"):
+            run(leak_engine.run_query("q?", question_id=None, solicitation_filter=_WS,
+                                      emitter=RecordingStageEmitter(run_id="r2", engine="managed_vertex")))
+
+    # Missing uploads VAIS ids fail loud with RuntimeError on upload scope; malformed upl_ id fails with ValueError
+    no_uploads_cfg = _engine("gemini-4-argon", _Send(), settings=_settings())
+    with pytest.raises(RuntimeError, match="VAIS_UPLOADS"):
+        run(no_uploads_cfg.run_query("q?", question_id=None, solicitation_filter=_WS,
+                                     emitter=RecordingStageEmitter(run_id="r3", engine="managed_vertex")))
+    with pytest.raises(ValueError):
+        run(engine.run_query("q?", question_id=None, solicitation_filter="upl_bad",
+                             emitter=RecordingStageEmitter(run_id="r4", engine="managed_vertex")))
+

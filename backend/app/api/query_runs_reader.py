@@ -38,7 +38,7 @@ def query_runs_table_label(settings: ArenaSettings) -> str:
 
 
 def build_query_runs_sql(project_id: str, dataset_id: str) -> str:
-    """Per-run read with ``@question_id`` / ``@engine`` parameters (NULL = no filter) and a fixed LIMIT."""
+    """Per-run read with ``@question_id`` / ``@engine`` / ``@scope`` parameters and a fixed LIMIT."""
     project = _validate_identifier(project_id, "project_id")
     dataset = _validate_identifier(dataset_id, "dataset")
     return f"""SELECT engine, question_id, synthesis_model, judge_model, latency_ms, cost_usd,
@@ -47,12 +47,13 @@ def build_query_runs_sql(project_id: str, dataset_id: str) -> str:
 FROM `{project}.{dataset}.query_runs`
 WHERE (@question_id IS NULL OR question_id = @question_id)
   AND (@engine IS NULL OR engine = @engine)
+  AND COALESCE(scope, IF(STARTS_WITH(solicitation_id, 'upl_'), 'uploads', 'golden')) = @scope
 ORDER BY started_at DESC
 LIMIT {int(QUERY_RUNS_MAX_ROWS)}"""
 
 
 def query_runs_parameters(filters: LeaderboardFilters) -> list[Any]:
-    """The two STRING query parameters (None → SQL NULL)."""
+    """The STRING query parameters (None → SQL NULL)."""
     from google.cloud import bigquery
 
     if not isinstance(filters, LeaderboardFilters):
@@ -60,6 +61,7 @@ def query_runs_parameters(filters: LeaderboardFilters) -> list[Any]:
     return [
         bigquery.ScalarQueryParameter("question_id", "STRING", filters.question_id),
         bigquery.ScalarQueryParameter("engine", "STRING", filters.engine),
+        bigquery.ScalarQueryParameter("scope", "STRING", filters.scope),
     ]
 
 

@@ -41,9 +41,10 @@ _MAX_VERIFICATION_BYTES = 256 * 1024
 _MAX_VERIFICATION_ENTRIES = 64
 _MAX_REASON_CHARS = 600
 
-# (id, label, provider) — the owner's initial catalog: Gemini 4 Argon, Gemini 3.8 Flash, Claude Opus 5.5, Claude Fable.
+# (id, label, provider) — selectable LLM catalog on Vertex AI.
 CATALOG_ENTRIES: tuple[tuple[str, str, str], ...] = (
     ("gemini-4-argon", "Gemini 4 Argon", PROVIDER_VERTEX_GEMINI),
+    ("gemini-4-carbon", "Gemini 4 Carbon", PROVIDER_VERTEX_GEMINI),
     ("gemini-3.8-flash", "Gemini 3.8 Flash", PROVIDER_VERTEX_GEMINI),
     ("claude-opus-5-5", "Claude Opus 5.5", PROVIDER_ANTHROPIC_VERTEX),
     ("claude-fable-5-1", "Claude Fable 5.1", PROVIDER_ANTHROPIC_VERTEX),

@@ -141,9 +141,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({ timeline, running, r
           />
           <div className="flex flex-wrap gap-1.5">
             <Pill tone="info" mono>judge: {labelFor?.(ev.judgeModel) ?? ev.judgeModel}{ev.judgeLocation ? ` · ${ev.judgeLocation}` : ""}</Pill>
-            <Pill tone={ev.referenceAnswerUsed ? "ok" : "neutral"}>
-              reference answer {ev.referenceAnswerUsed ? "used" : "not used"}
-            </Pill>
+            {ev.referenceAnswerUsed ? (
+              <Pill tone="ok">reference answer used</Pill>
+            ) : (
+              <Pill tone="warn" title="QA relevance judged directly against the question and retrieved context without a golden reference answer">
+                no reference answer
+              </Pill>
+            )}
             <Pill tone="neutral" mono>{formatMs(ev.durationMs)}</Pill>
           </div>
           {ev.rationale ? (

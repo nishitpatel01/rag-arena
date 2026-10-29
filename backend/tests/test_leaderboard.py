@@ -141,10 +141,18 @@ def test_filters_are_query_parameters_never_interpolated() -> None:
     assert "@question_id" in sql and "@engine" in sql and f"LIMIT {qr.QUERY_RUNS_MAX_ROWS}" in sql
     assert f"`{_PROJECT}.rag_arena.query_runs`" in sql
     params = {p.name: (p.type_, p.value) for p in config.query_parameters}
-    assert params == {"question_id": ("STRING", "q_vpc_failover_diagram"), "engine": ("STRING", "level2_hybrid")}
+    assert params == {
+        "question_id": ("STRING", "q_vpc_failover_diagram"),
+        "engine": ("STRING", "level2_hybrid"),
+        "scope": ("STRING", "golden"),
+    }
     assert config.maximum_bytes_billed == qr.QUERY_RUNS_MAX_BYTES_BILLED
     assert client.query.return_value.result.call_args.kwargs["timeout"] == qr.QUERY_RUNS_TIMEOUT_SECONDS
-    assert board["filters"] == {"question_id": "q_vpc_failover_diagram", "engine": "level2_hybrid"} and board["groups"] == []
+    assert board["filters"] == {
+        "question_id": "q_vpc_failover_diagram",
+        "engine": "level2_hybrid",
+        "scope": "golden",
+    } and board["groups"] == []
     for bad in (("x' OR 1=1 --", None), (None, "Level1; DROP")):
         try:
             parse_filters(*bad)
@@ -177,14 +185,15 @@ def test_endpoint_defaults_and_replay_rejects_query_runs() -> None:
 
 
 def test_bigquery_errors_are_502_verbatim_and_redacted() -> None:
-    err = RuntimeError(f"403 Access Denied: Table {_PROJECT}:rag_arena.query_runs (projects/123456789012/jobs/x)")
+    fake_pnum = "9" * 12
+    err = RuntimeError(f"403 Access Denied: Table {_PROJECT}:rag_arena.query_runs (projects/{fake_pnum}/jobs/x)")
     live = TestClient(create_app(settings=_live()))
     with patch.object(qr, "get_bigquery_client", return_value=_fake_client([], error=err)):
         resp = live.get("/api/v1/leaderboard?source=query_runs")
     assert resp.status_code == 502
     message = resp.json()["error"]
     assert message.startswith("BigQuery query_runs read failed: RuntimeError: 403 Access Denied: Table ${GCP_PROJECT_ID}:")
-    assert _PROJECT not in message and "123456789012" not in message and "projects/${GCP_PROJECT_NUMBER}" in message
+    assert _PROJECT not in message and fake_pnum not in message and "projects/${GCP_PROJECT_NUMBER}" in message
 
 
 def test_recordings_failures_and_unknown_pairs_use_the_same_aggregator() -> None:
@@ -207,3 +216,35 @@ def test_hand_typed_precomputed_runs_are_gone() -> None:
         for path in base.rglob("*"):
             if path.suffix in {".py", ".ts", ".tsx"}:
                 assert "precomputed_runs" not in path.read_text(encoding="utf-8"), path
+
+
+def test_leaderboard_scope_separates_golden_and_uploads_without_averaging() -> None:
+    assert parse_filters(None, None).scope == "golden"
+    assert parse_filters(None, None, "uploads").scope == "uploads"
+    try:
+        parse_filters(None, None, "mixed")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("invalid scope should raise ValueError")
+
+    sql = qr.build_query_runs_sql(_PROJECT, "rag_arena")
+    assert "@scope" in sql
+    assert "STARTS_WITH(solicitation_id, 'upl_')" in sql
+
+    live = TestClient(create_app(settings=_live()))
+    assert live.get("/api/v1/leaderboard?scope=invalid").status_code == 400
+
+    # Recordings cover the fixed golden benchmark corpus only; scope=uploads returns empty groups with an explicit note.
+    rec_uploads = live.get("/api/v1/leaderboard?source=recordings&scope=uploads").json()
+    assert rec_uploads["groups"] == [] and rec_uploads["filters"]["scope"] == "uploads"
+    assert any("golden" in n.lower() for n in rec_uploads["notes"])
+
+    # Live query_runs passes @scope='uploads' parameter to BigQuery.
+    fake_bq = _fake_client([_bq_row("level1_naive", "gemini-4-argon", "claude-opus-5-5", qid=None)])
+    with patch.object(qr, "get_bigquery_client", return_value=fake_bq):
+        upl_board = live.get("/api/v1/leaderboard?source=query_runs&scope=uploads").json()
+    params = {p.name: p.value for p in fake_bq.query.call_args.kwargs["job_config"].query_parameters}
+    assert params["scope"] == "uploads"
+    assert upl_board["filters"]["scope"] == "uploads" and len(upl_board["groups"]) == 1
+

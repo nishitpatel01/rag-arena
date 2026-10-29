@@ -1,7 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { DataTable, type DataTableColumn } from "../../components/ui/DataTable";
 import { Pill } from "../../components/ui/Pill";
 import { formatMs, formatUsd } from "../../lib/format";
+import {
+  DEFAULT_HIGHLIGHT_METRIC,
+  bestEngineSet,
+  highlightAriaLabel,
+  highlightBadgeText,
+  type HighlightMetric,
+} from "../../lib/winnerHighlight";
 import type { ScoreRow } from "./compareModel";
 
 const score2 = (v: number | null): string => (v === null ? "—" : v.toFixed(2));
@@ -19,14 +26,38 @@ const StatusCell: React.FC<{ readonly row: ScoreRow }> = ({ row }) => {
   }
   if (row.status === "failed") return <span className="text-err">failed — not ranked</span>;
   if (row.status === "unscored") return <span className="text-clay">eval_complete carried no battle_score — not ranked</span>;
-  if (row.status === "scored") return <span className="text-ok">scored</span>;
+  if (row.status === "scored") {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <span className="text-ok">scored</span>
+        {row.referenceAnswerUsed === false && (
+          <Pill tone="warn" title="Evaluated without a golden reference answer">
+            no reference answer
+          </Pill>
+        )}
+      </span>
+    );
+  }
   return <span className="text-ink-3">{row.status === "running" ? "running…" : "waiting for events"}</span>;
 };
 
-function columns(labelFor: (id: string | null) => string | null): DataTableColumn<ScoreRow>[] {
+function columns(
+  labelFor: (id: string | null) => string | null,
+  winners: ReadonlySet<string>,
+  highlightMetric: HighlightMetric
+): DataTableColumn<ScoreRow>[] {
   return [
     { key: "rank", header: "rank", render: (r) => (r.rank === null ? "—" : r.rank === 1 ? <Pill tone="ok" mono>#1 best</Pill> : `#${r.rank}`), mono: true },
-    { key: "level", header: "level", render: (r) => <span><span className="font-semibold">{r.short}</span> · {r.label}</span> },
+    {
+      key: "level",
+      header: "level",
+      render: (r) => (
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <span><span className="font-semibold">{r.short}</span> · {r.label}</span>
+          {winners.has(r.engine) && <Pill tone="ok">{highlightBadgeText(highlightMetric)}</Pill>}
+        </span>
+      ),
+    },
     { key: "score", header: "Battle Score", render: (r) => (r.battleScore === null ? "—" : <span className="font-semibold">{r.battleScore.toFixed(1)}</span>), align: "right", mono: true },
     { key: "g", header: "groundedness", render: (r) => score2(r.groundedness), align: "right", mono: true },
     { key: "qa", header: "QA relevance", render: (r) => score2(r.qaRelevance), align: "right", mono: true },
@@ -42,15 +73,31 @@ function columns(labelFor: (id: string | null) => string | null): DataTableColum
 export interface ScoreboardProps {
   readonly rows: readonly ScoreRow[];
   readonly labelFor: (id: string | null) => string | null;
+  readonly highlightMetric?: HighlightMetric;
 }
 
 /** One row per included level; Battle Score comes only from eval_complete (server formula, scoring.battle_score). */
-export const Scoreboard: React.FC<ScoreboardProps> = ({ rows, labelFor }) => (
-  <div className="flex flex-col gap-2">
-    <DataTable caption="Compare scoreboard: one row per level" columns={columns(labelFor)} rows={rows} rowKey={(r) => r.engine} emptyText="No levels in this run." />
-    <p className="text-xs text-ink-3">
-      Battle Score (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20),
-      computed by the server from this run's judge metrics, latency and run cost (engine + judge). Failed levels are never scored or ranked.
-    </p>
-  </div>
-);
+export const Scoreboard: React.FC<ScoreboardProps> = ({
+  rows,
+  labelFor,
+  highlightMetric = DEFAULT_HIGHLIGHT_METRIC,
+}) => {
+  const winners = useMemo(() => bestEngineSet(rows, highlightMetric), [rows, highlightMetric]);
+  return (
+    <div className="flex flex-col gap-2">
+      <DataTable
+        caption="Compare scoreboard: one row per level"
+        columns={columns(labelFor, winners, highlightMetric)}
+        rows={rows}
+        rowKey={(r) => r.engine}
+        rowClassName={(r) => (winners.has(r.engine) ? "bg-winner border-l-2 border-l-moss" : undefined)}
+        rowAriaLabel={(r) => (winners.has(r.engine) ? highlightAriaLabel(highlightMetric) : undefined)}
+        emptyText="No levels in this run."
+      />
+      <p className="text-xs text-ink-3">
+        Battle Score (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20),
+        computed by the server from this run's judge metrics, latency and run cost (engine + judge). Failed levels are never scored or ranked.
+      </p>
+    </div>
+  );
+};

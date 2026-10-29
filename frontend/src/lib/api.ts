@@ -8,6 +8,7 @@ import type {
   IngestJobCreated,
   IngestStatusResponse,
   LeaderboardResponse,
+  LeaderboardScope,
   LeaderboardSource,
   LevelsResponse,
   ModelsResponse,
@@ -82,14 +83,16 @@ const LEADERBOARD_TIMEOUT_MS = 60_000;
 
 export interface LeaderboardQuery {
   readonly source?: LeaderboardSource;
+  readonly scope?: LeaderboardScope;
   readonly questionId?: string;
   readonly engine?: string;
 }
 
-/** `?source=&question_id=&engine=` with empty values omitted (server applies its mode default). */
+/** `?source=&scope=&question_id=&engine=` with empty values omitted (server applies its mode default). */
 export function leaderboardSearch(query: LeaderboardQuery): string {
   const params = new URLSearchParams();
   if (query.source) params.set("source", query.source);
+  if (query.scope) params.set("scope", query.scope);
   if (query.questionId) params.set("question_id", query.questionId);
   if (query.engine) params.set("engine", query.engine);
   const text = params.toString();

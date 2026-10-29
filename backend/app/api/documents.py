@@ -12,14 +12,20 @@ import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Any
+import tempfile
+from typing import Any, Callable, TypeVar
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
+from app.api.uploads_api import _owned_manifest, _services as _upload_services
 from app.ingestion.jobs import DEFAULT_CORPUS_DIR, discover_corpus_docs
 from app.ingestion.parsers import _import_pymupdf
+from app.ingestion.uploads import UploadStoreError
+from app.recording.redaction import redact_text, redaction_tokens
+
+_T = TypeVar("_T")
 
 MIN_DPI = 72
 MAX_DPI = 200
@@ -245,12 +251,62 @@ def _error(exc: DocumentRequestError) -> JSONResponse:
     return JSONResponse({"error": str(exc)}, status_code=exc.status)
 
 
+def _run_on_uploaded_pdf(
+    store: Any, object_path: str, sol: str, doc_name: str, page: int, settings: Any, action: Callable[[PageRequest], _T]
+) -> _T:
+    """Download an owner-verified ready PDF into an ephemeral directory, run ``action``, and remove it."""
+    with tempfile.TemporaryDirectory(prefix="rag_arena_doc_") as tmp:
+        local = Path(tmp) / "page_source.pdf"
+        try:
+            store.download_to(object_path, local)
+        except UploadStoreError as exc:
+            msg = str(exc)
+            if settings is not None:
+                msg = redact_text(msg, redaction_tokens(settings))
+            raise DocumentRequestError(502, f"could not read uploaded document: {msg}") from exc
+        return action(PageRequest(path=local, solicitation_id=sol, doc_name=doc_name, page=page))
+
+
+async def _execute_document_action(request: Request, action: Callable[[PageRequest], _T]) -> _T:
+    """Resolve either a local corpus doc or an owner-checked upload workspace doc and run ``action`` within timeout."""
+    params = request.query_params
+    sol = _required_name(params, "solicitation_id")
+    if not sol.startswith("upl_"):
+        req = resolve_page_request(request)
+        return await asyncio.wait_for(asyncio.to_thread(action, req), timeout=_RENDER_TIMEOUT_SECONDS)
+    doc_name = _required_name(params, "doc_name")
+    page = _int_param(params, "page", None)
+    if page < 1:
+        raise DocumentRequestError(400, f"page must be >= 1, got {page}")
+    services = _upload_services(request)
+    if services is None:
+        raise DocumentRequestError(404, "uploads are available only on the live service (this copy is replay-only)")
+    store = services.store()
+    found = await _owned_manifest(request, store, sol)
+    if isinstance(found, JSONResponse):
+        raise DocumentRequestError(404, "workspace not found")
+    manifest, _ = found
+    entry = next(
+        (
+            f for f in manifest.get("files", [])
+            if f.get("status") == "ready" and f.get("name") == doc_name and isinstance(f.get("object"), str)
+        ),
+        None,
+    )
+    if entry is None:
+        raise DocumentRequestError(404, f"Unknown document {doc_name!r} in {sol!r}")
+    settings = getattr(request.app.state, "settings", None)
+    return await asyncio.wait_for(
+        asyncio.to_thread(_run_on_uploaded_pdf, store, entry["object"], sol, doc_name, page, settings, action),
+        timeout=_RENDER_TIMEOUT_SECONDS,
+    )
+
+
 async def document_page_endpoint(request: Request) -> Response:
     """GET /api/v1/documents/page?solicitation_id&doc_name&page&dpi → image/png of the real page."""
     try:
-        req = resolve_page_request(request)
         dpi = clamp_dpi(_int_param(request.query_params, "dpi", DEFAULT_DPI))
-        png, page_count = await asyncio.wait_for(asyncio.to_thread(render_page_png, req, dpi), timeout=_RENDER_TIMEOUT_SECONDS)
+        png, page_count = await _execute_document_action(request, lambda req: render_page_png(req, dpi))
     except DocumentRequestError as exc:
         return _error(exc)
     except asyncio.TimeoutError:
@@ -269,8 +325,7 @@ async def document_highlights_endpoint(request: Request) -> JSONResponse:
             raise DocumentRequestError(400, "Query parameter 'text' is required")
         if len(text) > MAX_TEXT_CHARS:
             raise DocumentRequestError(400, f"Query parameter 'text' exceeds {MAX_TEXT_CHARS} characters")
-        req = resolve_page_request(request)
-        body = await asyncio.wait_for(asyncio.to_thread(locate_excerpt, req, text), timeout=_RENDER_TIMEOUT_SECONDS)
+        body = await _execute_document_action(request, lambda req: locate_excerpt(req, text))
     except DocumentRequestError as exc:
         return _error(exc)
     except asyncio.TimeoutError:

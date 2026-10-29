@@ -2,6 +2,7 @@ import React from "react";
 import { useRoutes } from "react-router-dom";
 import { AppDataProvider } from "./AppDataProvider";
 import { BattleSessionsProvider } from "./BattleSessions";
+import { IngestSessionProvider } from "./IngestSessions";
 import { SafeModeProvider } from "./SafeMode";
 import { Shell } from "./Shell";
 import { routes } from "./routes";
@@ -12,9 +13,11 @@ export const App: React.FC = () => {
   return (
     <AppDataProvider>
       <SafeModeProvider>
-        <BattleSessionsProvider>
-          <Shell mockBanner={isMockRequested()}>{element}</Shell>
-        </BattleSessionsProvider>
+        <IngestSessionProvider>
+          <BattleSessionsProvider>
+            <Shell mockBanner={isMockRequested()}>{element}</Shell>
+          </BattleSessionsProvider>
+        </IngestSessionProvider>
       </SafeModeProvider>
     </AppDataProvider>
   );

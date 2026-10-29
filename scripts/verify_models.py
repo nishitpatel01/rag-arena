@@ -107,10 +107,15 @@ def _probe(settings: ArenaSettings, spec: ModelSpec) -> dict[str, Any]:
 
 
 def verify_all(settings: ArenaSettings) -> dict[str, Any]:
-    """Probe every catalog model once (sequential, bounded by the catalog size) and redact the result."""
+    """Probe every LLM catalog model once (sequential, bounded by catalog size) and redact the result."""
     tokens = redaction_tokens(settings)
     entries = []
-    for spec in load_catalog(settings).models[:16]:
+    probeable = [
+        spec
+        for spec in load_catalog(settings).models[:16]
+        if spec.provider in (PROVIDER_VERTEX_GEMINI, PROVIDER_ANTHROPIC_VERTEX)
+    ]
+    for spec in probeable:
         entry = _probe(settings, spec)
         entry["message"] = redact_text(str(entry["message"]), tokens)
         entries.append(entry)

@@ -1,5 +1,6 @@
 import React from "react";
 import type { LevelDescriptor } from "../../types/arena";
+import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { KeyValue } from "../../components/ui/KeyValue";
 import { Panel } from "../../components/ui/Panel";
@@ -20,10 +21,11 @@ export interface IngestJobViewProps {
   readonly job: IngestJobStream;
   readonly selectedStage: string | null;
   readonly onSelectStage: (id: string) => void;
+  readonly onDismiss?: () => void;
 }
 
 /** Live view of one ingestion job: rail + diagram (ingest nodes) + per-doc + embed progress. */
-export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, selectedStage, onSelectStage }) => {
+export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, selectedStage, onSelectStage, onDismiss }) => {
   const timeline = job.state.timelines[level.level_id];
   const progress = deriveIngestProgress(job.state.events);
   const stageIds = ingestStageOrder(level.level_id, INGEST_STAGE_IDS, timeline?.stageOrder ?? []);
@@ -48,21 +50,32 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]" data-testid="ingest-job-view">
       <Panel
         title={`Ingestion job · ${level.label}`}
-        subtitle={job.jobId ? `job ${job.jobId}${jobTier ? ` · tier_profile=${jobTier}` : ""}` : "creating job…"}
+        subtitle={
+          job.jobId
+            ? `job ${job.jobId} · ${job.scope ? `workspace ${job.scope}` : "procurement corpus"}${jobTier ? ` · tier_profile=${jobTier}` : ""}`
+            : "creating job…"
+        }
         actions={
-          job.state.complete ? (
-            <Pill tone="ok">job_complete</Pill>
-          ) : timeline?.error ? (
-            <Pill tone="err" mono title={timeline.error.message}>job_failed · {timeline.error.type}</Pill>
-          ) : job.state.interrupted ? (
-            <Pill tone="err" title="The job stream ended without job_complete / job_failed; running stages were marked failed.">
-              stream interrupted · {job.state.interrupted.reason}
-            </Pill>
-          ) : job.isStreaming ? (
-            <Pill tone="active">streaming</Pill>
-          ) : job.transportError ? (
-            <Pill tone="err">stream error</Pill>
-          ) : null
+          <div className="flex flex-wrap items-center gap-2">
+            {job.state.complete ? (
+              <Pill tone="ok">job_complete</Pill>
+            ) : timeline?.error ? (
+              <Pill tone="err" mono title={timeline.error.message}>job_failed · {timeline.error.type}</Pill>
+            ) : job.state.interrupted ? (
+              <Pill tone="err" title="The job stream ended without job_complete / job_failed; running stages were marked failed.">
+                stream interrupted · {job.state.interrupted.reason}
+              </Pill>
+            ) : job.isStreaming ? (
+              <Pill tone="active">streaming</Pill>
+            ) : job.transportError ? (
+              <Pill tone="err">stream error</Pill>
+            ) : null}
+            {!job.isStreaming && onDismiss && (
+              <Button size="sm" variant="ghost" onClick={onDismiss}>
+                Clear
+              </Button>
+            )}
+          </div>
         }
         className="xl:col-span-2"
       >

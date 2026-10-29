@@ -3,19 +3,24 @@ import { useAppData } from "../../app/AppDataProvider";
 import { useSessionUi } from "../../app/BattleSessions";
 import { useMasked, useSafeMode } from "../../app/SafeMode";
 import { DocumentDrawer } from "../../components/DocumentDrawer";
+import { HighlightMetricSelect, useHighlightMetric } from "../../components/ui/HighlightMetricSelect";
 import { Panel } from "../../components/ui/Panel";
 import { api } from "../../lib/api";
+import { summaryTextForMetric } from "../../lib/winnerHighlight";
 import type { Citation, LeaderboardResponse } from "../../types/arena";
 import { modelLabel, type ModelSelection } from "../levels/modelSelection";
 import { useBattleStream } from "../levels/useBattleStream";
 import { useModelCatalog } from "../levels/useModelCatalog";
 import { COMPARE_SESSION } from "../levels/useLevelRun";
+import { ScopeSelector } from "../uploads/ScopeSelector";
+import { applyUploadScopeToChoices } from "../uploads/uploadModel";
+import { useUploadWorkspaces } from "../uploads/useUploadWorkspaces";
 import { CompareAnswers, type SelectedCitation } from "./CompareAnswers";
 import { CompareRails } from "./CompareRails";
 import { CompareSetup } from "./CompareSetup";
 import type { QuestionValue } from "./CompareQuestionFields";
 import { Scoreboard } from "./Scoreboard";
-import { costEstimate, enginesToRun, levelChoices, scoreboardRows, summaryText } from "./compareModel";
+import { costEstimate, enginesToRun, levelChoices, scoreboardRows } from "./compareModel";
 import { RunStatusPills } from "./RunStatusPills";
 
 /** Session key of the Compare page: its run, results and setup survive navigation until Reset / a new Run.
@@ -47,10 +52,12 @@ function useLeaderboard(): { data: LeaderboardResponse | null; error: string | n
 
 /** `/compare`: one question, one model pair, the chosen enabled levels → ONE battle stream with every engine. */
 export const ComparePage: React.FC = () => {
-  const { levels, loading } = useAppData();
+  const { levels, loading, health } = useAppData();
   const models = useModelCatalog(null);
   const stream = useBattleStream(COMPARE_SESSION);
   const leaderboard = useLeaderboard();
+  const uploadScope = useUploadWorkspaces(health?.demo_mode ?? null);
+  const [highlightMetric, setHighlightMetric] = useHighlightMetric();
   const { mask } = useSafeMode();
   const [question, setQuestion] = useSessionUi(COMPARE_SESSION, "question", NO_QUESTION, isQuestion);
   // Default: every enabled level included — track only what the user unticked.
@@ -60,7 +67,11 @@ export const ComparePage: React.FC = () => {
   const [railPicks, setRailPicks] = useSessionUi(COMPARE_SESSION, "railPicks", NO_PICKS, isPicks);
   const [selected, setSelected] = useState<SelectedCitation | null>(null);
 
-  const choices = useMemo(() => levelChoices(levels, models.catalog, models.selection, question.questionId), [levels, models.catalog, models.selection, question.questionId]);
+  const effectiveQid = uploadScope.isUploadActive ? "" : question.questionId;
+  const choices = useMemo(() => {
+    const base = levelChoices(levels, models.catalog, models.selection, effectiveQid);
+    return uploadScope.isUploadActive ? applyUploadScopeToChoices(base, uploadScope.activeWorkspace) : base;
+  }, [levels, models.catalog, models.selection, effectiveQid, uploadScope.isUploadActive, uploadScope.activeWorkspace]);
   const checked = useMemo(() => new Set(choices.map((c) => c.levelId).filter((id) => !unchecked.has(id))), [choices, unchecked]);
   const engines = enginesToRun(choices, checked);
   const estimate = costEstimate(leaderboard.data, engines, models.selection);
@@ -80,7 +91,14 @@ export const ComparePage: React.FC = () => {
     setSelected(null);
     setRailPicks(NO_PICKS);
     setRunEngines(toRun);
-    stream.run({ query: question.query.trim(), questionId: question.questionId.trim() || null, engines: toRun, synthesisModel: sel?.synthesis ?? null, judgeModel: sel?.judge ?? null });
+    stream.run({
+      query: question.query.trim(),
+      questionId: uploadScope.isUploadActive ? null : question.questionId.trim() || null,
+      engines: toRun,
+      solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
+      synthesisModel: sel?.synthesis ?? null,
+      judgeModel: sel?.judge ?? null,
+    });
   };
   const openCitation = useCallback((engine: string, citation: Citation) => setSelected({ engine, citation }), []);
   const onReset = (): void => {
@@ -96,14 +114,41 @@ export const ComparePage: React.FC = () => {
       <h1 className="text-lg font-semibold text-ink-1">Compare</h1>
       {stream.state.complete && (
         <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-1 px-4 py-2 shadow-sm" role="status" data-testid="compare-summary">
-          <span className="text-sm font-semibold text-ink-1">{mask(summaryText(rows))}</span>
+          <span className="text-sm font-semibold text-ink-1">{mask(summaryTextForMetric(rows, highlightMetric))}</span>
           <RunStatusPills state={stream.state} isStreaming={stream.isStreaming} labelFor={labelFor} />
         </div>
       )}
       <Panel title="Setup" subtitle="One question · one synthesis + judge pair · the enabled levels you tick">
-        <CompareSetup question={question} onQuestion={setQuestion} models={models} choices={choices} checked={checked} onToggle={onToggle}
-          engines={engines} estimate={estimate} leaderboardError={leaderboard.error ? mask(leaderboard.error) : null} labelFor={levelLabel}
-          isStreaming={stream.isStreaming} onRun={onRun} onAbort={stream.abort} onReset={onReset} canReset={stream.hasContent || hasSetup || runEngines.length > 0} />
+        <CompareSetup
+          question={question}
+          onQuestion={setQuestion}
+          models={models}
+          choices={choices}
+          checked={checked}
+          onToggle={onToggle}
+          engines={engines}
+          estimate={estimate}
+          leaderboardError={leaderboard.error ? mask(leaderboard.error) : null}
+          labelFor={levelLabel}
+          isStreaming={stream.isStreaming}
+          onRun={onRun}
+          onAbort={stream.abort}
+          onReset={onReset}
+          canReset={stream.hasContent || hasSetup || runEngines.length > 0}
+          uploadScopeId={uploadScope.isUploadActive ? uploadScope.scope : null}
+          scopeControl={
+            <ScopeSelector
+              id="compare-scope-select"
+              demoMode={health?.demo_mode ?? null}
+              scope={uploadScope.scope}
+              workspaces={uploadScope.workspaces}
+              loading={uploadScope.loading}
+              error={uploadScope.error}
+              disabled={stream.isStreaming}
+              onChange={uploadScope.setScope}
+            />
+          }
+        />
         {stream.transportError && (
           <div className="mt-3 rounded-md border border-err p-2 text-xs text-err" role="alert" data-testid="run-error">
             <span className="font-semibold">Run rejected / stream error:</span> <span className="break-words">{stream.transportError}</span>
@@ -113,9 +158,17 @@ export const ComparePage: React.FC = () => {
       </Panel>
       {started && (
         <>
-          <Panel title="Scoreboard" subtitle={stream.state.runId ? `run ${stream.state.runId}` : "waiting for run_started"}
-            actions={!stream.state.complete ? <RunStatusPills state={stream.state} isStreaming={stream.isStreaming} labelFor={labelFor} /> : null}>
-            <Scoreboard rows={rows} labelFor={labelFor} />
+          <Panel
+            title="Scoreboard"
+            subtitle={stream.state.runId ? `run ${stream.state.runId}` : "waiting for run_started"}
+            actions={
+              <div className="flex flex-wrap items-end gap-3">
+                <HighlightMetricSelect value={highlightMetric} onChange={setHighlightMetric} id="compare-highlight-metric" />
+                {!stream.state.complete && <RunStatusPills state={stream.state} isStreaming={stream.isStreaming} labelFor={labelFor} />}
+              </div>
+            }
+          >
+            <Scoreboard rows={rows} labelFor={labelFor} highlightMetric={highlightMetric} />
           </Panel>
           <Panel title="Stage rails" subtitle="One rail per level — statuses come only from that engine's events">
             <div data-run-state={stream.state.complete ? "complete" : stream.state.interrupted ? "interrupted" : stream.isStreaming ? "streaming" : "idle"}>

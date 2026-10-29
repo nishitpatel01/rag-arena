@@ -130,6 +130,7 @@ class UploadSource:
     files: tuple[tuple[str, str], ...]
     fetch: Callable[[str, Path], int]
     on_finish: Callable[["IngestJob"], None] | None = None
+    owner: str | None = None
 
     def __post_init__(self) -> None:
         from app.ingestion.uploads import check_workspace_id, sanitize_filename
@@ -175,6 +176,7 @@ class IngestJob:
     error: str | None = None
     failed_stage: str | None = None
     scope: str | None = None  # upl_<12 hex> for an upload workspace job; None = the fixed corpus
+    owner: str | None = None  # SHA-256 IAP owner key for upload workspace jobs; never serialized in to_dict()
     settled: bool = False  # True once post-job work (download cleanup, workspace manifest) has finished
     events: list[dict[str, Any]] = field(default_factory=list)
     notify: asyncio.Event = field(default_factory=asyncio.Event)
@@ -188,6 +190,12 @@ class IngestJob:
     @property
     def done(self) -> bool:
         return self.status in ("completed", "failed") and self.settled
+
+    def visible_to(self, viewer_owner: str | None) -> bool:
+        """Corpus jobs are public to live callers; upload jobs require matching owner when stamped."""
+        if self.scope is None or self.owner is None:
+            return True
+        return viewer_owner == self.owner
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -282,8 +290,13 @@ class IngestJobRunner:
                 raise RuntimeError(f"Too many concurrent ingestion jobs (> {_MAX_JOBS})")
             self._jobs.pop(oldest_done)
             self._tasks.pop(oldest_done, None)
-        job = IngestJob(job_id=f"ing_{uuid.uuid4().hex[:12]}", level=level, tier_profile=LEVEL_TIER_PROFILES[level],
-                        scope=upload.workspace_id if upload else None)
+        job = IngestJob(
+            job_id=f"ing_{uuid.uuid4().hex[:12]}",
+            level=level,
+            tier_profile=LEVEL_TIER_PROFILES[level],
+            scope=upload.workspace_id if upload else None,
+            owner=upload.owner if upload else None,
+        )
         self._jobs[job.job_id] = job
         if upload is not None:
             self._uploads[job.job_id] = upload
@@ -505,9 +518,21 @@ class IngestJobRunner:
                 waiter.cancel()
         yield {"event": "stream_warning", "run_id": job.job_id, "job_id": job.job_id, "engine": job.level, "message": f"Ingest stream bound reached ({max_frames} frames or timeout)", "ts": utc_now_iso()}
 
-    async def status(self) -> dict[str, Any]:
-        """``GET /api/v1/ingest/status``: live counts by tier + index states + ingest_runs provenance, or a reason."""
-        base: dict[str, Any] = {"demo_mode": self.settings.demo_mode, **self._memory_runs()}
+    def active_jobs(self, *, viewer_owner: str | None = None) -> list[dict[str, Any]]:
+        """In-flight jobs visible to ``viewer_owner`` (bounded by ``_MAX_JOBS``) so reloaded tabs can re-attach."""
+        return [
+            j.to_dict()
+            for j in list(self._jobs.values())[-_MAX_JOBS:]
+            if not j.done and j.visible_to(viewer_owner)
+        ]
+
+    async def status(self, *, viewer_owner: str | None = None) -> dict[str, Any]:
+        """``GET /api/v1/ingest/status``: live counts by tier + index states + active_jobs + ingest_runs provenance."""
+        base: dict[str, Any] = {
+            "demo_mode": self.settings.demo_mode,
+            "active_jobs": self.active_jobs(viewer_owner=viewer_owner),
+            **self._memory_runs(viewer_owner=viewer_owner),
+        }
         try:
             backends = self.backend_factory(self.settings)
             counts = await asyncio.to_thread(backends.loader.count_by_tier)
@@ -532,10 +557,11 @@ class IngestJobRunner:
         except Exception as exc:  # boundary: surfaced verbatim in the status payload (the Run button stays disabled)
             return {"available": False, "reason": f"{type(exc).__name__}: {exc}", "document_count": 0}
 
-    def _memory_runs(self) -> dict[str, Any]:
+    def _memory_runs(self, *, viewer_owner: str | None = None) -> dict[str, Any]:
         runs = [
             {"run_id": j.job_id, "level": j.level, "tier_profile": j.tier_profile, "finished_at": j.finished_at, "status": j.status, "chunks": j.chunks}
             for j in list(self._jobs.values())[-20:]
+            if j.visible_to(viewer_owner)
         ]
         return {"last_runs": runs, "last_runs_source": f"in-memory jobs (DEMO_MODE={self.settings.demo_mode})"}
 

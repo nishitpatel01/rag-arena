@@ -3,6 +3,7 @@ import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN } from "../../lib/validation";
 import type { BenchmarkQuestion } from "../../types/arena";
+import { isUploadScope } from "../uploads/uploadModel";
 
 export interface QuestionValue {
   readonly query: string;
@@ -13,6 +14,8 @@ export interface CompareQuestionFieldsProps {
   readonly value: QuestionValue;
   readonly onChange: (next: QuestionValue) => void;
   readonly disabled: boolean;
+  readonly scopeControl?: React.ReactNode;
+  readonly uploadScopeId?: string | null;
 }
 
 export const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 placeholder:text-ink-3 disabled:opacity-60";
@@ -23,10 +26,17 @@ export function questionIdError(questionId: string): string | null {
 }
 
 /** Golden-question select + editable question + explicit question_id (same rules as the level pages). */
-export const CompareQuestionFields: React.FC<CompareQuestionFieldsProps> = ({ value, onChange, disabled }) => {
+export const CompareQuestionFields: React.FC<CompareQuestionFieldsProps> = ({
+  value,
+  onChange,
+  disabled,
+  scopeControl = null,
+  uploadScopeId = null,
+}) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = useSafeMode();
+  const uploadMode = isUploadScope(uploadScopeId);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,36 +60,50 @@ export const CompareQuestionFields: React.FC<CompareQuestionFieldsProps> = ({ va
     // Editing a golden question away from its text makes it ad-hoc (no recording / reference answer applies).
     onChange({ query: text, questionId: match ? match.question_id : golden ? "" : value.questionId });
   };
-  const idError = questionIdError(value.questionId);
+  const idError = uploadMode ? null : questionIdError(value.questionId);
 
   return (
     <div className="flex flex-col gap-3">
+      {scopeControl}
+      {!uploadMode && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="compare-golden-question" className="text-xs font-medium text-ink-2">Golden question</label>
+          <select id="compare-golden-question" value={golden?.question_id ?? ""} onChange={onPick} disabled={disabled} className={fieldClass}>
+            <option value="">— choose a benchmark question —</option>
+            {questions.map((q) => (
+              <option key={q.question_id} value={q.question_id}>
+                {q.question_id} · {q.failure_mode_category}
+              </option>
+            ))}
+          </select>
+          {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {mask(loadError)}</p>}
+        </div>
+      )}
       <div className="flex flex-col gap-1">
-        <label htmlFor="compare-golden-question" className="text-xs font-medium text-ink-2">Golden question</label>
-        <select id="compare-golden-question" value={golden?.question_id ?? ""} onChange={onPick} disabled={disabled} className={fieldClass}>
-          <option value="">— choose a benchmark question —</option>
-          {questions.map((q) => (
-            <option key={q.question_id} value={q.question_id}>
-              {q.question_id} · {q.failure_mode_category}
-            </option>
-          ))}
-        </select>
-        {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {mask(loadError)}</p>}
-      </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="compare-question" className="text-xs font-medium text-ink-2">Question (editable)</label>
-        <textarea id="compare-question" value={value.query} onChange={onType} rows={4} disabled={disabled}
-          placeholder="Ask about CLIN rates, SLA matrices, amendments…" className={`${fieldClass} resize-y`} />
+        <label htmlFor="compare-question" className="text-xs font-medium text-ink-2">
+          {uploadMode ? "Question for your uploaded PDFs" : "Question (editable)"}
+        </label>
+        <textarea
+          id="compare-question"
+          value={value.query}
+          onChange={onType}
+          rows={4}
+          disabled={disabled}
+          placeholder={uploadMode ? "Ask a question grounded in your uploaded documents…" : "Ask about CLIN rates, SLA matrices, amendments…"}
+          className={`${fieldClass} resize-y`}
+        />
         <span className="self-end text-xs text-ink-3">{value.query.length} chars</span>
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="compare-question-id" className="text-xs font-medium text-ink-2">
-          question_id <span className="font-normal text-ink-3">(recording key in replay; empty = ad-hoc)</span>
-        </label>
-        <input id="compare-question-id" value={value.questionId} disabled={disabled} spellCheck={false}
-          onChange={(e) => onChange({ ...value, questionId: e.target.value })} placeholder="e.g. q_exact_clin_lookup" className={`${fieldClass} font-mono`} />
-        {idError && <p className="text-xs text-clay" role="alert">{idError}</p>}
-      </div>
+      {!uploadMode && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="compare-question-id" className="text-xs font-medium text-ink-2">
+            question_id <span className="font-normal text-ink-3">(recording key in replay; empty = ad-hoc)</span>
+          </label>
+          <input id="compare-question-id" value={value.questionId} disabled={disabled} spellCheck={false}
+            onChange={(e) => onChange({ ...value, questionId: e.target.value })} placeholder="e.g. q_exact_clin_lookup" className={`${fieldClass} font-mono`} />
+          {idError && <p className="text-xs text-clay" role="alert">{idError}</p>}
+        </div>
+      )}
     </div>
   );
 };

@@ -364,7 +364,7 @@ def test_ingest_workspace_level1_records_completion_in_manifest() -> None:
         assert resp.status_code == 202, resp.text
         job_id = resp.json()["job"]["job_id"]
         assert resp.json()["job"]["scope"] == ws
-        events = _sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream").text)
+        events = _sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream", headers=_ALICE).text)
         assert events[-1]["event"] == "job_complete"
         level = client.get(f"/api/v1/uploads/{ws}", headers=_ALICE).json()["workspace"]["levels"]["level1_naive"]
     assert level["status"] == "completed" and level["job_id"] == job_id and level["chunks"] == len(loader.rows) > 0
@@ -532,7 +532,7 @@ def test_managed_vertex_upload_ingest_and_delete_cleans_vais_docs_or_keeps_works
         resp = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "managed_vertex"})
         assert resp.status_code == 202, resp.text
         job_id = resp.json()["job"]["job_id"]
-        events = _sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream").text)
+        events = _sse(client.get(f"/api/v1/ingest/jobs/{job_id}/stream", headers=_ALICE).text)
         assert events[-1]["event"] == "job_complete"
         mv = client.get(f"/api/v1/uploads/{ws}", headers=_ALICE).json()["workspace"]["levels"]["managed_vertex"]
         assert mv["status"] == "completed" and mv["tier_profile"] == "vertex_ai_search"
@@ -550,4 +550,63 @@ def test_managed_vertex_upload_ingest_and_delete_cleans_vais_docs_or_keeps_works
         assert services.deleted_vais_docs == [upload_doc_id(ws, file_id)]
         assert ok_del.json()["vertex_ai_search"] == {"deleted_docs": 1}
         assert ws not in store.manifests
+
+
+def test_health_endpoint_exposes_upload_bucket_in_live_and_hides_it_in_replay() -> None:
+    from app.core.config import ArenaSettings
+
+    live = TestClient(create_app(settings=live_settings(upload_bucket="test-project-rag-arena-uploads"))).get("/api/v1/health").json()
+    assert live["upload_bucket"] == "test-project-rag-arena-uploads"
+
+    replay = TestClient(
+        create_app(settings=ArenaSettings(demo_mode="replay", upload_bucket="test-project-rag-arena-uploads"))
+    ).get("/api/v1/health").json()
+    assert replay["upload_bucket"] == ""
+
+
+def test_ingest_status_exposes_active_jobs_and_scopes_upload_jobs_to_owner() -> None:
+    from app.ingestion.jobs import IngestJob
+    from app.ingestion.uploads import owner_key
+
+    client, store, _ = _ingest_client()
+    runner = client.app.state.ingest_runner
+    corpus_job = IngestJob(job_id="ing_corpus000001", level="level1_naive", tier_profile="naive", status="running")
+    upload_job = IngestJob(
+        job_id="ing_upload000001",
+        level="level2_hybrid",
+        tier_profile="hybrid",
+        status="running",
+        scope="upl_111122223333",
+        owner=owner_key("alice@example.com"),
+    )
+    done_job = IngestJob(
+        job_id="ing_done00000001", level="level1_naive", tier_profile="naive", status="completed", settled=True
+    )
+    runner._jobs[corpus_job.job_id] = corpus_job
+    runner._jobs[upload_job.job_id] = upload_job
+    runner._jobs[done_job.job_id] = done_job
+
+    with client:
+        alice_status = client.get("/api/v1/ingest/status", headers=_ALICE).json()
+        bob_status = client.get("/api/v1/ingest/status", headers=_BOB).json()
+        assert [j["job_id"] for j in alice_status["active_jobs"]] == ["ing_corpus000001", "ing_upload000001"]
+        assert "owner" not in alice_status["active_jobs"][1]
+        assert [j["job_id"] for j in bob_status["active_jobs"]] == ["ing_corpus000001"]
+
+        # Bob cannot inspect or stream Alice's upload ingestion job, while Alice and corpus jobs work
+        assert client.get(f"/api/v1/ingest/jobs/{upload_job.job_id}", headers=_ALICE).status_code == 200
+        assert client.get(f"/api/v1/ingest/jobs/{upload_job.job_id}", headers=_BOB).status_code == 404
+        assert client.get(f"/api/v1/ingest/jobs/{upload_job.job_id}/stream", headers=_BOB).status_code == 404
+        assert client.get(f"/api/v1/ingest/jobs/{corpus_job.job_id}", headers=_BOB).status_code == 200
+
+        # Starting a real upload job stamps the workspace owner so another user gets 404 on job endpoints
+        ws = _workspace(client)
+        _upload(client, store, ws, _corpus_pdf(), name="Pricing.pdf")
+        started = client.post(f"/api/v1/uploads/{ws}/ingest", headers=_ALICE, json={"level": "level1_naive"})
+        assert started.status_code == 202
+        real_jid = started.json()["job"]["job_id"]
+        assert client.get(f"/api/v1/ingest/jobs/{real_jid}", headers=_BOB).status_code == 404
+        assert client.get(f"/api/v1/ingest/jobs/{real_jid}/stream", headers=_ALICE).status_code == 200
+
+
 

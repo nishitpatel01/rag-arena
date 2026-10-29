@@ -48,6 +48,17 @@ PRICE_TABLE: dict[str, ModelPrice] = {
         price_as_of="2026-10-20",
         note="Introductory global-endpoint rate through 2026-11-30; output rate includes thinking tokens.",
     ),
+    "gemini-4-carbon": ModelPrice(
+        model="gemini-4-carbon",
+        input_usd_per_1m=2.00,
+        output_usd_per_1m=10.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-10-28",
+        note=(
+            "Introductory global-endpoint rate ($2.00 / $10.00 per 1M in/out; standard $4.00 / $20.00 "
+            "post-introductory); output rate includes thinking tokens."
+        ),
+    ),
     "gemini-embedding-2": ModelPrice(
         model="gemini-embedding-2",
         input_usd_per_1m=0.20,

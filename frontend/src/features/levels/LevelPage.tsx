@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAppData } from "../../app/AppDataProvider";
+import { useLevelIngest, type LevelIngestView } from "../../app/IngestSessions";
 import { useSafeMode } from "../../app/SafeMode";
 import { DocumentDrawer } from "../../components/DocumentDrawer";
 import { DocumentViewer } from "../../components/DocumentViewer";
@@ -17,6 +18,7 @@ import { CompareTeaser } from "./CompareTeaser";
 import { lowerEnabledLevels, teaserTitle, type LowerLevel } from "./compareTeaserModel";
 import { ArchitectureDiagram } from "./ArchitectureDiagram";
 import { CompareRunBanner } from "./CompareRunBanner";
+import { LevelIngestBanner } from "./LevelIngestBanner";
 import { LevelQuestionPanel } from "./LevelQuestionPanel";
 import { RunPills, runStateAttr } from "./RunPills";
 import { StageDetail, type AnswerSource } from "./StageDetail";
@@ -27,6 +29,9 @@ import { useLevelRun } from "./useLevelRun";
 import { useModelCatalog } from "./useModelCatalog";
 import { useRunSelection } from "./useRunSelection";
 import { useViewedRunInputs } from "./useViewedRunInputs";
+import { ScopeSelector } from "../uploads/ScopeSelector";
+import { uploadRunGateFor, type UploadWorkspace } from "../uploads/uploadModel";
+import { useUploadWorkspaces, type UploadWorkspacesState } from "../uploads/useUploadWorkspaces";
 
 /** Two `gap-4` (16 px) column gaps in the level grid. */
 const GRID_GAPS_PX = 32;
@@ -37,10 +42,22 @@ function mergeOrder(declared: readonly string[], seen: readonly string[]): strin
   return out;
 }
 
-const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestState: IngestStatusState; readonly lowerLevels: readonly LowerLevel[] }> = ({
+const LevelBody: React.FC<{
+  readonly level: LevelDescriptor;
+  readonly backingIngestLevel: LevelDescriptor;
+  readonly levelIngest: LevelIngestView | null;
+  readonly ingestState: IngestStatusState;
+  readonly lowerLevels: readonly LowerLevel[];
+  readonly demoMode: string | null;
+  readonly uploadScope: UploadWorkspacesState;
+}> = ({
   level,
+  backingIngestLevel,
+  levelIngest,
   ingestState,
   lowerLevels,
+  demoMode,
+  uploadScope,
 }) => {
   // Page session: run, results and selections survive navigation (and keep streaming) until Reset / a new Run.
   // "Latest run wins": the page shows its own run or the newer Compare run that included this level.
@@ -62,9 +79,22 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
 
   const timeline = stream.state.timelines[level.level_id];
   const active = activeStageId(timeline);
-  const gate = stream.isMock
+  const rawGate = stream.isMock
     ? { blocked: false, note: null, tone: "neutral" as const, count: null }
-    : runGateFor(level.level_id, ingest, ingestError);
+    : uploadScope.isUploadActive
+      ? uploadScope.loading
+        ? { blocked: true, note: "Checking upload workspace…", tone: "neutral" as const, count: null }
+        : uploadRunGateFor(level.level_id, uploadScope.activeWorkspace)
+      : runGateFor(level.level_id, ingest, ingestError);
+  const gate =
+    rawGate.blocked && levelIngest?.entry.isStreaming
+      ? {
+          ...rawGate,
+          count: null,
+          tone: "info" as const,
+          note: `Ingestion in progress (${levelIngest.entry.jobId ?? levelIngest.backingLevelId}) — Run unlocks automatically on job_complete`,
+        }
+      : rawGate;
 
   // Auto-follow the active stage until the user picks one explicitly.
   useEffect(() => {
@@ -81,8 +111,9 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     clearOwn(); // the new level run becomes the page's source (newest): start with no selections
     stream.run({
       query,
-      questionId,
+      questionId: uploadScope.isUploadActive ? null : questionId,
       engines: [level.level_id],
+      solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
     });
@@ -112,8 +143,14 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
     const flag = timeline?.answer?.flags?.adk_runner_used;
     return { adkRunnerUsed: typeof flag === "boolean" ? flag : null, finalAnswerSource: p?.finalAnswerSource ?? null };
   }, [isAgentic, timeline?.stages.agent_turn?.payload, timeline?.answer?.flags]);
-  // Teaser only after a finished run with judge metrics, on a level that has lower enabled levels.
-  const showTeaser = lowerLevels.length > 0 && (stream.state.complete || stream.source === "compare") && !stream.isStreaming && Boolean(timeline?.evaluation);
+  // Teaser only after a finished golden-question run with judge metrics, on a level that has lower enabled levels.
+  const showTeaser =
+    !uploadScope.isUploadActive &&
+    Boolean(stream.state.questionId) &&
+    lowerLevels.length > 0 &&
+    (stream.state.complete || stream.source === "compare") &&
+    !stream.isStreaming &&
+    Boolean(timeline?.evaluation);
   const labelFor = useCallback((id: string | null) => modelLabel(models.catalog, id), [models.catalog]);
   const [questionPref, setQuestionWidth] = usePaneWidth("question", QUESTION_PANE);
   const [docPref, setDocWidth] = usePaneWidth("document-viewer", DOC_PANE);
@@ -126,6 +163,13 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
 
   return (
     <>
+    {levelIngest && (
+      <LevelIngestBanner
+        currentLevelId={level.level_id}
+        backingLevel={backingIngestLevel}
+        view={levelIngest}
+      />
+    )}
     <CompareRunBanner run={stream} labelFor={labelFor} />
     <div
       ref={gridRef}
@@ -133,8 +177,30 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
       style={{ "--question-pane-w": `${questionWidth}px`, "--doc-pane-w": `${docWidth}px` } as React.CSSProperties}
     >
       <div className="flex min-w-0 xl:row-span-2">
-        <LevelQuestionPanel levelId={level.level_id} sessionKey={sessionKey} gate={gate} run={stream} models={models} viewing={viewing}
-          hasResults={stream.hasContent || selectedStage !== null || citation !== null} onRun={onRun} onReset={onReset} />
+        <LevelQuestionPanel
+          levelId={level.level_id}
+          sessionKey={sessionKey}
+          gate={gate}
+          run={stream}
+          models={models}
+          viewing={viewing}
+          hasResults={stream.hasContent || selectedStage !== null || citation !== null}
+          onRun={onRun}
+          onReset={onReset}
+          uploadScopeId={uploadScope.isUploadActive ? uploadScope.scope : null}
+          scopeControl={
+            <ScopeSelector
+              id={`scope-${level.level_id}`}
+              demoMode={demoMode}
+              scope={uploadScope.scope}
+              workspaces={uploadScope.workspaces}
+              loading={uploadScope.loading}
+              error={uploadScope.error}
+              disabled={stream.ownStreaming}
+              onChange={uploadScope.setScope}
+            />
+          }
+        />
       <PaneResizer label="Resize question pane" side="left" width={questionWidth} bounds={QUESTION_PANE}
         maxPx={paneMax(QUESTION_PANE, leftAvailable)} onChange={setQuestionWidth} className="-mr-3.5 ml-0.5" />
       </div>
@@ -208,7 +274,37 @@ const LevelBody: React.FC<{ readonly level: LevelDescriptor; readonly ingestStat
   );
 };
 
-const IngestStatusPill: React.FC<{ readonly levelId: string; readonly ingestState: IngestStatusState }> = ({ levelId, ingestState }) => {
+const IngestStatusPill: React.FC<{
+  readonly levelId: string;
+  readonly ingestState: IngestStatusState;
+  readonly activeUpload: UploadWorkspace | null;
+  readonly isUploadActive: boolean;
+  readonly levelIngest: LevelIngestView | null;
+}> = ({ levelId, ingestState, activeUpload, isUploadActive, levelIngest }) => {
+  if (levelIngest?.entry.isStreaming) {
+    const scopeTag = levelIngest.entry.scope ? `${levelIngest.entry.scope} · ` : "";
+    const jobTag = levelIngest.entry.jobId ? ` · ${levelIngest.entry.jobId}` : "";
+    return (
+      <Link to="/ingest" className="inline-flex max-w-[40rem]" aria-label="Open ingestion page">
+        <Pill tone="active" mono data-testid="level-ingesting-pill">
+          {scopeTag}ingesting…{jobTag}
+        </Pill>
+      </Link>
+    );
+  }
+  if (isUploadActive) {
+    const gate = uploadRunGateFor(levelId, activeUpload);
+    const label = activeUpload
+      ? gate.blocked
+        ? `${activeUpload.id} · not ingested`
+        : `${activeUpload.id} · ${gate.count ?? 0} ${levelId === "managed_vertex" ? "docs" : "chunks"}`
+      : "upload workspace";
+    return (
+      <Link to="/ingest" className="inline-flex max-w-[40rem]" aria-label="Open ingestion page" title={gate.note ?? undefined}>
+        <Pill tone={gate.tone} mono>{label}</Pill>
+      </Link>
+    );
+  }
   const { status, error } = ingestState;
   const gate = runGateFor(levelId, status, error);
   if (!status && !error) return <Pill tone="neutral">ingest status…</Pill>;
@@ -222,15 +318,19 @@ const IngestStatusPill: React.FC<{ readonly levelId: string; readonly ingestStat
 
 export const LevelPage: React.FC = () => {
   const { levelId = "" } = useParams();
-  const { levels, loading } = useAppData();
+  const { levels, loading, health } = useAppData();
   const level = levels.find((l) => l.level_id === levelId);
   // One request for the whole page (header pill + run gate share it).
   const ingestState = useIngestStatus();
+  const uploadScope = useUploadWorkspaces(health?.demo_mode ?? null);
+  const levelIngest = useLevelIngest(level?.level_id ?? "");
+  const backingIngestLevel =
+    (levelIngest ? levels.find((l) => l.level_id === levelIngest.backingLevelId) : undefined) ?? level;
   const back = <Link to="/" className="text-xs text-moss underline">Back to overview</Link>;
   const lowerLevels = useMemo(() => (level ? lowerEnabledLevels(levels, level) : []), [levels, level]);
 
   if (loading) return <p className="text-xs text-ink-3">Loading level…</p>;
-  if (!level) {
+  if (!level || !backingIngestLevel) {
     return <EmptyState title="Unknown level" description={`No level with id "${levelId}" was returned by GET /api/v1/levels.`} action={back} />;
   }
   if (!level.enabled) {
@@ -242,9 +342,24 @@ export const LevelPage: React.FC = () => {
         <h1 className="text-lg font-semibold text-ink-1">
           {/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
         </h1>
-        <IngestStatusPill levelId={level.level_id} ingestState={ingestState} />
+        <IngestStatusPill
+          levelId={level.level_id}
+          ingestState={ingestState}
+          activeUpload={uploadScope.activeWorkspace}
+          isUploadActive={uploadScope.isUploadActive}
+          levelIngest={levelIngest}
+        />
       </div>
-      <LevelBody key={level.level_id} level={level} ingestState={ingestState} lowerLevels={lowerLevels} />
+      <LevelBody
+        key={level.level_id}
+        level={level}
+        backingIngestLevel={backingIngestLevel}
+        levelIngest={levelIngest}
+        ingestState={ingestState}
+        lowerLevels={lowerLevels}
+        demoMode={health?.demo_mode ?? null}
+        uploadScope={uploadScope}
+      />
     </div>
   );
 };

@@ -54,7 +54,13 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _QID = "q_exact_clin_lookup"
 _QUERY = "What is the base hourly rate for CLIN-0004-AB?"
 _CLAUDE_ANSWER = "CLIN-0004-AB is billed at $210.00/hr in the base period [04_Pricing_Schedule_CLINs.pdf p.2]."
-_FABLE_DOWN = {"gemini-4-argon": True, "gemini-3.8-flash": True, "claude-opus-5-5": True, "claude-fable-5-1": False}
+_FABLE_DOWN = {
+    "gemini-4-argon": True,
+    "gemini-4-carbon": True,
+    "gemini-3.8-flash": True,
+    "claude-opus-5-5": True,
+    "claude-fable-5-1": False,
+}
 
 
 def _events(text: str) -> list[dict[str, Any]]:
@@ -101,13 +107,32 @@ def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() 
     catalog = _catalog()
     llms = [m for m in catalog.models if m.provider != "vertex_ai_search"]
     assert [m.id for m in catalog.models][-1] == "vertex-ai-search-summary"  # Level 5 pseudo model (managed_vertex only)
-    assert [m.id for m in llms] == ["gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5-1"]
-    assert [m.label for m in llms] == ["Gemini 4 Argon", "Gemini 3.8 Flash", "Claude Opus 5.5", "Claude Fable 5.1"]
-    assert [m.provider for m in llms] == ["vertex_gemini", "vertex_gemini", "anthropic_vertex", "anthropic_vertex"]
+    assert [m.id for m in llms] == [
+        "gemini-4-argon",
+        "gemini-4-carbon",
+        "gemini-3.8-flash",
+        "claude-opus-5-5",
+        "claude-fable-5-1",
+    ]
+    assert [m.label for m in llms] == [
+        "Gemini 4 Argon",
+        "Gemini 4 Carbon",
+        "Gemini 3.8 Flash",
+        "Claude Opus 5.5",
+        "Claude Fable 5.1",
+    ]
+    assert [m.provider for m in llms] == [
+        "vertex_gemini",
+        "vertex_gemini",
+        "vertex_gemini",
+        "anthropic_vertex",
+        "anthropic_vertex",
+    ]
     for spec in llms:
         assert spec.roles == ("synthesis", "judge") and spec.location == "global" and spec.available
         assert spec.price_source.startswith("https://cloud.google.com/vertex-ai/") and spec.price_as_of
         assert spec.input_usd_per_1m == PRICE_TABLE[spec.id].input_usd_per_1m > 0
+    assert (catalog.get("gemini-4-carbon").input_usd_per_1m, catalog.get("gemini-4-carbon").output_usd_per_1m) == (2.0, 10.0)
     assert (catalog.get("gemini-3.8-flash").input_usd_per_1m, catalog.get("gemini-3.8-flash").output_usd_per_1m) == (0.75, 3.75)
     assert (catalog.get("claude-fable-5-1").input_usd_per_1m, catalog.get("claude-fable-5-1").output_usd_per_1m) == (10.0, 50.0)
 
@@ -136,7 +161,13 @@ def test_model_location_override_comes_from_the_environment() -> None:
 
 def test_committed_verification_file_is_identity_free_and_well_formed() -> None:
     doc = json.loads((_PROJECT_ROOT / "data" / "model_verification.json").read_text(encoding="utf-8"))
-    assert {e["id"] for e in doc["models"]} == {"gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5-1"}
+    assert {e["id"] for e in doc["models"]} == {
+        "gemini-4-argon",
+        "gemini-4-carbon",
+        "gemini-3.8-flash",
+        "claude-opus-5-5",
+        "claude-fable-5-1",
+    }
     for entry in doc["models"]:
         assert set(entry) == {"id", "ok", "http_status", "message", "verified_at"}
     blob = json.dumps(doc)
@@ -172,7 +203,7 @@ def test_models_endpoint_shape_defaults_and_recorded_pairs() -> None:
     body = TestClient(create_app(settings=settings)).get("/api/v1/models").json()
     assert set(body) == {"models", "defaults", "demo_mode", "recorded_pairs"}
     assert body["defaults"] == {"synthesis_model": "gemini-4-argon", "judge_model": "claude-opus-5-5"}
-    assert body["demo_mode"] == "replay" and len(body["models"]) == 5
+    assert body["demo_mode"] == "replay" and len(body["models"]) == 6
     keys = {"id", "label", "provider", "location", "roles", "input_usd_per_1m", "output_usd_per_1m", "price_source",
             "price_as_of", "available", "unavailable_reason", "verified_at", "allowed_levels", "usd_per_1k_requests"}
     assert all(set(m) == keys for m in body["models"])
@@ -290,7 +321,7 @@ def test_query_runs_row_carries_both_models_for_the_default_pair() -> None:
 
 def test_query_runs_schema_gains_model_columns_in_place() -> None:
     names = [name for name, _, _ in lb._QUERY_RUN_SCHEMA]
-    assert names[-2:] == ["synthesis_model", "judge_model"]
+    assert {"synthesis_model", "judge_model", "solicitation_id", "scope"} <= set(names)
 
     class _BQ:
         def __init__(self) -> None:
@@ -403,4 +434,16 @@ def test_verify_script_records_redacted_failures_without_raising() -> None:
     assert entry["ok"] is False and entry["http_status"] == 403 and set(entry) == {"id", "ok", "http_status", "message", "verified_at"}
     redacted = redact_value(entry, redaction_tokens(settings))
     assert "acme-proj-1" not in json.dumps(redacted) and "998877665544" not in json.dumps(redacted)
+    with (
+        patch.object(module, "probe_gemini", lambda s, sp: (True, 200, "OK")),
+        patch.object(module, "probe_claude", lambda s, sp: (True, 200, "OK")),
+    ):
+        all_doc = module.verify_all(settings)
+    assert [e["id"] for e in all_doc["models"]] == [
+        "gemini-4-argon",
+        "gemini-4-carbon",
+        "gemini-3.8-flash",
+        "claude-opus-5-5",
+        "claude-fable-5-1",
+    ]
     time.sleep(0)  # keep the import of time used for symmetry with other tests

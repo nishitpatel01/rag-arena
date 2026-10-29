@@ -15,13 +15,14 @@ from app.core.pricing import (
 
 
 def test_price_table_covers_required_models_with_positive_rates() -> None:
-    for model in ("gemini-4-argon", "gemini-embedding-2", "discovery-engine-rank"):
+    for model in ("gemini-4-argon", "gemini-4-carbon", "gemini-embedding-2", "discovery-engine-rank"):
         price = price_for_model(model)
         assert price.model == model
         assert price.source.startswith("https://")
         assert price.price_as_of
     assert PRICE_TABLE["gemini-4-argon"].input_usd_per_1m > 0
     assert PRICE_TABLE["gemini-4-argon"].output_usd_per_1m > 0
+    assert (PRICE_TABLE["gemini-4-carbon"].input_usd_per_1m, PRICE_TABLE["gemini-4-carbon"].output_usd_per_1m) == (2.00, 10.00)
     assert PRICE_TABLE["gemini-embedding-2"].input_usd_per_1m > 0
     assert PRICE_TABLE["discovery-engine-rank"].usd_per_1k_requests > 0
 

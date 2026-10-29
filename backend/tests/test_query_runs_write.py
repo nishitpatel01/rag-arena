@@ -115,3 +115,45 @@ def test_read_git_sha_supports_reftable_repositories_via_bounded_git_call() -> N
         assert recorder.read_git_sha(root) == "502d72336dd8081ec3ab311918237111d671759f"
     assert calls[0]["cmd"][-2:] == ["rev-parse", "HEAD"] and calls[0]["timeout"] <= 10 and calls[0]["check"] is True
     assert recorder.read_git_sha(Path(tempfile.mkdtemp())) == "unknown"  # not a git checkout
+
+
+def test_query_runs_row_records_solicitation_id_and_separates_golden_from_uploads_scope() -> None:
+    from app.ingestion.bq_indexer import build_tables_ddl
+    from app.ingestion.live_backends import _QUERY_RUN_SCHEMA
+    from test_uploads_api import FakeManager, FakeServices, FakeStore, _ALICE, _pdf, _upload, _workspace
+
+    ddl = build_tables_ddl("demo-proj", "rag_arena")
+    assert "solicitation_id STRING" in ddl and "scope STRING" in ddl
+    assert "ADD COLUMN IF NOT EXISTS solicitation_id STRING" in ddl
+    assert "ADD COLUMN IF NOT EXISTS scope STRING" in ddl
+    schema_cols = {col[0] for col in _QUERY_RUN_SCHEMA}
+    assert {"solicitation_id", "scope"} <= schema_cols
+
+    corpus_writer = _CapturingWriter()
+    _battle(live_settings(), corpus_writer)
+    assert corpus_writer.rows[0]["solicitation_id"] is None
+    assert corpus_writer.rows[0]["scope"] == "golden"
+
+    upload_writer = _CapturingWriter()
+    store = FakeStore()
+    services = FakeServices(FakeManager(), store)
+    app = create_app(settings=live_settings(), query_run_writer=upload_writer)
+    app.state.upload_services = services
+    with fake_clients(), TestClient(app) as client:
+        ws = _workspace(client)
+        _upload(client, store, ws, _pdf(pages=1), name="Uploaded.pdf")
+        manifest, gen = store.read_manifest(ws)  # type: ignore[misc]
+        manifest["levels"] = {"level1_naive": {"status": "completed", "chunks": 1}}
+        store.write_manifest(ws, manifest, if_generation=gen)
+        resp = client.post(
+            "/api/v1/battle/stream",
+            headers=_ALICE,
+            json={"query": _QUERY, "solicitation_filter": ws, "engines": ["level1_naive"]},
+        )
+        assert resp.status_code == 200
+        events = _events(resp.text)
+    assert events[-1]["engines_completed"] == ["level1_naive"]
+    assert len(upload_writer.rows) == 1
+    assert upload_writer.rows[0]["solicitation_id"] == ws
+    assert upload_writer.rows[0]["scope"] == "uploads"
+

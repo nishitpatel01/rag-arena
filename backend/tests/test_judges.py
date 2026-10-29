@@ -254,3 +254,69 @@ def test_eval_complete_reports_judge_cost_and_run_cost() -> None:
     evaluation = next(e for e in events if e["event"] == "eval_complete")
     assert evaluation["judge_model"] == "claude-opus-5-5" and evaluation["judge_cost_usd"] > 0
     assert evaluation["run_cost_usd"] == pytest.approx(answer["cost_usd"] + evaluation["judge_cost_usd"])
+
+
+def test_upload_workspace_forces_reference_free_evaluation_even_with_golden_question_id() -> None:
+    emitter = RecordingStageEmitter(run_id="run_upl", engine="level1_naive")
+    with fake_clients(), patch(
+        "app.evaluation.judges.httpx.post", return_value=_response(200, anthropic_message(_VALID))
+    ) as post:
+        outcome = run(
+            run_evaluation(
+                "What is the monthly unit price?",
+                _engine_result(),
+                question_id="q_exact_clin_lookup",
+                solicitation_filter="upl_0123456789ab",
+                settings=live_settings(),
+                emitter=emitter,
+            )
+        )
+    assert outcome.reference_answer_used is False
+    started, completed = emitter.events[0], emitter.events[-1]
+    assert started["request"]["reference_answer_used"] is False
+    assert completed["payload"]["reference_answer_used"] is False
+    body = post.call_args.kwargs["json"]
+    assert "agree with the reference answer" not in body["system"]
+    assert "Reference Answer: N/A" in body["messages"][0]["content"]
+    assert "$245.00" not in body["messages"][0]["content"]
+
+
+def test_record_mode_never_overwrites_golden_recordings_with_upload_runs() -> None:
+    import json as _json
+    import tempfile
+
+    from starlette.testclient import TestClient
+
+    from app.main import create_app
+    from test_uploads_api import FakeManager, FakeServices, FakeStore, _ALICE, _pdf, _upload, _workspace
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        store = FakeStore()
+        services = FakeServices(FakeManager(), store)
+        settings = live_settings(demo_mode="record", recordings_dir=tmpdir)
+        app = create_app(settings=settings)
+        app.state.upload_services = services
+        with fake_clients(), TestClient(app) as client:
+            ws = _workspace(client)
+            _upload(client, store, ws, _pdf(pages=1), name="Uploaded.pdf")
+            manifest, gen = store.read_manifest(ws)  # type: ignore[misc]
+            manifest["levels"] = {"level1_naive": {"status": "completed", "chunks": 1}}
+            store.write_manifest(ws, manifest, if_generation=gen)
+            resp = client.post(
+                "/api/v1/battle/stream",
+                headers=_ALICE,
+                json={
+                    "query": "What is on page 1?",
+                    "question_id": "q_exact_clin_lookup",
+                    "solicitation_filter": ws,
+                    "engines": ["level1_naive"],
+                },
+            )
+    assert resp.status_code == 200
+    events = [_json.loads(line[5:]) for line in resp.text.splitlines() if line.startswith("data:")]
+    evaluation = next(e for e in events if e["event"] == "eval_complete")
+    assert evaluation["reference_answer_used"] is False
+    assert not [e for e in events if e["event"] == "recording_saved"]
+    warnings = [e for e in events if e["event"] == "stream_warning"]
+    assert any("upload" in w["message"].lower() and "not recorded" in w["message"].lower() for w in warnings)
+

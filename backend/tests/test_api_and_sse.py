@@ -170,7 +170,7 @@ def test_stream_emits_stream_warning_when_max_sse_frames_is_reached() -> None:
 
 def test_leaderboard_endpoint_aggregates_recordings_with_provenance() -> None:
     body = _client().get("/api/v1/leaderboard").json()
-    assert body["source"] == "recordings" and body["filters"] == {"question_id": None, "engine": None}
+    assert body["source"] == "recordings" and body["filters"] == {"question_id": None, "engine": None, "scope": "golden"}
     l1 = next(row for g in body["groups"] for row in g["rows"] if row["engine"] == "level1_naive")
     assert l1["runs"] >= 1 and l1["provenance"]["kind"] == "recording" and l1["level_label"]
 

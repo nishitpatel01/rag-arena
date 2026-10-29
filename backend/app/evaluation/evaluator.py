@@ -189,6 +189,7 @@ async def run_evaluation(
     settings: ArenaSettings,
     emitter: StageEmitter,
     models: RunModels | None = None,
+    solicitation_filter: str | None = None,
 ) -> EvalOutcome:
     """Emit the ``evaluate`` stage around the run's judge (live/record) or replay the recorded pair's judge."""
     if not isinstance(settings, ArenaSettings):
@@ -207,7 +208,8 @@ async def run_evaluation(
     if models is not None and result.usage.model and result.usage.model == models.judge.id:
         raise ValueError(f"judge model {models.judge.id} also synthesized this answer; an LLM must not grade itself")
     judge, service = _judge_for_run(settings, models.judge if models else None)
-    reference = lookup_reference_answer(question_id)
+    is_upload = isinstance(solicitation_filter, str) and solicitation_filter.startswith("upl_")
+    reference = None if is_upload else lookup_reference_answer(question_id)
     handle = await emitter.started(
         "evaluate", label="LLM-as-a-judge", service=service, request=_evaluate_request(judge, settings, bool(reference))
     )

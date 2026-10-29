@@ -1,34 +1,41 @@
 {
   "format_version": 1,
-  "verified_at": "2026-10-21T18:05:36Z",
+  "verified_at": "2026-10-29T16:24:17Z",
   "models": [
     {
       "id": "gemini-4-argon",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-10-21T18:05:31Z"
+      "verified_at": "2026-10-29T16:24:12Z"
+    },
+    {
+      "id": "gemini-4-carbon",
+      "ok": false,
+      "http_status": 404,
+      "message": "ClientError: Publisher model `projects/${GCP_PROJECT_ID}/locations/global/publishers/google/models/gemini-4-carbon` was not found or your project does not have access to it. Ensure you are using a valid model name and that the model is available in the specified region. For more information, see: https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/locations.",
+      "verified_at": "2026-10-29T16:24:12Z"
     },
     {
       "id": "gemini-3.8-flash",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-10-21T18:05:33Z"
+      "verified_at": "2026-10-29T16:24:14Z"
     },
     {
       "id": "claude-opus-5-5",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-10-21T18:05:35Z"
+      "verified_at": "2026-10-29T16:24:17Z"
     },
     {
       "id": "claude-fable-5-1",
-      "ok": true,
-      "http_status": 200,
-      "message": "OK",
-      "verified_at": "2026-10-21T18:05:36Z"
+      "ok": false,
+      "http_status": 429,
+      "message": "Quota exceeded for aiplatform.googleapis.com/global_online_prediction_requests_per_base_model with base model: anthropic-claude-fable. Please submit a quota increase request. https://cloud.google.com/vertex-ai/docs/generative-ai/quotas-genai.",
+      "verified_at": "2026-10-29T16:24:17Z"
     }
   ]
 }

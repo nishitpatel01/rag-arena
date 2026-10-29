@@ -23,7 +23,8 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
 from app.api.query_runs_reader import QueryRunsReadError, leaderboard_from_query_runs
-from app.api.uploads_api import upload_scope_error
+from app.api.uploads_api import ANONYMOUS, IAP_EMAIL_HEADER, upload_scope_error
+from app.ingestion.uploads import owner_key
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
@@ -174,9 +175,20 @@ async def _maybe_record(
     outcome: EvalOutcome,
     queue: asyncio.Queue,
     models: RunModels | None = None,
+    solicitation_filter: str | None = None,
 ) -> None:
     """DEMO_MODE=record: persist the run under data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json."""
     if settings.demo_mode != "record":
+        return
+    if isinstance(solicitation_filter, str) and solicitation_filter.startswith("upl_"):
+        await queue.put(
+            {
+                "event": "stream_warning",
+                "run_id": run_id,
+                "message": f"record mode: upload workspace ({solicitation_filter}) runs are not recorded in corpus recordings",
+                "ts": utc_now_iso(),
+            }
+        )
         return
     if not question_id:
         await queue.put({"event": "stream_warning", "run_id": run_id, "message": f"record mode: no question_id, {engine_id} run not recorded", "ts": utc_now_iso()})
@@ -212,13 +224,17 @@ async def _run_single_engine_worker(
         )
         await queue.put(_answer_complete_event(run_id, result))
         outcome = await asyncio.wait_for(
-            run_evaluation(query, result, question_id=question_id, settings=settings, emitter=emitter, models=models),
+            run_evaluation(
+                query, result, question_id=question_id, settings=settings, emitter=emitter, models=models,
+                solicitation_filter=solicitation_filter,
+            ),
             timeout=timeout,
         )
         await queue.put(_eval_complete_event(run_id, result, outcome))
         await _maybe_record(
             settings, run_id=run_id, engine_id=engine_id, question_id=question_id, query=query,
             emitter=emitter, result=result, outcome=outcome, queue=queue, models=models,
+            solicitation_filter=solicitation_filter,
         )
     except ReplayUnavailableError as exc:
         await queue.put(_engine_error_event(run_id, engine_id, exc, _last_failed_stage(emitter)))
@@ -229,7 +245,7 @@ async def _run_single_engine_worker(
     if settings.is_live and query_run_writer is not None:
         row = build_query_run_row(
             settings=settings, run_id=run_id, question_id=question_id, query=query, started_at=started_at,
-            emitter=emitter, result=result, outcome=outcome,
+            emitter=emitter, result=result, outcome=outcome, solicitation_filter=solicitation_filter,
         )
         await write_query_run_or_warn(query_run_writer, row, queue=queue, run_id=run_id, engine_id=engine_id)
     return True
@@ -306,6 +322,7 @@ async def health_endpoint(request: Request) -> JSONResponse:
             # Replay (incl. the public Cloud Run copy) never reveals the owner's project or bucket.
             "project_id": "" if settings.demo_mode == "replay" else settings.gcp_project_id,
             "gcs_bucket": "" if settings.demo_mode == "replay" else settings.gcs_corpus_bucket,
+            "upload_bucket": "" if settings.demo_mode == "replay" else settings.upload_bucket,
             "enabled_levels": list(settings.enabled_levels),
             "replay_speed": settings.replay_speed,
             "gemini_fast_model": settings.gemini_fast_model,
@@ -357,12 +374,16 @@ def _leaderboard_source(request: Request, settings: ArenaSettings) -> str:
 
 
 async def leaderboard_endpoint(request: Request) -> JSONResponse:
-    """GET /api/v1/leaderboard?source=recordings|query_runs&question_id=&engine= — one shape for both sources,
-    grouped per (synthesis, judge) pair with per-row provenance. BigQuery failures → 502 with the redacted error."""
+    """GET /api/v1/leaderboard?source=recordings|query_runs&question_id=&engine=&scope=golden|uploads — one shape for
+    both sources, grouped per (synthesis, judge) pair with per-row provenance. BigQuery failures → 502 redacted."""
     settings = _settings_of(request)
     try:
         source = _leaderboard_source(request, settings)
-        filters = parse_filters(request.query_params.get("question_id"), request.query_params.get("engine"))
+        filters = parse_filters(
+            request.query_params.get("question_id"),
+            request.query_params.get("engine"),
+            request.query_params.get("scope"),
+        )
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     labels = engine_labels()
@@ -470,14 +491,20 @@ async def ingest_jobs_create_endpoint(request: Request) -> JSONResponse:
     return JSONResponse({"job_id": job.job_id, "level": job.level, "tier_profile": job.tier_profile, "status": job.status}, status_code=202)
 
 
+def _viewer_owner(request: Request) -> str:
+    return owner_key(request.headers.get(IAP_EMAIL_HEADER, "").strip() or ANONYMOUS)
+
+
 async def ingest_job_stream_endpoint(request: Request) -> JSONResponse | StreamingResponse:
     """GET /api/v1/ingest/jobs/{job_id}/stream: SSE of job_started, stage_*, doc_progress, embed_progress, job_complete."""
     runner = _ingest_runner(request)
     job_id = str(request.path_params.get("job_id", ""))
     try:
-        runner.get(job_id)
+        job = runner.get(job_id)
     except KeyError as exc:
         return JSONResponse({"error": str(exc)}, status_code=404)
+    if not job.visible_to(_viewer_owner(request)):
+        return JSONResponse({"error": f"Unknown ingestion job '{job_id}'"}, status_code=404)
 
     async def _frames() -> AsyncIterator[str]:
         async for event in runner.stream(job_id):
@@ -488,16 +515,19 @@ async def ingest_job_stream_endpoint(request: Request) -> JSONResponse | Streami
 
 async def ingest_job_get_endpoint(request: Request) -> JSONResponse:
     """GET /api/v1/ingest/jobs/{job_id}: job status snapshot."""
+    job_id = str(request.path_params.get("job_id", ""))
     try:
-        job = _ingest_runner(request).get(str(request.path_params.get("job_id", "")))
+        job = _ingest_runner(request).get(job_id)
     except KeyError as exc:
         return JSONResponse({"error": str(exc)}, status_code=404)
+    if not job.visible_to(_viewer_owner(request)):
+        return JSONResponse({"error": f"Unknown ingestion job '{job_id}'"}, status_code=404)
     return JSONResponse(job.to_dict())
 
 
 async def ingest_status_endpoint(request: Request) -> JSONResponse:
-    """GET /api/v1/ingest/status: counts by tier + index states (or an explicit unavailability reason)."""
-    return JSONResponse(await _ingest_runner(request).status())
+    """GET /api/v1/ingest/status: counts by tier + index states + active_jobs (or an explicit unavailability reason)."""
+    return JSONResponse(await _ingest_runner(request).status(viewer_owner=_viewer_owner(request)))
 
 
 def get_api_routes() -> list[Route]:

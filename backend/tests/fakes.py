@@ -189,7 +189,13 @@ def fake_clients(
         yield genai_client, bq_client
 
 
-CATALOG_IDS: tuple[str, ...] = ("gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5-1")
+CATALOG_IDS: tuple[str, ...] = (
+    "gemini-4-argon",
+    "gemini-4-carbon",
+    "gemini-3.8-flash",
+    "claude-opus-5-5",
+    "claude-fable-5-1",
+)
 FABLE_403 = (
     "Access to this model requires data sharing to be enabled for publisher 'anthropic'. "
     "Please set `PublisherModelConfig.data_sharing_enabled`."

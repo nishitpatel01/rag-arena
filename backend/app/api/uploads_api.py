@@ -490,8 +490,13 @@ async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
         await run_in_threadpool(lambda: store.write_manifest(ws, starting, if_generation=generation))
     except RuntimeError as exc:
         return _error(str(exc), 409)
-    source = UploadSource(workspace_id=ws, files=tuple((f["object"], f["name"]) for f in ready),
-                          fetch=store.download_to, on_finish=_level_recorder(store, ws, level, file_ids))
+    source = UploadSource(
+        workspace_id=ws,
+        files=tuple((f["object"], f["name"]) for f in ready),
+        fetch=store.download_to,
+        on_finish=_level_recorder(store, ws, level, file_ids),
+        owner=owner_key(_identity(request)),
+    )
     job = request.app.state.ingest_runner.start(level, upload=source)
     return JSONResponse({"job": job.to_dict(), "level": level, "files": len(ready)}, status_code=202)
 

@@ -20,10 +20,14 @@ from app.recording.codec import eval_outcome_from_dict
 from app.recording.store import RecordingInvalid, RecordingStore
 
 SOURCES = ("recordings", "query_runs")
+SCOPES = ("golden", "uploads")
 UNKNOWN_MODEL = "unknown"
 UNKNOWN_PAIR_NOTE = (
     "These runs have no recorded synthesis/judge model (written before the columns existed); "
     "they are kept apart because scores from different judges are not comparable."
+)
+RECORDINGS_UPLOADS_NOTE = (
+    "Recordings capture the fixed golden benchmark corpus only; switch source to Live runs to view upload runs."
 )
 MAX_GIT_SHAS = 20
 MAX_SAMPLES = 10_000
@@ -37,20 +41,26 @@ class LeaderboardFilters:
 
     question_id: str | None = None
     engine: str | None = None
+    scope: str = "golden"
 
     def to_dict(self) -> dict[str, str | None]:
-        return {"question_id": self.question_id, "engine": self.engine}
+        return {"question_id": self.question_id, "engine": self.engine, "scope": self.scope}
 
 
-def parse_filters(question_id: str | None, engine: str | None) -> LeaderboardFilters:
-    """Empty → None; anything outside the id alphabets raises ValueError (HTTP 400)."""
+def parse_filters(
+    question_id: str | None, engine: str | None, scope: str | None = None
+) -> LeaderboardFilters:
+    """Empty → None (or ``'golden'`` for ``scope``); anything outside the alphabets raises ValueError (HTTP 400)."""
     qid = (question_id or "").strip() or None
     eng = (engine or "").strip() or None
+    scp = (scope or "").strip() or "golden"
     if qid is not None and not _QUESTION_RE.match(qid):
         raise ValueError(f"Invalid question_id {qid[:140]!r}: allowed letters, digits, '_', '-', '.' (max 128)")
     if eng is not None and not _ENGINE_RE.match(eng):
         raise ValueError(f"Invalid engine {eng[:80]!r}: allowed lowercase letters, digits, '_' (max 64)")
-    return LeaderboardFilters(question_id=qid, engine=eng)
+    if scp not in SCOPES:
+        raise ValueError(f"scope must be one of {', '.join(SCOPES)}, got {scp[:40]!r}")
+    return LeaderboardFilters(question_id=qid, engine=eng, scope=scp)
 
 
 @dataclass(frozen=True)
@@ -189,6 +199,12 @@ def leaderboard_from_recordings(
     if not isinstance(store, RecordingStore):
         raise TypeError("store must be a RecordingStore")
     flt = filters or LeaderboardFilters()
+    if flt.scope == "uploads":
+        stats = {"rows_read": 0, "rows_matching": 0, "max_rows": None, "bytes_processed": None}
+        return aggregate_leaderboard(
+            [], source="recordings", filters=flt, level_labels=level_labels or {},
+            notes=[RECORDINGS_UPLOADS_NOTE], stats=stats,
+        )
     samples = []
     for rec in store.list_recordings(include_dev=store.allow_dev_fixtures):
         if rec.is_dev_fixture:
@@ -204,7 +220,9 @@ def leaderboard_from_recordings(
 
 __all__ = [
     "LeaderboardFilters",
+    "RECORDINGS_UPLOADS_NOTE",
     "RunSample",
+    "SCOPES",
     "SOURCES",
     "UNKNOWN_MODEL",
     "UNKNOWN_PAIR_NOTE",

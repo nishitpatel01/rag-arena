@@ -199,3 +199,94 @@ def test_highlights_match_table_rows_without_separators() -> None:
     body = _highlights(_client(), text).json()
     assert body["matched"] is True, body
     assert "|" in body["query_used"]
+
+
+def test_upload_workspace_document_page_and_highlights_enforce_ownership_ready_status_and_replay_404() -> None:
+    import pymupdf
+
+    from fakes import live_settings
+    from test_uploads_api import FakeManager, FakeServices, FakeStore, _ALICE, _BOB, _upload, _workspace
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 72), "CLIN-9901-ZZ | Dedicated GPU Cluster | Month | 12 | $18,750.00")
+    doc.new_page().insert_text((72, 72), "Page two failover topology us-east4")
+    pdf_bytes = doc.tobytes()
+
+    store = FakeStore()
+    services = FakeServices(FakeManager(), store)
+    app = create_app(settings=live_settings())
+    app.state.upload_services = services
+    with TestClient(app) as client:
+        ws = _workspace(client)
+        _upload(client, store, ws, pdf_bytes, name="Pricing.pdf")
+        # Start a second session without finalizing — must never be served
+        pending = client.post(
+            f"/api/v1/uploads/{ws}/files",
+            headers=_ALICE,
+            json={"filename": "Pending.pdf", "size_bytes": len(pdf_bytes)},
+        )
+        assert pending.status_code == 201
+        store.objects[pending.json()["object"]] = pdf_bytes
+
+        ok_page = client.get(
+            "/api/v1/documents/page",
+            headers=_ALICE,
+            params={"solicitation_id": ws, "doc_name": "Pricing.pdf", "page": 1},
+        )
+        assert ok_page.status_code == 200, ok_page.text
+        assert ok_page.headers["content-type"] == "image/png"
+        assert ok_page.headers["x-page-count"] == "2"
+        assert ok_page.content[:8] == _PNG_MAGIC
+
+        ok_hl = client.get(
+            "/api/v1/documents/highlights",
+            headers=_ALICE,
+            params={
+                "solicitation_id": ws,
+                "doc_name": "Pricing.pdf",
+                "page": 1,
+                "text": "CLIN-9901-ZZ Dedicated GPU Cluster Month 12 $18,750.00",
+            },
+        )
+        assert ok_hl.status_code == 200, ok_hl.text
+        hl_body = ok_hl.json()
+        assert hl_body["matched"] is True and hl_body["page_count"] == 2 and len(hl_body["rects"]) >= 1
+
+        # Non-owner gets 404 (never leaks workspace existence)
+        assert (
+            client.get(
+                "/api/v1/documents/page",
+                headers=_BOB,
+                params={"solicitation_id": ws, "doc_name": "Pricing.pdf", "page": 1},
+            ).status_code
+            == 404
+        )
+        assert (
+            client.get(
+                "/api/v1/documents/highlights",
+                headers=_BOB,
+                params={"solicitation_id": ws, "doc_name": "Pricing.pdf", "page": 1, "text": "CLIN-9901-ZZ"},
+            ).status_code
+            == 404
+        )
+        # Unfinalized file gets 404
+        assert (
+            client.get(
+                "/api/v1/documents/page",
+                headers=_ALICE,
+                params={"solicitation_id": ws, "doc_name": "Pending.pdf", "page": 1},
+            ).status_code
+            == 404
+        )
+
+    # Replay mode refuses upload workspace document reads with 404
+    replay_client = _client()
+    assert (
+        replay_client.get(
+            "/api/v1/documents/page",
+            headers=_ALICE,
+            params={"solicitation_id": ws, "doc_name": "Pricing.pdf", "page": 1},
+        ).status_code
+        == 404
+    )
+

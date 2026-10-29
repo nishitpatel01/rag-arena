@@ -37,12 +37,15 @@ def build_query_run_row(
     emitter: BaseStageEmitter,
     result: EngineResult,
     outcome: EvalOutcome,
+    solicitation_filter: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the spec §5 row from measured values only (stage_log includes the judge's ``evaluate`` stage)."""
     if not isinstance(result, EngineResult) or not isinstance(outcome, EvalOutcome):
         raise TypeError("result must be an EngineResult and outcome an EvalOutcome")
     if not run_id or not started_at:
         raise ValueError("run_id and started_at are required")
+    sol = solicitation_filter.strip() if isinstance(solicitation_filter, str) and solicitation_filter.strip() else None
+    scope = "uploads" if (sol is not None and sol.startswith("upl_")) else "golden"
     return {
         "run_id": run_id,
         "engine": result.engine_id,
@@ -62,6 +65,8 @@ def build_query_run_row(
         # The pair that actually ran (measured provenance, not the request): synthesis from usage, judge from outcome.
         "synthesis_model": result.usage.model or None,
         "judge_model": outcome.judge_model or None,
+        "solicitation_id": sol,
+        "scope": scope,
     }
 
 

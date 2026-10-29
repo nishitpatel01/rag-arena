@@ -46,7 +46,7 @@ const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, ot
   const blocked = options.filter((o) => o.disabled);
   const known = options.some((o) => o.entry.id === value);
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       <label htmlFor={id} className="text-xs font-medium text-ink-2">{label}</label>
       <select id={id} value={value} onChange={(e) => onSelect(e.target.value)} disabled={disabled} className={fieldClass} data-role={role}>
         {!known && <option value={value}>{value} (not offered for this role)</option>}
@@ -69,9 +69,9 @@ const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, ot
         </p>
       )}
       {blocked.length > 0 && (
-        <ul className="text-xs text-ink-3" aria-label={`${label}: options that cannot be chosen`}>
+        <ul className="min-w-0 flex flex-col gap-0.5 text-xs text-ink-3" aria-label={`${label}: options that cannot be chosen`}>
           {blocked.map((o) => (
-            <li key={o.entry.id} className="break-words">
+            <li key={o.entry.id} className="min-w-0 [overflow-wrap:anywhere]">
               <span className="text-ink-2">{o.entry.label}</span>: {o.reason}
             </li>
           ))}
@@ -91,14 +91,14 @@ const pairText = (catalog: ModelsResponse, p: RecordedPair): string =>
 export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, error, selection, onChange, disabled, validationError, replay, levelId = null }) => {
   if (error || !catalog || !selection) {
     return (
-      <fieldset className="flex flex-col gap-1 rounded-md border border-line p-2" disabled aria-busy={loading}>
+      <fieldset className="flex min-w-0 flex-col gap-1 rounded-md border border-line p-2" disabled aria-busy={loading}>
         <legend className="px-1 text-xs font-medium text-ink-2">Models</legend>
         <select aria-label="Synthesis model" disabled className={fieldClass}><option>server default</option></select>
         <select aria-label="Judge model" disabled className={fieldClass}><option>server default</option></select>
         {loading ? (
           <p className="text-xs text-ink-3">Loading model catalog…</p>
         ) : (
-          <p className="text-xs text-clay" role="alert">
+          <p className="text-xs text-clay [overflow-wrap:anywhere]" role="alert">
             Model catalog unavailable — runs use the server defaults. {error ?? "No catalog returned."}
           </p>
         )}
@@ -106,7 +106,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, erro
     );
   }
   return (
-    <fieldset className="flex flex-col gap-2 rounded-md border border-line p-2" data-testid="model-picker">
+    <fieldset className="flex min-w-0 flex-col gap-2 rounded-md border border-line p-2" data-testid="model-picker">
       <legend className="px-1 text-xs font-medium text-ink-2">Models</legend>
       <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId}
         onSelect={(id) => onChange({ ...selection, synthesis: id })} />

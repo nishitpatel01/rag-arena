@@ -22,6 +22,7 @@ export default {
         slate: "var(--accent-slate)",
         ok: "var(--status-ok)",
         err: "var(--status-err)",
+        winner: "var(--winner-row-bg)",
       },
       fontFamily: {
         sans: [

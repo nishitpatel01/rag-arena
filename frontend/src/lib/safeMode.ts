@@ -9,12 +9,14 @@
 export const SAFE_MODE_STORAGE_KEY = "rag-arena.safe-mode";
 export const MASK_PROJECT_ID = "${GCP_PROJECT_ID}";
 export const MASK_BUCKET = "${GCS_CORPUS_BUCKET}";
+export const MASK_UPLOAD_BUCKET = "${UPLOAD_BUCKET}";
 export const MASK_PROJECT_NUMBER = "${GCP_PROJECT_NUMBER}";
 
-/** Identity source: the `/api/v1/health` response (only these two fields are read). */
+/** Identity source: the `/api/v1/health` response (only these three fields are read). */
 export interface IdentitySource {
   readonly project_id?: string | null;
   readonly gcs_bucket?: string | null;
+  readonly upload_bucket?: string | null;
 }
 
 const PROJECT_NUMBER_PATTERN = /projects\/\d+/g;
@@ -25,8 +27,10 @@ export const MASK_MAX_DEPTH = 64;
 export function maskIdentity(text: string, health: IdentitySource | null | undefined): string {
   if (typeof text !== "string" || text.length === 0) return text;
   let out = text;
+  const uploadBucket = health?.upload_bucket?.trim() ?? "";
   const bucket = health?.gcs_bucket?.trim() ?? "";
   const project = health?.project_id?.trim() ?? "";
+  if (uploadBucket.length > 0) out = out.split(uploadBucket).join(MASK_UPLOAD_BUCKET);
   if (bucket.length > 0) out = out.split(bucket).join(MASK_BUCKET);
   if (project.length > 0) out = out.split(project).join(MASK_PROJECT_ID);
   return out.replace(PROJECT_NUMBER_PATTERN, `projects/${MASK_PROJECT_NUMBER}`);

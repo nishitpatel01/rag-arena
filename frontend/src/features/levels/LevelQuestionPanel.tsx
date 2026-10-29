@@ -17,15 +17,29 @@ export interface LevelQuestionPanelProps {
   readonly hasResults: boolean;
   readonly onRun: (query: string, questionId: string | null, models: ModelSelection | null) => void;
   readonly onReset: () => void;
+  readonly scopeControl?: React.ReactNode;
+  readonly uploadScopeId?: string | null;
 }
 
 /** Question pane: picker (Run / Stop / Reset|Clear), ingest gate note, run error and stream warnings. */
-export const LevelQuestionPanel: React.FC<LevelQuestionPanelProps> = ({ levelId, sessionKey, gate, run, models, viewing, hasResults, onRun, onReset }) => (
+export const LevelQuestionPanel: React.FC<LevelQuestionPanelProps> = ({
+  levelId,
+  sessionKey,
+  gate,
+  run,
+  models,
+  viewing,
+  hasResults,
+  onRun,
+  onReset,
+  scopeControl = null,
+  uploadScopeId = null,
+}) => (
   <Panel title="Question" subtitle="Golden benchmark or custom" className="flex-1">
     {/* Run / Stop act on this page's own run only; a Compare run shown here is never stopped from the level page. */}
     <QuestionPicker levelId={levelId} sessionKey={sessionKey} gate={gate} isStreaming={run.ownStreaming} onRun={onRun}
       onAbort={run.abort} onReset={onReset} hasResults={hasResults} models={models} viewing={viewing}
-      resetMode={run.source === "compare" ? "clear" : "reset"} />
+      resetMode={run.source === "compare" ? "clear" : "reset"} scopeControl={scopeControl} uploadScopeId={uploadScopeId} />
     {gate.note && (
       <p className={`mt-2 text-xs ${gate.tone === "err" ? "text-err" : gate.tone === "warn" ? "text-clay" : "text-slate"}`} role="status">
         {gate.tone === "err" ? "Error" : gate.tone === "warn" ? "Blocked" : "Note"}: {gate.note}

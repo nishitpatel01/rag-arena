@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOptionalIngestSession } from "../../app/IngestSessions";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import type { IngestStatusResponse } from "../../types/arena";
@@ -11,6 +12,11 @@ export const TIER_FOR_LEVEL: Record<string, string | null> = {
   level4_agentic: "multimodal",
   managed_vertex: null,
 };
+
+/** Formats nullable BigQuery `ingest_runs` integer cells (`managed_vertex` rows have `chunks = null`). */
+export function formatIngestRunCount(value: number | null | undefined): string {
+  return typeof value === "number" && Number.isFinite(value) ? value.toLocaleString() : "—";
+}
 
 /** Levels whose ingestion is a managed import (Vertex AI Search data store) instead of a BigQuery tier. */
 export function isManagedLevel(levelId: string): boolean {
@@ -91,6 +97,9 @@ export interface IngestStatusState {
 }
 
 export function useIngestStatus(): IngestStatusState {
+  const ingestCtx = useOptionalIngestSession();
+  const completedSeq = ingestCtx?.snapshot.completedSeq ?? 0;
+  const ingestSession = ingestCtx?.session ?? null;
   const [status, setStatus] = useState<IngestStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -99,6 +108,7 @@ export function useIngestStatus(): IngestStatusState {
     api.ingestStatus().then(
       (s) => {
         if (!cancelled) {
+          ingestSession?.syncActiveJobs(s.active_jobs);
           setStatus(s);
           setError(null);
         }
@@ -110,7 +120,7 @@ export function useIngestStatus(): IngestStatusState {
     return () => {
       cancelled = true;
     };
-  }, [nonce]);
+  }, [nonce, completedSeq, ingestSession]);
   // Screen-share safe mode: the table FQN and any error text are masked before rendering.
   const { mask, maskValue } = useSafeMode();
   const shownStatus = useMemo(() => maskValue(status), [maskValue, status]);

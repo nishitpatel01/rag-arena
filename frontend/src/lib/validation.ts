@@ -1,7 +1,6 @@
-/** Input validation helpers (salvaged from v2 QueryBar / DocumentUpload). */
+/** Input validation helpers (query bounds + PDF candidate format check without app size caps). */
 
 export const MAX_QUERY_CHARS = 4000;
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 /** `question_id` (recording key in replay, reference-answer key for the judge): empty = ad-hoc. */
 export const QUESTION_ID_PATTERN = /^[A-Za-z0-9_.-]{0,80}$/;
 export const QUESTION_ID_ERROR = "question_id may contain only letters, digits, `_ . -` (max 80).";
@@ -21,13 +20,10 @@ export function validateQueryInput(query: string, engines: readonly string[]): s
 
 export function validatePdfCandidate(fileName: string, sizeBytes: number): string | null {
   if (typeof fileName !== "string" || !fileName.toLowerCase().endsWith(".pdf")) {
-    return "Only .pdf procurement documents are accepted.";
+    return "Only .pdf documents are accepted.";
   }
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
     return "Selected PDF file is empty.";
-  }
-  if (sizeBytes > MAX_UPLOAD_BYTES) {
-    return "PDF exceeds maximum size limit of 10 MB.";
   }
   return null;
 }

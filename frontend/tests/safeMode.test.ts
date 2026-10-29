@@ -9,6 +9,7 @@ import {
   MASK_BUCKET,
   MASK_PROJECT_ID,
   MASK_PROJECT_NUMBER,
+  MASK_UPLOAD_BUCKET,
   SAFE_MODE_STORAGE_KEY,
   initialSafeMode,
   maskDeep,
@@ -16,7 +17,11 @@ import {
 } from "../src/lib/safeMode";
 
 // Synthetic identities only (never real values in a committed test).
-const health = { project_id: "acme-proj-42", gcs_bucket: "acme-proj-42-rag-arena-corpus" };
+const health = {
+  project_id: "acme-proj-42",
+  gcs_bucket: "acme-proj-42-rag-arena-corpus",
+  upload_bucket: "acme-proj-42-rag-arena-uploads",
+};
 
 test("maskIdentity replaces the project id with the placeholder", () => {
   assert.equal(maskIdentity("FROM `acme-proj-42.rag_arena.document_chunks_v3`", health), `FROM \`${MASK_PROJECT_ID}.rag_arena.document_chunks_v3\``);
@@ -24,6 +29,10 @@ test("maskIdentity replaces the project id with the placeholder", () => {
 
 test("maskIdentity replaces the bucket before the project id it contains", () => {
   assert.equal(maskIdentity("gs://acme-proj-42-rag-arena-corpus/sample_docs/a.pdf", health), `gs://${MASK_BUCKET}/sample_docs/a.pdf`);
+  assert.equal(
+    maskIdentity("gs://acme-proj-42-rag-arena-uploads/uploads/upl_0123456789ab/a.pdf", health),
+    `gs://${MASK_UPLOAD_BUCKET}/uploads/upl_0123456789ab/a.pdf`
+  );
 });
 
 test("maskIdentity replaces projects/<digits> with the project-number placeholder", () => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Play, RefreshCw } from "lucide-react";
 import { useAppData } from "../../app/AppDataProvider";
 import { Button } from "../../components/ui/Button";
@@ -10,9 +10,10 @@ import { Pill } from "../../components/ui/Pill";
 import { formatTimestamp, statusTone } from "../../lib/format";
 import type { IngestRunSummary, LevelDescriptor } from "../../types/arena";
 import { IngestJobView } from "./IngestJobView";
-import { TIER_FOR_LEVEL, isManagedLevel, managedStoreFor, tierCountFor, useIngestStatus } from "./ingestStatus";
+import { TIER_FOR_LEVEL, formatIngestRunCount, isManagedLevel, managedStoreFor, tierCountFor, useIngestStatus } from "./ingestStatus";
 import { DEV_INGEST_FIXTURE_LEVELS, useIngestJobStream } from "./useIngestJobStream";
 import { isMockRequested } from "../levels/useBattleStream";
+import { UploadWorkspacePanel } from "../uploads/UploadWorkspacePanel";
 
 const LevelIngestCard: React.FC<{
   readonly level: LevelDescriptor;
@@ -29,18 +30,24 @@ const LevelIngestCard: React.FC<{
   const managed = isManagedLevel(level.level_id);
   // DEV `?mock=1`: levels with an ingest fixture play it instead of calling the backend.
   const devIngestFixture = import.meta.env.DEV && isMockRequested() && DEV_INGEST_FIXTURE_LEVELS.includes(level.level_id);
+  const alreadyLoaded = count !== null && count > 0;
   const countItems: (readonly [string, string])[] = managed
     ? [
-        ["documents in data store", count === null ? "not reported" : count.toLocaleString()],
+        ["corpus documents in data store", count === null ? "not reported" : count.toLocaleString()],
         ["data store state", storeState ?? "not reported"],
         ...(storeReason ? [["status note", storeReason] as const] : []),
       ]
-    : [["chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
+    : [["corpus chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
   return (
     <Panel
       title={/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
-      subtitle={tier ? `tier_profile = ${tier}` : managed ? "Vertex AI Search data store — managed import from Cloud Storage" : "managed service — no BigQuery tier"}
-      actions={level.dev_fixture ? <Pill tone="warn">dev fixture</Pill> : level.enabled ? <Pill tone="ok">enabled</Pill> : <Pill tone="locked">locked</Pill>}
+      subtitle={tier ? `benchmark corpus · tier_profile = ${tier}` : managed ? "benchmark corpus · Vertex AI Search data store" : "managed service — no BigQuery tier"}
+      actions={
+        <div className="flex flex-wrap items-center gap-1.5">
+          {alreadyLoaded && <Pill tone="ok">ready to query</Pill>}
+          {level.dev_fixture ? <Pill tone="warn">dev fixture</Pill> : level.enabled ? <Pill tone="neutral">enabled</Pill> : <Pill tone="locked">locked</Pill>}
+        </div>
+      }
       bodyClassName="flex flex-col gap-3"
     >
       <KeyValue items={countItems} />
@@ -52,9 +59,9 @@ const LevelIngestCard: React.FC<{
         columns={[
           { key: "run", header: "run_id", render: (r) => <span title={r.run_id}>{r.run_id}</span>, mono: true },
           { key: "status", header: "Status", render: (r) => <Pill tone={statusTone(r.status)}>{r.status}</Pill> },
-          { key: "docs", header: "Docs", render: (r) => r.docs ?? "—", align: "right" },
-          { key: "pages", header: "Pages", render: (r) => r.pages ?? "—", align: "right" },
-          { key: "chunks", header: "Chunks", render: (r) => r.chunks.toLocaleString(), align: "right" },
+          { key: "docs", header: "Docs", render: (r) => formatIngestRunCount(r.docs), align: "right" },
+          { key: "pages", header: "Pages", render: (r) => formatIngestRunCount(r.pages), align: "right" },
+          { key: "chunks", header: "Chunks", render: (r) => formatIngestRunCount(r.chunks), align: "right" },
           { key: "layout", header: "Parser", render: (r) => r.layout_source ?? "—", mono: true },
           { key: "sha", header: "git", render: (r) => (r.git_sha && r.git_sha !== "unknown" ? <span title={r.git_sha}>{r.git_sha.slice(0, 8)}</span> : "—"), mono: true },
           { key: "finished", header: "Finished", render: (r) => formatTimestamp(r.finished_at) },
@@ -75,7 +82,13 @@ const LevelIngestCard: React.FC<{
                 : unavailableReason ?? undefined
           }
         >
-          {managed ? "Run managed import" : "Run ingestion"}
+          {managed
+            ? alreadyLoaded
+              ? "Re-import corpus"
+              : "Run managed import"
+            : alreadyLoaded
+              ? "Re-ingest corpus"
+              : "Run ingestion"}
         </Button>
         {managed && (
           <p className="mt-1 text-xs text-ink-3">
@@ -93,16 +106,14 @@ const LevelIngestCard: React.FC<{
 };
 
 export const IngestPage: React.FC = () => {
-  const { levels } = useAppData();
+  const { levels, health } = useAppData();
   const { status, error, reload } = useIngestStatus();
   const job = useIngestJobStream();
-  const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const jobLevel = levels.find((l) => l.level_id === job.level) ?? null;
   const unavailableReason = status?.available === false ? status.reason || "ingestion not available in this mode" : null;
 
   const onRun = (level: LevelDescriptor): void => {
-    setSelectedStage(null);
-    void job.start(level.level_id).then(reload);
+    void job.start(level.level_id, reload);
   };
 
   return (
@@ -118,8 +129,39 @@ export const IngestPage: React.FC = () => {
         {status?.last_runs_source && <Pill tone="neutral" title="Source of last_runs">{status.last_runs_source}</Pill>}
       </div>
 
+      <UploadWorkspacePanel
+        demoMode={health?.demo_mode ?? null}
+        levels={levels}
+        job={job}
+        onJobStart={() => job.selectStage(null)}
+        onJobFinished={reload}
+      />
+
+      {jobLevel && (
+        <IngestJobView
+          level={jobLevel}
+          job={job}
+          selectedStage={job.selectedStage}
+          onSelectStage={(id) => job.selectStage(id)}
+          onDismiss={job.dismiss}
+        />
+      )}
+
+      <section className="flex flex-col gap-3 border-t border-line pt-4" aria-label="Pre-loaded benchmark corpus" data-testid="benchmark-corpus-section">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-ink-1">Pre-loaded benchmark corpus (45 procurement PDFs)</h2>
+            {levels.some((l) => (tierCountFor(l.level_id, status) ?? 0) > 0) && (
+              <Pill tone="ok">loaded &amp; ready to query</Pill>
+            )}
+          </div>
+          <p className="text-xs text-ink-2">
+            Already ingested across Levels 1–5 for the default <span className="font-medium text-ink-1">Procurement corpus</span> scope — no action needed before running benchmark queries. Creating an upload workspace above starts completely empty (0 files, all levels <span className="font-mono">not ingested</span>) and never clears or overwrites this corpus.
+          </p>
+        </div>
+
       {status && Object.keys(status.index_states).length > 0 && (
-        <Panel title="Index states" subtitle="Verbatim from INFORMATION_SCHEMA — shown as reported, never summarised">
+        <Panel title="Index states (benchmark corpus table)" subtitle="Verbatim from INFORMATION_SCHEMA — shown as reported, never summarised">
           <ul className="flex flex-col gap-2">
             {Object.entries(status.index_states).map(([k, v]) => (
               <li key={k} className="flex flex-wrap items-start gap-2 text-xs">
@@ -152,8 +194,7 @@ export const IngestPage: React.FC = () => {
           ))}
         </ol>
       )}
-
-      {jobLevel && <IngestJobView level={jobLevel} job={job} selectedStage={selectedStage} onSelectStage={setSelectedStage} />}
+      </section>
     </div>
   );
 };

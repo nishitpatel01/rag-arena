@@ -29,7 +29,16 @@ export const CompareAnswers: React.FC<CompareAnswersProps> = ({ levels, timeline
         <Panel
           key={lvl.levelId}
           title={`${lvl.short} · ${lvl.label}`}
-          actions={row?.rank != null ? <Pill tone={row.rank === 1 ? "ok" : "neutral"} mono>#{row.rank} · {row.battleScore?.toFixed(1)}</Pill> : null}
+          actions={
+            <div className="flex flex-wrap items-center gap-1.5">
+              {row?.referenceAnswerUsed === false && <Pill tone="warn">no reference answer</Pill>}
+              {row?.rank != null && (
+                <Pill tone={row.rank === 1 ? "ok" : "neutral"} mono>
+                  #{row.rank} · {row.battleScore?.toFixed(1)}
+                </Pill>
+              )}
+            </div>
+          }
         >
           <AnswerPanel
             timeline={timelines[lvl.levelId]}

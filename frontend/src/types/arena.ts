@@ -107,6 +107,7 @@ export interface HealthResponse {
   readonly demo_mode: DemoMode | string;
   readonly project_id?: string | null;
   readonly gcs_bucket?: string | null;
+  readonly upload_bucket?: string | null;
   readonly enabled_levels?: readonly string[];
   readonly gemini_fast_model?: string;
   readonly gemini_pro_model?: string;
@@ -145,20 +146,31 @@ export interface IngestRunSummary {
   readonly started_at?: string | null;
   readonly finished_at: string | null;
   readonly status: string;
-  readonly docs?: number;
-  readonly pages?: number;
-  readonly chunks: number;
-  readonly embedded?: number;
-  readonly loaded?: number;
-  readonly embedding_model?: string;
-  readonly layout_source?: string;
-  readonly git_sha?: string;
+  readonly docs?: number | null;
+  readonly pages?: number | null;
+  readonly chunks?: number | null;
+  readonly embedded?: number | null;
+  readonly loaded?: number | null;
+  readonly embedding_model?: string | null;
+  readonly layout_source?: string | null;
+  readonly git_sha?: string | null;
+}
+
+export interface ActiveIngestJob {
+  readonly job_id: string;
+  readonly level: string;
+  readonly tier_profile: string;
+  readonly status: string;
+  readonly created_at?: string;
+  readonly scope?: string | null;
 }
 
 export interface IngestStatusResponse {
   readonly counts_by_tier: Record<string, number>;
   readonly index_states: Record<string, string>;
   readonly last_runs: readonly IngestRunSummary[];
+  /** Currently running in-memory jobs visible to the caller so reloaded tabs can re-attach. */
+  readonly active_jobs?: readonly ActiveIngestJob[];
   /** false when the backend cannot answer (e.g. replay mode without BigQuery); `reason` explains why. */
   readonly available?: boolean;
   readonly reason?: string | null;
@@ -234,6 +246,7 @@ export interface ModelsResponse {
 // ---------------------------------------------------------------------------
 
 export type LeaderboardSource = "recordings" | "query_runs";
+export type LeaderboardScope = "golden" | "uploads";
 
 /** Per-row provenance: recordings → files + recorded_at range; query_runs → table + demo-mode counts. */
 export interface LeaderboardProvenance {
@@ -285,7 +298,11 @@ export interface LeaderboardStats {
 export interface LeaderboardResponse {
   readonly source?: LeaderboardSource | string;
   readonly generated_at?: string;
-  readonly filters?: { readonly question_id?: string | null; readonly engine?: string | null };
+  readonly filters?: {
+    readonly question_id?: string | null;
+    readonly engine?: string | null;
+    readonly scope?: LeaderboardScope | string | null;
+  };
   readonly notes?: readonly string[];
   readonly stats?: LeaderboardStats;
   readonly groups?: readonly LeaderboardGroupResponse[];

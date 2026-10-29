@@ -125,6 +125,7 @@ export interface ScoreRow {
   /** Run cost (engine + judge) from eval_complete, else the engine cost from answer_complete. */
   readonly costUsd: number | null;
   readonly judgeModel: string | null;
+  readonly referenceAnswerUsed?: boolean | null;
   readonly error: { readonly type: string; readonly message: string; readonly stage: string | null } | null;
   /** Competition rank among scored rows (1 = best; ties share a rank); null when not ranked. */
   readonly rank: number | null;
@@ -173,6 +174,7 @@ export function scoreboardRows(choices: readonly LevelChoice[], engines: readonl
         latencyMs: tl?.answer?.latencyMs ?? null,
         costUsd: ev?.runCostUsd ?? tl?.answer?.costUsd ?? null,
         judgeModel: ev?.judgeModel ?? null,
+        referenceAnswerUsed: ev ? ev.referenceAnswerUsed : null,
         error: status === "failed" ? rowError(tl) : null,
         rank: null,
       };

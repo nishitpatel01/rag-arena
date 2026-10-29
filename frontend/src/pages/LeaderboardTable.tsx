@@ -1,6 +1,14 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSafeMode } from "../app/SafeMode";
+import { Pill } from "../components/ui/Pill";
 import { formatMs, formatTimestamp, formatUsd } from "../lib/format";
+import {
+  DEFAULT_HIGHLIGHT_METRIC,
+  bestEngineSet,
+  highlightAriaLabel,
+  highlightBadgeText,
+  type HighlightMetric,
+} from "../lib/winnerHighlight";
 import {
   formatBattleScore,
   formatMetric,
@@ -28,12 +36,16 @@ const HEADERS: readonly { label: string; title?: string; right?: boolean }[] = [
 const cell = "px-2 py-1 whitespace-nowrap";
 const num = `${cell} text-right font-mono tabular-nums`;
 
-const ProvenanceRow: React.FC<{ readonly item: RankedRow; readonly id: string }> = ({ item, id }) => {
+const ProvenanceRow: React.FC<{
+  readonly item: RankedRow;
+  readonly id: string;
+  readonly isWinner: boolean;
+}> = ({ item, id, isWinner }) => {
   const [open, setOpen] = useState(false);
   const { mask } = useSafeMode();
   const details = provenanceDetails(item.row.provenance);
   return (
-    <tr className="bg-surface-1 text-ink-3">
+    <tr className={isWinner ? "bg-winner border-l-2 border-l-moss text-ink-2" : "bg-surface-1 text-ink-3"}>
       <td colSpan={HEADERS.length} className="px-2 pb-1.5 pt-0">
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
           <span>Provenance: {mask(provenanceSummary(item.row.provenance))}</span>
@@ -59,14 +71,25 @@ const ProvenanceRow: React.FC<{ readonly item: RankedRow; readonly id: string }>
   );
 };
 
-const RowCells: React.FC<{ readonly item: RankedRow }> = ({ item }) => {
+const RowCells: React.FC<{
+  readonly item: RankedRow;
+  readonly isWinner: boolean;
+  readonly highlightMetric: HighlightMetric;
+}> = ({ item, isWinner, highlightMetric }) => {
   const r = item.row;
   return (
-    <tr className="border-t border-line align-top text-ink-2">
+    <tr
+      aria-label={isWinner ? highlightAriaLabel(highlightMetric) : undefined}
+      data-winner={isWinner ? "true" : undefined}
+      className={`border-t border-line align-top text-ink-2 ${isWinner ? "bg-winner border-l-2 border-l-moss" : ""}`}
+    >
       <td className={num}>{item.rank ?? "—"}</td>
       <td className={cell}>
-        <span className="font-medium text-ink-1">{r.level_label ?? r.engine}</span>{" "}
-        <span className="font-mono text-[11px] text-ink-3">{r.engine}</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="font-medium text-ink-1">{r.level_label ?? r.engine}</span>
+          <span className="font-mono text-[11px] text-ink-3">{r.engine}</span>
+          {isWinner && <Pill tone="ok">{highlightBadgeText(highlightMetric)}</Pill>}
+        </div>
       </td>
       <td className={`${num} font-semibold text-ink-1`}>{formatBattleScore(r.avg_battle_score)}</td>
       <td className={num}>{formatMetric(r.avg_groundedness)}</td>
@@ -83,9 +106,17 @@ const RowCells: React.FC<{ readonly item: RankedRow }> = ({ item }) => {
 };
 
 /** One table per (synthesis, judge) pair; rows exactly as aggregated by the server. */
-export const LeaderboardTable: React.FC<{ readonly group: LeaderboardGroup; readonly index: number }> = ({ group, index }) => {
+export const LeaderboardTable: React.FC<{
+  readonly group: LeaderboardGroup;
+  readonly index: number;
+  readonly highlightMetric?: HighlightMetric;
+}> = ({ group, index, highlightMetric = DEFAULT_HIGHLIGHT_METRIC }) => {
   const { mask } = useSafeMode();
   const pairText = `synthesis ${group.synthesisModel}, judge ${group.judgeModel}`;
+  const winners = useMemo(
+    () => bestEngineSet(group.rows.map((item) => item.row), highlightMetric),
+    [group.rows, highlightMetric]
+  );
   return (
     <section className="flex flex-col gap-1.5" aria-label={mask(pairText)}>
       <h2 className="text-sm font-semibold text-ink-1">
@@ -105,12 +136,15 @@ export const LeaderboardTable: React.FC<{ readonly group: LeaderboardGroup; read
               ))}
             </tr>
           </thead>
-          {group.rows.map((item, i) => (
-            <tbody key={`${item.row.engine}-${i}`}>
-              <RowCells item={item} />
-              <ProvenanceRow item={item} id={`lb-prov-${index}-${i}`} />
-            </tbody>
-          ))}
+          {group.rows.map((item, i) => {
+            const isWinner = winners.has(item.row.engine);
+            return (
+              <tbody key={`${item.row.engine}-${i}`}>
+                <RowCells item={item} isWinner={isWinner} highlightMetric={highlightMetric} />
+                <ProvenanceRow item={item} id={`lb-prov-${index}-${i}`} isWinner={isWinner} />
+              </tbody>
+            );
+          })}
         </table>
       </div>
     </section>

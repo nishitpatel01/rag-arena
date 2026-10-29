@@ -8,6 +8,7 @@ import type { ModelCatalogState } from "../levels/useModelCatalog";
 import { CompareQuestionFields, questionIdError, type QuestionValue } from "./CompareQuestionFields";
 import { CostLine, LevelChecklist } from "./LevelChecklist";
 import type { CostEstimate, LevelChoice } from "./compareModel";
+import { isUploadScope } from "../uploads/uploadModel";
 
 export interface CompareSetupProps {
   readonly question: QuestionValue;
@@ -27,15 +28,18 @@ export interface CompareSetupProps {
   /** Stops any run and clears results, stage selections, question fields and level ticks (models are kept). */
   readonly onReset: () => void;
   readonly canReset: boolean;
+  readonly scopeControl?: React.ReactNode;
+  readonly uploadScopeId?: string | null;
 }
 
 /** Question + one model pair + level checkboxes + cost line; Run sends ONE battle request for every checked level. */
 export const CompareSetup: React.FC<CompareSetupProps> = (p) => {
   const { catalog, selection } = p.models;
+  const uploadMode = isUploadScope(p.uploadScopeId);
   const pairError = catalog && selection ? validateSelection(catalog, selection, null) : null;
   const blockers = [
     validateQueryInput(p.question.query, p.engines),
-    questionIdError(p.question.questionId),
+    uploadMode ? null : questionIdError(p.question.questionId),
     pairError,
   ].filter((x): x is string => x !== null);
   const disabled = p.isStreaming || blockers.length > 0;
@@ -47,7 +51,13 @@ export const CompareSetup: React.FC<CompareSetupProps> = (p) => {
         if (!disabled) p.onRun(p.engines, catalog && selection ? selection : null);
       }}
     >
-      <CompareQuestionFields value={p.question} onChange={p.onQuestion} disabled={p.isStreaming} />
+      <CompareQuestionFields
+        value={p.question}
+        onChange={p.onQuestion}
+        disabled={p.isStreaming}
+        scopeControl={p.scopeControl}
+        uploadScopeId={p.uploadScopeId}
+      />
       <ModelPicker catalog={catalog} loading={p.models.loading} error={p.models.error} selection={selection}
         onChange={p.models.setSelection} disabled={p.isStreaming} validationError={pairError} replay={null} levelId={null} />
       <div className="flex flex-col gap-3">

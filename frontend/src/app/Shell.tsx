@@ -2,7 +2,9 @@ import React from "react";
 import { Lock } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAppData } from "./AppDataProvider";
+import { useOptionalIngestSession } from "./IngestSessions";
 import { SafeModeToggle, useSafeMode } from "./SafeMode";
+import { ingestDataLevelFor } from "../features/ingest/ingestSession";
 import { MASK_PROJECT_ID } from "../lib/safeMode";
 import { Pill } from "../components/ui/Pill";
 import { ThemeToggle } from "../theme/ThemeToggle";
@@ -29,6 +31,7 @@ const navClass = ({ isActive }: { isActive: boolean }): string =>
 /** Level ladder: enabled levels link to their page; locked levels are disabled buttons with the reason. */
 const LevelLadderNav: React.FC = () => {
   const { levels } = useAppData();
+  const ingestCtx = useOptionalIngestSession();
   const location = useLocation();
   const ordered = levels.length > 0 ? levels : LEVEL_IDS.map((id, i) => ({ level_id: id, order: i + 1, enabled: false, label: id }) as LevelDescriptor);
   return (
@@ -36,6 +39,8 @@ const LevelLadderNav: React.FC = () => {
       {ordered.map((level) => {
         const href = `/levels/${level.level_id}`;
         const current = location.pathname === href;
+        const backing = ingestDataLevelFor(level.level_id);
+        const levelIngesting = Boolean(ingestCtx?.snapshot.entries[backing]?.isStreaming);
         if (!level.enabled) {
           return (
             <li key={level.level_id}>
@@ -49,7 +54,17 @@ const LevelLadderNav: React.FC = () => {
         return (
           <li key={level.level_id}>
             <NavLink to={href} className={navClass} aria-current={current ? "page" : undefined}>
-              {SHORT_LEVEL_LABEL[level.level_id] ?? level.label}
+              <span className="inline-flex items-center gap-1.5">
+                {SHORT_LEVEL_LABEL[level.level_id] ?? level.label}
+                {levelIngesting && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-moss animate-pulse"
+                    title="Ingestion running for this level"
+                    aria-label="Ingestion running"
+                    data-testid={`nav-ingesting-${level.level_id}`}
+                  />
+                )}
+              </span>
             </NavLink>
           </li>
         );
@@ -88,33 +103,49 @@ export interface ShellProps {
   readonly children: React.ReactNode;
 }
 
-export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => (
-  <div className="flex min-h-screen flex-col bg-surface-0 text-ink-1">
-    {import.meta.env.DEV && mockBanner && (
-      <div role="alert" className="border-b border-clay bg-surface-2 px-6 py-1.5 text-center text-xs font-semibold text-clay">
-        DEV FIXTURE — not real data. Synthetic events are being replayed because <code className="font-mono">?mock=1</code> is set.
-      </div>
-    )}
-    <header className="border-b border-line bg-surface-1">
-      <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-6 py-2.5 2xl:px-10">
-        <NavLink to="/" className="text-sm font-semibold tracking-tight text-ink-1" aria-label="The RAG Arena home">
-          The RAG Arena <span className="font-normal text-ink-3">v3</span>
-        </NavLink>
-        <nav aria-label="Primary" className="flex items-center gap-1">
-          <NavLink to="/" end className={navClass}>Overview</NavLink>
-          <NavLink to="/ingest" className={navClass}>Ingest</NavLink>
-          <NavLink to="/compare" className={navClass}>Compare</NavLink>
-          <NavLink to="/leaderboard" className={navClass}>Leaderboard</NavLink>
-        </nav>
-        <div className="hidden h-5 w-px bg-line md:block" aria-hidden />
-        <LevelLadderNav />
-        <div className="ml-auto flex items-center gap-2">
-          <HealthPills />
-          <SafeModeToggle />
-          <ThemeToggle />
+export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => {
+  const ingestCtx = useOptionalIngestSession();
+  const anyIngesting = Boolean(ingestCtx?.snapshot.anyStreaming);
+  return (
+    <div className="flex min-h-screen flex-col bg-surface-0 text-ink-1">
+      {import.meta.env.DEV && mockBanner && (
+        <div role="alert" className="border-b border-clay bg-surface-2 px-6 py-1.5 text-center text-xs font-semibold text-clay">
+          DEV FIXTURE — not real data. Synthetic events are being replayed because <code className="font-mono">?mock=1</code> is set.
         </div>
-      </div>
-    </header>
-    <main className="w-full flex-1 px-6 py-5 2xl:px-10">{children}</main>
-  </div>
-);
+      )}
+      <header className="border-b border-line bg-surface-1">
+        <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-6 py-2.5 2xl:px-10">
+          <NavLink to="/" className="text-sm font-semibold tracking-tight text-ink-1" aria-label="The RAG Arena home">
+            The RAG Arena <span className="font-normal text-ink-3">v3</span>
+          </NavLink>
+          <nav aria-label="Primary" className="flex items-center gap-1">
+            <NavLink to="/" end className={navClass}>Overview</NavLink>
+            <NavLink to="/ingest" className={navClass}>
+              <span className="inline-flex items-center gap-1.5">
+                Ingest
+                {anyIngesting && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-moss animate-pulse"
+                    title="Ingestion job in progress"
+                    aria-label="Ingestion running"
+                    data-testid="nav-ingesting-primary"
+                  />
+                )}
+              </span>
+            </NavLink>
+            <NavLink to="/compare" className={navClass}>Compare</NavLink>
+            <NavLink to="/leaderboard" className={navClass}>Leaderboard</NavLink>
+          </nav>
+          <div className="hidden h-5 w-px bg-line md:block" aria-hidden />
+          <LevelLadderNav />
+          <div className="ml-auto flex items-center gap-2">
+            <HealthPills />
+            <SafeModeToggle />
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+      <main className="w-full flex-1 px-6 py-5 2xl:px-10">{children}</main>
+    </div>
+  );
+};

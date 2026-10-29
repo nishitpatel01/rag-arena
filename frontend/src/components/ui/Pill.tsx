@@ -38,17 +38,26 @@ export interface PillProps {
   readonly icon?: React.ReactNode | false;
   readonly mono?: boolean;
   readonly title?: string;
+  readonly "data-testid"?: string;
   readonly children: React.ReactNode;
 }
 
 /** Status chip: tone is always paired with an icon and text, never colour alone. */
-export const Pill: React.FC<PillProps> = ({ tone = "neutral", icon, mono = false, title, children }) => {
+export const Pill: React.FC<PillProps> = ({
+  tone = "neutral",
+  icon,
+  mono = false,
+  title,
+  "data-testid": testId,
+  children,
+}) => {
   const Icon = TONE_ICON[tone];
   const showIcon = icon !== false;
   const { mask } = useSafeMode();
   return (
     <span
       title={title === undefined ? undefined : mask(title)}
+      data-testid={testId}
       className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
         mono ? "font-mono" : "font-medium"
       } ${TONE_CLASS[tone]}`}

@@ -9,6 +9,7 @@ import type {
   LeaderboardProvenance,
   LeaderboardResponse,
   LeaderboardRow,
+  LeaderboardScope,
   LeaderboardSource,
 } from "../types/arena";
 
@@ -29,6 +30,13 @@ export interface RankedRow {
 
 export interface SourceOption {
   readonly value: LeaderboardSource;
+  readonly label: string;
+  readonly disabled: boolean;
+  readonly reason: string | null;
+}
+
+export interface ScopeOption {
+  readonly value: LeaderboardScope;
   readonly label: string;
   readonly disabled: boolean;
   readonly reason: string | null;
@@ -93,6 +101,37 @@ export function sourceOptions(demoMode: string | null | undefined): SourceOption
     { value: "recordings", label: "Recordings", disabled: false, reason: null },
     { value: "query_runs", label: "Live runs", disabled: !liveAllowed, reason: liveAllowed ? null : LIVE_SOURCE_DISABLED_REASON },
   ];
+}
+
+export const UPLOADS_SCOPE_REPLAY_REASON =
+  "Uploads are available only on the live service; replay mode has no upload runs.";
+export const UPLOADS_SCOPE_RECORDINGS_REASON =
+  "Recordings cover the 8-question golden set only; switch Source to Live runs to view uploaded document runs.";
+
+export function scopeOptions(
+  demoMode: string | null | undefined,
+  source: LeaderboardSource | string
+): ScopeOption[] {
+  const liveAllowed = demoMode === "live" || demoMode === "record";
+  const uploadsReason = !liveAllowed
+    ? UPLOADS_SCOPE_REPLAY_REASON
+    : source !== "query_runs"
+      ? UPLOADS_SCOPE_RECORDINGS_REASON
+      : null;
+  return [
+    { value: "golden", label: "Golden set", disabled: false, reason: null },
+    { value: "uploads", label: "Uploads", disabled: uploadsReason !== null, reason: uploadsReason },
+  ];
+}
+
+export function effectiveScope(
+  picked: LeaderboardScope | string | null | undefined,
+  demoMode: string | null | undefined,
+  source: LeaderboardSource | string
+): LeaderboardScope {
+  const liveAllowed = demoMode === "live" || demoMode === "record";
+  if (liveAllowed && source === "query_runs" && picked === "uploads") return "uploads";
+  return "golden";
 }
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;

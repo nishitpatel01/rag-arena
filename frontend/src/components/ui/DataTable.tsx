@@ -14,6 +14,8 @@ export interface DataTableProps<Row> {
   readonly columns: readonly DataTableColumn<Row>[];
   readonly rows: readonly Row[];
   readonly rowKey: (row: Row, index: number) => string;
+  readonly rowClassName?: (row: Row, index: number) => string | undefined;
+  readonly rowAriaLabel?: (row: Row, index: number) => string | undefined;
   readonly emptyText?: string;
   readonly dense?: boolean;
 }
@@ -23,6 +25,8 @@ export function DataTable<Row>({
   columns,
   rows,
   rowKey,
+  rowClassName,
+  rowAriaLabel,
   emptyText = "No rows.",
   dense = true,
 }: DataTableProps<Row>): React.ReactElement {
@@ -55,20 +59,29 @@ export function DataTable<Row>({
               </td>
             </tr>
           ) : (
-            rows.map((row, i) => (
-              <tr key={rowKey(row, i)} className="border-t border-line align-top">
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={`${cell} text-ink-1 ${col.mono ? "font-mono" : ""} ${
-                      col.align === "right" ? "text-right tabular-nums" : ""
-                    }`}
-                  >
-                    {maskNode(col.render(row), mask)}
-                  </td>
-                ))}
-              </tr>
-            ))
+            rows.map((row, i) => {
+              const extraClass = rowClassName?.(row, i);
+              const ariaLabel = rowAriaLabel?.(row, i);
+              return (
+                <tr
+                  key={rowKey(row, i)}
+                  aria-label={ariaLabel}
+                  data-winner={ariaLabel ? "true" : undefined}
+                  className={`border-t border-line align-top ${extraClass ?? ""}`}
+                >
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`${cell} text-ink-1 ${col.mono ? "font-mono" : ""} ${
+                        col.align === "right" ? "text-right tabular-nums" : ""
+                      }`}
+                    >
+                      {maskNode(col.render(row), mask)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

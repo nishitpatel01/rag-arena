@@ -12,6 +12,7 @@ import { isMockRequested } from "./useBattleStream";
 import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
 import type { ModelCatalogState } from "./useModelCatalog";
 import { useQuestionFields, type QuestionOverride } from "./useQuestionFields";
+import { isUploadScope } from "../uploads/uploadModel";
 
 export interface QuestionPickerProps {
   readonly levelId: string;
@@ -31,6 +32,8 @@ export interface QuestionPickerProps {
   readonly viewing?: QuestionOverride | null;
   /** "clear" while a Compare run is shown: the button only hides it on this page. */
   readonly resetMode?: "reset" | "clear";
+  readonly scopeControl?: React.ReactNode;
+  readonly uploadScopeId?: string | null;
 }
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 placeholder:text-ink-3";
@@ -39,12 +42,27 @@ const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.
  * Golden-question select + editable question + explicit `question_id` (the recording key in replay
  * mode, the reference-answer key for the judge). Run is gated by validation and the ingest gate.
  */
-export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, sessionKey, gate, isStreaming, onRun, onAbort, onReset, hasResults, models, viewing = null, resetMode = "reset" }) => {
+export const QuestionPicker: React.FC<QuestionPickerProps> = ({
+  levelId,
+  sessionKey,
+  gate,
+  isStreaming,
+  onRun,
+  onAbort,
+  onReset,
+  hasResults,
+  models,
+  viewing = null,
+  resetMode = "reset",
+  scopeControl = null,
+  uploadScopeId = null,
+}) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = useSafeMode();
   const goldenIds = useMemo(() => questions.map((q) => q.question_id), [questions]);
   const { selectedId, setSelectedId, questionId, setQuestionId, query, setQuery } = useQuestionFields(sessionKey, viewing, goldenIds);
+  const uploadMode = isUploadScope(uploadScopeId);
   const canReset = hasResults || selectedId !== "" || questionId !== "" || query !== "";
 
   useEffect(() => {
@@ -76,11 +94,11 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, session
   };
 
   const validation = validateQueryInput(query, [levelId]);
-  const idError = QUESTION_ID_PATTERN.test(questionId) ? null : QUESTION_ID_ERROR;
+  const idError = uploadMode || QUESTION_ID_PATTERN.test(questionId) ? null : QUESTION_ID_ERROR;
   const { catalog, selection } = models;
   const modelError = catalog && selection ? validateSelection(catalog, selection, levelId) : null;
   // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.
-  const replay = catalog && selection && !isMockRequested() ? replayGate(catalog, levelId, questionId, selection) : null;
+  const replay = !uploadMode && catalog && selection && !isMockRequested() ? replayGate(catalog, levelId, questionId, selection) : null;
   const disabled =
     isStreaming || validation !== null || idError !== null || gate.blocked || modelError !== null || Boolean(replay?.blockedReason);
   const runModels = catalog && selection ? selection : null;
@@ -90,35 +108,49 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, session
       className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!disabled) onRun(query.trim(), questionId.trim() || null, runModels);
+        if (!disabled) onRun(query.trim(), uploadMode ? null : questionId.trim() || null, runModels);
       }}
     >
+      {scopeControl}
+      {!uploadMode && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="golden-question" className="text-xs font-medium text-ink-2">Golden question</label>
+          <select id="golden-question" value={selectedId} onChange={onPick} className={fieldClass}>
+            <option value="">— choose a benchmark question —</option>
+            {questions.map((q) => (
+              <option key={q.question_id} value={q.question_id}>
+                {q.question_id} · {q.failure_mode_category}
+              </option>
+            ))}
+          </select>
+          {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {mask(loadError)}</p>}
+        </div>
+      )}
       <div className="flex flex-col gap-1">
-        <label htmlFor="golden-question" className="text-xs font-medium text-ink-2">Golden question</label>
-        <select id="golden-question" value={selectedId} onChange={onPick} className={fieldClass}>
-          <option value="">— choose a benchmark question —</option>
-          {questions.map((q) => (
-            <option key={q.question_id} value={q.question_id}>
-              {q.question_id} · {q.failure_mode_category}
-            </option>
-          ))}
-        </select>
-        {loadError && <p className="text-xs text-err" role="alert">Benchmarks unavailable: {mask(loadError)}</p>}
-      </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="custom-question" className="text-xs font-medium text-ink-2">Question (editable)</label>
-        <textarea id="custom-question" value={query} onChange={onType} rows={5} placeholder="Ask about CLIN rates, SLA matrices, amendments…" className={`${fieldClass} resize-y`} />
+        <label htmlFor="custom-question" className="text-xs font-medium text-ink-2">
+          {uploadMode ? "Question for your uploaded PDFs" : "Question (editable)"}
+        </label>
+        <textarea
+          id="custom-question"
+          value={query}
+          onChange={onType}
+          rows={5}
+          placeholder={uploadMode ? "Ask a question grounded in your uploaded documents…" : "Ask about CLIN rates, SLA matrices, amendments…"}
+          className={`${fieldClass} resize-y`}
+        />
         <div className="flex items-center justify-end text-xs text-ink-3">
           <span>{query.length} chars</span>
         </div>
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="question-id" className="text-xs font-medium text-ink-2">
-          question_id <span className="font-normal text-ink-3">(recording key in replay; empty = ad-hoc)</span>
-        </label>
-        <input id="question-id" value={questionId} onChange={(e) => setQuestionId(e.target.value)} placeholder="e.g. q_exact_clin_lookup" spellCheck={false} className={`${fieldClass} font-mono`} />
-        {idError && <p className="text-xs text-clay" role="alert">{idError}</p>}
-      </div>
+      {!uploadMode && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="question-id" className="text-xs font-medium text-ink-2">
+            question_id <span className="font-normal text-ink-3">(recording key in replay; empty = ad-hoc)</span>
+          </label>
+          <input id="question-id" value={questionId} onChange={(e) => setQuestionId(e.target.value)} placeholder="e.g. q_exact_clin_lookup" spellCheck={false} className={`${fieldClass} font-mono`} />
+          {idError && <p className="text-xs text-clay" role="alert">{idError}</p>}
+        </div>
+      )}
       <ModelPicker
         catalog={catalog}
         loading={models.loading}
@@ -133,7 +165,8 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ levelId, session
       {validation && query.length > 0 && <p className="text-xs text-clay">{validation}</p>}
       {gate.blocked && gate.count === 0 && (
         <p className="text-xs text-clay" role="alert">
-          No chunks ingested for this level's tier. <Link to="/ingest" className="font-medium underline">Run ingestion</Link> first.
+          {uploadMode ? "This upload workspace has not been ingested for this level yet." : "No chunks ingested for this level's tier."}{" "}
+          <Link to="/ingest" className="font-medium underline">Run ingestion</Link> first.
         </p>
       )}
       <div className="flex items-center gap-2">

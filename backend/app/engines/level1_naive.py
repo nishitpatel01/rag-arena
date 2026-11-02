@@ -41,7 +41,11 @@ def build_vector_search_sql(
         raise ValueError("top_k must be an integer between 1 and 100")
 
     fqn = f"{proj}.{dataset}.{table}"
-    sol_predicate = " AND solicitation_id = @solicitation_id" if include_solicitation_filter else ""
+    sol_predicate = (
+        " AND solicitation_id = @solicitation_id"
+        if include_solicitation_filter
+        else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
+    )
     base_subquery = f"(SELECT * FROM `{fqn}` WHERE tier_profile = 'naive'{sol_predicate})"
     return f"""SELECT
   base.chunk_id,

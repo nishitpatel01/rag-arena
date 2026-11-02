@@ -156,3 +156,30 @@ def test_mirror_and_scrub_pipeline_exports_clean_bundle() -> None:
         assert not (out_dir / "task.md").exists()
         assert not (out_dir / "publish.json").exists()
 
+
+def test_tracked_repo_and_built_dist_contain_no_identity_or_deployed_service_urls() -> None:
+    """Every tracked text file (except publish.json) and frontend/dist (if built) has zero identity/service leaks."""
+    import subprocess
+
+    publish_data = json.loads((PROJECT_ROOT / "publish.json").read_text(encoding="utf-8"))
+    run_app_suffix = ".run" + ".app"
+    # Placeholder Cloud Run hostname used in setup docs is allowed; any concrete service URL is forbidden.
+    allowed_run_app = "rag-arena-xxxx-uc.a" + run_app_suffix
+    forbidden = [*publish_data.get("forbidden_patterns", []), *_identity_tokens()]
+
+    tracked_out = subprocess.check_output(["git", "ls-files", "-z"], cwd=PROJECT_ROOT)
+    paths = [PROJECT_ROOT / p for p in tracked_out.decode("utf-8").split("\x00") if p and p != "publish.json"]
+    dist_dir = PROJECT_ROOT / "frontend" / "dist"
+    if dist_dir.is_dir():
+        paths.extend(p for p in sorted(dist_dir.rglob("*"))[:500] if p.is_file())
+
+    for path in paths:
+        if not path.is_file() or path.suffix.lower() in {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".woff2", ".ico"}:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for token in forbidden:
+            assert token.lower() not in text.lower(), f"Forbidden token {token!r} leaked in {path.relative_to(PROJECT_ROOT)}"
+        scrubbed = text.replace(allowed_run_app, "")
+        assert run_app_suffix not in scrubbed.lower(), f"Concrete Cloud Run URL leaked in {path.relative_to(PROJECT_ROOT)}"
+
+

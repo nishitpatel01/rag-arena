@@ -385,7 +385,11 @@ class BigQueryLiveLoader:
         return states
 
     def count_by_tier(self) -> dict[str, int]:
-        sql = f"SELECT tier_profile, COUNT(*) AS n FROM `{self.table_fqn}` GROUP BY tier_profile ORDER BY tier_profile"
+        sql = (
+            f"SELECT tier_profile, COUNT(*) AS n FROM `{self.table_fqn}` "
+            f"WHERE NOT STARTS_WITH(solicitation_id, '{UPLOAD_SCOPE_PREFIX}') "
+            "GROUP BY tier_profile ORDER BY tier_profile"
+        )
         _, rows = self._read(self._query, sql)
         return {str(r.tier_profile): int(r.n) for r in rows}
 

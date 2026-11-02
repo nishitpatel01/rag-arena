@@ -212,7 +212,11 @@ def test_sanitize_search_query_and_prefiltered_hybrid_rrf_sql():
         dataset_id="rag_arena",
         include_solicitation_filter=False,
     )
-    assert "(SELECT chunk_id, embedding FROM `demo-proj.rag_arena.document_chunks` WHERE tier_profile = 'hybrid')" in sql_unfiltered
+    assert (
+        "(SELECT chunk_id, embedding FROM `demo-proj.rag_arena.document_chunks` "
+        "WHERE tier_profile = 'hybrid' AND NOT STARTS_WITH(solicitation_id, 'upl_'))"
+        in sql_unfiltered
+    )
 
     sql_filtered = build_hybrid_rrf_sql(
         project_id="demo-proj",

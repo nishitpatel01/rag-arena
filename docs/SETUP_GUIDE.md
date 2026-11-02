@@ -1,14 +1,17 @@
-# The RAG Arena v3 — Setup Guide
+# The RAG Arena — Setup Guide
 
 Two ways to run it:
 
 1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–5
    runs. No Google Cloud account, no credentials, no network calls to GCP.
-2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI and BigQuery calls,
-   ingestion from the UI, and (in `record`) new recordings.
+2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI, BigQuery, Document AI, Cloud
+   Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI, and (in `record`) new
+   golden-set recordings.
 
-**All five levels** are live and enabled by default (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex`; override in `.env` or the environment). Level 5 needs the `VAIS_*` keys in live mode. The Compare page and the Cloud
-Run deployment are planned; see the [README roadmap](../README.md#roadmap).
+**All five levels**, private user PDF uploads (`v1.1`), `/compare`, `/leaderboard` (with winner highlighting), and the
+configurable Cloud Run deployment are live and enabled by default
+(`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex`; override in `.env` or the
+environment). Level 5 needs the `VAIS_*` keys in live mode.
 
 ---
 
@@ -16,9 +19,9 @@ Run deployment are planned; see the [README roadmap](../README.md#roadmap).
 
 | Tool | Version | Needed for |
 | :-- | :-- | :-- |
-| Python | 3.11+ (the backend image uses 3.12) | backend |
+| Python | 3.11+ (the container image uses 3.12) | backend |
 | Node.js + npm | 20+ | frontend |
-| Google Cloud CLI (`gcloud`, `bq`) | current | live mode only |
+| Google Cloud CLI (`gcloud`, `bq`) | current | live mode & Cloud Run deploy |
 | Terraform | ≥ 1.5 | optional (`infra/main.tf`) |
 
 ```bash
@@ -40,12 +43,13 @@ cd frontend && npm run dev
 ```
 
 - Open **Level 1**, choose one of the 8 golden questions, and a recorded model pair: synthesis
-  `gemini-4-argon` or `gemini-3.8-flash`, judge `claude-opus-5-5`. `GET /api/v1/models` lists the playable
-  pairs under `recorded_pairs`.
-- Stage events replay with their recorded relative timing; speed it up with `REPLAY_SPEED=4.0` (range
-  `(0, 100]`).
+  `gemini-4-argon` or `gemini-3.8-flash`, judge `claude-opus-5-5` (or `vertex-ai-search-summary` on Level 5).
+  `GET /api/v1/models` lists the playable pairs under `recorded_pairs`.
+- Stage events replay with their recorded relative timing; speed it up with `REPLAY_SPEED=4.0` (range `(0, 100]`).
 - An ad-hoc question returns `engine_error: No recording for this question in replay mode` — replay never
-  improvises an answer.
+  improvises an answer, and all `/api/v1/uploads/*` routes return `404`.
+- Single-container replay via Docker: `docker compose up --build` builds the root multi-stage `Dockerfile` (SPA +
+  Uvicorn API) and serves replay mode on `http://localhost:8080`.
 - Smoke test without the UI:
   ```bash
   curl -sN -X POST localhost:8000/api/v1/battle/stream -H 'content-type: application/json' \
@@ -54,11 +58,6 @@ cd frontend && npm run dev
   ```
   Expected events: `run_started`, five `stage_started` / `stage_completed` pairs, `answer_complete`,
   `eval_complete`, `battle_complete`.
-
-> [!NOTE]
-> `docker-compose.yml` and `backend/Dockerfile` predate v3. The compose frontend container proxies `/api` to
-> its own `localhost:8000` and the backend image does not serve the built UI, so compose is not a supported
-> path until Phase 6. Use the two commands above.
 
 ---
 
@@ -72,25 +71,27 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 
 | Key | Example | Notes |
 | :-- | :-- | :-- |
-| `DEMO_MODE` | `live` | `record` = `live` + writes `data/recordings/**` |
+| `DEMO_MODE` | `live` | `record` = `live` + writes golden runs to `data/recordings/**` |
 | `GCP_PROJECT_ID` | `your-gcp-project-id` | required in `live` / `record` |
-| `GCP_LOCATION` | `us-central1` | BigQuery client location |
+| `GCP_LOCATION` | `us-central1` | BigQuery and upload bucket location |
 | `VERTEX_GENAI_LOCATION` | `global` | google-genai client location (embeddings, Gemini) |
 | `GCS_CORPUS_BUCKET` | `your-gcp-project-id-rag-arena-corpus` | defaults to `<project>-rag-arena-corpus` |
+| `UPLOAD_BUCKET_MODE` | `auto` | `auto` creates/verifies the private upload bucket; `existing` never creates |
+| `UPLOAD_BUCKET` | `your-gcp-project-id-rag-arena-uploads` | defaults to `<project>-rag-arena-uploads`; must differ from `GCS_CORPUS_BUCKET` |
+| `UPLOAD_BUCKET_KMS_KEY` | empty | optional CMEK resource name when creating `UPLOAD_BUCKET` |
 | `BQ_DATASET` | `rag_arena` | |
 | `BQ_TABLE` | `document_chunks_v3` | live ingestion refuses `document_chunks` (the frozen v2 table) |
-| `GEMINI_FAST_MODEL` | `gemini-4-argon` | default synthesis model |
-| `GEMINI_THINKING_LEVEL` | `high` | Gemini synthesis thinking level |
-| `JUDGE_PROVIDER` / `JUDGE_MODEL` / `JUDGE_LOCATION` | `anthropic_vertex` / `claude-opus-5-5` / `global` | default judge; must differ from the synthesis models |
+| `GEMINI_FAST_MODEL` / `GEMINI_THINKING_LEVEL` | `gemini-4-argon` / `high` | default synthesis model and Gemini thinking level |
+| `JUDGE_PROVIDER` / `JUDGE_MODEL` / `JUDGE_LOCATION` | `anthropic_vertex` / `claude-opus-5-5` / `global` | default judge; must differ from the synthesis model |
 | `TEXT_EMBEDDING_MODEL` | `gemini-embedding-2` | query and document embeddings |
-| `QUERY_TIMEOUT_SECONDS` / `INGEST_JOB_TIMEOUT_SECONDS` | `120` / `1800` | explicit bounds (`120` recommended when running or replaying Level 4 multi-turn ADK traces) |
+| `QUERY_TIMEOUT_SECONDS` / `INGEST_JOB_TIMEOUT_SECONDS` | `120` / `1800` | explicit bounds (`120` recommended for Level 4 multi-turn ADK traces) |
 | `AGENT_MAX_TURNS` / `AGENT_MAX_TOOL_CALLS_PER_TURN` / `AGENT_TURN_TIMEOUT_SECONDS` / `AGENT_THINKING_LEVEL` | `8` / `8` / `90` / `low` | Level 4 ADK runner bounds and Gemini thinking level |
 | `CLOUDSDK_CONFIG` / `GOOGLE_APPLICATION_CREDENTIALS` | empty | optional isolated gcloud profile / ADC file |
 | `MODEL_LOCATION_<ID>` | `MODEL_LOCATION_CLAUDE_OPUS_5_5=global` | optional per-model endpoint override |
-| `DOCAI_LOCATION` / `DOCAI_PROCESSOR_ID` | `us` / short id printed by `scripts/provision_documentai.py` | Level 3 Layout Parser processor (never the full resource name) |
-| `DOCAI_PROCESSOR_VERSION` | `pretrained-layout-parser-v1.5-2025-08-25` | release candidate; returns table structure but no bounding boxes (empty = processor default) |
-| `VAIS_LOCATION` / `VAIS_DATA_STORE_ID` / `VAIS_ENGINE_ID` | `global` / `rag-arena-procurement` / `rag-arena-procurement-search` | Level 5 Vertex AI Search ids printed by `scripts/provision_vertex_search.py` (short ids only) |
+| `DOCAI_LOCATION` / `DOCAI_PROCESSOR_ID` / `DOCAI_PROCESSOR_VERSION` | `us` / short id / `pretrained-layout-parser-v1.5-2025-08-25` | Level 3 Layout Parser processor printed by `scripts/provision_documentai.py` |
 | `DOCAI_TIMEOUT_SECONDS` / `VISION_MODEL` | `120` / `gemini-4-argon` | Layout Parser request bound; Gemini model that transcribes diagram pages |
+| `VAIS_LOCATION` / `VAIS_DATA_STORE_ID` / `VAIS_ENGINE_ID` | `global` / `rag-arena-procurement` / `rag-arena-procurement-search` | Level 5 corpus Vertex AI Search short ids printed by `scripts/provision_vertex_search.py` |
+| `VAIS_UPLOADS_DATA_STORE_ID` / `VAIS_UPLOADS_ENGINE_ID` | `rag-arena-uploads` / `rag-arena-uploads-search` | Level 5 private uploads data store + search app short ids (must differ from corpus ids) |
 
 ### 3.2 Authenticate
 
@@ -101,15 +102,16 @@ gcloud auth application-default login
 
 The backend uses Application Default Credentials only — no key files are required or committed.
 
-IAM for the principal running the backend: `roles/aiplatform.user`, `roles/bigquery.jobUser`, and
-`roles/bigquery.dataEditor` on the `rag_arena` dataset. Running the bootstrap script additionally requires
-permission to enable services and create a bucket and a dataset.
+IAM for the principal running the backend locally: `roles/aiplatform.user`, `roles/bigquery.jobUser`,
+`roles/bigquery.dataEditor` on the `rag_arena` dataset, `roles/documentai.apiUser`, `roles/discoveryengine.editor`,
+and `roles/storage.admin` (to auto-create and privacy-check `UPLOAD_BUCKET`, or `roles/storage.objectUser` +
+`roles/storage.legacyBucketReader` on a pre-created private `UPLOAD_BUCKET` with `UPLOAD_BUCKET_MODE=existing`).
 
 ### 3.3 Bootstrap the project
 
-`scripts/bootstrap_gcp.sh` reads **environment variables** (it does not parse `.env`). It also creates a
-v2-schema chunks table named by `BQ_TABLE`; run it with the v2 name so it does not pre-create your v3 table
-with the old schema — the Level 1 ingestion job creates the v3 table itself.
+`scripts/bootstrap_gcp.sh` reads **environment variables** (it does not parse `.env`). Run it with
+`BQ_TABLE=document_chunks` so it does not pre-create `document_chunks_v3` with the legacy v2 schema — the Level 1
+ingestion job creates `document_chunks_v3` with the v3 schema automatically:
 
 ```bash
 set -a; source .env; set +a
@@ -117,15 +119,12 @@ BQ_TABLE=document_chunks ./scripts/bootstrap_gcp.sh
 ```
 
 What it does:
-- enables `aiplatform`, `bigquery`, `storage`, `discoveryengine`, `documentai`, `alloydb` APIs (Level 1 uses
-  the first three; the rest are for planned levels and parked engines);
-- creates `gs://$GCS_CORPUS_BUCKET` with uniform bucket-level access and public access prevention, and uploads
-  `data/sample_docs/` to `sample_docs/` (Level 1 ingestion reads the local copy; the bucket is for later levels);
-- creates the `rag_arena` dataset;
-- ensures the Level 3 Document AI processor `rag-arena-layout-parser` (`LAYOUT_PARSER_PROCESSOR`) by running
-  `scripts/provision_documentai.py`, which is idempotent (creates it only when absent, never touches other
-  processors) and prints only the short processor id — put it in `.env` as `DOCAI_PROCESSOR_ID`. It can also be
-  run on its own: `PYTHONPATH=backend .venv/bin/python scripts/provision_documentai.py`.
+- enables `aiplatform`, `bigquery`, `storage`, `discoveryengine`, `documentai`, `alloydb` APIs;
+- creates `gs://$GCS_CORPUS_BUCKET` with uniform bucket-level access and enforced public access prevention, and uploads
+  `data/sample_docs/` to `sample_docs/`;
+- creates the `rag_arena` BigQuery dataset;
+- ensures the Level 3 Document AI processor `rag-arena-layout-parser` (`LAYOUT_PARSER_PROCESSOR`) via
+  `scripts/provision_documentai.py` (idempotent; prints the short processor id for `DOCAI_PROCESSOR_ID` in `.env`).
 
 ### 3.4 Verify model access
 
@@ -133,14 +132,13 @@ What it does:
 PYTHONPATH=backend .venv/bin/python scripts/verify_models.py
 ```
 
-One bounded live call per catalog model (60 s timeout, no retries) → `data/model_verification.json`
-(model ids, ok flag, HTTP status, redacted message, timestamp). The backend marks any model without an `ok`
-entry as unavailable and shows the recorded error in the model picker. The committed file reflects the
-author's project — re-run it for yours.
+One bounded live call per LLM catalog model (60 s timeout, no retries) → `data/model_verification.json`
+(model ids, `ok` flag, HTTP status, redacted message, timestamp). Models without an `ok` entry stay disabled in
+`<ModelPicker>` with their exact reason shown inside the `"Pricing & availability"` disclosure. Re-run this script on
+your own project (for example when `gemini-4-carbon` is enabled on your project or after granting quota).
 
-Claude models are Anthropic partner models on Vertex AI, called on the `global` endpoint with `:rawPredict`.
-**Claude Fable 5.1** additionally requires Anthropic data sharing to be enabled on your project. If you and
-your organisation agree to that, enable it once:
+Claude models are Anthropic partner models on Vertex AI (`global` endpoint, `:rawPredict`). **Claude Fable 5.1**
+additionally requires Anthropic data sharing to be enabled on your project:
 
 ```bash
 curl -X POST \
@@ -152,49 +150,60 @@ curl -X POST \
 
 Then re-run `verify_models.py`.
 
-### 3.5 Run, ingest, query
+### 3.5 Run, ingest, query (benchmark corpus)
 
 ```bash
 .venv/bin/python -m uvicorn app.main:app --app-dir backend --port 8000   # DEMO_MODE comes from .env
 cd frontend && npm run dev
 ```
 
-1. Open `http://localhost:5173/ingest` and run the **Level 1** ingestion job. The stream shows
-   `discover_docs → parse → chunk → embed → load_bigquery → build_indexes → verify_counts` with per-document and
-   embedding progress. On the reference run: 526 pages → 5,067 chunks × 3072-d, ≈5.6 minutes end to end (most
-   of it in `embed`), `counts_by_tier {"naive": 5067}`.
-2. Check the status card: live counts by tier, index states as BigQuery reports them, and the `ingest_runs`
-   row. The Level 1 Run button stays disabled while the `naive` tier has 0 rows.
-3. Open Level 1, pick a synthesis and a judge model (different models), ask a golden or custom question.
-   Each run writes a `query_runs` row.
-4. **Level 2**: run the Level 2 ingestion job from `/ingest`
-   (`hybrid` tier: one chunk per page with a contextual-lineage header, plus vector and search indexes), then
-   open Level 2. Its `rerank` stage calls the Discovery Engine Ranking API (`discoveryengine.googleapis.com`,
-   enabled by the bootstrap script; `RERANKER_MODEL`, `RANKING_TIMEOUT_SECONDS`, `HYBRID_CANDIDATE_K` = 50,
-   `RERANK_TOP_N` = 5). A Ranking API error fails the stage — there is no fallback ranker.
-5. **Level 3**: with `DOCAI_*` set, run the Level 3 ingestion job
-   (`multimodal` tier). `parse` calls the Layout Parser online (PDFs split into ≤ 15-page requests; $10 per
-   1,000 pages) and Gemini vision on diagram pages; pages whose transcription is unusable are listed in
-   `vision_failed_pages`. There is no PyMuPDF text fallback — a missing or failing processor fails `parse`.
-6. **Level 4 (`level4_agentic`)**: reuses the Level 3 `multimodal` tier (no separate ingestion job; its Run button
-   checks the `multimodal` tier count). Requires `google-adk` (included in `backend/requirements.txt`) and a Gemini
-   synthesis model (`gemini-4-argon` or `gemini-3.8-flash`); selecting a Claude model as the Level 4 agent model
-   returns HTTP 400 because `google-adk`'s Claude adapter requires the undeclared `anthropic` SDK.
-7. **Level 5 (`managed_vertex`)**: run `PYTHONPATH=backend .venv/bin/python scripts/provision_vertex_search.py` once (creates the data store with the default digital parser and an Enterprise search app with the LLM add-on; Vertex AI Search pricing: $4 / 1,000 queries + $4 / 1,000 generative answers), set the `VAIS_*` keys, then run the Level 5 ingestion job from `/ingest` (syncs changed PDFs to `gs://$GCS_CORPUS_BUCKET/sample_docs/`, imports them, and waits for the import operation — ≈ 6 minutes for 45 PDFs, with zero progress counts for the first few minutes). Pick synthesis model `vertex-ai-search-summary` for the managed summary, or any catalog model to generate over the extractive segments.
-8. To capture new recordings, restart with `DEMO_MODE=record` and run the golden questions; files land in
-   `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted.
+1. Open `http://localhost:5173/ingest`. Under **Pre-loaded benchmark corpus (45 procurement PDFs)**, run **Level 1**
+   (`discover_docs → parse → chunk → embed → load_bigquery → build_indexes → verify_counts`; 526 pages → 5,067
+   `naive` chunks × 3072-d).
+2. Run **Level 2** (`hybrid` tier: 526 contextual-lineage chunks + vector/search indexes). Its `rerank` stage calls
+   Discovery Engine Ranking API (`semantic-ranker-default@latest`, no fallback ranker).
+3. With `DOCAI_*` set, run **Level 3** (`multimodal` tier: Layout Parser online in ≤ 15-page splits at $10 / 1,000
+   pages + Gemini vision on diagram pages, no PyMuPDF fallback).
+4. **Level 4 (`level4_agentic`)** reuses the Level 3 `multimodal` tier (no separate ingestion job) and requires a
+   verified Gemini synthesis model (`gemini-4-argon`, `gemini-4-carbon`, or `gemini-3.8-flash`).
+5. **Level 5 (`managed_vertex`)**: run `PYTHONPATH=backend .venv/bin/python scripts/provision_vertex_search.py` once
+   (idempotently creates both the corpus store/app `rag-arena-procurement*` and the filterable uploads store/app
+   `rag-arena-uploads*`), set the `VAIS_*` keys in `.env`, and run Level 5 ingestion from `/ingest`.
+6. To capture new golden-set recordings, run with `DEMO_MODE=record`; files land in
+   `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted (`upl_*` upload
+   runs never overwrite golden recordings).
+
+### 3.6 Uploading your own PDFs (v1.1)
+
+1. Open `/ingest` in `DEMO_MODE=live` or `record`. Verify the **Upload bucket** card reports `private ✓ · ok`, or click
+   **Create / verify bucket** (if permissions or org policies block creation, the card shows the exact missing
+   permission/constraint and a copy-paste `gcloud` command).
+2. Click **New workspace** (`upl_<12hex>`) and drop or select one or more PDFs. The browser uploads straight to Cloud
+   Storage via Origin-bound resumable session URIs (`256 KiB` chunks with automatic `308` resume, bypassing Cloud Run's
+   32 MiB HTTP/1 body cap, with no app-imposed size, page, or file-count limits). `/finalize` validates each file in
+   constant memory (`O(1)` heap) and rejects non-PDFs, encrypted PDFs, JavaScript, `/Launch` actions, and embedded files.
+3. Click **Ingest** for **Level 1**, **Level 2**, **Level 3** (displays a pre-flight Document AI + Gemini vision max
+   cost estimate requiring confirmation before any paid call starts), and/or **Level 5** (zero-download JSONL import
+   into `rag-arena-uploads`). **Level 4** unlocks automatically once Level 3 is ingested for that workspace. Live
+   ingestion progress stays visible across route changes and full page reloads.
+4. On any Level page or **`/compare`**, select your `upl_<12hex>` workspace in the **Scope** dropdown and ask any
+   question. Upload runs use reference-free QA relevance judging (`no reference answer` badge) and are tracked under
+   **`Scope: Uploads`** on **`/leaderboard`**, with **Highlight best by** available on both Compare and Leaderboard.
+5. Uploads persist until you click **Delete workspace**, which synchronously deletes the workspace's BigQuery rows,
+   Vertex AI Search documents, and Cloud Storage objects while leaving the 45-PDF benchmark corpus untouched.
 
 ---
 
 ## 4. Tests
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # offline; no GCP calls
-cd frontend && npm test && npm run build
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 394 passed (offline; no GCP calls)
+cd frontend && npm test && npm run build                # 176 passed across 17 suites + tsc/vite build
 ```
 
-`backend/tests/test_publish_manifest.py` also scans `README.md`, `docs/ARCHITECTURE.md`, `docs/SETUP_GUIDE.md`
-and `.env.example` for internal terms and for the identity values in your local `.env`.
+`backend/tests/test_publish_manifest.py` scans `README.md`, `docs/ARCHITECTURE.md`, `docs/SETUP_GUIDE.md`,
+`.env.example`, all tracked repository files, and `frontend/dist` for internal terms, `.env` identity values, and
+concrete Cloud Run URLs.
 
 ---
 
@@ -203,39 +212,39 @@ and `.env.example` for internal terms and for the identity values in your local 
 | Symptom | Cause / fix |
 | :-- | :-- |
 | Startup error `GCP_PROJECT_ID must be set … when DEMO_MODE=live\|record` | Set it in `.env` or the environment, or use `DEMO_MODE=replay`. |
-| Ingestion fails with `BQ_TABLE=document_chunks is the frozen v2 table` | Set `BQ_TABLE=document_chunks_v3` (or another new table name). |
-| `Live ingestion needs DEMO_MODE=live\|record` in the ingest status | You are in replay; ingestion makes no GCP calls there. |
-| Model shows as unavailable in the picker | Its entry in `data/model_verification.json` is missing or failed; the reason is shown verbatim. Re-run `verify_models.py`. |
+| Ingestion fails with `BQ_TABLE=document_chunks is the frozen v2 table` | Set `BQ_TABLE=document_chunks_v3` (or another v3 table name). |
+| Upload bucket card shows `permission_denied` / `org_policy` / `unsafe_bucket` | Run the printed `gcloud` command (or `scripts/deploy_cloudrun.sh --upload-bucket-only`) as an admin; buckets must have enforced PAP, UBLA on, and no `allUsers` / `allAuthenticatedUsers` bindings. |
+| Level 3 upload ingest returns HTTP 409 `needs_confirmation` | Review the Document AI + Gemini vision max-cost estimate and confirm it in the UI (or pass `confirm_cost_usd >= max_usd`). |
+| Model shows under `"Pricing & availability"` as unavailable | Its entry in `data/model_verification.json` failed (e.g. `404` model access or `429` base-model quota 0). Fix access/quota and re-run `scripts/verify_models.py`. |
 | HTTP 400 `judge_model must differ from synthesis_model` | Pick two different models; a model never grades its own answers. |
-| Vector index `ACTIVE (coverage 0%)` | BigQuery is still building the IVF index; `VECTOR_SEARCH` brute-forces meanwhile (≈130 MB scanned per query on the 5,067-row tier). |
-| Search index `TEMPORARILY DISABLED` | BigQuery reports this for tables below 10 GB; Level 1 does not use the search index. |
-| Level 2 `retrieve` shows search index `UNUSED` | BigQuery reports "The search index cannot be used when a vector search index is used." for the combined VECTOR_SEARCH + SEARCH() statement; the lexical leg still runs without the index. |
-| Recorded `retrieve` shows 0 bytes processed | BigQuery result-cache hit (`cache_hit: true`); ask a question not run recently to see a real scan. |
-| `/api/v1/ingest/status` is slow on first load | It runs live BigQuery `COUNT(*)` and `INFORMATION_SCHEMA` queries. |
+| Vector index `ACTIVE (coverage 0%)` or `mm_vec_idx` `NOT CREATED` | BigQuery builds IVF above 5,000 rows and allows one vector index per table; `VECTOR_SEARCH` falls back to exact brute-force scan automatically. |
+| Search index `TEMPORARILY DISABLED` or `UNUSED` | BigQuery disables search indexes below 10 GB and reports `UNUSED` when combined with `VECTOR_SEARCH` in one query; `SEARCH()` still executes accurately. |
 
 ---
 
 ## 6. Cloud Run
 
 Prerequisites: the project is bootstrapped (BigQuery dataset, corpus bucket, Document AI processor, Vertex AI Search
-app) and you can enable APIs, create service accounts, grant IAM, run Cloud Build and deploy Cloud Run (Owner, or
-`run.admin` + `iam.serviceAccountAdmin` + `resourcemanager.projectIamAdmin` + `cloudbuild.builds.editor` +
-`artifactregistry.admin` + `iap.admin`).
+corpus + uploads stores) and your deployer identity can enable APIs, create buckets/service accounts, grant IAM, run
+Cloud Build, and deploy Cloud Run.
 
 1. `cp deploy/cloudrun.env.example deploy/cloudrun.env` (git-ignored) and set `GCP_PROJECT_ID`, `GCS_CORPUS_BUCKET`,
-   `DOCAI_PROCESSOR_ID`, `VAIS_*` (same values as `.env`), `REGION`, `ACCESS_MODE` (`iap` | `public`), `IAP_MEMBERS`,
-   `DEPLOY_REPLAY` and `LIVE_INGEST`.
-2. `scripts/deploy_cloudrun.sh --dry-run`, then `--yes`. It enables the APIs, creates the Artifact Registry repo, builds
-   with Cloud Build, creates the service accounts (live: `aiplatform.user`, `bigquery.jobUser`, WRITER on the dataset
-   only, `documentai.apiUser`, `discoveryengine.editor|viewer`, `storage.objectUser|objectViewer` on the corpus bucket
-   only; replay: no roles), deploys the services and prints the URLs.
-3. IAP: open the live URL and sign in with an allowlisted account; others get a 403 from IAP. Removing a member is
-   manual: `gcloud iap web remove-iam-policy-binding --resource-type=cloud-run …`.
+   `UPLOAD_BUCKET` (optional; defaults to `<project>-rag-arena-uploads`), `UPLOAD_BUCKET_MODE` (`auto` | `existing`),
+   `DOCAI_PROCESSOR_ID`, `VAIS_*` (including `VAIS_UPLOADS_*`), `REGION`, `ACCESS_MODE` (`iap` | `public`),
+   `IAP_MEMBERS`, `DEPLOY_REPLAY`, and `LIVE_INGEST`.
+2. `scripts/deploy_cloudrun.sh --dry-run`, then `scripts/deploy_cloudrun.sh --yes` (or `--upload-bucket-only` to
+   provision/verify just the private upload bucket and its IAM). It leak-scans the Cloud Build upload set, creates or
+   verifies the private upload bucket (PAP enforced, UBLA on, no auto-delete lifecycle), grants the live runtime SA
+   least-privilege roles (`aiplatform.user`, `bigquery.jobUser`, dataset `WRITER`, `documentai.apiUser`,
+   `discoveryengine.editor|viewer`, corpus bucket access, and `storage.objectUser` + `storage.legacyBucketReader` on
+   `UPLOAD_BUCKET`, plus `storage.objectViewer` on `UPLOAD_BUCKET` for the Vertex AI Search service agent), leaves the
+   replay SA with zero roles, deploys the services, and prints their URLs.
+3. IAP: open the live URL and sign in with an allowlisted account; each signed-in user sees only their own `upl_*`
+   workspaces (keyed by SHA-256 of the IAP email), while the public replay service exposes zero upload routes (`404`)
+   or identity fields.
 
-Notes: requests time out after `TIMEOUT` (default 900 s) and an ingestion job must finish within it
-(`INGEST_JOB_TIMEOUT_SECONDS=840`), otherwise run ingestion locally. The first request after idle takes ~30 s (cold
-start). If your organization enforces domain-restricted sharing (`iam.allowedPolicyMemberDomains`), the replay copy's
-`allUsers` binding is rejected: set `DEPLOY_REPLAY=false` or put it behind IAP. If your npm points at a private
-registry, keep `frontend/package-lock.json` resolving from `https://registry.npmjs.org` (a test enforces it) — Cloud
-Build cannot reach private registries. Local single-container replay: `docker compose up --build` →
-`http://localhost:8080`.
+Notes: requests time out after `TIMEOUT` (default 900 s; `INGEST_JOB_TIMEOUT_SECONDS=840`). Cold-start SDK
+initialization runs off the Uvicorn event loop and the UI bootstrap retries for up to 30 s so `/api/v1/health` and
+`/api/v1/levels` recover cleanly after scale-to-zero (`min-instances=0`). `scripts/teardown_cloudrun.sh --yes` removes
+the Cloud Run services, service accounts, and bucket IAM bindings created by deploy while keeping your buckets and
+BigQuery dataset intact.

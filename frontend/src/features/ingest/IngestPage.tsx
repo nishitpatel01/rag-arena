@@ -106,11 +106,16 @@ const LevelIngestCard: React.FC<{
 };
 
 export const IngestPage: React.FC = () => {
-  const { levels, health } = useAppData();
+  const { levels, health, error: appError, reload: reloadAppData } = useAppData();
   const { status, error, reload } = useIngestStatus();
   const job = useIngestJobStream();
   const jobLevel = levels.find((l) => l.level_id === job.level) ?? null;
   const unavailableReason = status?.available === false ? status.reason || "ingestion not available in this mode" : null;
+
+  const onRefresh = (): void => {
+    reload();
+    if (!health || levels.length === 0) reloadAppData();
+  };
 
   const onRun = (level: LevelDescriptor): void => {
     void job.start(level.level_id, reload);
@@ -120,7 +125,7 @@ export const IngestPage: React.FC = () => {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-semibold text-ink-1">Ingestion</h1>
-        <Button size="sm" variant="ghost" onClick={reload} leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}>
+        <Button size="sm" variant="ghost" onClick={onRefresh} leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}>
           Refresh status
         </Button>
         {error && <Pill tone="err" title={error}>GET /api/v1/ingest/status failed</Pill>}
@@ -175,7 +180,15 @@ export const IngestPage: React.FC = () => {
       )}
 
       {levels.length === 0 ? (
-        <EmptyState title="No levels" description="GET /api/v1/levels returned nothing; the ingest page needs level descriptors." />
+        <EmptyState
+          title="No levels"
+          description={appError ?? "GET /api/v1/levels returned nothing; the ingest page needs level descriptors."}
+          action={
+            <Button size="sm" variant="secondary" onClick={onRefresh}>
+              Retry connection
+            </Button>
+          }
+        />
       ) : (
         <ol className="grid gap-4 xl:grid-cols-2">
           {levels.map((level) => (

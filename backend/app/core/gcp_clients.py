@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import threading
 from typing import Any
 
 from app.core.config import ArenaSettings
 
 _MAX_CACHED_CLIENTS = 16
+_CLIENT_LOCK = threading.RLock()
 _GENAI_CLIENTS: dict[tuple[str, str], Any] = {}
 _BQ_CLIENTS: dict[tuple[str, str], Any] = {}
 _RANK_CLIENTS: dict[str, Any] = {}
@@ -48,13 +50,14 @@ def _evict_if_full(cache: dict[Any, Any]) -> None:
 
 def clear_client_cache() -> None:
     """Clear all cached Google Cloud SDK client instances for deterministic test isolation."""
-    _GENAI_CLIENTS.clear()
-    _BQ_CLIENTS.clear()
-    _RANK_CLIENTS.clear()
-    _SEARCH_CLIENTS.clear()
-    _VVS2_CLIENTS.clear()
-    _ALLOYDB_POOLS.clear()
-    _ADC_CREDENTIALS.clear()
+    with _CLIENT_LOCK:
+        _GENAI_CLIENTS.clear()
+        _BQ_CLIENTS.clear()
+        _RANK_CLIENTS.clear()
+        _SEARCH_CLIENTS.clear()
+        _VVS2_CLIENTS.clear()
+        _ALLOYDB_POOLS.clear()
+        _ADC_CREDENTIALS.clear()
 
 
 def get_access_token(settings: ArenaSettings) -> str:
@@ -67,14 +70,15 @@ def get_access_token(settings: ArenaSettings) -> str:
         raise RuntimeError("google-auth (with requests transport) is not installed in the current environment") from exc
 
     key = settings.gcp_project_id.strip()
-    credentials = _ADC_CREDENTIALS.get(key)
-    if credentials is None:
-        _evict_if_full(_ADC_CREDENTIALS)
-        credentials, _ = google.auth.default(scopes=[_CLOUD_PLATFORM_SCOPE])
-        _ADC_CREDENTIALS[key] = credentials
-    if not credentials.valid:
-        credentials.refresh(AuthRequest())
-    token = str(getattr(credentials, "token", "") or "")
+    with _CLIENT_LOCK:
+        credentials = _ADC_CREDENTIALS.get(key)
+        if credentials is None:
+            _evict_if_full(_ADC_CREDENTIALS)
+            credentials, _ = google.auth.default(scopes=[_CLOUD_PLATFORM_SCOPE])
+            _ADC_CREDENTIALS[key] = credentials
+        if not credentials.valid:
+            credentials.refresh(AuthRequest())
+        token = str(getattr(credentials, "token", "") or "")
     if not token:
         raise RuntimeError("Application Default Credentials returned an empty access token")
     return token
@@ -87,82 +91,86 @@ def get_genai_client(settings: ArenaSettings, location: str | None = None) -> An
         raise ValueError("location must be a non-empty string when provided")
     genai_location = (location or settings.vertex_genai_location).strip() or "global"
     key = (settings.gcp_project_id.strip(), genai_location)
-    if key in _GENAI_CLIENTS:
-        return _GENAI_CLIENTS[key]
+    with _CLIENT_LOCK:
+        if key in _GENAI_CLIENTS:
+            return _GENAI_CLIENTS[key]
 
-    try:
-        from google import genai
-    except ImportError as exc:
-        raise RuntimeError("google-genai SDK is not installed in the current environment") from exc
+        try:
+            from google import genai
+        except ImportError as exc:
+            raise RuntimeError("google-genai SDK is not installed in the current environment") from exc
 
-    _evict_if_full(_GENAI_CLIENTS)
-    client = genai.Client(
-        vertexai=True,
-        project=key[0],
-        location=key[1],
-    )
-    _GENAI_CLIENTS[key] = client
-    return client
+        _evict_if_full(_GENAI_CLIENTS)
+        client = genai.Client(
+            vertexai=True,
+            project=key[0],
+            location=key[1],
+        )
+        _GENAI_CLIENTS[key] = client
+        return client
 
 
 def get_bigquery_client(settings: ArenaSettings) -> Any:
     """Return a cached Google Cloud BigQuery Client for vector and lexical hybrid search."""
     _ensure_live_settings(settings)
     key = (settings.gcp_project_id.strip(), settings.gcp_location.strip())
-    if key in _BQ_CLIENTS:
-        return _BQ_CLIENTS[key]
+    with _CLIENT_LOCK:
+        if key in _BQ_CLIENTS:
+            return _BQ_CLIENTS[key]
 
-    try:
-        from google.cloud import bigquery
-    except ImportError as exc:
-        raise RuntimeError(
-            "google-cloud-bigquery SDK is not installed in the current environment"
-        ) from exc
+        try:
+            from google.cloud import bigquery
+        except ImportError as exc:
+            raise RuntimeError(
+                "google-cloud-bigquery SDK is not installed in the current environment"
+            ) from exc
 
-    _evict_if_full(_BQ_CLIENTS)
-    client = bigquery.Client(project=key[0], location=key[1])
-    _BQ_CLIENTS[key] = client
-    return client
+        _evict_if_full(_BQ_CLIENTS)
+        client = bigquery.Client(project=key[0], location=key[1])
+        _BQ_CLIENTS[key] = client
+        return client
 
 
 def get_rank_client(settings: ArenaSettings) -> Any:
     """Return a cached Vertex AI Discovery Engine RankServiceClient for semantic reranking."""
     _ensure_live_settings(settings)
     key = settings.gcp_project_id.strip()
-    if key in _RANK_CLIENTS:
-        return _RANK_CLIENTS[key]
+    with _CLIENT_LOCK:
+        if key in _RANK_CLIENTS:
+            return _RANK_CLIENTS[key]
 
-    try:
-        from google.cloud import discoveryengine_v1 as discoveryengine
-    except ImportError as exc:
-        raise RuntimeError(
-            "google-cloud-discoveryengine SDK is not installed in the current environment"
-        ) from exc
+        try:
+            from google.cloud import discoveryengine_v1 as discoveryengine
+        except ImportError as exc:
+            raise RuntimeError(
+                "google-cloud-discoveryengine SDK is not installed in the current environment"
+            ) from exc
 
-    _evict_if_full(_RANK_CLIENTS)
-    client = discoveryengine.RankServiceClient()
-    _RANK_CLIENTS[key] = client
-    return client
+        _evict_if_full(_RANK_CLIENTS)
+        client = discoveryengine.RankServiceClient()
+        _RANK_CLIENTS[key] = client
+        return client
 
 
 def get_search_client(settings: ArenaSettings) -> Any:
     """Return a cached Vertex AI Discovery Engine SearchServiceClient for Managed Vertex AI Search."""
     _ensure_live_settings(settings)
     key = settings.gcp_project_id.strip()
-    if key in _SEARCH_CLIENTS:
-        return _SEARCH_CLIENTS[key]
+    with _CLIENT_LOCK:
+        if key in _SEARCH_CLIENTS:
+            return _SEARCH_CLIENTS[key]
 
-    try:
-        from google.cloud import discoveryengine_v1 as discoveryengine
-    except ImportError as exc:
-        raise RuntimeError(
-            "google-cloud-discoveryengine SDK is not installed in the current environment"
-        ) from exc
+        try:
+            from google.cloud import discoveryengine_v1 as discoveryengine
+        except ImportError as exc:
+            raise RuntimeError(
+                "google-cloud-discoveryengine SDK is not installed in the current environment"
+            ) from exc
 
-    _evict_if_full(_SEARCH_CLIENTS)
-    client = discoveryengine.SearchServiceClient()
-    _SEARCH_CLIENTS[key] = client
-    return client
+        _evict_if_full(_SEARCH_CLIENTS)
+        client = discoveryengine.SearchServiceClient()
+        _SEARCH_CLIENTS[key] = client
+        return client
 
 
 def get_vector_search_v2_client(settings: ArenaSettings) -> Any:

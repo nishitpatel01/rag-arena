@@ -3,6 +3,7 @@ import { ArrowRight, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../app/AppDataProvider";
 import { lockedTitle } from "../app/Shell";
+import { Button } from "../components/ui/Button";
 import { Panel } from "../components/ui/Panel";
 import { Pill } from "../components/ui/Pill";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -17,7 +18,7 @@ const PRINCIPLES: readonly { readonly id: string; readonly text: string }[] = [
 ];
 
 export const OverviewPage: React.FC = () => {
-  const { levels, loading, error } = useAppData();
+  const { levels, loading, error, reload } = useAppData();
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
       <section aria-labelledby="ladder-heading" className="flex min-w-0 flex-col gap-3">
@@ -27,7 +28,15 @@ export const OverviewPage: React.FC = () => {
         </div>
         {loading && <p className="text-xs text-ink-3">Loading levels…</p>}
         {!loading && levels.length === 0 && (
-          <EmptyState title="No levels returned" description={error ?? "GET /api/v1/levels returned an empty list."} />
+          <EmptyState
+            title="No levels returned"
+            description={error ?? "GET /api/v1/levels returned an empty list."}
+            action={
+              <Button size="sm" variant="secondary" onClick={reload}>
+                Retry connection
+              </Button>
+            }
+          />
         )}
         <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {levels.map((level) => (

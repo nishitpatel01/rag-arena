@@ -30,10 +30,16 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
     home_dir = str(Path.home()) if home is None else home
+    proj = settings.gcp_project_id.strip() if isinstance(settings.gcp_project_id, str) else ""
+    eff_upload_bucket = (
+        settings.upload_bucket.strip()
+        if isinstance(settings.upload_bucket, str) and settings.upload_bucket.strip()
+        else (f"{proj}-rag-arena-uploads" if proj else "")
+    )
     candidates = (
         (settings.gcp_project_id, "${GCP_PROJECT_ID}"),
         (settings.gcs_corpus_bucket, "${GCS_CORPUS_BUCKET}"),
-        (settings.upload_bucket, "${UPLOAD_BUCKET}"),
+        (eff_upload_bucket, "${UPLOAD_BUCKET}"),
         (settings.cloudsdk_config, "${CLOUDSDK_CONFIG}"),
         (settings.google_application_credentials, "${GOOGLE_APPLICATION_CREDENTIALS}"),
         (home_dir, "${HOME}"),

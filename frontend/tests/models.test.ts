@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   MUST_DIFFER_REASON,
+  buildPickerDetails,
   formatModelPrice,
   loadSelection,
   optionStates,
@@ -117,6 +118,55 @@ test("price text and link come from the catalog; non-http links are dropped", ()
   assert.equal(formatModelPrice({ ...entry("x"), input_usd_per_1m: null, output_usd_per_1m: null }), "price unknown");
   assert.equal(safeHttpUrl("javascript:alert(1)"), null);
   assert.equal(safeHttpUrl("https://example.test/p"), "https://example.test/p");
+});
+
+test("buildPickerDetails deduplicates unavailable/restricted reasons, omits swap-lock noise, and summarizes counts", () => {
+  const richCatalog: ModelsResponse = {
+    ...CATALOG,
+    models: [
+      ...CATALOG.models,
+      entry("gemini-4-carbon", false, "HTTP 404: model not found"),
+      {
+        ...entry("vertex-ai-search-summary"),
+        provider: "vertex_ai_search",
+        roles: ["synthesis"],
+        allowed_levels: ["managed_vertex"],
+      },
+    ],
+  };
+
+  // On Level 1: 2 unavailable models (claude-fable, gemini-4-carbon) + 1 level-restricted (vertex-ai-search-summary);
+  // argon & claude-opus swap-locks ("must differ from...") are omitted from the disclosure list.
+  const l1 = buildPickerDetails(richCatalog, { synthesis: "argon", judge: "claude-opus" }, "level1_naive");
+  assert.equal(l1.summaryLabel, "Pricing & availability · 2 unavailable");
+  assert.deepEqual(
+    l1.prices.map((p) => [p.role, p.roleLabel, p.modelLabel, p.priceText, p.priceUrl]),
+    [
+      ["synthesis", "Synthesis", "ARGON", "$1.25 / $10 per 1M in/out · as of 2026-10-21", "https://example.test/pricing"],
+      ["judge", "Judge", "CLAUDE-OPUS", "$1.25 / $10 per 1M in/out · as of 2026-10-21", "https://example.test/pricing"],
+    ]
+  );
+  assert.deepEqual(
+    l1.blockedModels.map((b) => [b.id, b.unavailable]),
+    [
+      ["claude-fable", true],
+      ["gemini-4-carbon", true],
+      ["vertex-ai-search-summary", false],
+    ]
+  );
+
+  // When all models are available on Level 1, summary has no "unavailable" suffix even though L5 summary is restricted.
+  const allUp: ModelsResponse = {
+    ...richCatalog,
+    models: richCatalog.models.map((m) => ({ ...m, available: true, unavailable_reason: null })),
+  };
+  const cleanL1 = buildPickerDetails(allUp, { synthesis: "argon", judge: "claude-opus" }, "level1_naive");
+  assert.equal(cleanL1.summaryLabel, "Pricing & availability");
+  assert.deepEqual(cleanL1.blockedModels.map((b) => b.id), ["vertex-ai-search-summary"]);
+
+  // Boundary checks reject malformed inputs explicitly.
+  assert.throws(() => buildPickerDetails(null as unknown as ModelsResponse, { synthesis: "argon", judge: "claude-opus" }), TypeError);
+  assert.throws(() => buildPickerDetails(CATALOG, null as unknown as { synthesis: string; judge: string }), TypeError);
 });
 
 const RUN = "run-1";

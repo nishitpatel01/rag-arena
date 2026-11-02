@@ -244,7 +244,12 @@ def build_hybrid_rrf_sql(
     if tier_profile not in HYBRID_TIERS:
         raise ValueError(f"tier_profile must be one of {HYBRID_TIERS}, got '{tier_profile}'")
     fqn = f"{proj}.{dataset}.{table}"
-    where = f"tier_profile = '{tier_profile}'" + (" AND solicitation_id = @solicitation_id" if include_solicitation_filter else "")
+    scope_clause = (
+        " AND solicitation_id = @solicitation_id"
+        if include_solicitation_filter
+        else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
+    )
+    where = f"tier_profile = '{tier_profile}'{scope_clause}"
     return _HYBRID_SQL_TEMPLATE.format(
         fqn=fqn, where=where, tier=tier_profile, col=embedding_column, rrf_k=rrf_k, top_k=top_k, vector_k=vector_k, lexical_k=lexical_k
     )

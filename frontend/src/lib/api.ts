@@ -13,9 +13,12 @@ import type {
   LevelsResponse,
   ModelsResponse,
 } from "../types/arena";
+import { createSingleFlight } from "./bootstrap";
 
 export const API_BASE = "/api/v1";
 const DEFAULT_TIMEOUT_MS = 10_000;
+/** Cloud Run cold start (Python + ADK + GCP SDK init) can exceed 10 s on scale-from-zero. */
+export const BOOTSTRAP_TIMEOUT_MS = 30_000;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -50,7 +53,7 @@ export function backendErrorText(body: string, fallback: string): string {
 async function requestJson<T>(path: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const url = `${API_BASE}${path}`;
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timer = globalThis.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     const text = await response.text();
@@ -64,7 +67,7 @@ async function requestJson<T>(path: string, init: RequestInit = {}, timeoutMs = 
     }
     throw err;
   } finally {
-    window.clearTimeout(timer);
+    globalThis.clearTimeout(timer);
   }
 }
 
@@ -99,14 +102,18 @@ export function leaderboardSearch(query: LeaderboardQuery): string {
   return text ? `?${text}` : "";
 }
 
+const fetchIngestStatusSingleFlight = createSingleFlight(() =>
+  requestJson<IngestStatusResponse>("/ingest/status", {}, INGEST_STATUS_TIMEOUT_MS)
+);
+
 export const api = {
-  health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health"),
-  levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels"),
+  health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health", {}, BOOTSTRAP_TIMEOUT_MS),
+  levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels", {}, BOOTSTRAP_TIMEOUT_MS),
   benchmarks: (): Promise<BenchmarksResponse> => requestJson<BenchmarksResponse>("/benchmarks"),
   models: fetchModels,
   leaderboard: (query: LeaderboardQuery = {}): Promise<LeaderboardResponse> =>
     requestJson<LeaderboardResponse>(`/leaderboard${leaderboardSearch(query)}`, {}, LEADERBOARD_TIMEOUT_MS),
-  ingestStatus: (): Promise<IngestStatusResponse> => requestJson<IngestStatusResponse>("/ingest/status", {}, INGEST_STATUS_TIMEOUT_MS),
+  ingestStatus: fetchIngestStatusSingleFlight,
   createIngestJob: (level: string): Promise<IngestJobCreated> =>
     requestJson<IngestJobCreated>("/ingest/jobs", {
       method: "POST",

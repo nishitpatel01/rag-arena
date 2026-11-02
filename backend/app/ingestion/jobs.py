@@ -463,7 +463,7 @@ class IngestJobRunner:
     async def _embed(self, emitter: "_JobEmitter", tracker: "_StageTracker", chunks: list[Any]) -> tuple[IngestBackends, list[list[float]]]:
         vectors: list[list[float]] = []
         async with tracker.scope(emitter, "embed", "Embed chunks", "Vertex AI · gemini-embedding-2", {"chunks": len(chunks), "batch_size": _EMBED_BATCH_SIZE}) as sc:
-            backends = self.backend_factory(self.settings)
+            backends = await asyncio.to_thread(self.backend_factory, self.settings)
             total = len(chunks)
             batches = 0
             for start in range(0, total, _EMBED_BATCH_SIZE):
@@ -533,18 +533,30 @@ class IngestJobRunner:
             "active_jobs": self.active_jobs(viewer_owner=viewer_owner),
             **self._memory_runs(viewer_owner=viewer_owner),
         }
+        managed_task = asyncio.create_task(self._managed_status())
         try:
-            backends = self.backend_factory(self.settings)
-            counts = await asyncio.to_thread(backends.loader.count_by_tier)
-            states = await asyncio.to_thread(backends.loader.index_states)
+            backends = await asyncio.to_thread(self.backend_factory, self.settings)
             if self.settings.is_live:
-                runs = await asyncio.to_thread(backends.loader.recent_ingest_runs, 20)
+                counts, states, runs = await asyncio.gather(
+                    asyncio.to_thread(backends.loader.count_by_tier),
+                    asyncio.to_thread(backends.loader.index_states),
+                    asyncio.to_thread(backends.loader.recent_ingest_runs, 20),
+                )
                 base.update({"last_runs": runs, "last_runs_source": "bigquery:ingest_runs"})
+            else:
+                counts, states = await asyncio.gather(
+                    asyncio.to_thread(backends.loader.count_by_tier),
+                    asyncio.to_thread(backends.loader.index_states),
+                )
         except IngestBackendUnavailable as exc:
             return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {},
-                    "managed_vertex": await self._managed_status()}
+                    "managed_vertex": await managed_task}
+        except BaseException:
+            managed_task.cancel()
+            await asyncio.gather(managed_task, return_exceptions=True)
+            raise
         return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn,
-                "managed_vertex": await self._managed_status()}
+                "managed_vertex": await managed_task}
 
     async def _managed_status(self) -> dict[str, Any]:
         """Level 5 entry (data store state + document count) or an explicit reason — only when the level is enabled."""

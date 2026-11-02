@@ -145,7 +145,7 @@ async def _discover_upload_records(
 ) -> tuple[ManagedUploadBackends, list[dict[str, Any]]]:
     request = {"workspace": source.workspace_id, "files": len(source.files), "download_bytes": 0}
     async with tracker.scope(emitter, "discover_docs", "Prepare upload metadata", "Cloud Storage · workspace manifest", request) as sc:
-        backends = runner.upload_managed_factory(runner.settings)
+        backends = await asyncio.to_thread(runner.upload_managed_factory, runner.settings)
         records = build_upload_import_records(source.workspace_id, _bucket_of(backends), source.files)
         sc.payload = {
             "docs": len(records), "doc_names": [r["structData"]["doc_name"] for r in records[:50]],

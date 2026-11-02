@@ -93,7 +93,7 @@ def sanitize_filename(name: str) -> str:
     base = re.split(r"[\\/]", name.strip())[-1].strip()
     if not base.lower().endswith(".pdf"):
         raise ValueError("only .pdf files can be uploaded")
-    stem = _UNSAFE_CHARS.sub("_", base[:-4]).strip(".")
+    stem = re.sub(r"\.{2,}", ".", _UNSAFE_CHARS.sub("_", base[:-4])).strip(".")
     if not stem:
         raise ValueError("filename needs a name before .pdf")
     return f"{stem[: MAX_FILENAME_CHARS - 4]}.pdf"
@@ -211,22 +211,32 @@ class UploadStore:
         self.bucket = bucket.strip()
         self._token = token_provider
         self._timeout = float(timeout_seconds)
-        self._send = send or httpx.request
+        self._send = send
         self._sleep = sleep
 
     def _redact(self, text: str) -> str:
         return text.replace(self.bucket, "${UPLOAD_BUCKET}")[:_MAX_ERROR_CHARS]
 
-    def _call(self, method: str, url: str, *, ok: tuple[int, ...] = (200,), **kwargs: Any) -> httpx.Response:
+    def _bearer_headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
         try:
             token = self._token()
         except Exception as exc:  # noqa: BLE001 - re-raised as a typed store error
             raise UploadStoreError(0, self._redact(f"Cloud Storage credentials unavailable: {type(exc).__name__}: {exc}")) from exc
-        headers = {"Authorization": f"Bearer {token}", **kwargs.pop("headers", {})}
+        return {"Authorization": f"Bearer {token}", **(extra or {})}
+
+    def _request_once(self, method: str, url: str, headers: dict[str, str], **kwargs: Any) -> httpx.Response:
+        timeout = httpx.Timeout(self._timeout)
+        if self._send is not None:
+            return self._send(method, url, headers=headers, timeout=timeout, **kwargs)
+        with httpx.Client(timeout=timeout) as client:
+            return client.request(method, url, headers=headers, **kwargs)
+
+    def _call(self, method: str, url: str, *, ok: tuple[int, ...] = (200,), **kwargs: Any) -> httpx.Response:
+        headers = self._bearer_headers(kwargs.pop("headers", None))
         last: UploadStoreError | None = None
         for attempt in range(1, MAX_ATTEMPTS + 1):
             try:
-                resp = self._send(method, url, headers=headers, timeout=httpx.Timeout(self._timeout), **kwargs)
+                resp = self._request_once(method, url, headers, **kwargs)
             except httpx.TimeoutException:
                 last = UploadStoreError(0, f"Cloud Storage {method} timed out")
             else:
@@ -278,23 +288,66 @@ class UploadStore:
                 return None
             raise
 
+    def _read_stream_body(self, client: httpx.Client, url: str, headers: dict[str, str], fh: Any) -> tuple[int, int, str]:
+        with client.stream("GET", url, params={"alt": "media"}, headers=headers) as resp:
+            if resp.status_code not in (200, 206):
+                body = resp.read().decode("utf-8", errors="replace") if hasattr(resp, "read") else ""
+                return resp.status_code, 0, body
+            written = 0
+            for chunk in resp.iter_bytes(262144):
+                fh.write(chunk)
+                written += len(chunk)
+            return resp.status_code, written, ""
+
+    def _stream_range_to_file(self, client: httpx.Client, url: str, start: int, end: int, fh: Any) -> int:
+        headers = self._bearer_headers({"Range": f"bytes={start}-{end}"})
+        last: UploadStoreError | None = None
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            offset_before = fh.tell()
+            try:
+                status, written, body = self._read_stream_body(client, url, headers, fh)
+            except httpx.TimeoutException:
+                fh.seek(offset_before)
+                fh.truncate()
+                last = UploadStoreError(0, "Cloud Storage GET timed out")
+            else:
+                if status in (200, 206):
+                    return written
+                last = UploadStoreError(status, self._redact(f"Cloud Storage GET HTTP {status}: {body}"))
+                if status not in RETRYABLE_STATUS:
+                    raise last
+            if attempt < MAX_ATTEMPTS:
+                self._sleep(1.0 * (2 ** (attempt - 1)))
+        raise last if last else UploadStoreError(0, "Cloud Storage call made no attempt")
+
     def download_to(self, name: str, dest: Path) -> int:
-        """Copy an object to local disk in bounded ranged reads (memory stays at one chunk)."""
+        """Copy an object to local disk in bounded ranged streams over a single HTTP client (O(1) heap)."""
         meta = self.object_meta(name)
         if meta is None:
             raise UploadStoreError(404, "uploaded object not found (upload incomplete?)")
         size = int(meta.get("size") or 0)
         written = 0
+        url = self._o(name)
+        chunks = max(1, math.ceil(size / DOWNLOAD_CHUNK_BYTES))
         with Path(dest).open("wb") as fh:
-            for index in range(max(1, math.ceil(size / DOWNLOAD_CHUNK_BYTES))):
-                start = index * DOWNLOAD_CHUNK_BYTES
-                end = min(size, start + DOWNLOAD_CHUNK_BYTES) - 1
-                if end < start:
-                    break
-                resp = self._call("GET", self._o(name), ok=(200, 206), params={"alt": "media"},
-                                  headers={"Range": f"bytes={start}-{end}"})
-                fh.write(resp.content)
-                written += len(resp.content)
+            if self._send is not None:
+                for index in range(chunks):
+                    start = index * DOWNLOAD_CHUNK_BYTES
+                    end = min(size, start + DOWNLOAD_CHUNK_BYTES) - 1
+                    if end < start:
+                        break
+                    resp = self._call("GET", url, ok=(200, 206), params={"alt": "media"},
+                                      headers={"Range": f"bytes={start}-{end}"})
+                    fh.write(resp.content)
+                    written += len(resp.content)
+            else:
+                with httpx.Client(timeout=httpx.Timeout(self._timeout)) as client:
+                    for index in range(chunks):
+                        start = index * DOWNLOAD_CHUNK_BYTES
+                        end = min(size, start + DOWNLOAD_CHUNK_BYTES) - 1
+                        if end < start:
+                            break
+                        written += self._stream_range_to_file(client, url, start, end, fh)
         if written != size:
             raise UploadStoreError(0, f"downloaded {written} bytes but object has {size}")
         return written

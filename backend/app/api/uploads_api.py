@@ -258,8 +258,8 @@ async def workspace_delete_endpoint(request: Request) -> JSONResponse:
     manifest, _ = found
     runner = request.app.state.ingest_runner
     try:
-        loader = runner.backend_factory(runner.settings).loader
-        await run_in_threadpool(loader.delete_scope, ws)
+        backends = await run_in_threadpool(runner.backend_factory, runner.settings)
+        await run_in_threadpool(backends.loader.delete_scope, ws)
     except Exception as exc:  # boundary: reported, objects are NOT deleted so the user can retry
         return _error(f"could not delete the workspace's BigQuery rows ({type(exc).__name__}: {exc}); nothing was deleted", 502)
     doc_ids = _vais_doc_ids_for_delete(ws, manifest)

@@ -31,6 +31,7 @@ from app.engines.agent_verify import MAX_DRAFT_CHARS, VerificationReport, check_
 from app.engines.level1_naive import _row_bbox
 from app.engines.level3_multimodal import Level3MultimodalEngine, MultimodalSearch, authority_header
 from app.ingestion.bq_indexer import build_amendment_lookup_sql
+from app.ingestion.uploads import check_workspace_id
 
 MAX_TOOL_CHUNK_CHARS = 2500
 MAX_QUERY_CHARS = 500
@@ -65,7 +66,12 @@ class ToolDeps:
     genai_client: Any
     bq_client: Any
     ledger: AgentLedger
+    upload_scope: str | None = None
     sequence: list[int] = field(default_factory=lambda: [0])  # per-run call counter (ids when ADK gives none)
+
+    def __post_init__(self) -> None:
+        if self.upload_scope is not None:
+            check_workspace_id(self.upload_scope)
 
 
 # ---------------------------------------------------------------- shared invocation wrapper
@@ -106,15 +112,24 @@ def _chunk_view(chunk: DocumentChunk) -> dict[str, Any]:
 # ---------------------------------------------------------------- search_procurement_corpus
 
 
-def validate_search_args(query: Any, solicitation_id: Any, element_types: Any) -> tuple[str, str | None, tuple[str, ...]]:
+def validate_search_args(
+    query: Any, solicitation_id: Any, element_types: Any, *, upload_scope: str | None = None
+) -> tuple[str, str | None, tuple[str, ...]]:
     if not isinstance(query, str) or not query.strip() or len(query) > MAX_QUERY_CHARS:
         raise ToolArgumentError(f"query must be a non-empty string of at most {MAX_QUERY_CHARS} characters")
     sol = (solicitation_id or "").strip() if isinstance(solicitation_id, str) or solicitation_id is None else None
-    if sol is None or (sol and not _SOLICITATION_RE.fullmatch(sol)):
-        raise ToolArgumentError("solicitation_id must be empty or look like 'solicitation_01'")
     types_in = element_types or []
     if not isinstance(types_in, list) or len(types_in) > len(ELEMENT_TYPES) or any(t not in ELEMENT_TYPES for t in types_in):
         raise ToolArgumentError(f"element_types must be a list drawn from {list(ELEMENT_TYPES)}")
+    if upload_scope is not None:
+        pinned = check_workspace_id(upload_scope)
+        if sol is None or (sol and sol != pinned):
+            raise ToolArgumentError(
+                f"this run is scoped to upload workspace {pinned}; cross-scope solicitation_id {solicitation_id!r} is forbidden"
+            )
+        return query.strip(), pinned, tuple(types_in)
+    if sol is None or (sol and not _SOLICITATION_RE.fullmatch(sol)):
+        raise ToolArgumentError("solicitation_id must be empty or look like 'solicitation_01'")
     return query.strip(), sol or None, tuple(types_in)
 
 
@@ -128,7 +143,7 @@ def _search_summary(found: MultimodalSearch) -> str:
 
 
 async def run_search(deps: ToolDeps, query: Any, solicitation_id: Any, element_types: Any) -> ToolOutput:
-    q, sol, types_ = validate_search_args(query, solicitation_id, element_types)
+    q, sol, types_ = validate_search_args(query, solicitation_id, element_types, upload_scope=deps.upload_scope)
     emitter = NullStageEmitter(run_id=f"{deps.ledger.run_id}_search{deps.sequence[0]}", engine="level3_multimodal")
     found = await deps.retriever.search_multimodal(
         q, solicitation_filter=sol, element_types=types_, genai_client=deps.genai_client, bq_client=deps.bq_client, emitter=emitter
@@ -152,11 +167,21 @@ async def run_search(deps: ToolDeps, query: Any, solicitation_id: Any, element_t
 # ---------------------------------------------------------------- check_amendments
 
 
-def validate_amendment_args(solicitation_id: Any, section_or_clin_id: Any) -> tuple[str, str]:
-    if not isinstance(solicitation_id, str) or not _SOLICITATION_RE.fullmatch(solicitation_id.strip()):
-        raise ToolArgumentError("solicitation_id must look like 'solicitation_01' (use the solicitation_id of a search result)")
+def validate_amendment_args(
+    solicitation_id: Any, section_or_clin_id: Any, *, upload_scope: str | None = None
+) -> tuple[str, str]:
     if not isinstance(section_or_clin_id, str) or not _SECTION_RE.fullmatch(section_or_clin_id.strip()):
         raise ToolArgumentError("section_or_clin_id must be a clause or CLIN id such as 'CLIN-0004-AB' or 'SEC-4.2.1'")
+    if upload_scope is not None:
+        pinned = check_workspace_id(upload_scope)
+        sol = (solicitation_id or "").strip() if isinstance(solicitation_id, str) or solicitation_id is None else None
+        if sol is None or (sol and sol != pinned):
+            raise ToolArgumentError(
+                f"this run is scoped to upload workspace {pinned}; cross-scope solicitation_id {solicitation_id!r} is forbidden"
+            )
+        return pinned, section_or_clin_id.strip()
+    if not isinstance(solicitation_id, str) or not _SOLICITATION_RE.fullmatch(solicitation_id.strip()):
+        raise ToolArgumentError("solicitation_id must look like 'solicitation_01' (use the solicitation_id of a search result)")
     return solicitation_id.strip(), section_or_clin_id.strip()
 
 
@@ -199,7 +224,7 @@ def _amendment_view(chunk: DocumentChunk) -> dict[str, Any]:
 
 
 async def run_check_amendments(deps: ToolDeps, solicitation_id: Any, section_or_clin_id: Any) -> ToolOutput:
-    sol, section = validate_amendment_args(solicitation_id, section_or_clin_id)
+    sol, section = validate_amendment_args(solicitation_id, section_or_clin_id, upload_scope=deps.upload_scope)
     s = deps.settings
     sql = build_amendment_lookup_sql(s.gcp_project_id, s.bq_dataset, s.bq_table)
     rows, stats = await asyncio.to_thread(run_amendment_query, deps.bq_client, sql, sol, section, s.query_timeout_seconds)

@@ -1,7 +1,7 @@
 {
   "header": {
     "format_version": 1,
-    "recorded_at": "2026-10-23T18:21:19.040Z",
+    "recorded_at": "2026-11-02T14:33:13.398Z",
     "project_id": "${GCP_PROJECT_ID}",
     "demo_mode": "record",
     "synthesis_model": "gemini-4-argon",
@@ -13,8 +13,8 @@
       "judge": "claude-opus-5-5",
       "judge_provider": "anthropic_vertex"
     },
-    "git_sha": "7219188a89c97b0a96f82bea891fbebf75f3a48f",
-    "app_version": "1.0.0",
+    "git_sha": "0cf979a3805600fe254868c842129b4c0e4ed855",
+    "app_version": "1.1.0",
     "engine": "level1_naive",
     "question_id": "dev_q01",
     "query": "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?",
@@ -33,7 +33,7 @@
       "request": {
         "query": "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?"
       },
-      "ts": "2026-10-23T18:21:18.417Z",
+      "ts": "2026-11-02T14:33:12.779Z",
       "t_rel_ms": 1
     },
     {
@@ -47,7 +47,7 @@
         "prepared_query": "What is the hourly labor rate for CLIN-0004-AB and did an amendment change it?",
         "expansions": []
       },
-      "ts": "2026-10-23T18:21:18.417Z",
+      "ts": "2026-11-02T14:33:12.779Z",
       "t_rel_ms": 1
     },
     {
@@ -63,7 +63,7 @@
         "task_type": "RETRIEVAL_QUERY",
         "method": "models.embed_content"
       },
-      "ts": "2026-10-23T18:21:18.417Z",
+      "ts": "2026-11-02T14:33:12.779Z",
       "t_rel_ms": 1
     },
     {
@@ -78,7 +78,7 @@
         "token_count": 14,
         "task_type": "RETRIEVAL_QUERY"
       },
-      "ts": "2026-10-23T18:21:18.479Z",
+      "ts": "2026-11-02T14:33:12.841Z",
       "t_rel_ms": 62
     },
     {
@@ -89,7 +89,7 @@
       "label": "BigQuery VECTOR_SEARCH",
       "service": "BigQuery",
       "request": {
-        "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
+        "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive' AND NOT STARTS_WITH(solicitation_id, 'upl_')),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
         "params": {
           "query_embedding": {
             "dimensions": 3072,
@@ -103,7 +103,7 @@
         },
         "top_k": 5
       },
-      "ts": "2026-10-23T18:21:18.479Z",
+      "ts": "2026-11-02T14:33:12.841Z",
       "t_rel_ms": 62
     },
     {
@@ -111,9 +111,9 @@
       "run_id": "run_rec",
       "engine": "level1_naive",
       "stage": "retrieve",
-      "duration_ms": 186,
+      "duration_ms": 182,
       "payload": {
-        "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
+        "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive' AND NOT STARTS_WITH(solicitation_id, 'upl_')),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
         "params": {
           "query_embedding": {
             "dimensions": 3072,
@@ -140,8 +140,8 @@
         "slot_millis": 1840,
         "cache_hit": false
       },
-      "ts": "2026-10-23T18:21:18.665Z",
-      "t_rel_ms": 249
+      "ts": "2026-11-02T14:33:13.023Z",
+      "t_rel_ms": 245
     },
     {
       "event": "stage_started",
@@ -159,8 +159,8 @@
         "context_chunks": 2,
         "method": "models.generate_content"
       },
-      "ts": "2026-10-23T18:21:18.665Z",
-      "t_rel_ms": 249
+      "ts": "2026-11-02T14:33:13.024Z",
+      "t_rel_ms": 245
     },
     {
       "event": "stage_completed",
@@ -180,8 +180,8 @@
         "answer": "The base rate for CLIN-0004-AB is $210.00/hr (amended to $245.00/hr).",
         "thinking_level": "HIGH"
       },
-      "ts": "2026-10-23T18:21:18.916Z",
-      "t_rel_ms": 500
+      "ts": "2026-11-02T14:33:13.274Z",
+      "t_rel_ms": 496
     },
     {
       "event": "stage_started",
@@ -199,8 +199,8 @@
         "max_tokens": 1024,
         "reference_answer_used": false
       },
-      "ts": "2026-10-23T18:21:18.917Z",
-      "t_rel_ms": 500
+      "ts": "2026-11-02T14:33:13.275Z",
+      "t_rel_ms": 496
     },
     {
       "event": "stage_completed",
@@ -222,8 +222,8 @@
         "rationale": "Synthetic judge rationale from the offline fake.",
         "judge_response_id": "msg_vrtx_fake01"
       },
-      "ts": "2026-10-23T18:21:19.038Z",
-      "t_rel_ms": 622
+      "ts": "2026-11-02T14:33:13.396Z",
+      "t_rel_ms": 618
     }
   ],
   "result": {
@@ -319,7 +319,7 @@
       }
     ],
     "agent_steps": [],
-    "latency_ms": 499,
+    "latency_ms": 495,
     "cost_usd": 0.0069468,
     "stage_log": [
       {
@@ -327,7 +327,7 @@
         "label": "Query preparation",
         "service": "Engine (local)",
         "status": "completed",
-        "started_at": "2026-10-23T18:21:18.417Z",
+        "started_at": "2026-11-02T14:33:12.779Z",
         "duration_ms": 0,
         "request": {},
         "payload": {
@@ -343,7 +343,7 @@
         "label": "Query embedding",
         "service": "Vertex AI \u00b7 gemini-embedding-2",
         "status": "completed",
-        "started_at": "2026-10-23T18:21:18.417Z",
+        "started_at": "2026-11-02T14:33:12.779Z",
         "duration_ms": 61,
         "request": {},
         "payload": {
@@ -360,11 +360,11 @@
         "label": "BigQuery VECTOR_SEARCH",
         "service": "BigQuery",
         "status": "completed",
-        "started_at": "2026-10-23T18:21:18.479Z",
-        "duration_ms": 186,
+        "started_at": "2026-11-02T14:33:12.841Z",
+        "duration_ms": 182,
         "request": {},
         "payload": {
-          "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive'),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
+          "sql": "SELECT\n  base.chunk_id,\n  base.solicitation_id,\n  base.doc_name,\n  base.doc_type,\n  base.element_type,\n  base.section_id,\n  base.amendment_number,\n  base.effective_date,\n  base.amends_section,\n  base.page_number,\n  base.bbox,\n  base.content,\n  (1.0 - distance) AS similarity_score\nFROM VECTOR_SEARCH(\n  (SELECT * FROM `${GCP_PROJECT_ID}.rag_arena.document_chunks` WHERE tier_profile = 'naive' AND NOT STARTS_WITH(solicitation_id, 'upl_')),\n  'embedding',\n  (SELECT @query_embedding AS embedding),\n  top_k => 5,\n  distance_type => 'COSINE'\n)\nORDER BY distance ASC\nLIMIT 5;\n",
           "params": {
             "query_embedding": {
               "dimensions": 3072,
@@ -399,7 +399,7 @@
         "label": "Answer synthesis",
         "service": "Vertex AI \u00b7 Gemini 4 Argon",
         "status": "completed",
-        "started_at": "2026-10-23T18:21:18.665Z",
+        "started_at": "2026-11-02T14:33:13.024Z",
         "duration_ms": 250,
         "request": {},
         "payload": {

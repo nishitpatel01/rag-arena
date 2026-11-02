@@ -3,6 +3,51 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-11-02
+
+Bring your own PDFs across all five RAG architectures, plus Leaderboard and Compare winner highlighting.
+
+### Added
+- **Private user PDF upload workspaces (`upl_<12hex>`)**:
+  - Dedicated private Cloud Storage bucket (`UPLOAD_BUCKET`, `UPLOAD_BUCKET_MODE=auto|existing`, optional CMEK via
+    `UPLOAD_BUCKET_KMS_KEY`) verified on startup for enforced public access prevention, uniform bucket-level access, and
+    zero public IAM/ACL bindings; typed remedies on permission, org-policy, or name-conflict errors (never silent fallback).
+  - Direct-to-GCS Origin-bound resumable upload sessions (`POST /api/v1/uploads/{id}/files` → browser `PUT` with `308`
+    resume probe → `POST .../finalize`) bypassing Cloud Run's 32 MiB HTTP/1 request cap with no app-imposed file-size,
+    page, or count limits; server-side PDF safety validation rejects non-PDFs, encrypted files, `/JS`/`/JavaScript`,
+    `/Launch` actions, and `/EmbeddedFiles` while streaming in constant heap (`O(1)` `RssAnon`).
+  - Workspace manifests stored in GCS with generation preconditions and owner bound to SHA-256 of the IAP identity
+    (`404` for other principals); zero upload routes or UI controls in `DEMO_MODE=replay` or on the public replay service.
+- **Scoped upload ingestion and querying across all five levels**:
+  - Levels 1–2 (`naive`, `hybrid`) and Level 3 (`multimodal`) load and replace rows scoped to
+    `(tier_profile, solicitation_id = upl_*)` while unscoped benchmark corpus queries and counts exclude `upl_*` rows.
+  - Level 3 pre-flight cost estimate (`GET /api/v1/uploads/{id}/estimate`) and mandatory `confirm_cost_usd` guard
+    before paid Document AI Layout Parser + Gemini vision runs; honest `UPLOADED_DOCUMENT` metadata without corpus
+    filename assumptions.
+  - Level 4 (`level4_agentic`) reuses the workspace's Level 3 `multimodal` rows and closure-pins `upload_scope` inside
+    `search_procurement_corpus` and `check_amendments` so prompt-injected PDFs cannot redirect tool queries across scopes.
+  - Level 5 (`managed_vertex`) provisions an isolated `rag-arena-uploads` data store and `rag-arena-uploads-search` app
+    with filterable `workspace_id`/`doc_name` schema, zero-download `_vais_import.jsonl` (`dataSchema="document"`)
+    imports, `workspace_id: ANY("upl_...")` search filtering, and synchronous VAIS + BigQuery + GCS deletion on
+    `DELETE /api/v1/uploads/{id}`.
+- **Reference-free evaluation, Leaderboard scopes, and winner highlighting**:
+  - Reference-free QA relevance rubric (`reference_answer_used: false`, `no reference answer` badge) for upload and
+    ad-hoc runs; `query_runs` tracks `solicitation_id` and `scope` (`golden` | `uploads`), and `DEMO_MODE=record`
+    refuses to overwrite golden recordings with upload runs.
+  - `GET /api/v1/leaderboard?scope=golden|uploads` segmented view plus persisted **"Highlight best by"** selector
+    (`battle_score`, `qa_relevance`, `groundedness`, `context_precision`, `latency_ms`, `cost_usd`) highlighting winning
+    and tied rows across `Leaderboard` and `Compare`.
+- **Resilient live UI & catalog**:
+  - App-wide `IngestSessionProvider` and `GET /api/v1/ingest/status` `active_jobs` keep live ingestion streams and
+    `LevelIngestBanner` progress alive across route navigation and full browser reloads; clearly separated benchmark
+    corpus (`loaded & ready to query`) vs private upload workspace sections on `/ingest`.
+  - `<ModelPicker>` deduplicates pricing and model-availability reasons into a collapsed `"Pricing & availability"`
+    disclosure (safe-mode masked); `gemini-4-carbon` (`Gemini 4 Carbon`) added to the model catalog.
+  - Cloud Run cold-start hardening: GCP SDK client initialization and status checks run off the event loop under
+    `_CLIENT_LOCK`, paired with bounded 30 s frontend bootstrap retry and single-flight `/ingest/status` coalescing.
+  - Offline test suites expanded to **394 backend tests** (35 files) and **176 frontend tests** (17 suites), including
+    IDOR/replay `404` matrices, prompt-injection/SQL scope isolation, and tracked-repo + `frontend/dist` leak scans.
+
 ## [1.0.0] — 2026-10-23
 
 First public release (the internal "v3" rebuild: every stage measured, nothing simulated).

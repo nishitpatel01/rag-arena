@@ -74,9 +74,15 @@ const LevelLadderNav: React.FC = () => {
 };
 
 const HealthPills: React.FC = () => {
-  const { health, error } = useAppData();
+  const { health, error, reload } = useAppData();
   const { enabled: safe, mask } = useSafeMode();
-  if (error && !health) return <Pill tone="err" title={mask(error)}>backend unreachable</Pill>;
+  if (error && !health) {
+    return (
+      <button type="button" onClick={reload} title={`${mask(error)} — click to retry`} className="cursor-pointer">
+        <Pill tone="err">backend unreachable · retry</Pill>
+      </button>
+    );
+  }
   if (!health) return <Pill tone="neutral">connecting…</Pill>;
   const mode = String(health.demo_mode);
   return (

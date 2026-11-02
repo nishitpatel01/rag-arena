@@ -1,12 +1,11 @@
 import React from "react";
+import { useSafeMode } from "../../app/SafeMode";
 import type { ModelRole, ModelsResponse, RecordedPair } from "../../types/arena";
 import {
-  findModel,
-  formatModelPrice,
+  buildPickerDetails,
   modelLabel,
   optionStates,
   providerLabel,
-  safeHttpUrl,
   type ModelSelection,
   type ReplayGate,
 } from "./modelSelection";
@@ -36,14 +35,12 @@ interface RoleSelectProps {
   readonly disabled: boolean;
   readonly onSelect: (id: string) => void;
   readonly levelId: string | null;
+  readonly mask: (text: string) => string;
 }
 
-const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, other, disabled, onSelect, levelId }) => {
+const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, other, disabled, onSelect, levelId, mask }) => {
   const id = `model-${role}`;
   const options = optionStates(catalog, role, other, levelId);
-  const selected = findModel(catalog, value);
-  const priceUrl = safeHttpUrl(selected?.price_source);
-  const blocked = options.filter((o) => o.disabled);
   const known = options.some((o) => o.entry.id === value);
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -51,32 +48,12 @@ const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, ot
       <select id={id} value={value} onChange={(e) => onSelect(e.target.value)} disabled={disabled} className={fieldClass} data-role={role}>
         {!known && <option value={value}>{value} (not offered for this role)</option>}
         {options.map((o) => (
-          <option key={o.entry.id} value={o.entry.id} disabled={o.disabled} title={o.reason ?? undefined}>
+          <option key={o.entry.id} value={o.entry.id} disabled={o.disabled} title={o.reason ? mask(o.reason) : undefined}>
             {o.entry.label} · {providerLabel(o.entry.provider)} · {o.entry.location}
             {o.unavailable ? " — unavailable" : o.restricted ? " — Level 5 only" : o.disabled ? (role === "judge" ? " — used for synthesis" : " — used as judge") : ""}
           </option>
         ))}
       </select>
-      {selected && (
-        <p className="text-xs text-ink-3" data-testid={`price-${role}`}>
-          <span className="font-mono">{formatModelPrice(selected)}</span>
-          {priceUrl && (
-            <>
-              {" · "}
-              <a href={priceUrl} target="_blank" rel="noreferrer" className="text-moss underline">price source</a>
-            </>
-          )}
-        </p>
-      )}
-      {blocked.length > 0 && (
-        <ul className="min-w-0 flex flex-col gap-0.5 text-xs text-ink-3" aria-label={`${label}: options that cannot be chosen`}>
-          {blocked.map((o) => (
-            <li key={o.entry.id} className="min-w-0 [overflow-wrap:anywhere]">
-              <span className="text-ink-2">{o.entry.label}</span>: {o.reason}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 };
@@ -89,6 +66,7 @@ const pairText = (catalog: ModelsResponse, p: RecordedPair): string =>
  * all come from GET /api/v1/models; the judge must differ from the synthesis model.
  */
 export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, error, selection, onChange, disabled, validationError, replay, levelId = null }) => {
+  const { mask } = useSafeMode();
   if (error || !catalog || !selection) {
     return (
       <fieldset className="flex min-w-0 flex-col gap-1 rounded-md border border-line p-2" disabled aria-busy={loading}>
@@ -99,20 +77,50 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, erro
           <p className="text-xs text-ink-3">Loading model catalog…</p>
         ) : (
           <p className="text-xs text-clay [overflow-wrap:anywhere]" role="alert">
-            Model catalog unavailable — runs use the server defaults. {error ?? "No catalog returned."}
+            Model catalog unavailable — runs use the server defaults. {mask(error ?? "No catalog returned.")}
           </p>
         )}
       </fieldset>
     );
   }
+
+  const details = buildPickerDetails(catalog, selection, levelId);
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 rounded-md border border-line p-2" data-testid="model-picker">
       <legend className="px-1 text-xs font-medium text-ink-2">Models</legend>
-      <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId}
+      <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId} mask={mask}
         onSelect={(id) => onChange({ ...selection, synthesis: id })} />
-      <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled} levelId={levelId}
+      <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled} levelId={levelId} mask={mask}
         onSelect={(id) => onChange({ ...selection, judge: id })} />
-      {validationError && <p className="text-xs text-err" role="alert">{validationError}</p>}
+      {validationError && <p className="text-xs text-err" role="alert">{mask(validationError)}</p>}
+      <details className="rounded-md border border-line bg-surface-1 px-2 py-1.5 text-xs text-ink-3" data-testid="model-picker-details">
+        <summary className="cursor-pointer select-none font-medium text-ink-2 hover:text-ink-1">
+          {details.summaryLabel}
+        </summary>
+        <div className="mt-1.5 flex flex-col gap-1.5 border-t border-line pt-1.5">
+          {details.prices.map((p) => (
+            <p key={p.role} data-testid={`price-${p.role}`}>
+              <span className="font-medium text-ink-2">{p.roleLabel} ({p.modelLabel}):</span>{" "}
+              <span className="font-mono">{p.priceText}</span>
+              {p.priceUrl && (
+                <>
+                  {" · "}
+                  <a href={p.priceUrl} target="_blank" rel="noreferrer" className="text-moss underline">price source</a>
+                </>
+              )}
+            </p>
+          ))}
+          {details.blockedModels.length > 0 && (
+            <ul className="min-w-0 flex flex-col gap-0.5 pt-0.5" aria-label="Unavailable or level-restricted models">
+              {details.blockedModels.map((b) => (
+                <li key={b.id} className="min-w-0 [overflow-wrap:anywhere]">
+                  <span className="font-medium text-ink-2">{b.label}</span>: {mask(b.reason)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
       {replay?.replay && (
         <div className="rounded-md border border-line bg-surface-1 p-2 text-xs text-ink-2" role="status" data-testid="replay-pairs">
           <p className="font-medium text-ink-1">Replay mode: only recorded model pairs can play.</p>

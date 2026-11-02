@@ -195,3 +195,80 @@ export function safeHttpUrl(raw: string | null | undefined): string | null {
     return null;
   }
 }
+
+export interface PickerPriceRow {
+  readonly role: ModelRole;
+  readonly roleLabel: string;
+  readonly modelLabel: string;
+  readonly priceText: string;
+  readonly priceUrl: string | null;
+}
+
+export interface PickerBlockedModel {
+  readonly id: string;
+  readonly label: string;
+  readonly reason: string;
+  readonly unavailable: boolean;
+}
+
+export interface PickerDetails {
+  readonly summaryLabel: string;
+  readonly prices: readonly PickerPriceRow[];
+  readonly blockedModels: readonly PickerBlockedModel[];
+}
+
+/**
+ * Deduplicated pricing + unavailable/level-restricted disclosure payload for `<ModelPicker>`.
+ * Omits self-evident swap locks (`must differ from synthesis/judge model`) already shown inside `<option>`.
+ */
+export function buildPickerDetails(
+  catalog: ModelsResponse,
+  sel: ModelSelection,
+  levelId: string | null = null
+): PickerDetails {
+  if (!catalog || !Array.isArray(catalog.models)) {
+    throw new TypeError("catalog.models must be an array");
+  }
+  if (!sel || typeof sel.synthesis !== "string" || typeof sel.judge !== "string") {
+    throw new TypeError("selection must provide synthesis and judge ids");
+  }
+
+  const rolePairs: readonly (readonly [ModelRole, string, string])[] = [
+    ["synthesis", "Synthesis", sel.synthesis],
+    ["judge", "Judge", sel.judge],
+  ];
+  const prices: PickerPriceRow[] = [];
+  for (const [role, roleLabel, id] of rolePairs) {
+    const entry = findModel(catalog, id);
+    if (!entry) continue;
+    prices.push({
+      role,
+      roleLabel,
+      modelLabel: entry.label,
+      priceText: formatModelPrice(entry),
+      priceUrl: safeHttpUrl(entry.price_source),
+    });
+  }
+
+  const seen = new Set<string>();
+  const blockedModels: PickerBlockedModel[] = [];
+  const combined = [
+    ...optionStates(catalog, "synthesis", sel.judge, levelId),
+    ...optionStates(catalog, "judge", sel.synthesis, levelId),
+  ];
+  for (const opt of combined) {
+    if ((!opt.unavailable && !opt.restricted) || !opt.reason || seen.has(opt.entry.id)) continue;
+    seen.add(opt.entry.id);
+    blockedModels.push({
+      id: opt.entry.id,
+      label: opt.entry.label,
+      reason: opt.reason,
+      unavailable: opt.unavailable,
+    });
+  }
+
+  const unavailableCount = blockedModels.filter((b) => b.unavailable).length;
+  const summaryLabel =
+    unavailableCount > 0 ? `Pricing & availability · ${unavailableCount} unavailable` : "Pricing & availability";
+  return { summaryLabel, prices, blockedModels };
+}

@@ -246,3 +246,58 @@ def test_pdf_code_imports_pymupdf_not_deprecated_fitz() -> None:
     for name in ("parsers.py", "pipeline.py", "uploads.py"):
         src = (root / name).read_text(encoding="utf-8")
         assert "import fitz" not in src and "import pymupdf" in src, name
+
+
+def test_ingest_status_cold_factory_never_blocks_health_or_levels_on_event_loop() -> None:
+    import asyncio
+    import time
+    import httpx
+
+    class SlowLoader(FakeLoader):
+        def count_by_tier(self) -> dict[str, int]:
+            time.sleep(0.15)
+            return {"naive": 10}
+
+        def index_states(self) -> dict[str, str]:
+            time.sleep(0.15)
+            return {"document_chunks_vec_idx": "ACTIVE"}
+
+        def recent_ingest_runs(self, limit: int = 20) -> list[dict[str, Any]]:
+            time.sleep(0.15)
+            return []
+
+    def slow_backend_factory(_s: ArenaSettings) -> IngestBackends:
+        time.sleep(0.30)  # cold SDK import + GCE metadata lookup
+        return IngestBackends(FakeEmbedder(), SlowLoader())
+
+    def slow_managed_factory(_s: ArenaSettings) -> Any:
+        time.sleep(0.30)
+        raise RuntimeError("simulated cold managed factory error")
+
+    settings = ArenaSettings(demo_mode="live", gcp_project_id="test-project")
+    app = create_app(
+        settings=settings,
+        ingest_backend_factory=slow_backend_factory,
+        ingest_managed_factory=slow_managed_factory,
+    )
+
+    async def _exercise() -> tuple[float, float, float, dict[str, Any]]:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
+            t0 = time.monotonic()
+            status_task = asyncio.create_task(ac.get("/api/v1/ingest/status"))
+            fast_fut = asyncio.gather(ac.get("/api/v1/health"), ac.get("/api/v1/levels"))
+            r_health, r_levels = await fast_fut
+            fast_elapsed = time.monotonic() - t0
+            r_status = await status_task
+            status_elapsed = time.monotonic() - t0
+            assert r_health.status_code == 200 and r_levels.status_code == 200
+            assert r_status.status_code == 200
+            return fast_elapsed, status_elapsed, float(len(r_levels.json()["levels"])), r_status.json()
+
+    fast_s, status_s, level_count, body = asyncio.run(_exercise())
+    assert level_count == 5.0
+    assert body["available"] is True and body["counts_by_tier"] == {"naive": 10}
+    assert fast_s < 0.12, f"/health and /levels were blocked by /ingest/status ({fast_s:.3f}s)"
+    assert status_s < 0.65, f"/ingest/status ran serially instead of concurrently ({status_s:.3f}s)"
+

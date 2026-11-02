@@ -170,7 +170,7 @@ async def _verify_counts(tracker: Any, emitter: Any, backends: ManagedBackends, 
 async def run_managed_job(runner: IngestJobRunner, job: IngestJob, emitter: Any, tracker: Any, docs: list[_DiscoveredDoc]) -> None:
     """upload_gcs → import_documents → skipped BigQuery stages → verify_counts → ingest_runs row → job_complete."""
     started = time.monotonic()
-    backends = runner.managed_factory(runner.settings)
+    backends = await asyncio.to_thread(runner.managed_factory, runner.settings)
     names = await _upload_gcs(runner, job, emitter, tracker, backends, docs)
     counts = await _import_documents(runner, job, emitter, tracker, backends, names, started)
     for stage in SKIPPED_STAGES:
@@ -191,9 +191,11 @@ async def run_managed_job(runner: IngestJobRunner, job: IngestJob, emitter: Any,
 
 async def managed_status(runner: IngestJobRunner) -> dict[str, Any]:
     """``/api/v1/ingest/status`` entry: data store existence + document count (gates the Level 5 Run button)."""
-    backends = runner.managed_factory(runner.settings)
-    store = await asyncio.to_thread(backends.vais.get_or_none, backends.resources.data_store_path)
-    engine = await asyncio.to_thread(backends.vais.get_or_none, backends.resources.engine_path)
+    backends = await asyncio.to_thread(runner.managed_factory, runner.settings)
+    store, engine = await asyncio.gather(
+        asyncio.to_thread(backends.vais.get_or_none, backends.resources.data_store_path),
+        asyncio.to_thread(backends.vais.get_or_none, backends.resources.engine_path),
+    )
     if store is None:
         return {"available": True, "data_store_state": "NOT_FOUND", "engine_state": "NOT_FOUND" if engine is None else "ACTIVE",
                 "document_count": 0, "data_store_id": backends.resources.data_store_id, "engine_id": backends.resources.engine_id}

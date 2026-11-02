@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { loadBootstrapData } from "../lib/bootstrap";
 import { isMockRequested } from "../features/levels/useBattleStream";
 import { LEVEL_IDS, QUERY_STAGE_IDS, type ArchitectureDescriptor, type HealthResponse, type LevelDescriptor } from "../types/arena";
 
@@ -68,17 +69,21 @@ export const AppDataProvider: React.FC<{ readonly children: React.ReactNode }> =
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    void Promise.allSettled([api.health(), api.levels()]).then(async ([h, l]) => {
+    const mockMode = import.meta.env.DEV && isMockRequested();
+    void loadBootstrapData({
+      fetchHealth: api.health,
+      fetchLevels: api.levels,
+      maxAttempts: mockMode ? 1 : 3,
+      isCancelled: () => cancelled,
+    }).then(async ({ health: h, levels: l, errors }) => {
       if (cancelled) return;
-      const problems: string[] = [];
-      if (h.status === "fulfilled") setHealth(h.value);
-      else problems.push(`health: ${h.reason instanceof Error ? h.reason.message : String(h.reason)}`);
-      if (l.status === "fulfilled") setLevels([...l.value.levels].sort(BY_ORDER));
-      else problems.push(`levels: ${l.reason instanceof Error ? l.reason.message : String(l.reason)}`);
+      const problems = [...errors];
+      if (h !== null) setHealth(h);
+      if (l !== null) setLevels([...l.levels].sort(BY_ORDER));
 
       // DEV + ?mock=1 only: when the backend is unreachable, use the fixture descriptor so the
       // level page can be exercised. Eliminated from production bundles (import.meta.env.DEV is false).
-      if (import.meta.env.DEV && isMockRequested() && l.status === "rejected") {
+      if (mockMode && l === null) {
         const { LEVEL1_DEV_ARCHITECTURE } = await import("../dev/fixtures/level1_run");
         const { LEVEL2_DEV_ARCHITECTURE } = await import("../dev/fixtures/level2_run");
         const { LEVEL3_DEV_ARCHITECTURE } = await import("../dev/fixtures/level3_run");
@@ -88,10 +93,10 @@ export const AppDataProvider: React.FC<{ readonly children: React.ReactNode }> =
         setLevels(devFixtureLevels(LEVEL1_DEV_ARCHITECTURE, LEVEL2_DEV_ARCHITECTURE, LEVEL3_DEV_ARCHITECTURE, LEVEL4_DEV_ARCHITECTURE, LEVEL5_DEV_ARCHITECTURE));
         setHealth((prev) => prev ?? { status: "dev_fixture", demo_mode: "dev_fixture", project_id: null, gcs_bucket: null });
         problems.length = 0;
-      } else if (import.meta.env.DEV && isMockRequested() && l.status === "fulfilled") {
+      } else if (mockMode && l !== null) {
         // Backend reachable but a fixture level (e.g. Level 3) still disabled there: unlock it client-side with `dev_fixture`
         // set, so the page can play the Level 2 fixture. Ingestion stays disabled for such levels.
-        setLevels([...l.value.levels].map(unlockForDevFixture).sort(BY_ORDER));
+        setLevels([...l.levels].map(unlockForDevFixture).sort(BY_ORDER));
       }
       setError(problems.length ? problems.join(" · ") : null);
       setLoading(false);

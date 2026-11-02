@@ -141,7 +141,7 @@ def _page_text(pdf_path: Any, page: int) -> str:
 
 
 async def _parse(runner: IngestJobRunner, job: IngestJob, emitter: Any, tracker: Any, docs: list[_DiscoveredDoc]) -> tuple[Any, list[ParsedDoc], dict[str, Any]]:
-    backends = runner.backend_factory(runner.settings)
+    backends = await asyncio.to_thread(runner.backend_factory, runner.settings)
     parser, vision = getattr(backends, "layout_parser", None), getattr(backends, "vision", None)
     request: dict[str, Any] = {"docs": len(docs), "diagram_heuristic": DIAGRAM_HEURISTIC, "max_vision_pages": MAX_VISION_PAGES}
     if parser is not None and vision is not None:

@@ -48,7 +48,7 @@ def test_health_levels_and_benchmarks_endpoints() -> None:
     health = client.get("/api/v1/health").json()
     assert health["status"] == "ok" and health["demo_mode"] == "replay"
     assert {"project_id", "gcs_bucket", "enabled_levels", "demo_mode", "app_version"} <= set(health)
-    assert health["app_version"] == "1.2.0"
+    assert health["app_version"] == "1.3.0"
     assert health["enabled_levels"] == ["level1_naive"]
     bench = client.get("/api/v1/benchmarks").json()
     assert len(bench["questions"]) >= 8 and {"question_id", "question", "failure_mode_category"} <= set(bench["questions"][0])

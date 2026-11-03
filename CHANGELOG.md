@@ -3,6 +3,36 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-11-03
+
+Composable RAG Workbench (`/workbench`) and Controlled Ablation Lab + Retrieval Diff Inspector (`/compare`).
+
+### Added
+- **Canonical `PipelineSpec` & Level 1–6 Presets (`backend/app/core/pipeline_spec.py`)**:
+  - Typed `IndexProfile` (`corpus_store` × `tier_profile`) + 7 orthogonal `QuerySlots` (`query_prep`, `retriever`,
+    `candidate_k`, `top_k`, `reranker`, `context_order`, `orchestration`, `agent_tools`) with deterministic SHA-256
+    `pipeline_id` (`pipe_<12hex>`), explicit cross-slot validation (`validate_pipeline_spec`), dynamic
+    `ArchitectureDescriptor` synthesis (`build_pipeline_descriptor`), and 1-click preset mappings for all 6 levels.
+  - REST endpoints `GET /api/v1/pipelines/presets` and `POST /api/v1/pipelines/validate`.
+- **Modular `ComposableRAGEngine` & `query_runs` provenance (`backend/app/engines/composable.py`, `api/routes.py`, `api/query_runs.py`)**:
+  - Executes any valid `PipelineSpec` over existing indexed stores (`bigquery`, `vertex_ai_search`,
+    `vertex_rag_engine`) at `$0/mo` new standing infrastructure cost — including BigQuery lexical-only `SEARCH()`,
+    post-retrieval Discovery Engine `RankingClient.rank` on managed stores (`rag_engine` / `managed_vertex`),
+    configurable amendment-first context ordering, and selectable ADK `LlmAgent` tool subsets.
+  - `POST /api/v1/battle/stream` accepts custom `pipelines[]` (`slot_id`, `label`, `spec`, optional per-slot
+    `synthesis_model`); `query_runs` persists `pipeline_id` and `pipeline_spec JSON`.
+- **Interactive Composable Workbench (`/workbench`, `frontend/src/features/workbench/`)**:
+  - 1-click Level 1–6 preset pills (`?preset=<levelId>`), 8 validated query-slot controls with ADK tool toggles,
+    0-ms client-side live `ArchitectureDiagram` topology updates, and replay-mode preset lock (`Custom recipes require
+    DEMO_MODE=live`).
+- **Controlled 2–4 Recipe Ablation Lab & Retrieval Diff Inspector (`/compare`, `frontend/src/features/compare/`)**:
+  - Dual-mode `/compare` (`Preset Ladder` vs `Ablation Lab` on an isolated `compare:ablation` session) with 4 scientific
+    starter templates, live `varying: ...` delta indicator, and per-slot synthesis model override with a shared judge.
+  - `RetrievalDiffPanel` + `retrievalDiffModel.ts` computing chunk rank deltas (`promoted`, `demoted`, `same`, `added`,
+    `dropped`) against any baseline slot, auto-switching between exact `chunk_id` and cross-store `doc_name + page`
+    alignment with clickable PDF source citations.
+- Offline test suites expanded to **431 backend tests** (`40` files) and **190 frontend tests** (`20` suites).
+
 ## [1.2.0] — 2026-11-03
 
 Level 6: Managed Vertex AI RAG Engine (`rag_engine`) across the benchmark corpus and private user PDF uploads.

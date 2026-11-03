@@ -1,7 +1,8 @@
 # The RAG Arena — System Architecture
 
-This document describes the architecture **as implemented** in `v1.2.0` with Levels 1–6 and private user PDF uploads
-live. The product rule behind every decision: **nothing is shown that was not measured** (principles P1–P6 in
+This document describes the architecture **as implemented** in `v1.3.0` with Levels 1–6, the Composable RAG Workbench
+(`/workbench`), Controlled Ablation + Retrieval Diff Inspector (`/compare`), and private user PDF uploads live. The
+product rule behind every decision: **nothing is shown that was not measured** (principles P1–P6 in
 [§0](#0-design-principles-v3)).
 
 ---
@@ -322,6 +323,30 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
 
 ---
 
+## 3h. Composable RAG Workbench & Controlled Ablation (`core/pipeline_spec.py`, `engines/composable.py`)
+
+`v1.3.0` decomposes Levels 1–6 into a canonical `PipelineSpec` (`IndexProfile` + `QuerySlots`):
+
+- **`IndexProfile`**: `corpus_store` (`bigquery` | `vertex_ai_search` | `vertex_rag_engine`) × `tier_profile`
+  (`naive` | `hybrid` | `multimodal` | `managed_vais` | `managed_rag_corpus`). Reuses existing indexed stores at
+  \$0/mo new standing infrastructure cost.
+- **`QuerySlots`**: `query_prep` (`none` | `acronym_expand` | `acronym_plus_intent`), `retriever` (`vector_cosine` |
+  `lexical_search` | `hybrid_rrf` | `vais_extractive` | `rag_engine_contexts`), `candidate_k` (`1..50`), `top_k`
+  (`1..20`), `reranker` (`none` | `vertex_ranking_api`), `context_order` (`score_desc` | `authority_amendment_first`),
+  `orchestration` (`single_pass` | `adk_agent_loop`), and `agent_tools` (non-empty subset of the 4 ADK tools when
+  `orchestration == "adk_agent_loop"`).
+- **Deterministic IDs & validation**: `PipelineSpec.pipeline_id` is `pipe_` + first 12 hex chars of SHA-256 over the
+  canonical JSON spec (`preset_level_id` resolves when identical to Levels 1–6). `validate_pipeline_spec` rejects
+  invalid combinations before any GCP call (`GET /api/v1/pipelines/presets`, `POST /api/v1/pipelines/validate`).
+  In `DEMO_MODE=replay`, presets route to committed recordings while custom unrecorded recipes fail closed (`HTTP 400`).
+- **Execution (`ComposableRAGEngine`)**: runs `query_prep` → optional `embed_query` → `retrieve` (BigQuery
+  `VECTOR_SEARCH`, lexical `SEARCH()`, or `hybrid_rrf`; Vertex AI Search segments; or RAG Engine `:retrieveContexts`) →
+  optional Discovery Engine `RankingClient.rank` (`rerank`) → `context_order` → `synthesize` (or `agent_turn` +
+  `synthesize` with closure-pinned `upload_scope` when `adk_agent_loop` is selected). `POST /api/v1/battle/stream`
+  accepts `pipelines[]` (`1..4` recipes with per-slot `slot_id`, `label`, and optional `synthesis_model` override).
+
+---
+
 ## 4. Model selection and evaluation
 
 - **Catalog** (`core/models_catalog.py`): `gemini-4-argon`, `gemini-4-carbon`, `gemini-3.8-flash` (provider
@@ -435,7 +460,8 @@ CREATE TABLE IF NOT EXISTS `<project>.rag_arena.<BQ_TABLE>` (
 --              embedded, loaded, embedding_model, layout_source, git_sha, stage_log JSON
 -- query_runs:  run_id, engine, question_id, query, started_at, latency_ms, cost_usd, groundedness,
 --              qa_relevance, context_precision, stage_log JSON, answer, citations JSON, demo_mode,
---              git_sha, synthesis_model, judge_model, solicitation_id, scope ('golden' | 'uploads')
+--              git_sha, synthesis_model, judge_model, solicitation_id, scope ('golden' | 'uploads'),
+--              pipeline_id, pipeline_spec JSON
 ```
 
 ---
@@ -468,19 +494,24 @@ follows the active node unless pinned.
 
 ## 9. Frontend (`frontend/src/`)
 
-- `app/` — router (`/`, `/ingest`, `/levels/:levelId`, `/compare`, `/leaderboard`), `AppDataProvider` (bounded 30 s
-  bootstrap retry + single-flight `/ingest/status` via `lib/bootstrap.ts`), `IngestSessionProvider` (app-wide live
-  ingestion SSE streams surviving navigation and reloads via owner-scoped `active_jobs`), per-page run `sessions`, and
-  safe-mode provider.
+- `app/` — router (`/`, `/ingest`, `/workbench`, `/levels/:levelId`, `/compare`, `/leaderboard`), `AppDataProvider`
+  (bounded 30 s bootstrap retry + single-flight `/ingest/status` via `lib/bootstrap.ts`), `IngestSessionProvider`
+  (app-wide live ingestion SSE streams surviving navigation and reloads via owner-scoped `active_jobs`), per-page run
+  `sessions`, and safe-mode provider.
 - `features/levels/` — `useBattleStream`, `StageRail`, `StageDetail`, `ArchitectureDiagram`, `LevelIngestBanner`,
   `ModelPicker` + `modelSelection` (`buildPickerDetails` deduplicated `"Pricing & availability"` disclosure; judge ≠
   synthesis; replay limited to recorded pairs), `AnswerPanels` (answer, citations, `no reference answer` badge, judge
-  metrics, tokens, run cost).
+  metrics, tokens, run cost), plus `"Customize in Workbench →"` links (`?preset=<levelId>`).
+- `features/workbench/` — `pipelineSpecModel.ts` (pure `PipelineSpec` validator, SHA-256 `pipe_<12hex>` IDs, 0-ms live
+  `buildPipelineDescriptor`, replay preset gate), `SlotControls.tsx` (1-click Level 1–6 presets + 8 slot controls + ADK
+  tool toggles), and `WorkbenchPage.tsx`.
 - `features/uploads/` & `features/ingest/` — private upload bucket status/create, workspace lifecycle, direct-to-GCS
   `256 KiB` resumable upload with `308` resume, Level 3 inline cost confirmation, `ScopeSelector`, and separated
   benchmark corpus vs upload workspace panels.
-- `features/compare/` & `pages/LeaderboardPage.tsx` — concurrent multi-level runs (corpus or upload scope),
-  `Scope: Golden set | Uploads` toggle, and persisted `bestRows` winner highlighting (`lib/winnerHighlight.ts`).
+- `features/compare/` & `pages/LeaderboardPage.tsx` — dual-mode `/compare` (`Preset Ladder` across Levels 1–6 +
+  `Ablation Lab` across 2–4 custom recipes via `ablationModel.ts` / `AblationSetup.tsx` on an isolated
+  `compare:ablation` session), `RetrievalDiffPanel.tsx` / `retrievalDiffModel.ts` (chunk rank-shift diff by `chunk_id`
+  or cross-store `doc_name + page`), `Scope: Golden set | Uploads` toggle, and persisted `bestRows` winner highlighting.
 - `components/` — UI primitives, `DocumentDrawer` / `PageCanvas` / `DocumentViewer` for corpus and uploaded citations.
 - `lib/sse.ts` — bounded SSE reader; `lib/safeMode.ts` — masking of `${UPLOAD_BUCKET}`, `${GCS_CORPUS_BUCKET}`,
   `${GCP_PROJECT_ID}`, and `projects/${GCP_PROJECT_NUMBER}`.
@@ -489,8 +520,9 @@ follows the active node unless pinned.
 
 ## 10. Status
 
-Levels 1–6 (including Managed Vertex AI RAG Engine), private user PDF uploads (`v1.1`–`v1.2`), Compare, Leaderboard
-(`query_runs` Golden set + Uploads scopes with winner highlighting), `docker-compose.yml`, and the configurable Cloud
-Run deployment (single multi-stage container, least-privilege service account, IAP-protected live service, optional
-public replay service) are live (`v1.2.0`). Vector Search 2.0 / AlloyDB ScaNN engines stay parked (`engines/parked/`,
-zero GCP resources).
+Levels 1–6 (including Managed Vertex AI RAG Engine), Composable RAG Workbench (`/workbench`), Controlled Ablation Lab &
+Retrieval Diff Inspector (`/compare`), private user PDF uploads (`v1.1`–`v1.2`), Leaderboard (`query_runs` Golden set +
+Uploads scopes with `pipeline_id` / `pipeline_spec` provenance and winner highlighting), `docker-compose.yml`, and the
+configurable Cloud Run deployment (single multi-stage container, least-privilege service account, IAP-protected live
+service, optional public replay service) are live (`v1.3.0`). Vector Search 2.0 / AlloyDB ScaNN engines stay parked
+(`engines/parked/`, zero GCP resources) ahead of `v1.4.0` ephemeral benchmarks.

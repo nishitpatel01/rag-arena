@@ -42,6 +42,7 @@ LEVEL_TIER_PROFILES: dict[str, str] = {
     "level3_multimodal": "multimodal",
     "level4_agentic": "multimodal",
     "managed_vertex": "vertex_ai_search",
+    "rag_engine": "rag_engine",
 }
 _MAX_SOLICITATION_DIRS = 20
 _MAX_PDFS_PER_SOLICITATION = 50
@@ -50,8 +51,14 @@ _MAX_JOB_EVENTS = 5000
 _EMBED_BATCH_SIZE = 32
 _MAX_EMBED_BATCHES = 10_000
 _STREAM_POLL_SECONDS = 1.0
-# v1.1: levels whose ingestion accepts an upload workspace (L4 reuses L3 rows).
-UPLOAD_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal", "managed_vertex")
+# v1.1/v1.2: levels whose ingestion accepts an upload workspace (L4 reuses L3 rows).
+UPLOAD_LEVELS: tuple[str, ...] = (
+    "level1_naive",
+    "level2_hybrid",
+    "level3_multimodal",
+    "managed_vertex",
+    "rag_engine",
+)
 
 
 class IngestBackendUnavailable(RuntimeError):
@@ -180,6 +187,7 @@ class IngestJob:
     scope: str | None = None  # upl_<12 hex> for an upload workspace job; None = the fixed corpus
     owner: str | None = None  # SHA-256 IAP owner key for upload workspace jobs; never serialized in to_dict()
     settled: bool = False  # True once post-job work (download cleanup, workspace manifest) has finished
+    extra_manifest: dict[str, Any] = field(default_factory=dict)  # per-level metadata persisted into workspace manifest
     events: list[dict[str, Any]] = field(default_factory=list)
     notify: asyncio.Event = field(default_factory=asyncio.Event)
 
@@ -246,6 +254,8 @@ class IngestJobRunner:
         corpus_dir: Path | None = None,
         managed_factory: ManagedFactory | None = None,
         upload_managed_factory: ManagedFactory | None = None,
+        rag_engine_factory: ManagedFactory | None = None,
+        upload_rag_engine_factory: ManagedFactory | None = None,
     ) -> None:
         if not isinstance(settings, ArenaSettings):
             raise TypeError("settings must be an ArenaSettings instance")
@@ -267,6 +277,20 @@ class IngestJobRunner:
         if not callable(upload_managed_factory):
             raise TypeError("upload_managed_factory must be callable")
         self.upload_managed_factory = upload_managed_factory
+        if rag_engine_factory is None:
+            from app.ingestion.rag_engine_job import rag_engine_unavailable
+
+            rag_engine_factory = rag_engine_unavailable
+        if not callable(rag_engine_factory):
+            raise TypeError("rag_engine_factory must be callable")
+        self.rag_engine_factory = rag_engine_factory
+        if upload_rag_engine_factory is None:
+            from app.ingestion.rag_engine_job import rag_engine_upload_unavailable
+
+            upload_rag_engine_factory = rag_engine_upload_unavailable
+        if not callable(upload_rag_engine_factory):
+            raise TypeError("upload_rag_engine_factory must be callable")
+        self.upload_rag_engine_factory = upload_rag_engine_factory
         self.corpus_dir = DEFAULT_CORPUS_DIR if corpus_dir is None else corpus_dir
         self._jobs: dict[str, IngestJob] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -366,6 +390,11 @@ class IngestJobRunner:
 
             await run_managed_upload_job(self, job, emitter, tracker, self._uploads[job.job_id])
             return
+        if job.scope is not None and job.level == "rag_engine":
+            from app.ingestion.rag_engine_job import run_rag_engine_upload_job
+
+            await run_rag_engine_upload_job(self, job, emitter, tracker, self._uploads[job.job_id])
+            return
         if job.scope is not None:
             docs = await self._discover_upload(job, emitter, tracker)
         else:
@@ -376,6 +405,11 @@ class IngestJobRunner:
             from app.ingestion.managed_job import run_managed_job
 
             await run_managed_job(self, job, emitter, tracker, docs)
+            return
+        if job.level == "rag_engine":
+            from app.ingestion.rag_engine_job import run_rag_engine_job
+
+            await run_rag_engine_job(self, job, emitter, tracker, docs)
             return
         if job.tier_profile == "multimodal":
             from app.ingestion.multimodal_job import run_multimodal_stages
@@ -542,6 +576,7 @@ class IngestJobRunner:
             **self._memory_runs(viewer_owner=viewer_owner),
         }
         managed_task = asyncio.create_task(self._managed_status())
+        rag_engine_task = asyncio.create_task(self._rag_engine_status())
         try:
             backends = await asyncio.to_thread(self.backend_factory, self.settings)
             if self.settings.is_live:
@@ -557,14 +592,17 @@ class IngestJobRunner:
                     asyncio.to_thread(backends.loader.index_states),
                 )
         except IngestBackendUnavailable as exc:
+            mv_status, re_status = await asyncio.gather(managed_task, rag_engine_task)
             return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {},
-                    "managed_vertex": await managed_task}
+                    "managed_vertex": mv_status, "rag_engine": re_status}
         except BaseException:
             managed_task.cancel()
-            await asyncio.gather(managed_task, return_exceptions=True)
+            rag_engine_task.cancel()
+            await asyncio.gather(managed_task, rag_engine_task, return_exceptions=True)
             raise
+        mv_status, re_status = await asyncio.gather(managed_task, rag_engine_task)
         return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn,
-                "managed_vertex": await managed_task}
+                "managed_vertex": mv_status, "rag_engine": re_status}
 
     async def _managed_status(self) -> dict[str, Any]:
         """Level 5 entry (data store state + document count) or an explicit reason — only when the level is enabled."""
@@ -576,6 +614,17 @@ class IngestJobRunner:
             return await managed_status(self)
         except Exception as exc:  # boundary: surfaced verbatim in the status payload (the Run button stays disabled)
             return {"available": False, "reason": f"{type(exc).__name__}: {exc}", "document_count": 0}
+
+    async def _rag_engine_status(self) -> dict[str, Any]:
+        """Level 6 entry (RagCorpus state + file count) or an explicit reason — only when the level is enabled."""
+        if "rag_engine" not in self.settings.enabled_levels:
+            return {"available": False, "reason": "rag_engine is not in ENABLED_LEVELS", "file_count": 0}
+        from app.ingestion.rag_engine_job import rag_engine_status
+
+        try:
+            return await rag_engine_status(self)
+        except Exception as exc:  # boundary: surfaced verbatim in the status payload (the Run button stays disabled)
+            return {"available": False, "reason": f"{type(exc).__name__}: {exc}", "file_count": 0}
 
     def _memory_runs(self, *, viewer_owner: str | None = None) -> dict[str, Any]:
         runs = [

@@ -108,6 +108,35 @@ class UploadServices:
         )
         return sum(1 for doc_id in doc_ids if client.delete_if_exists(f"{resources.branch_path}/documents/{doc_id}"))
 
+    def delete_rag_corpus(self, workspace_id: str, manifest: dict[str, Any], *, client: Any | None = None) -> int:
+        """Delete the workspace's isolated ``RagCorpus`` (by recorded id + ``rag-arena-upl_<12hex>`` lookup)."""
+        from app.core.rag_engine_client import RagEngineResources, VertexRagClient, extract_short_corpus_id
+        from app.ingestion.rag_engine_job import upload_corpus_display_name
+
+        s = self._settings
+        res = RagEngineResources(s.gcp_project_id, s.rag_engine_location)
+        rag = client or VertexRagClient(
+            project_id=s.gcp_project_id, location=s.rag_engine_location, token_provider=self._token,
+            attempt_timeout_seconds=float(s.rag_engine_timeout_seconds),
+            budget_seconds=float(s.rag_engine_timeout_seconds) * 3,
+        )
+        target_ids: list[str] = []
+        recorded_id = str(((manifest.get("levels") or {}).get("rag_engine") or {}).get("rag_corpus_id") or "").strip()
+        if recorded_id:
+            target_ids.append(recorded_id)
+        display_name = upload_corpus_display_name(workspace_id)
+        for item in rag.list_corpora(res.corpora_path):
+            if item.get("displayName") == display_name:
+                short_id = extract_short_corpus_id(str(item.get("name") or ""))
+                if short_id not in target_ids:
+                    target_ids.append(short_id)
+        deleted = 0
+        for short_id in target_ids:
+            corpus_path = RagEngineResources(s.gcp_project_id, s.rag_engine_location, short_id).corpus_path
+            if rag.delete_corpus_if_exists(corpus_path):
+                deleted += 1
+        return deleted
+
 
 # ---------------------------------------------------------------------------------------------------- helpers
 
@@ -150,9 +179,17 @@ def _public_file(entry: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in entry.items() if k != "object"}
 
 
+def _public_level(entry: Any) -> Any:
+    if not isinstance(entry, dict):
+        return entry
+    return {k: v for k, v in entry.items() if k != "rag_corpus_id"}
+
+
 def _public_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     out = {k: v for k, v in manifest.items() if k != "owner"}
     out["files"] = [_public_file(f) for f in manifest.get("files", [])]
+    if isinstance(manifest.get("levels"), dict):
+        out["levels"] = {lvl: _public_level(val) for lvl, val in manifest["levels"].items()}
     return out
 
 
@@ -273,12 +310,23 @@ async def workspace_delete_endpoint(request: Request) -> JSONResponse:
                 "workspace files were kept so you can retry",
                 502,
             )
+    deleted_rag = 0
+    if "rag_engine" in (manifest.get("levels") or {}):
+        try:
+            deleted_rag = await run_in_threadpool(services.delete_rag_corpus, ws, manifest)
+        except Exception as exc:  # boundary: reported, GCS manifest + objects remain so the user can retry
+            return _error(
+                f"could not delete the workspace's Vertex AI RAG Engine corpus ({type(exc).__name__}: {exc}); "
+                "workspace files were kept so you can retry",
+                502,
+            )
     deleted = await run_in_threadpool(store.delete_workspace, ws)
     return JSONResponse({
         "deleted": ws,
         "deleted_objects": deleted,
         "bigquery": {"deleted_scope": ws},
         "vertex_ai_search": {"deleted_docs": deleted_vais},
+        "vertex_rag_engine": {"deleted_corpora": deleted_rag},
     })
 
 
@@ -395,8 +443,11 @@ def _level_recorder(store: Any, ws: str, level: str, file_ids: list[str]) -> Any
             if found is None:
                 raise RuntimeError(f"workspace {ws} disappeared during ingestion")
             manifest, generation = found
-            entry = {"status": job.status, "job_id": job.job_id, "chunks": job.chunks, "tier_profile": job.tier_profile,
-                     "file_ids": file_ids, "error": job.error, "finished_at": job.finished_at or utc_now_iso()}
+            entry = {
+                **dict(getattr(job, "extra_manifest", {}) or {}),
+                "status": job.status, "job_id": job.job_id, "chunks": job.chunks, "tier_profile": job.tier_profile,
+                "file_ids": file_ids, "error": job.error, "finished_at": job.finished_at or utc_now_iso(),
+            }
             try:
                 store.write_manifest(ws, {**manifest, "levels": {**manifest.get("levels", {}), level: entry}},
                                      if_generation=generation)
@@ -415,6 +466,9 @@ def estimate_cost(level: str, pages: int, vision_model: str) -> dict[str, Any]:
     if level == "managed_vertex":
         return {"level": level, "pages": pages, "requires_confirmation": False, "max_usd": 0.0,
                 "basis": "Vertex AI Search digital parser + indexing: free under 10 GiB data store tier"}
+    if level == "rag_engine":
+        return {"level": level, "pages": pages, "requires_confirmation": False, "max_usd": 0.0,
+                "basis": "Vertex AI RAG Engine per-workspace RagCorpus + text-embedding-005 embeddings: fractions of a cent for typical documents"}
     if level not in CONFIRM_LEVELS:
         return {"level": level, "pages": pages, "requires_confirmation": False, "max_usd": 0.0,
                 "basis": "embeddings only (gemini-embedding-2): fractions of a cent for typical documents"}

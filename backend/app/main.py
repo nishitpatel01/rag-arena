@@ -18,6 +18,12 @@ from app.ingestion.jobs import BackendFactory, IngestJobRunner, ManagedFactory, 
 from app.ingestion.live_backends import LiveQueryRunWriter, live_backends
 from app.ingestion.managed_job import live_managed_backends, managed_unavailable
 from app.ingestion.managed_upload_job import live_managed_upload_backends, managed_upload_unavailable
+from app.ingestion.rag_engine_job import (
+    live_rag_engine_backends,
+    live_rag_engine_upload_backends,
+    rag_engine_unavailable,
+    rag_engine_upload_unavailable,
+)
 
 _FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
@@ -36,6 +42,8 @@ def create_app(
     ingest_backend_factory: BackendFactory | None = None,
     ingest_managed_factory: ManagedFactory | None = None,
     ingest_upload_managed_factory: ManagedFactory | None = None,
+    ingest_rag_engine_factory: ManagedFactory | None = None,
+    ingest_upload_rag_engine_factory: ManagedFactory | None = None,
     query_run_writer: QueryRunWriter | None | object = None,
 ) -> Starlette:
     """Create the Starlette app; settings are validated once here (startup fails loud on bad config).
@@ -82,8 +90,17 @@ def create_app(
     upload_managed = ingest_upload_managed_factory or (
         live_managed_upload_backends if resolved.is_live else managed_upload_unavailable
     )
+    rag_engine = ingest_rag_engine_factory or (live_rag_engine_backends if resolved.is_live else rag_engine_unavailable)
+    upload_rag_engine = ingest_upload_rag_engine_factory or (
+        live_rag_engine_upload_backends if resolved.is_live else rag_engine_upload_unavailable
+    )
     application.state.ingest_runner = IngestJobRunner(
-        resolved, backend_factory=factory, managed_factory=managed, upload_managed_factory=upload_managed
+        resolved,
+        backend_factory=factory,
+        managed_factory=managed,
+        upload_managed_factory=upload_managed,
+        rag_engine_factory=rag_engine,
+        upload_rag_engine_factory=upload_rag_engine,
     )
     application.state.query_run_writer = writer
     # v1.1 uploads: live service only (replay copy answers 404); GCS identity = ADC (you locally, the SA on Cloud Run)

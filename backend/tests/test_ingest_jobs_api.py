@@ -303,7 +303,7 @@ def test_ingest_status_cold_factory_never_blocks_health_or_levels_on_event_loop(
             return fast_elapsed, status_elapsed, float(len(r_levels.json()["levels"])), r_status.json()
 
     fast_s, status_s, level_count, body = asyncio.run(_exercise())
-    assert level_count == 5.0
+    assert level_count == 6.0
     assert body["available"] is True and body["counts_by_tier"] == {"naive": 10}
     assert fast_s < 0.12, f"/health and /levels were blocked by /ingest/status ({fast_s:.3f}s)"
     assert status_s < 0.65, f"/ingest/status ran serially instead of concurrently ({status_s:.3f}s)"

@@ -53,7 +53,7 @@ ALL_INGEST_STAGES: tuple[str, ...] = CANONICAL_INGEST_STAGES + ("upload_gcs", "i
 
 def ingest_stages_for(level_id: str) -> tuple[str, ...]:
     """Ingest stage ids a level's ingestion job emits, in order."""
-    return MANAGED_INGEST_STAGES if level_id == "managed_vertex" else CANONICAL_INGEST_STAGES
+    return MANAGED_INGEST_STAGES if level_id in ("managed_vertex", "rag_engine") else CANONICAL_INGEST_STAGES
 
 
 _NODE_KINDS: tuple[str, ...] = ("actor", "model", "store", "api", "process", "agent")
@@ -161,6 +161,8 @@ class ArchitectureDescriptor:
         vision_model: str = "",
         multimodal_embedding_model: str = "",
         vais_location: str = "",
+        rag_engine_location: str = "",
+        rag_engine_embedding_model: str = "",
     ) -> "ArchitectureDescriptor":
         """Resolve region + model placeholders from settings (regions/models are never hardcoded)."""
         if not gcp_location or not vertex_genai_location:
@@ -172,11 +174,17 @@ class ArchitectureDescriptor:
             mapping[DOCAI_LOCATION_PLACEHOLDER] = docai_location
         if vais_location:
             mapping[VAIS_LOCATION_PLACEHOLDER] = vais_location
+        if rag_engine_location:
+            mapping[RAG_ENGINE_LOCATION_PLACEHOLDER] = rag_engine_location
         services = {JUDGE_SERVICE_PLACEHOLDER: f"Vertex AI · {judge_model}"} if judge_model else {}
         if vision_model:
             services[VISION_SERVICE_PLACEHOLDER] = f"Vertex AI · {vision_model} (vision)"
         if multimodal_embedding_model:
             services[MM_EMBED_SERVICE_PLACEHOLDER] = f"Vertex AI · {multimodal_embedding_model} (multimodal)"
+        if rag_engine_embedding_model:
+            services[RAG_ENGINE_STORE_SERVICE_PLACEHOLDER] = (
+                f"RagCorpus · RagManagedDb KNN + {rag_engine_embedding_model}"
+            )
 
         def _resolve(nodes: tuple[ArchNode, ...]) -> tuple[ArchNode, ...]:
             return tuple(
@@ -197,6 +205,8 @@ class ArchitectureDescriptor:
             vision_model=getattr(settings, "vision_model", ""),
             multimodal_embedding_model=getattr(settings, "multimodal_embedding_model", ""),
             vais_location=getattr(settings, "vais_location", ""),
+            rag_engine_location=getattr(settings, "rag_engine_location", ""),
+            rag_engine_embedding_model=getattr(settings, "rag_engine_embedding_model", ""),
         )
 
 
@@ -206,6 +216,8 @@ JUDGE_LOCATION_PLACEHOLDER = "{JUDGE_LOCATION}"
 JUDGE_SERVICE_PLACEHOLDER = "Vertex AI · {JUDGE_MODEL}"
 DOCAI_LOCATION_PLACEHOLDER = "{DOCAI_LOCATION}"
 VAIS_LOCATION_PLACEHOLDER = "{VAIS_LOCATION}"
+RAG_ENGINE_LOCATION_PLACEHOLDER = "{RAG_ENGINE_LOCATION}"
+RAG_ENGINE_STORE_SERVICE_PLACEHOLDER = "RagCorpus · RagManagedDb KNN + {RAG_ENGINE_EMBEDDING_MODEL}"
 VISION_SERVICE_PLACEHOLDER = "Vertex AI · {VISION_MODEL} (vision)"
 MM_EMBED_SERVICE_PLACEHOLDER = "Vertex AI · {MULTIMODAL_EMBEDDING_MODEL} (multimodal)"
 _GENAI_REGION = GENAI_LOCATION_PLACEHOLDER
@@ -497,7 +509,60 @@ def _managed() -> ArchitectureDescriptor:
     )
 
 
-_DESCRIPTORS: tuple[ArchitectureDescriptor, ...] = (_level1(), _level2(), _level3(), _level4(), _managed())
+_RE_REF = "app.engines.rag_engine:RagEngine"
+_RE_JOB_REF = "app.ingestion.rag_engine_job"
+
+
+def _level6_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """Local corpus → GCS mirror → ragFiles:import LRO → (managed chunk · embed · RagManagedDb) → ragFiles.list."""
+    nodes = (
+        ArchNode("corpus", "Procurement corpus (local)", "Local corpus · data/sample_docs", "store", 0, 0, ("discover_docs",)),
+        ArchNode("gcs", "Corpus mirror (sample_docs/)", "Cloud Storage · upload changed/missing PDFs", "store", 1, 0,
+                 ("upload_gcs",), region=GCP_LOCATION_PLACEHOLDER, code_ref=f"{_RE_JOB_REF}:_upload_corpus_gcs"),
+        ArchNode("import", "ragFiles:import (chunk=512 · overlap=100)", "Vertex AI RAG Engine · ImportRagFiles LRO", "api", 2, 0,
+                 ("import_documents",), region=RAG_ENGINE_LOCATION_PLACEHOLDER, code_ref=f"{_RE_JOB_REF}:_run_batched_imports"),
+        ArchNode("managed", "Parse · chunk · embed · KNN index", "Managed inside Vertex AI RAG Engine (RagManagedDb)", "process", 3, 1,
+                 MANAGED_SKIPPED_INGEST_STAGES, region=RAG_ENGINE_LOCATION_PLACEHOLDER),
+        ArchNode("rag_corpus", "RagCorpus files", "Vertex AI RAG Engine · ragFiles.list", "store", 4, 0, ("verify_counts",),
+                 region=RAG_ENGINE_LOCATION_PLACEHOLDER, code_ref=f"{_RE_JOB_REF}:_verify_rag_files"),
+    )
+    edges = (
+        ArchEdge("corpus", "gcs", "PDFs (md5 diff)"),
+        ArchEdge("gcs", "import", "gs:// URIs (≤25/batch)"),
+        ArchEdge("import", "managed", "managed chunk + embed"),
+        ArchEdge("managed", "rag_corpus", "ACTIVE RagFiles"),
+    )
+    return nodes, edges
+
+
+def _level6() -> ArchitectureDescriptor:
+    """User → query prep → Vertex AI RAG Engine (:retrieveContexts on RagCorpus) → synthesis | VertexRagStore → judge."""
+    ingest_nodes, ingest_edges = _level6_ingest()
+    user = ArchNode("user", "User question + query prep", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_RE_REF}._query_prep")
+    retrieve = ArchNode("retrieve", "RetrieveContexts API", "Vertex AI RAG Engine · :retrieveContexts",
+                        "api", 1, 1, ("retrieve",), region=RAG_ENGINE_LOCATION_PLACEHOLDER, code_ref=f"{_RE_REF}._retrieve")
+    rag_corpus = ArchNode("rag_corpus", "RagCorpus (managed vector store)", RAG_ENGINE_STORE_SERVICE_PLACEHOLDER, "store", 2, 0,
+                          ("retrieve",), region=RAG_ENGINE_LOCATION_PLACEHOLDER)
+    llm = ArchNode("llm", "Answer synthesis", "Catalog LLM | VertexRagStore grounded Gemini", "model", 3, 1, ("synthesize",),
+                   region=_GENAI_REGION, code_ref=f"{_RE_REF}._synthesize_grounded | synthesize_stage")
+    judge = replace(_JUDGE, col=4, row=1)
+    return ArchitectureDescriptor(
+        level_id="rag_engine",
+        nodes=(user, retrieve, rag_corpus, llm, judge),
+        edges=(
+            ArchEdge("user", "retrieve", "prepared query"),
+            ArchEdge("retrieve", "rag_corpus", "KNN search (top-k)"),
+            ArchEdge("rag_corpus", "retrieve", "chunks + pageSpan"),
+            ArchEdge("retrieve", "llm", "chunks (+ VertexRagStore tool)"),
+            ArchEdge("llm", "judge", "answer + chunks"),
+        ),
+        ingest_nodes=ingest_nodes,
+        ingest_edges=ingest_edges,
+    )
+
+
+_DESCRIPTORS: tuple[ArchitectureDescriptor, ...] = (_level1(), _level2(), _level3(), _level4(), _managed(), _level6())
 _BY_ID: dict[str, ArchitectureDescriptor] = {d.level_id: d for d in _DESCRIPTORS}
 
 

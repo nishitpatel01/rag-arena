@@ -110,7 +110,7 @@ def build_recording(
         "model_ids": {
             "generation": synthesis,
             "reasoning": settings.gemini_pro_model,
-            "embedding": settings.text_embedding_model,
+            "embedding": result.usage.embedding_model or settings.text_embedding_model,
             "judge": judge,
             "judge_provider": judge_provider,
         },

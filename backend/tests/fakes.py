@@ -88,7 +88,9 @@ class FakeGenaiClient:
 
     def _generate(self, **kwargs: Any) -> FakeGenerateResponse:
         self.calls.append(("generate_content", kwargs))
-        if kwargs.get("config", {}).get("response_mime_type") == "application/json":
+        cfg = kwargs.get("config") or {}
+        mime = cfg.get("response_mime_type") if isinstance(cfg, dict) else getattr(cfg, "response_mime_type", None)
+        if mime == "application/json":
             time.sleep(FAKE_LATENCY["judge"])
             return FakeGenerateResponse(FAKE_JUDGE_TEXT, 900, 24, 0)
         time.sleep(FAKE_LATENCY["generate_content"])
@@ -166,6 +168,7 @@ def fake_clients(
         "app.core.gcp_clients.get_genai_client",
         "app.engines.level1_naive.get_genai_client",
         "app.engines.level2_hybrid.get_genai_client",
+        "app.engines.rag_engine.get_genai_client",
         "app.engines.synthesis.get_genai_client",
         "app.evaluation.judges.get_genai_client",
     )

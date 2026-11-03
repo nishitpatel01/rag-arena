@@ -18,6 +18,7 @@ from app.engines.level3_multimodal import (
 )
 from app.engines.level4_agentic import Level4AgenticEngine
 from app.engines.managed_vertex import ManagedVertexSearchEngine
+from app.engines.rag_engine import RagEngine
 from app.engines.replay_engine import ReplayRAGEngine
 
 ENGINE_CLASSES: tuple[type[BaseRAGEngine], ...] = (
@@ -26,6 +27,7 @@ ENGINE_CLASSES: tuple[type[BaseRAGEngine], ...] = (
     Level3MultimodalEngine,
     Level4AgenticEngine,
     ManagedVertexSearchEngine,
+    RagEngine,
 )
 _ENGINE_CLASS_BY_ID: dict[str, type[BaseRAGEngine]] = {cls.engine_id: cls for cls in ENGINE_CLASSES}
 
@@ -118,6 +120,7 @@ __all__ = [
     "Level3MultimodalEngine",
     "Level4AgenticEngine",
     "ManagedVertexSearchEngine",
+    "RagEngine",
     "ReplayRAGEngine",
     "build_engine",
     "build_vector_search_sql",

@@ -47,7 +47,7 @@ from app.recording.recorder import build_recording, record_run
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
-_MAX_ENGINES_PER_BATTLE = 5
+_MAX_ENGINES_PER_BATTLE = 6
 _MAX_QUERY_CHARS = 4000
 _MAX_CITATIONS_IN_FRAME = 10
 _QUEUE_IDLE_GRACE_SECONDS = 10.0

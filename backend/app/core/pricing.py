@@ -67,6 +67,17 @@ PRICE_TABLE: dict[str, ModelPrice] = {
         price_as_of="2026-10-20",
         note="Text input rate; multimodal (image/file) inputs are billed at a separate rate.",
     ),
+    "text-embedding-005": ModelPrice(
+        model="text-embedding-005",
+        input_usd_per_1m=0.10,
+        output_usd_per_1m=0.0,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-03",
+        note=(
+            "Vertex AI text-embedding-005 input rate ($0.0001 / 1,000 tokens = $0.10 / 1M tokens); "
+            "native default embedding model for Vertex AI RAG Engine corpora."
+        ),
+    ),
     "claude-opus-5-5": ModelPrice(
         model="claude-opus-5-5",
         input_usd_per_1m=4.00,
@@ -126,6 +137,17 @@ PRICE_TABLE: dict[str, ModelPrice] = {
             "Pseudo synthesis model (search summary, engine with SEARCH_ADD_ON_LLM): 'Advanced Generative Answers' "
             "+$4.00 / 1,000 user input query, charged here on every summary-requesting query (conservative: the page "
             "lists summaries under Core Generative Answers included in Enterprise). No per-token charges."
+        ),
+    ),
+    "vertex-rag-engine-grounded": ModelPrice(
+        model="vertex-rag-engine-grounded",
+        input_usd_per_1m=2.00,
+        output_usd_per_1m=10.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-03",
+        note=(
+            "Pseudo synthesis model on Level 6 (rag_engine): Gemini generateContent grounded with the native "
+            "VertexRagStore retrieval tool; billed at the underlying GEMINI_FAST_MODEL token rate ($0 retrieval API fee)."
         ),
     ),
 }

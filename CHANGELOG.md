@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] — 2026-11-03
+
+Upload ingestion index-inspection fast-path (`~58 s` → `<3 s` on `build_indexes`).
+
+### Changed
+- **Upload workspace `build_indexes` fast-path** (`backend/app/ingestion/live_backends.py`, `backend/app/ingestion/jobs.py`):
+  `upl_<12hex>` upload ingestion jobs inspect table-wide BigQuery `INFORMATION_SCHEMA` index states once via
+  `snapshot_upload_indexes` (`poll_skipped_reason: "upload_scope_uses_table_indexes"`) instead of re-issuing table-level
+  index DDL and waiting out the 60 s poll deadline when `document_chunks_v3` indexes already exist (bootstrapping async
+  index DDL without polling only on an unindexed cold table). Benchmark corpus runs (`scope=None`) retain full DDL +
+  bounded polling.
+
 ## [1.1.0] — 2026-11-02
 
 Bring your own PDFs across all five RAG architectures, plus Leaderboard and Compare winner highlighting.

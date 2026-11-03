@@ -499,6 +499,7 @@ class _FakeLoader:
     def __init__(self) -> None:
         self.rows: list[dict[str, Any]] = []
         self.index_columns: tuple[str, ...] | None = None
+        self.upload_index_columns: tuple[str, ...] | None = None
         self.runs: list[dict[str, Any]] = []
 
     def ensure_schema(self) -> None: ...
@@ -510,6 +511,10 @@ class _FakeLoader:
     def build_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> dict[str, str]:
         self.index_columns = embedding_columns
         return {"document_chunks_v3_mm_vec_idx": "NOT CREATED (fake)"}
+
+    def snapshot_upload_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> tuple[dict[str, str], str]:
+        self.upload_index_columns = embedding_columns
+        return {"document_chunks_v3_mm_vec_idx": "NOT CREATED (fake)"}, "upload_scope_uses_table_indexes"
 
     def count_by_tier(self) -> dict[str, int]:
         return {"multimodal": len(self.rows)}
@@ -752,6 +757,7 @@ def test_level3_upload_job_loads_only_its_scope_with_honest_metadata() -> None:
                                          vision=_FakeVision(), mm_embedder=_FakeMMEmbedder()), finished)
     assert job.status == "completed", job.error
     assert loader.scopes == [_UPL] and {r["solicitation_id"] for r in loader.rows} == {_UPL}
+    assert loader.index_columns is None and loader.upload_index_columns == ("embedding", "embedding_multimodal")
     assert {r["doc_name"] for r in loader.rows} == {"Exhibit.pdf"}
     assert {r["element_type"] for r in loader.rows} == {"narrative_text", "table", "diagram"}
     assert [j.status for j in finished] == ["completed"]

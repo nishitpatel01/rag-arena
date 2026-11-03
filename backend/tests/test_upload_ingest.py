@@ -65,6 +65,10 @@ def test_upload_job_downloads_parses_and_loads_only_its_scope() -> None:
     assert {r["doc_name"] for r in loader.rows} == {"Pricing.pdf"}
     verify = next(e for e in events if e["event"] == "stage_completed" and e["stage"] == "verify_counts")
     assert verify["payload"]["scope_rows"] == len(loader.rows) and verify["payload"]["scope"] == _WS
+    idx_done = next(e for e in events if e["event"] == "stage_completed" and e["stage"] == "build_indexes")
+    assert loader.build_indexes_calls == 0 and loader.snapshot_upload_indexes_calls == [("embedding",)]
+    assert idx_done["payload"]["scope"] == _WS
+    assert idx_done["payload"]["poll_skipped_reason"] == "upload_scope_uses_table_indexes"
     assert [j.status for j in finished] == ["completed"]
 
 

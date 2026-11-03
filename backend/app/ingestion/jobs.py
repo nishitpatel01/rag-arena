@@ -85,6 +85,8 @@ class BigQueryLoader(Protocol):
 
     def build_indexes(self) -> dict[str, str]: ...
 
+    def snapshot_upload_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> tuple[dict[str, str], str]: ...
+
     def count_by_tier(self) -> dict[str, int]: ...
 
     def index_states(self) -> dict[str, str]: ...
@@ -395,11 +397,17 @@ class IngestJobRunner:
         backends, chunks = outcome.backends, outcome.chunks
         await self._load(emitter, tracker, job, backends, chunks, outcome.vectors)
         async with tracker.scope(emitter, "build_indexes", "Build vector/search indexes", "BigQuery", {"table": backends.loader.table_fqn, "embedding_columns": list(outcome.index_columns)}) as sc:
-            if outcome.index_columns == ("embedding",):
+            if job.scope is not None:
+                states, poll_skipped_reason = await asyncio.to_thread(
+                    backends.loader.snapshot_upload_indexes, outcome.index_columns
+                )
+                sc.payload = {"index_states": states, "scope": job.scope, "poll_skipped_reason": poll_skipped_reason}
+            elif outcome.index_columns == ("embedding",):
                 states = await asyncio.to_thread(backends.loader.build_indexes)
+                sc.payload = {"index_states": states}
             else:
                 states = await asyncio.to_thread(backends.loader.build_indexes, outcome.index_columns)
-            sc.payload = {"index_states": states}
+                sc.payload = {"index_states": states}
         async with tracker.scope(emitter, "verify_counts", "Verify row counts", "BigQuery", {"table": backends.loader.table_fqn}) as sc:
             counts = await asyncio.to_thread(backends.loader.count_by_tier)
             sc.payload = {"counts_by_tier": counts}

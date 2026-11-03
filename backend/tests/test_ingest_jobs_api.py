@@ -36,6 +36,8 @@ class FakeLoader:
         self.rows: list[dict[str, Any]] = []
         self.ingest_runs: list[dict[str, Any]] = []
         self.schema_calls = 0
+        self.build_indexes_calls = 0
+        self.snapshot_upload_indexes_calls: list[tuple[str, ...]] = []
 
     def ensure_schema(self) -> None:
         self.schema_calls += 1
@@ -45,7 +47,12 @@ class FakeLoader:
         return len(rows)
 
     def build_indexes(self) -> dict[str, str]:
+        self.build_indexes_calls += 1
         return {"document_chunks_vec_idx": "ACTIVE", "document_chunks_search_idx": "ACTIVE"}
+
+    def snapshot_upload_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> tuple[dict[str, str], str]:
+        self.snapshot_upload_indexes_calls.append(tuple(embedding_columns))
+        return {"document_chunks_vec_idx": "ACTIVE", "document_chunks_search_idx": "ACTIVE"}, "upload_scope_uses_table_indexes"
 
     def count_by_tier(self) -> dict[str, int]:
         counts: dict[str, int] = {}

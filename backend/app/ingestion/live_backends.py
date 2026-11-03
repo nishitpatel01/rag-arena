@@ -301,8 +301,7 @@ class BigQueryLiveLoader:
     def build_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> dict[str, str]:
         """Issue CREATE ... INDEX IF NOT EXISTS (one vector index per embedding column + the search index), then poll
         INFORMATION_SCHEMA (≤ 60 s) and report real states."""
-        if not embedding_columns or any(c not in ("embedding", "embedding_multimodal") for c in embedding_columns):
-            raise ValueError(f"embedding_columns must be a non-empty subset of ('embedding', 'embedding_multimodal'), got {embedding_columns}")
+        _validate_embedding_columns(embedding_columns)
         for column in embedding_columns:
             self._create_vector_index(column)
         self._query(build_search_index_ddl(self._project, self._dataset, self._table))
@@ -315,6 +314,23 @@ class BigQueryLiveLoader:
             self._sleep(INDEX_POLL_INTERVAL_SECONDS)
             rows, stats = self._read_index_rows(), self._table_stats()
         return self._describe(rows, stats, embedding_columns)
+
+    def snapshot_upload_indexes(self, embedding_columns: tuple[str, ...] = ("embedding",)) -> tuple[dict[str, str], str]:
+        """Upload workspaces share table-level indexes: inspect INFORMATION_SCHEMA once without the 60 s poll loop
+        (starting async index DDL only on a cold table where primary vector/search indexes do not exist yet)."""
+        _validate_embedding_columns(embedding_columns)
+        rows, stats = self._read_index_rows(), self._table_stats()
+        vec_exists = vector_index_name(self._table) in rows
+        search_exists = search_index_name(self._table) in rows
+        if vec_exists and search_exists:
+            return self._describe(rows, stats, embedding_columns), "upload_scope_uses_table_indexes"
+        if not vec_exists:
+            for column in embedding_columns:
+                self._create_vector_index(column)
+        if not search_exists:
+            self._query(build_search_index_ddl(self._project, self._dataset, self._table))
+        rows = self._read_index_rows()
+        return self._describe(rows, stats, embedding_columns), "upload_scope_started_missing_table_indexes_without_poll"
 
     def _create_vector_index(self, column: str = "embedding") -> None:
         """CREATE VECTOR INDEX; BigQuery's IVF minimum-row rejection is the only tolerated error — its message is kept
@@ -427,6 +443,13 @@ class BigQueryLiveLoader:
 
     def write_query_run(self, row: dict[str, Any]) -> None:
         self._load_json([_validated_row(row, _QUERY_RUN_SCHEMA)], self._fq("query_runs"), _QUERY_RUN_SCHEMA)
+
+
+def _validate_embedding_columns(embedding_columns: tuple[str, ...]) -> None:
+    if not isinstance(embedding_columns, tuple) or not embedding_columns:
+        raise ValueError(f"embedding_columns must be a non-empty tuple, got {embedding_columns!r}")
+    if any(c not in ("embedding", "embedding_multimodal") for c in embedding_columns):
+        raise ValueError(f"embedding_columns must be a non-empty subset of ('embedding', 'embedding_multimodal'), got {embedding_columns}")
 
 
 def _indexes_settled(rows: dict[str, tuple[str, str | None, float | None]], stats: tuple[int, int | None]) -> bool:

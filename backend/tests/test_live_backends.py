@@ -443,3 +443,47 @@ def test_delete_and_count_scope_only_touch_one_workspace() -> None:
     for bad in ("solicitation_01", "upl_x", "upl_0123456789ab' OR '1'='1"):
         with pytest.raises(ValueError):
             loader.delete_scope(bad)
+
+
+def test_snapshot_upload_indexes_reads_existing_table_indexes_once_with_zero_ddl_and_zero_sleeps() -> None:
+    existing = [[
+        {"kind": "vector", "index_name": "document_chunks_v3_vec_idx", "index_status": "ACTIVE", "coverage_percentage": 100.0},
+        {"kind": "search", "index_name": "document_chunks_v3_search_idx", "index_status": "TEMPORARILY DISABLED", "coverage_percentage": 0.0},
+    ]]
+    bq = _FakeBQ(index_rows=existing, table_bytes=50_000_000)
+    sleeps: list[float] = []
+    loader = lb.BigQueryLiveLoader(_settings(), client=bq, sleep=sleeps.append)
+
+    states, reason = loader.snapshot_upload_indexes(("embedding",))
+    assert reason == "upload_scope_uses_table_indexes"
+    assert sleeps == []
+    assert [s for s, _ in bq.queries if "CREATE" in s] == []
+    assert states["document_chunks_v3_vec_idx"] == "ACTIVE (coverage 100%)"
+    assert "TEMPORARILY DISABLED" in states["document_chunks_v3_search_idx"]
+
+    mm_bq = _FakeBQ(index_rows=existing, table_bytes=50_000_000)
+    mm_loader = lb.BigQueryLiveLoader(_settings(), client=mm_bq, sleep=sleeps.append)
+    mm_states, mm_reason = mm_loader.snapshot_upload_indexes(("embedding", "embedding_multimodal"))
+    assert mm_reason == "upload_scope_uses_table_indexes"
+    assert sleeps == []
+    assert [s for s, _ in mm_bq.queries if "CREATE" in s] == []
+    assert mm_states["document_chunks_v3_mm_vec_idx"].startswith("NOT CREATED (not listed in INFORMATION_SCHEMA.VECTOR_INDEXES)")
+
+
+def test_snapshot_upload_indexes_bootstraps_missing_table_indexes_once_without_polling() -> None:
+    bq = _FakeBQ(index_rows=[[]], table_bytes=1_000_000)
+    sleeps: list[float] = []
+    loader = lb.BigQueryLiveLoader(_settings(), client=bq, sleep=sleeps.append)
+
+    states, reason = loader.snapshot_upload_indexes(("embedding",))
+    assert reason == "upload_scope_started_missing_table_indexes_without_poll"
+    assert sleeps == []
+    ddl = [s for s, _ in bq.queries if "CREATE" in s]
+    assert len(ddl) == 2
+    assert "CREATE VECTOR INDEX IF NOT EXISTS" in ddl[0]
+    assert "CREATE SEARCH INDEX IF NOT EXISTS" in ddl[1]
+    assert states["document_chunks_v3_vec_idx"].startswith("PENDING")
+
+    for bad in ((), ("bogus",), ("embedding", "other")):
+        with pytest.raises(ValueError, match="embedding_columns"):
+            loader.snapshot_upload_indexes(bad)  # type: ignore[arg-type]

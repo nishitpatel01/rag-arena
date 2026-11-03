@@ -32,13 +32,20 @@ def build_vector_search_sql(
     table_id: str = "document_chunks",
     top_k: int = 5,
     include_solicitation_filter: bool = False,
+    *,
+    tier_profile: str = "naive",
+    embedding_column: str = "embedding",
 ) -> str:
-    """Build parameterized BigQuery VECTOR_SEARCH SQL for pre-filtered dense COSINE retrieval on naive chunks."""
+    """Build parameterized BigQuery VECTOR_SEARCH SQL for pre-filtered dense COSINE retrieval."""
     proj = _validate_identifier(project_id, "project_id")
     dataset = _validate_identifier(dataset_id, "dataset_id")
     table = _validate_identifier(table_id, "table_id")
-    if not isinstance(top_k, int) or top_k < 1 or top_k > 100:
+    if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1 or top_k > 100:
         raise ValueError("top_k must be an integer between 1 and 100")
+    if tier_profile not in ("naive", "hybrid", "multimodal"):
+        raise ValueError(f"tier_profile must be one of ('naive', 'hybrid', 'multimodal'), got {tier_profile!r}")
+    if embedding_column not in ("embedding", "embedding_multimodal"):
+        raise ValueError(f"embedding_column must be 'embedding' or 'embedding_multimodal', got {embedding_column!r}")
 
     fqn = f"{proj}.{dataset}.{table}"
     sol_predicate = (
@@ -46,7 +53,7 @@ def build_vector_search_sql(
         if include_solicitation_filter
         else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
     )
-    base_subquery = f"(SELECT * FROM `{fqn}` WHERE tier_profile = 'naive'{sol_predicate})"
+    base_subquery = f"(SELECT * FROM `{fqn}` WHERE tier_profile = '{tier_profile}'{sol_predicate})"
     return f"""SELECT
   base.chunk_id,
   base.solicitation_id,
@@ -60,11 +67,13 @@ def build_vector_search_sql(
   base.page_number,
   base.bbox,
   base.content,
+  base.layout_source,
+  base.bbox_source,
   (1.0 - distance) AS similarity_score
 FROM VECTOR_SEARCH(
   {base_subquery},
-  'embedding',
-  (SELECT @query_embedding AS embedding),
+  '{embedding_column}',
+  (SELECT @query_embedding AS {embedding_column}),
   top_k => {top_k},
   distance_type => 'COSINE'
 )

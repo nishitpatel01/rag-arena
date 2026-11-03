@@ -13,6 +13,7 @@ unknown id, an unavailable model, a role that is not allowed, or judge == synthe
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 import json
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -35,8 +36,32 @@ from app.core.models_catalog import (
     default_selection_ids,
     load_catalog,
 )
+from app.core.pipeline_spec import (
+    BACKING_LEVEL_BY_PROFILE,
+    BQ_INDEX_PROFILES,
+    BQ_RETRIEVAL_MODES,
+    CANONICAL_AGENT_TOOLS,
+    CONTEXT_ORDERS,
+    INDEX_PROFILES,
+    MANAGED_INDEX_PROFILES,
+    MAX_CANDIDATE_K_BY_PROFILE,
+    PROFILE_LABELS,
+    QUERY_TRANSFORMS,
+    REASONING_MODES,
+    RERANKERS,
+    RETRIEVAL_MODES,
+    TOP_K_RANGE,
+    PipelineSpec,
+    PipelineSpecError,
+    active_query_stages,
+    descriptor_for_pipeline,
+    list_preset_specs,
+    validate_pipeline_models,
+    validate_slot_id,
+)
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
 from app.engines import BaseRAGEngine, engine_labels, get_engine_registry, list_levels
+from app.engines.composable import build_composable_engine
 from app.engines.replay_engine import ReplayUnavailableError, recording_store_for
 from app.evaluation.evaluator import run_evaluation
 from app.evaluation.leaderboard import SOURCES as LEADERBOARD_SOURCES, leaderboard_from_recordings, parse_filters
@@ -48,8 +73,10 @@ from app.recording.recorder import build_recording, record_run
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
 _MAX_ENGINES_PER_BATTLE = 6
+_MAX_PIPELINES_PER_BATTLE = 4
 _MAX_QUERY_CHARS = 4000
 _MAX_CITATIONS_IN_FRAME = 10
+_MAX_RETRIEVED_CHUNKS_IN_FRAME = 20
 _QUEUE_IDLE_GRACE_SECONDS = 10.0
 
 
@@ -66,22 +93,29 @@ def _settings_of(request: Request) -> ArenaSettings:
     return bound if isinstance(bound, ArenaSettings) else get_settings()
 
 
-def _validate_battle_payload(
-    body: dict[str, Any],
-    registry: dict[str, BaseRAGEngine],
-) -> tuple[str, str | None, list[str], str | None]:
-    """Validate incoming battle request JSON and return (query, question_id, engines, solicitation_filter)."""
+def _parse_query_fields(body: dict[str, Any]) -> tuple[str, str | None, str | None]:
+    """Validate and normalize ``(query, question_id, solicitation_filter)`` from a battle request body."""
     if not isinstance(body, dict):
         raise ValueError("Request body must be a JSON object")
-    if not isinstance(registry, dict) or not registry:
-        raise ValueError("No engines are enabled (check ENABLED_LEVELS)")
-
     raw_query = body.get("query")
     if not isinstance(raw_query, str) or not raw_query.strip():
         raise ValueError("Field 'query' must be a non-empty string")
     query = raw_query.strip()
     if len(query) > _MAX_QUERY_CHARS:
         raise ValueError(f"Field 'query' exceeds maximum length of {_MAX_QUERY_CHARS} characters")
+    q_id = str(body["question_id"]).strip() if body.get("question_id") else None
+    sol_filter = str(body["solicitation_filter"]).strip() if body.get("solicitation_filter") else None
+    return query, q_id, sol_filter
+
+
+def _validate_battle_payload(
+    body: dict[str, Any],
+    registry: dict[str, BaseRAGEngine],
+) -> tuple[str, str | None, list[str], str | None]:
+    """Validate incoming battle request JSON and return (query, question_id, engines, solicitation_filter)."""
+    query, q_id, sol_filter = _parse_query_fields(body)
+    if not isinstance(registry, dict) or not registry:
+        raise ValueError("No engines are enabled (check ENABLED_LEVELS)")
 
     raw_engines = body.get("engines")
     if raw_engines is None:
@@ -94,9 +128,6 @@ def _validate_battle_payload(
     unknown = [eng for eng in selected if eng not in registry]
     if unknown:
         raise ValueError(f"Unknown or disabled engine ID(s): {unknown}. Enabled engines: {list(registry.keys())}")
-
-    q_id = str(body["question_id"]).strip() if body.get("question_id") else None
-    sol_filter = str(body["solicitation_filter"]).strip() if body.get("solicitation_filter") else None
     return query, q_id, selected, sol_filter
 
 
@@ -105,15 +136,15 @@ def _enabled_placeholder(settings: ArenaSettings) -> dict[str, Any]:
     return {level_id: None for level_id in settings.enabled_levels}
 
 
-def _answer_complete_event(run_id: str, result: EngineResult) -> dict[str, Any]:
+def _answer_complete_event(run_id: str, result: EngineResult, *, stream_key: str | None = None) -> dict[str, Any]:
     return {
         "event": "answer_complete",
         "run_id": run_id,
-        "engine": result.engine_id,
+        "engine": stream_key or result.engine_id,
         "engine_label": result.engine_label,
         "answer": result.answer,
         "citations": [c.to_dict() for c in result.citations[:_MAX_CITATIONS_IN_FRAME]],
-        "retrieved_chunks": [c.to_dict() for c in result.retrieved_chunks[:_MAX_CITATIONS_IN_FRAME]],
+        "retrieved_chunks": [c.to_dict() for c in result.retrieved_chunks[:_MAX_RETRIEVED_CHUNKS_IN_FRAME]],
         "agent_steps": [s.to_dict() for s in result.agent_steps[:15]],
         "latency_ms": result.latency_ms,
         "cost_usd": result.cost_usd,
@@ -123,7 +154,9 @@ def _answer_complete_event(run_id: str, result: EngineResult) -> dict[str, Any]:
     }
 
 
-def _eval_complete_event(run_id: str, result: EngineResult, outcome: EvalOutcome) -> dict[str, Any]:
+def _eval_complete_event(
+    run_id: str, result: EngineResult, outcome: EvalOutcome, *, stream_key: str | None = None
+) -> dict[str, Any]:
     """``eval_complete`` with the judge outcome; ``run_cost_usd`` = engine cost + judge cost (both measured).
 
     ``battle_score`` + ``score_breakdown`` are computed here (live, record AND replay) with ``scoring.battle_score``
@@ -134,7 +167,7 @@ def _eval_complete_event(run_id: str, result: EngineResult, outcome: EvalOutcome
     return {
         "event": "eval_complete",
         "run_id": run_id,
-        "engine": result.engine_id,
+        "engine": stream_key or result.engine_id,
         **eval_outcome_to_dict(outcome),
         "run_cost_usd": total_cost,
         "battle_score": breakdown["battle_score"],
@@ -168,6 +201,7 @@ async def _maybe_record(
     *,
     run_id: str,
     engine_id: str,
+    stream_key: str | None = None,
     question_id: str | None,
     query: str,
     emitter: QueueStageEmitter,
@@ -176,9 +210,21 @@ async def _maybe_record(
     queue: asyncio.Queue,
     models: RunModels | None = None,
     solicitation_filter: str | None = None,
+    pipeline_spec: PipelineSpec | None = None,
 ) -> None:
     """DEMO_MODE=record: persist the run under data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json."""
     if settings.demo_mode != "record":
+        return
+    emit_key = stream_key or engine_id
+    if pipeline_spec is not None and pipeline_spec.preset_level_id(settings) is None:
+        await queue.put(
+            {
+                "event": "stream_warning",
+                "run_id": run_id,
+                "message": f"record mode: custom pipeline recipe ({emit_key}) runs are not recorded in corpus recordings",
+                "ts": utc_now_iso(),
+            }
+        )
         return
     if isinstance(solicitation_filter, str) and solicitation_filter.startswith("upl_"):
         await queue.put(
@@ -191,14 +237,14 @@ async def _maybe_record(
         )
         return
     if not question_id:
-        await queue.put({"event": "stream_warning", "run_id": run_id, "message": f"record mode: no question_id, {engine_id} run not recorded", "ts": utc_now_iso()})
+        await queue.put({"event": "stream_warning", "run_id": run_id, "message": f"record mode: no question_id, {emit_key} run not recorded", "ts": utc_now_iso()})
         return
     recording = build_recording(
         settings=settings, engine_id=engine_id, question_id=question_id, query=query, run_id=run_id,
         events=emitter.events, result=result, evaluation=outcome, models=models,
     )
     path = await asyncio.to_thread(record_run, recording_store_for(settings), recording)
-    await queue.put({"event": "recording_saved", "run_id": run_id, "engine": engine_id, "path": str(path), "ts": utc_now_iso()})
+    await queue.put({"event": "recording_saved", "run_id": run_id, "engine": emit_key, "path": str(path), "ts": utc_now_iso()})
 
 
 async def _run_single_engine_worker(
@@ -211,10 +257,13 @@ async def _run_single_engine_worker(
     queue: asyncio.Queue,
     query_run_writer: QueryRunWriter | None = None,
     models: RunModels | None = None,
+    *,
+    stream_key: str | None = None,
+    pipeline_spec: PipelineSpec | None = None,
 ) -> bool:
     """Run one engine + judge with a bounded timeout; forward emitter events; return True on success."""
-    engine_id = engine.engine_id
-    emitter = QueueStageEmitter(queue, run_id=run_id, engine=engine_id)
+    emit_key = stream_key or engine.engine_id
+    emitter = QueueStageEmitter(queue, run_id=run_id, engine=emit_key)
     timeout = float(settings.query_timeout_seconds)
     started_at = utc_now_iso()
     try:
@@ -222,7 +271,7 @@ async def _run_single_engine_worker(
             engine.run_query(query, question_id=question_id, solicitation_filter=solicitation_filter, emitter=emitter),
             timeout=timeout,
         )
-        await queue.put(_answer_complete_event(run_id, result))
+        await queue.put(_answer_complete_event(run_id, result, stream_key=emit_key))
         outcome = await asyncio.wait_for(
             run_evaluation(
                 query, result, question_id=question_id, settings=settings, emitter=emitter, models=models,
@@ -230,24 +279,25 @@ async def _run_single_engine_worker(
             ),
             timeout=timeout,
         )
-        await queue.put(_eval_complete_event(run_id, result, outcome))
+        await queue.put(_eval_complete_event(run_id, result, outcome, stream_key=emit_key))
         await _maybe_record(
-            settings, run_id=run_id, engine_id=engine_id, question_id=question_id, query=query,
-            emitter=emitter, result=result, outcome=outcome, queue=queue, models=models,
-            solicitation_filter=solicitation_filter,
+            settings, run_id=run_id, engine_id=engine.engine_id, stream_key=emit_key, question_id=question_id,
+            query=query, emitter=emitter, result=result, outcome=outcome, queue=queue, models=models,
+            solicitation_filter=solicitation_filter, pipeline_spec=pipeline_spec,
         )
     except ReplayUnavailableError as exc:
-        await queue.put(_engine_error_event(run_id, engine_id, exc, _last_failed_stage(emitter)))
+        await queue.put(_engine_error_event(run_id, emit_key, exc, _last_failed_stage(emitter)))
         return False
     except Exception as exc:  # boundary: every failure is surfaced as engine_error (spec P2), never swallowed
-        await queue.put(_engine_error_event(run_id, engine_id, exc, _last_failed_stage(emitter)))
+        await queue.put(_engine_error_event(run_id, emit_key, exc, _last_failed_stage(emitter)))
         return False
     if settings.is_live and query_run_writer is not None:
         row = build_query_run_row(
             settings=settings, run_id=run_id, question_id=question_id, query=query, started_at=started_at,
             emitter=emitter, result=result, outcome=outcome, solicitation_filter=solicitation_filter,
+            pipeline_spec=pipeline_spec,
         )
-        await write_query_run_or_warn(query_run_writer, row, queue=queue, run_id=run_id, engine_id=engine_id)
+        await write_query_run_or_warn(query_run_writer, row, queue=queue, run_id=run_id, engine_id=emit_key)
     return True
 
 
@@ -260,6 +310,9 @@ async def _stream_battle_events(
     settings: ArenaSettings,
     query_run_writer: QueryRunWriter | None = None,
     models: RunModels | None = None,
+    *,
+    models_by_key: dict[str, RunModels] | None = None,
+    specs_by_key: dict[str, PipelineSpec] | None = None,
 ) -> AsyncIterator[str]:
     """Run selected engines concurrently and forward their events as SSE frames (bounded by MAX_SSE_FRAMES)."""
     if not query.strip() or not selected_engines:
@@ -276,7 +329,17 @@ async def _stream_battle_events(
     tasks = [
         asyncio.create_task(
             _run_single_engine_worker(
-                run_id, registry[eng_id], query, question_id, solicitation_filter, settings, queue, query_run_writer, models
+                run_id,
+                registry[eng_id],
+                query,
+                question_id,
+                solicitation_filter,
+                settings,
+                queue,
+                query_run_writer,
+                models_by_key[eng_id] if models_by_key and eng_id in models_by_key else models,
+                stream_key=eng_id,
+                pipeline_spec=specs_by_key.get(eng_id) if specs_by_key else None,
             )
         )
         for eng_id in selected_engines[:_MAX_ENGINES_PER_BATTLE]
@@ -439,22 +502,171 @@ def _resolve_run_models(body: Any, settings: ArenaSettings) -> RunModels:
     return load_catalog(settings).select(synthesis, judge)
 
 
+def _pipeline_schema_payload() -> dict[str, Any]:
+    return {
+        "index_profiles": list(INDEX_PROFILES),
+        "bq_index_profiles": list(BQ_INDEX_PROFILES),
+        "managed_index_profiles": list(MANAGED_INDEX_PROFILES),
+        "backing_level_by_profile": dict(BACKING_LEVEL_BY_PROFILE),
+        "profile_labels": dict(PROFILE_LABELS),
+        "max_candidate_k_by_profile": dict(MAX_CANDIDATE_K_BY_PROFILE),
+        "query_transforms": list(QUERY_TRANSFORMS),
+        "retrieval_modes": list(RETRIEVAL_MODES),
+        "bq_retrieval_modes": list(BQ_RETRIEVAL_MODES),
+        "rerankers": list(RERANKERS),
+        "context_orders": list(CONTEXT_ORDERS),
+        "reasoning_modes": list(REASONING_MODES),
+        "agent_tools": list(CANONICAL_AGENT_TOOLS),
+        "top_k_range": list(TOP_K_RANGE),
+        "max_pipelines_per_battle": _MAX_PIPELINES_PER_BATTLE,
+    }
+
+
+def _is_spec_enabled(spec: PipelineSpec, settings: ArenaSettings) -> bool:
+    if spec.backing_level_id not in settings.enabled_levels:
+        return False
+    return spec.slots.reasoning_mode != "adk_agent" or "level4_agentic" in settings.enabled_levels
+
+
+async def pipelines_presets_endpoint(request: Request) -> JSONResponse:
+    """GET /api/v1/pipelines/presets: all 6 preset ``PipelineSpec``s, live descriptors, and slot schema."""
+    settings = _settings_of(request)
+    labels = engine_labels()
+    presets = [
+        {
+            "level_id": level_id,
+            "label": labels.get(level_id, level_id),
+            "enabled": _is_spec_enabled(spec, settings),
+            "backing_level_id": spec.backing_level_id,
+            "pipeline_id": spec.pipeline_id,
+            "active_stages": list(active_query_stages(spec)),
+            "spec": spec.to_dict(),
+            "descriptor": descriptor_for_pipeline(spec, settings).to_dict(),
+        }
+        for level_id, spec in list_preset_specs(settings)
+    ]
+    return JSONResponse(
+        {
+            "demo_mode": settings.demo_mode,
+            "enabled_levels": list(settings.enabled_levels),
+            "presets": presets,
+            "schema": _pipeline_schema_payload(),
+        }
+    )
+
+
+async def pipelines_validate_endpoint(request: Request) -> JSONResponse:
+    """POST /api/v1/pipelines/validate: validate a ``PipelineSpec`` and return its live ``ArchitectureDescriptor``."""
+    try:
+        body = await request.json()
+    except ValueError as exc:
+        return JSONResponse({"valid": False, "error": f"Invalid JSON request body: {exc}"}, status_code=400)
+    settings = _settings_of(request)
+    try:
+        spec = PipelineSpec.from_dict(body)
+        if spec.synthesis_model or spec.judge_model:
+            def_synth, def_judge = default_selection_ids(settings)
+            pair = load_catalog(settings).select(spec.synthesis_model or def_synth, spec.judge_model or def_judge)
+            validate_pipeline_models(spec, pair)
+    except (PipelineSpecError, ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
+        return JSONResponse({"valid": False, "error": str(exc)}, status_code=400)
+    return JSONResponse(
+        {
+            "valid": True,
+            "pipeline_id": spec.pipeline_id,
+            "preset_level_id": spec.preset_level_id(settings),
+            "backing_level_id": spec.backing_level_id,
+            "enabled": _is_spec_enabled(spec, settings),
+            "summary_label": spec.summary_label(settings),
+            "active_stages": list(active_query_stages(spec)),
+            "spec": spec.to_dict(),
+            "descriptor": descriptor_for_pipeline(spec, settings).to_dict(),
+        }
+    )
+
+
+def _prepare_pipeline_battle(
+    body: dict[str, Any],
+    settings: ArenaSettings,
+    default_models: RunModels,
+) -> tuple[
+    str, str | None, list[str], str | None,
+    dict[str, BaseRAGEngine], dict[str, RunModels], dict[str, PipelineSpec], list[str],
+]:
+    """Validate ``pipelines: [...]`` recipes and return slot keys, engines, per-slot models/specs, and backing levels."""
+    query, q_id, sol_filter = _parse_query_fields(body)
+    raw_list = body.get("pipelines")
+    if not isinstance(raw_list, list) or not (1 <= len(raw_list) <= _MAX_PIPELINES_PER_BATTLE):
+        raise ValueError(f"Field 'pipelines' must be a list of 1..{_MAX_PIPELINES_PER_BATTLE} recipe objects")
+    catalog = load_catalog(settings)
+    slot_ids: list[str] = []
+    seen_slots: set[str] = set()
+    registry: dict[str, BaseRAGEngine] = {}
+    models_by_key: dict[str, RunModels] = {}
+    specs_by_key: dict[str, PipelineSpec] = {}
+    backing_levels: list[str] = []
+    for idx, item in enumerate(raw_list, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"pipelines[{idx - 1}] must be a JSON object")
+        spec = PipelineSpec.from_dict(item)
+        if spec.backing_level_id not in settings.enabled_levels:
+            raise ValueError(
+                f"Backing level '{spec.backing_level_id}' for index_profile '{spec.index_profile}' is not enabled "
+                f"(ENABLED_LEVELS={list(settings.enabled_levels)})"
+            )
+        if spec.slots.reasoning_mode == "adk_agent" and "level4_agentic" not in settings.enabled_levels:
+            raise ValueError("reasoning_mode 'adk_agent' requires 'level4_agentic' in ENABLED_LEVELS")
+        if item.get("slot_id") is not None:
+            slot_id = validate_slot_id(item["slot_id"])
+            if slot_id in seen_slots:
+                raise ValueError(f"Duplicate pipeline slot_id '{slot_id}'")
+        else:
+            slot_id = spec.pipeline_id if spec.pipeline_id not in seen_slots else f"{spec.pipeline_id}_{idx}"
+        seen_slots.add(slot_id)
+        recipe_models = catalog.select(
+            spec.synthesis_model or default_models.synthesis.id,
+            spec.judge_model or default_models.judge.id,
+        )
+        validate_pipeline_models(spec, recipe_models)
+        stored_spec = replace(spec, synthesis_model=recipe_models.synthesis.id, judge_model=recipe_models.judge.id)
+        slot_ids.append(slot_id)
+        registry[slot_id] = build_composable_engine(stored_spec, settings, models=recipe_models)
+        models_by_key[slot_id] = recipe_models
+        specs_by_key[slot_id] = stored_spec
+        if stored_spec.backing_level_id not in backing_levels:
+            backing_levels.append(stored_spec.backing_level_id)
+    return query, q_id, slot_ids, sol_filter, registry, models_by_key, specs_by_key, backing_levels
+
+
 async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingResponse:
-    """POST /api/v1/battle/stream: validate the request (incl. model selection) and stream v3 SSE events."""
+    """POST /api/v1/battle/stream: validate the request (engines OR composable pipelines) and stream v3 SSE events."""
     try:
         body = await request.json()
     except ValueError as exc:
         return JSONResponse({"error": f"Invalid JSON request body: {exc}"}, status_code=400)
 
     settings = _settings_of(request)
+    models_by_key: dict[str, RunModels] | None = None
+    specs_by_key: dict[str, PipelineSpec] | None = None
     try:
+        if not isinstance(body, dict):
+            raise ValueError("Request body must be a JSON object")
+        if body.get("engines") is not None and body.get("pipelines") is not None:
+            raise ValueError("Provide either 'engines' or 'pipelines', not both")
         models = _resolve_run_models(body, settings)
-        query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, _enabled_placeholder(settings))
-        registry = get_engine_registry(settings, models=models, level_ids=tuple(selected_engines))
-    except (ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
+        if body.get("pipelines") is not None:
+            (
+                query, q_id, selected_engines, sol_filter,
+                registry, models_by_key, specs_by_key, scope_levels,
+            ) = _prepare_pipeline_battle(body, settings, models)
+        else:
+            query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, _enabled_placeholder(settings))
+            registry = get_engine_registry(settings, models=models, level_ids=tuple(selected_engines))
+            scope_levels = selected_engines
+    except (PipelineSpecError, ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     if sol_filter and sol_filter.startswith("upl_"):
-        scope_error = await upload_scope_error(request, sol_filter, selected_engines)
+        scope_error = await upload_scope_error(request, sol_filter, scope_levels)
         if scope_error is not None:
             return scope_error
 
@@ -462,6 +674,7 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
         query=query, question_id=q_id, selected_engines=selected_engines,
         solicitation_filter=sol_filter, registry=registry, settings=settings,
         query_run_writer=getattr(request.app.state, "query_run_writer", None), models=models,
+        models_by_key=models_by_key, specs_by_key=specs_by_key,
     )
     return StreamingResponse(
         event_generator,
@@ -536,6 +749,8 @@ def get_api_routes() -> list[Route]:
         Route("/api/v1/health", endpoint=health_endpoint, methods=["GET"]),
         Route("/api/v1/benchmarks", endpoint=benchmarks_endpoint, methods=["GET"]),
         Route("/api/v1/levels", endpoint=levels_endpoint, methods=["GET"]),
+        Route("/api/v1/pipelines/presets", endpoint=pipelines_presets_endpoint, methods=["GET"]),
+        Route("/api/v1/pipelines/validate", endpoint=pipelines_validate_endpoint, methods=["POST"]),
         Route("/api/v1/models", endpoint=models_endpoint, methods=["GET"]),
         Route("/api/v1/leaderboard", endpoint=leaderboard_endpoint, methods=["GET"]),
         Route("/api/v1/battle/stream", endpoint=battle_stream_endpoint, methods=["POST"]),
@@ -544,6 +759,6 @@ def get_api_routes() -> list[Route]:
         Route("/api/v1/ingest/jobs/{job_id}/stream", endpoint=ingest_job_stream_endpoint, methods=["GET"]),
         Route("/api/v1/ingest/status", endpoint=ingest_status_endpoint, methods=["GET"]),
     ]
-    if len(routes) < 10:
+    if len(routes) < 12:
         raise RuntimeError("Incomplete route registration")
     return routes

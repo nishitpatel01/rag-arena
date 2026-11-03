@@ -59,19 +59,22 @@ class ToolOutput:
 
 @dataclass(frozen=True)
 class ToolDeps:
-    """Everything one run's tools need; built per run by the Level 4 engine."""
+    """Everything one run's tools need; built per run by the Level 4 / Composable engine."""
 
     settings: ArenaSettings
-    retriever: Level3MultimodalEngine
+    retriever: Any
     genai_client: Any
     bq_client: Any
     ledger: AgentLedger
     upload_scope: str | None = None
+    tier_profile: str = "multimodal"
     sequence: list[int] = field(default_factory=lambda: [0])  # per-run call counter (ids when ADK gives none)
 
     def __post_init__(self) -> None:
         if self.upload_scope is not None:
             check_workspace_id(self.upload_scope)
+        if self.tier_profile not in ("naive", "hybrid", "multimodal"):
+            raise ValueError(f"tier_profile must be a BigQuery tier, got {self.tier_profile!r}")
 
 
 # ---------------------------------------------------------------- shared invocation wrapper
@@ -185,11 +188,11 @@ def validate_amendment_args(
     return solicitation_id.strip(), section_or_clin_id.strip()
 
 
-def amendment_row_to_chunk(row: Any) -> DocumentChunk:
+def amendment_row_to_chunk(row: Any, *, tier_profile: str = "multimodal") -> DocumentChunk:
     page = int(row.page_number)
     effective = getattr(row, "effective_date", None)
     return DocumentChunk(
-        chunk_id=str(row.chunk_id), tier_profile="multimodal", solicitation_id=str(row.solicitation_id),
+        chunk_id=str(row.chunk_id), tier_profile=tier_profile, solicitation_id=str(row.solicitation_id),
         doc_name=str(row.doc_name), doc_type=str(row.doc_type), element_type=str(row.element_type),
         section_id=str(row.section_id) if getattr(row, "section_id", None) else None,
         amendment_number=int(row.amendment_number or 0), effective_date=str(effective) if effective else None,
@@ -226,9 +229,9 @@ def _amendment_view(chunk: DocumentChunk) -> dict[str, Any]:
 async def run_check_amendments(deps: ToolDeps, solicitation_id: Any, section_or_clin_id: Any) -> ToolOutput:
     sol, section = validate_amendment_args(solicitation_id, section_or_clin_id, upload_scope=deps.upload_scope)
     s = deps.settings
-    sql = build_amendment_lookup_sql(s.gcp_project_id, s.bq_dataset, s.bq_table)
+    sql = build_amendment_lookup_sql(s.gcp_project_id, s.bq_dataset, s.bq_table, tier_profile=deps.tier_profile)
     rows, stats = await asyncio.to_thread(run_amendment_query, deps.bq_client, sql, sol, section, s.query_timeout_seconds)
-    chunks = [amendment_row_to_chunk(r) for r in rows]
+    chunks = [amendment_row_to_chunk(r, tier_profile=deps.tier_profile) for r in rows]
     deps.ledger.add_usage(bq_bytes=stats["bytes_processed"], bq_jobs=1)
     ids = deps.ledger.register_chunks(chunks)
     views = [_amendment_view(c) for c in chunks]
@@ -283,8 +286,14 @@ async def run_verify(deps: ToolDeps, draft_answer: Any, cited_chunk_ids: Any) ->
 # ---------------------------------------------------------------- ADK-facing functions
 
 
-def build_tools(deps: ToolDeps) -> list[Callable[..., Awaitable[dict[str, Any]]]]:
-    """The four tools as ADK function tools bound to ``deps`` (names/docstrings are the model-facing contract)."""
+def build_tools(
+    deps: ToolDeps,
+    *,
+    enabled_tools: tuple[str, ...] = TOOL_NAMES,
+) -> list[Callable[..., Awaitable[dict[str, Any]]]]:
+    """The ADK function tools bound to ``deps`` (filtered to ``enabled_tools``, preserving canonical order)."""
+    if not enabled_tools or any(t not in TOOL_NAMES for t in enabled_tools):
+        raise ValueError(f"enabled_tools must be a non-empty subset of {TOOL_NAMES}, got {enabled_tools!r}")
 
     async def search_procurement_corpus(
         query: str, solicitation_id: str = "", element_types: Optional[list[str]] = None, tool_context: ToolContext = None
@@ -336,7 +345,13 @@ def build_tools(deps: ToolDeps) -> list[Callable[..., Awaitable[dict[str, Any]]]
         args = {"draft_answer": draft_answer, "cited_chunk_ids": cited_chunk_ids}
         return await _invoke(deps, VERIFY_TOOL, tool_context, args, lambda: run_verify(deps, draft_answer, cited_chunk_ids))
 
-    return [search_procurement_corpus, check_amendments, calculate_contract_pricing, verify_citations]
+    by_name = {
+        SEARCH_TOOL: search_procurement_corpus,
+        AMENDMENTS_TOOL: check_amendments,
+        CALCULATOR_TOOL: calculate_contract_pricing,
+        VERIFY_TOOL: verify_citations,
+    }
+    return [by_name[name] for name in TOOL_NAMES if name in enabled_tools]
 
 
 __all__ = [

@@ -117,15 +117,19 @@ CREATE TABLE IF NOT EXISTS `{proj}.{dataset}.query_runs` (
   synthesis_model STRING,
   judge_model STRING,
   solicitation_id STRING,
-  scope STRING
+  scope STRING,
+  pipeline_id STRING,
+  pipeline_spec JSON
 );
 
--- 1d. Columns added after first deploy (model selection + v1.1 upload scope): added in place on the existing table.
+-- 1d. Columns added after first deploy (model selection + v1.1 upload scope + v1.3 pipeline_spec): added in place on the existing table.
 ALTER TABLE `{proj}.{dataset}.query_runs`
   ADD COLUMN IF NOT EXISTS synthesis_model STRING,
   ADD COLUMN IF NOT EXISTS judge_model STRING,
   ADD COLUMN IF NOT EXISTS solicitation_id STRING,
-  ADD COLUMN IF NOT EXISTS scope STRING;
+  ADD COLUMN IF NOT EXISTS scope STRING,
+  ADD COLUMN IF NOT EXISTS pipeline_id STRING,
+  ADD COLUMN IF NOT EXISTS pipeline_spec JSON;
 """
 
 
@@ -181,7 +185,8 @@ def build_bigquery_ddl(
 
 # --------------------------------------------------------------------------- hybrid (VECTOR_SEARCH + SEARCH) RRF
 
-HYBRID_TIERS: tuple[str, ...] = ("hybrid", "multimodal")
+BQ_TIERS: tuple[str, ...] = ("naive", "hybrid", "multimodal")
+HYBRID_TIERS: tuple[str, ...] = BQ_TIERS
 MAX_LEXICAL_TERMS = 32
 # Function words dropped from the lexical leg (data-driven; listed in the retrieve payload via ``lexical_terms``).
 LEXICAL_STOPWORDS: frozenset[str] = frozenset(
@@ -335,8 +340,85 @@ LIMIT {top_k};
 AMENDMENT_LOOKUP_LIMIT = 6
 
 
-def build_amendment_lookup_sql(project_id: str, dataset_id: str, table_id: str, *, limit: int = AMENDMENT_LOOKUP_LIMIT) -> str:
-    """Level 4 ``check_amendments``: AMENDMENT rows of tier 'multimodal' whose comma-separated ``amends_section`` names
+def build_lexical_search_sql(
+    project_id: str,
+    dataset_id: str,
+    table_id: str = "document_chunks",
+    *,
+    top_k: int = 50,
+    include_solicitation_filter: bool = False,
+    tier_profile: str = "hybrid",
+) -> str:
+    """Parameterized BigQuery SEARCH() + exact-term lexical ranking statement (zero embedding vector)."""
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    if not isinstance(top_k, int) or isinstance(top_k, bool) or not 1 <= top_k <= 500:
+        raise ValueError("top_k must be an integer between 1 and 500")
+    if tier_profile not in BQ_TIERS:
+        raise ValueError(f"tier_profile must be one of {BQ_TIERS}, got '{tier_profile}'")
+    fqn = f"{proj}.{dataset}.{table}"
+    scope_clause = (
+        " AND solicitation_id = @solicitation_id"
+        if include_solicitation_filter
+        else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
+    )
+    where = f"tier_profile = '{tier_profile}'{scope_clause}"
+    return f"""WITH lexical_scored AS (
+  SELECT
+    chunk_id,
+    solicitation_id,
+    doc_name,
+    doc_type,
+    element_type,
+    section_id,
+    amendment_number,
+    effective_date,
+    amends_section,
+    page_number,
+    bbox,
+    content,
+    layout_source,
+    bbox_source,
+    SEARCH(content, REGEXP_REPLACE(@lexical_query, r'[^a-zA-Z0-9 ]', ' ')) AS all_terms_match,
+    (
+      SELECT SUM(IF(STRPOS(LOWER(content), term) > 0, IF(REGEXP_CONTAINS(term, r'[0-9]'), 3, 1), 0))
+      FROM UNNEST(@lexical_terms) AS term
+    ) AS lexical_score
+  FROM `{fqn}`
+  WHERE {where}
+)
+SELECT
+  chunk_id,
+  solicitation_id,
+  doc_name,
+  doc_type,
+  element_type,
+  section_id,
+  amendment_number,
+  effective_date,
+  amends_section,
+  page_number,
+  bbox,
+  content,
+  layout_source,
+  bbox_source,
+  lexical_score,
+  ROW_NUMBER() OVER (ORDER BY all_terms_match DESC, lexical_score DESC, chunk_id) AS lexical_rank
+FROM lexical_scored
+WHERE all_terms_match OR lexical_score > 0
+ORDER BY lexical_rank ASC
+LIMIT {top_k};
+"""
+
+
+def build_amendment_lookup_sql(
+    project_id: str,
+    dataset_id: str,
+    table_id: str,
+    *,
+    limit: int = AMENDMENT_LOOKUP_LIMIT,
+    tier_profile: str = "multimodal",
+) -> str:
+    """Level 4 ``check_amendments``: AMENDMENT rows of ``tier_profile`` whose comma-separated ``amends_section`` names
     ``@section_id`` (exact, or a parent/child clause such as SEC-4.2 ↔ SEC-4.2.1), latest amendment first.
 
     User input only enters through ``@solicitation_id`` and ``@section_id`` (STRING parameters); identifiers are
@@ -344,11 +426,13 @@ def build_amendment_lookup_sql(project_id: str, dataset_id: str, table_id: str, 
     proj, dataset, table = _fqn(project_id, dataset_id, table_id)
     if not isinstance(limit, int) or isinstance(limit, bool) or not (1 <= limit <= 20):
         raise ValueError("limit must be an integer between 1 and 20")
+    if tier_profile not in BQ_TIERS:
+        raise ValueError(f"tier_profile must be one of {BQ_TIERS}, got '{tier_profile}'")
     return f"""SELECT
   chunk_id, solicitation_id, doc_name, doc_type, element_type, section_id, amendment_number,
   effective_date, amends_section, page_number, bbox, content, layout_source, bbox_source
 FROM `{proj}.{dataset}.{table}`
-WHERE tier_profile = 'multimodal'
+WHERE tier_profile = '{tier_profile}'
   AND solicitation_id = @solicitation_id
   AND amendment_number > 0
   AND EXISTS (

@@ -49,11 +49,19 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
     "level3_multimodal",
     "level4_agentic",
     "managed_vertex",
+    "rag_engine",
 )
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ("level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic", "managed_vertex")
+DEFAULT_ENABLED_LEVELS: tuple[str, ...] = (
+    "level1_naive",
+    "level2_hybrid",
+    "level3_multimodal",
+    "level4_agentic",
+    "managed_vertex",
+    "rag_engine",
+)
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
@@ -99,6 +107,19 @@ _VAIS_LOCATION_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
 # Discovery Engine resource ids: lowercase letters, digits, dashes, underscores (≤ 63 chars).
 _VAIS_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
 _VAIS_MODEL_VERSION_RE = re.compile(r"[a-z0-9][a-z0-9._/@-]{0,80}")
+# Level 6 Managed Vertex AI RAG Engine (Vertex AI REST v1 aiplatform). Corpus id is env-only (RAG_ENGINE_CORPUS_ID).
+DEFAULT_RAG_ENGINE_LOCATION: str = "us-central1"
+DEFAULT_RAG_ENGINE_EMBEDDING_MODEL: str = "text-embedding-005"
+DEFAULT_RAG_ENGINE_TOP_K: int = 10
+DEFAULT_RAG_ENGINE_CHUNK_SIZE: int = 512
+DEFAULT_RAG_ENGINE_CHUNK_OVERLAP: int = 100
+DEFAULT_RAG_ENGINE_TIMEOUT_SECONDS: int = 30
+_RAG_ENGINE_TOP_K_RANGE: tuple[int, int] = (1, 20)
+_RAG_ENGINE_CHUNK_SIZE_RANGE: tuple[int, int] = (128, 2048)
+_RAG_ENGINE_CHUNK_OVERLAP_RANGE: tuple[int, int] = (0, 512)
+_RAG_ENGINE_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
+_RAG_ENGINE_LOCATION_RE = re.compile(r"[a-z]+-[a-z]+[0-9]+")
+_RAG_ENGINE_CORPUS_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -163,7 +184,7 @@ class ArenaSettings:
     ingest_job_timeout_seconds: int = DEFAULT_INGEST_JOB_TIMEOUT_SECONDS
     allow_dev_fixtures: bool = False
     recordings_dir: str = ""
-    app_version: str = "1.1.1"
+    app_version: str = "1.2.0"
     static_dir: str = ""  # built SPA served with history fallback (container: /app/frontend/dist); empty = frontend/dist if built
     judge_provider: str = DEFAULT_JUDGE_PROVIDER
     judge_model: str = DEFAULT_JUDGE_MODEL
@@ -201,6 +222,15 @@ class ArenaSettings:
     vais_summary_result_count: int = DEFAULT_VAIS_SUMMARY_RESULT_COUNT
     vais_timeout_seconds: int = DEFAULT_VAIS_TIMEOUT_SECONDS
     vais_summary_model_version: str = DEFAULT_VAIS_SUMMARY_MODEL_VERSION
+    # Level 6 (env: RAG_ENGINE_LOCATION, RAG_ENGINE_CORPUS_ID, RAG_ENGINE_EMBEDDING_MODEL, RAG_ENGINE_TOP_K,
+    # RAG_ENGINE_CHUNK_SIZE, RAG_ENGINE_CHUNK_OVERLAP, RAG_ENGINE_TIMEOUT_SECONDS).
+    rag_engine_location: str = DEFAULT_RAG_ENGINE_LOCATION
+    rag_engine_corpus_id: str = ""
+    rag_engine_embedding_model: str = DEFAULT_RAG_ENGINE_EMBEDDING_MODEL
+    rag_engine_top_k: int = DEFAULT_RAG_ENGINE_TOP_K
+    rag_engine_chunk_size: int = DEFAULT_RAG_ENGINE_CHUNK_SIZE
+    rag_engine_chunk_overlap: int = DEFAULT_RAG_ENGINE_CHUNK_OVERLAP
+    rag_engine_timeout_seconds: int = DEFAULT_RAG_ENGINE_TIMEOUT_SECONDS
 
     @property
     def model_verification_path(self) -> Path:
@@ -255,7 +285,37 @@ class ArenaSettings:
         self._validate_level3()
         self._validate_agent()
         self._validate_vais()
+        self._validate_rag_engine()
         self._validate_upload_bucket()
+
+    def _validate_rag_engine(self) -> None:
+        """Level 6 Vertex AI RAG Engine regional location/corpus id (empty = not provisioned) and bounds."""
+        if not isinstance(self.rag_engine_location, str) or not _RAG_ENGINE_LOCATION_RE.fullmatch(
+            self.rag_engine_location
+        ):
+            raise ValueError(
+                f"RAG_ENGINE_LOCATION must be a regional Vertex AI location (e.g. 'us-central1', never 'global'), "
+                f"got {self.rag_engine_location!r}"
+            )
+        if not isinstance(self.rag_engine_corpus_id, str) or (
+            self.rag_engine_corpus_id and not _RAG_ENGINE_CORPUS_ID_RE.fullmatch(self.rag_engine_corpus_id)
+        ):
+            raise ValueError(
+                f"RAG_ENGINE_CORPUS_ID must be a short corpus id (not a resource path), got {self.rag_engine_corpus_id!r}"
+            )
+        _validate_gemini_model_name(self.rag_engine_embedding_model, "rag_engine_embedding_model")
+        if not _MODEL_ID_RE.fullmatch(self.rag_engine_embedding_model):
+            raise ValueError(f"RAG_ENGINE_EMBEDDING_MODEL is invalid: {self.rag_engine_embedding_model!r}")
+        for name, value, (low, high) in (
+            ("RAG_ENGINE_TOP_K", self.rag_engine_top_k, _RAG_ENGINE_TOP_K_RANGE),
+            ("RAG_ENGINE_CHUNK_SIZE", self.rag_engine_chunk_size, _RAG_ENGINE_CHUNK_SIZE_RANGE),
+            ("RAG_ENGINE_CHUNK_OVERLAP", self.rag_engine_chunk_overlap, _RAG_ENGINE_CHUNK_OVERLAP_RANGE),
+            ("RAG_ENGINE_TIMEOUT_SECONDS", self.rag_engine_timeout_seconds, _RAG_ENGINE_TIMEOUT_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+        if self.rag_engine_chunk_overlap >= self.rag_engine_chunk_size:
+            raise ValueError("RAG_ENGINE_CHUNK_OVERLAP must be strictly smaller than RAG_ENGINE_CHUNK_SIZE")
 
     def _validate_vais(self) -> None:
         """Level 5 Vertex AI Search location/ids (empty id = not provisioned) and request bounds."""
@@ -510,7 +570,7 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         ),
         allow_dev_fixtures=_parse_bool(source.get("ALLOW_DEV_FIXTURES", "0")),
         recordings_dir=source.get("RECORDINGS_DIR", "").strip(),
-        app_version=source.get("APP_VERSION", "1.1.1").strip() or "1.1.1",
+        app_version=source.get("APP_VERSION", "1.2.0").strip() or "1.2.0",
         static_dir=source.get("STATIC_DIR", "").strip(),
         hybrid_candidate_k=_parse_int(source.get("HYBRID_CANDIDATE_K", str(DEFAULT_HYBRID_CANDIDATE_K)), "HYBRID_CANDIDATE_K"),
         rerank_top_n=_parse_int(source.get("RERANK_TOP_N", str(DEFAULT_RERANK_TOP_N)), "RERANK_TOP_N"),
@@ -521,6 +581,7 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         **_synthesis_kwargs(source),
         **_level3_kwargs(source),
         **_vais_kwargs(source),
+        **_rag_engine_kwargs(source),
         agent_max_turns=_parse_int(source.get("AGENT_MAX_TURNS", str(DEFAULT_AGENT_MAX_TURNS)), "AGENT_MAX_TURNS"),
         agent_max_tool_calls_per_turn=_parse_int(
             source.get("AGENT_MAX_TOOL_CALLS_PER_TURN", str(DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN)), "AGENT_MAX_TOOL_CALLS_PER_TURN"
@@ -562,6 +623,27 @@ def _vais_kwargs(source: Mapping[str, str]) -> dict[str, object]:
         "vais_uploads_engine_id": source.get("VAIS_UPLOADS_ENGINE_ID", "").strip(),
         "vais_summary_model_version": source.get("VAIS_SUMMARY_MODEL_VERSION", DEFAULT_VAIS_SUMMARY_MODEL_VERSION).strip(),
     })
+    return out
+
+
+def _rag_engine_kwargs(source: Mapping[str, str]) -> dict[str, object]:
+    """RAG_ENGINE_* keys → ArenaSettings Level 6 fields (validated in ``ArenaSettings._validate_rag_engine``)."""
+    ints = (
+        ("rag_engine_top_k", "RAG_ENGINE_TOP_K", DEFAULT_RAG_ENGINE_TOP_K),
+        ("rag_engine_chunk_size", "RAG_ENGINE_CHUNK_SIZE", DEFAULT_RAG_ENGINE_CHUNK_SIZE),
+        ("rag_engine_chunk_overlap", "RAG_ENGINE_CHUNK_OVERLAP", DEFAULT_RAG_ENGINE_CHUNK_OVERLAP),
+        ("rag_engine_timeout_seconds", "RAG_ENGINE_TIMEOUT_SECONDS", DEFAULT_RAG_ENGINE_TIMEOUT_SECONDS),
+    )
+    out: dict[str, object] = {field: _parse_int(source.get(key, str(default)), key) for field, key, default in ints}
+    out.update(
+        {
+            "rag_engine_location": source.get("RAG_ENGINE_LOCATION", DEFAULT_RAG_ENGINE_LOCATION).strip(),
+            "rag_engine_corpus_id": source.get("RAG_ENGINE_CORPUS_ID", "").strip(),
+            "rag_engine_embedding_model": source.get(
+                "RAG_ENGINE_EMBEDDING_MODEL", DEFAULT_RAG_ENGINE_EMBEDDING_MODEL
+            ).strip(),
+        }
+    )
     return out
 
 

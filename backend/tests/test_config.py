@@ -19,7 +19,14 @@ def _env(**overrides: str) -> dict[str, str]:
 
 def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
     settings = get_settings(_env())
-    assert settings.enabled_levels == ("level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic", "managed_vertex")
+    assert settings.enabled_levels == (
+        "level1_naive",
+        "level2_hybrid",
+        "level3_multimodal",
+        "level4_agentic",
+        "managed_vertex",
+        "rag_engine",
+    )
     assert settings.demo_mode == "replay"
     assert settings.replay_speed == 1.0
     assert settings.max_sse_frames == 600
@@ -32,6 +39,7 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
         "level3_multimodal",
         "level4_agentic",
         "managed_vertex",
+        "rag_engine",
     )
 
 

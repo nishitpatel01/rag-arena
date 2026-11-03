@@ -10,7 +10,16 @@ import { Pill } from "../../components/ui/Pill";
 import { formatTimestamp, statusTone } from "../../lib/format";
 import type { IngestRunSummary, LevelDescriptor } from "../../types/arena";
 import { IngestJobView } from "./IngestJobView";
-import { TIER_FOR_LEVEL, formatIngestRunCount, isManagedLevel, managedStoreFor, tierCountFor, useIngestStatus } from "./ingestStatus";
+import {
+  TIER_FOR_LEVEL,
+  formatIngestRunCount,
+  isManagedLevel,
+  isRagEngineLevel,
+  managedStoreFor,
+  ragCorpusFor,
+  tierCountFor,
+  useIngestStatus,
+} from "./ingestStatus";
 import { DEV_INGEST_FIXTURE_LEVELS, useIngestJobStream } from "./useIngestJobStream";
 import { isMockRequested } from "../levels/useBattleStream";
 import { UploadWorkspacePanel } from "../uploads/UploadWorkspacePanel";
@@ -22,26 +31,44 @@ const LevelIngestCard: React.FC<{
   readonly busy: boolean;
   readonly unavailableReason: string | null;
   readonly onRun: () => void;
-  /** Level 5: data store state from `GET /ingest/status` → `managed_vertex` (null when not reported). */
+  /** Level 5 / Level 6: managed store or `RagCorpus` state from `GET /ingest/status`. */
   readonly storeState?: string | null;
   readonly storeReason?: string | null;
-}> = ({ level, count, lastRuns, busy, unavailableReason, onRun, storeState = null, storeReason = null }) => {
+  /** Level 6: `RagManagedDb` mode (`spanner_basic`, `spanner_scaled`, …). */
+  readonly ragDbMode?: string | null;
+}> = ({ level, count, lastRuns, busy, unavailableReason, onRun, storeState = null, storeReason = null, ragDbMode = null }) => {
   const tier = TIER_FOR_LEVEL[level.level_id];
   const managed = isManagedLevel(level.level_id);
+  const ragEngine = isRagEngineLevel(level.level_id);
   // DEV `?mock=1`: levels with an ingest fixture play it instead of calling the backend.
   const devIngestFixture = import.meta.env.DEV && isMockRequested() && DEV_INGEST_FIXTURE_LEVELS.includes(level.level_id);
   const alreadyLoaded = count !== null && count > 0;
-  const countItems: (readonly [string, string])[] = managed
+  const countItems: (readonly [string, string])[] = ragEngine
     ? [
-        ["corpus documents in data store", count === null ? "not reported" : count.toLocaleString()],
-        ["data store state", storeState ?? "not reported"],
+        ["files in RagCorpus", count === null ? "not reported" : count.toLocaleString()],
+        ["RagCorpus state", storeState ?? "not reported"],
+        ["RagManagedDb mode", ragDbMode ?? "not reported"],
         ...(storeReason ? [["status note", storeReason] as const] : []),
       ]
-    : [["corpus chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
+    : managed
+      ? [
+          ["corpus documents in data store", count === null ? "not reported" : count.toLocaleString()],
+          ["data store state", storeState ?? "not reported"],
+          ...(storeReason ? [["status note", storeReason] as const] : []),
+        ]
+      : [["corpus chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
   return (
     <Panel
       title={/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
-      subtitle={tier ? `benchmark corpus · tier_profile = ${tier}` : managed ? "benchmark corpus · Vertex AI Search data store" : "managed service — no BigQuery tier"}
+      subtitle={
+        tier
+          ? `benchmark corpus · tier_profile = ${tier}`
+          : ragEngine
+            ? "benchmark corpus · Vertex AI RAG Engine (RagCorpus)"
+            : managed
+              ? "benchmark corpus · Vertex AI Search data store"
+              : "managed service — no BigQuery tier"
+      }
       actions={
         <div className="flex flex-wrap items-center gap-1.5">
           {alreadyLoaded && <Pill tone="ok">ready to query</Pill>}
@@ -92,7 +119,9 @@ const LevelIngestCard: React.FC<{
         </Button>
         {managed && (
           <p className="mt-1 text-xs text-ink-3">
-            Uploads the corpus to Cloud Storage and imports it into the data store; parsing, chunking, embedding and indexing are done by Vertex AI Search (reported as skipped stages).
+            {ragEngine
+              ? "Uploads the corpus to Cloud Storage and imports it into the Vertex AI RAG Engine RagCorpus; parsing, chunking, embedding and indexing are managed by RAG Engine (reported as skipped stages)."
+              : "Uploads the corpus to Cloud Storage and imports it into the data store; parsing, chunking, embedding and indexing are done by Vertex AI Search (reported as skipped stages)."}
           </p>
         )}
         {level.dev_fixture && !devIngestFixture && (
@@ -161,7 +190,7 @@ export const IngestPage: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-ink-2">
-            Already ingested across Levels 1–5 for the default <span className="font-medium text-ink-1">Procurement corpus</span> scope — no action needed before running benchmark queries. Creating an upload workspace above starts completely empty (0 files, all levels <span className="font-mono">not ingested</span>) and never clears or overwrites this corpus.
+            Already ingested across Levels 1–6 for the default <span className="font-medium text-ink-1">Procurement corpus</span> scope — no action needed before running benchmark queries. Creating an upload workspace above starts completely empty (0 files, all levels <span className="font-mono">not ingested</span>) and never clears or overwrites this corpus.
           </p>
         </div>
 
@@ -191,20 +220,25 @@ export const IngestPage: React.FC = () => {
         />
       ) : (
         <ol className="grid gap-4 xl:grid-cols-2">
-          {levels.map((level) => (
-            <li key={level.level_id}>
-              <LevelIngestCard
-                level={level}
-                count={tierCountFor(level.level_id, status)}
-                lastRuns={(status?.last_runs ?? []).filter((r) => r.level === level.level_id)}
-                busy={job.isStreaming}
-                unavailableReason={unavailableReason}
-                onRun={() => onRun(level)}
-                storeState={isManagedLevel(level.level_id) ? managedStoreFor(status)?.state ?? null : null}
-                storeReason={isManagedLevel(level.level_id) ? managedStoreFor(status)?.reason ?? null : null}
-              />
-            </li>
-          ))}
+          {levels.map((level) => {
+            const rag = isRagEngineLevel(level.level_id) ? ragCorpusFor(status) : null;
+            const store = !rag && isManagedLevel(level.level_id) ? managedStoreFor(status) : null;
+            return (
+              <li key={level.level_id}>
+                <LevelIngestCard
+                  level={level}
+                  count={tierCountFor(level.level_id, status)}
+                  lastRuns={(status?.last_runs ?? []).filter((r) => r.level === level.level_id)}
+                  busy={job.isStreaming}
+                  unavailableReason={unavailableReason}
+                  onRun={() => onRun(level)}
+                  storeState={rag ? rag.state : store?.state ?? null}
+                  storeReason={rag ? rag.reason : store?.reason ?? null}
+                  ragDbMode={rag ? rag.dbMode : null}
+                />
+              </li>
+            );
+          })}
         </ol>
       )}
       </section>

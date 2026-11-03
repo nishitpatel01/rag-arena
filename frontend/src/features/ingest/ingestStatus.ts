@@ -4,23 +4,73 @@ import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import type { IngestStatusResponse } from "../../types/arena";
 
-/** Level → BigQuery `tier_profile`; `managed_vertex` has no tier (its status is `GET /ingest/status` → `managed_vertex`). */
+/** Level → BigQuery `tier_profile`; `managed_vertex` and `rag_engine` have no BigQuery tier. */
 export const TIER_FOR_LEVEL: Record<string, string | null> = {
   level1_naive: "naive",
   level2_hybrid: "hybrid",
   level3_multimodal: "multimodal",
   level4_agentic: "multimodal",
   managed_vertex: null,
+  rag_engine: null,
 };
 
-/** Formats nullable BigQuery `ingest_runs` integer cells (`managed_vertex` rows have `chunks = null`). */
+/** Formats nullable BigQuery `ingest_runs` integer cells (`managed_vertex` / `rag_engine` rows have `chunks = null`). */
 export function formatIngestRunCount(value: number | null | undefined): string {
   return typeof value === "number" && Number.isFinite(value) ? value.toLocaleString() : "—";
 }
 
-/** Levels whose ingestion is a managed import (Vertex AI Search data store) instead of a BigQuery tier. */
+/** True for Level 6 (`rag_engine`, Vertex AI RAG Engine `RagCorpus`). */
+export function isRagEngineLevel(levelId: string): boolean {
+  return levelId === "rag_engine";
+}
+
+/** Levels whose ingestion is a managed import (Vertex AI Search data store or RAG Engine `RagCorpus`) instead of BigQuery. */
 export function isManagedLevel(levelId: string): boolean {
-  return levelId === "managed_vertex";
+  return levelId === "managed_vertex" || levelId === "rag_engine";
+}
+
+export interface RagCorpusStatusView {
+  readonly files: number | null;
+  readonly activeFiles: number | null;
+  readonly state: string | null;
+  readonly dbMode: string | null;
+  readonly location: string | null;
+  readonly corpusDisplayName: string | null;
+  readonly embeddingModel: string | null;
+  readonly reason: string | null;
+}
+
+/** Level 6 `RagCorpus` status from `status.rag_engine` (falling back to numeric `counts_by_tier.rag_engine`). */
+export function ragCorpusFor(status: IngestStatusResponse | null): RagCorpusStatusView | null {
+  if (!status) return null;
+  const re = status.rag_engine;
+  if (re && typeof re === "object") {
+    const files = typeof re.file_count === "number" && Number.isFinite(re.file_count) ? re.file_count : null;
+    const activeFiles = typeof re.active_files === "number" && Number.isFinite(re.active_files) ? re.active_files : null;
+    const state = typeof re.corpus_state === "string" && re.corpus_state.trim() ? re.corpus_state : null;
+    const dbMode = typeof re.db_mode === "string" && re.db_mode.trim() ? re.db_mode : null;
+    const location = typeof re.location === "string" && re.location.trim() ? re.location : null;
+    const corpusDisplayName =
+      typeof re.corpus_display_name === "string" && re.corpus_display_name.trim() ? re.corpus_display_name : null;
+    const embeddingModel =
+      typeof re.embedding_model === "string" && re.embedding_model.trim() ? re.embedding_model : null;
+    const reason = re.available === false ? re.reason?.trim() || "RAG Engine corpus status not available" : null;
+    return { files, activeFiles, state, dbMode, location, corpusDisplayName, embeddingModel, reason };
+  }
+  const legacy = status.counts_by_tier?.rag_engine;
+  if (typeof legacy === "number") {
+    return {
+      files: legacy,
+      activeFiles: null,
+      state: null,
+      dbMode: null,
+      location: null,
+      corpusDisplayName: null,
+      embeddingModel: null,
+      reason: null,
+    };
+  }
+  return null;
 }
 
 /**
@@ -41,9 +91,10 @@ export function managedStoreFor(status: IngestStatusResponse | null): { readonly
   return null;
 }
 
-/** Tier row count for a level; `managed_vertex` → data store document count (null when not reported). */
+/** Tier row count for a level; `managed_vertex` → document count, `rag_engine` → `RagCorpus` file count. */
 export function tierCountFor(levelId: string, status: IngestStatusResponse | null): number | null {
   if (!status) return null;
+  if (isRagEngineLevel(levelId)) return ragCorpusFor(status)?.files ?? null;
   const tier = TIER_FOR_LEVEL[levelId];
   if (tier === null || isManagedLevel(levelId)) return managedStoreFor(status)?.documents ?? null;
   if (tier === undefined) return null;
@@ -68,6 +119,30 @@ export function runGateFor(levelId: string, status: IngestStatusResponse | null,
     return { blocked: false, note: status.reason || "ingest status not available", tone: "info", count: null };
   }
   const count = tierCountFor(levelId, status);
+  if (isRagEngineLevel(levelId)) {
+    const corpus = ragCorpusFor(status);
+    if (!corpus) {
+      return {
+        blocked: false,
+        note: "RAG Engine corpus status not reported by GET /api/v1/ingest/status",
+        tone: "info",
+        count: null,
+      };
+    }
+    if (corpus.reason) return { blocked: false, note: corpus.reason, tone: "info", count: corpus.files };
+    if (corpus.state === "NOT_FOUND") {
+      return {
+        blocked: true,
+        note: "RagCorpus not found — run scripts/provision_rag_engine.py and import the corpus on Ingestion",
+        tone: "warn",
+        count: 0,
+      };
+    }
+    if (corpus.files === 0) {
+      return { blocked: true, note: "0 files imported into the Vertex AI RAG Engine corpus", tone: "warn", count: 0 };
+    }
+    return { blocked: false, note: null, tone: corpus.files === null ? "info" : "ok", count: corpus.files };
+  }
   if (isManagedLevel(levelId) || TIER_FOR_LEVEL[levelId] === null) {
     const store = managedStoreFor(status);
     if (!store) return { blocked: false, note: "data store status not reported by GET /api/v1/ingest/status", tone: "info", count: null };
@@ -79,8 +154,15 @@ export function runGateFor(levelId: string, status: IngestStatusResponse | null,
   return { blocked: false, note: null, tone: "ok", count };
 }
 
-/** Header pill text: "naive tier: 5067 chunks" or "data store: 45 documents · ACTIVE". */
+/** Header pill text: "naive tier: 5067 chunks", "data store: 45 documents · ACTIVE", or "RagCorpus: 45 files · ACTIVE (spanner_basic)". */
 export function ingestPillText(levelId: string, gate: RunGate, status: IngestStatusResponse | null): string {
+  if (isRagEngineLevel(levelId)) {
+    const corpus = ragCorpusFor(status);
+    if (gate.count === null) return gate.note ?? "RagCorpus status";
+    const modeSuffix = corpus?.dbMode ? ` (${corpus.dbMode})` : "";
+    const stateSuffix = corpus?.state ? ` · ${corpus.state}${modeSuffix}` : modeSuffix;
+    return `RagCorpus: ${gate.count.toLocaleString()} files${stateSuffix}`;
+  }
   if (isManagedLevel(levelId) || TIER_FOR_LEVEL[levelId] === null) {
     const store = managedStoreFor(status);
     if (gate.count === null) return gate.note ?? "data store status";

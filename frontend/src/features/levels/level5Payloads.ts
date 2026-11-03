@@ -319,14 +319,18 @@ const ALIASES: Readonly<Record<string, readonly (readonly [string, readonly stri
     ["bytes", ["bytes", "total_bytes", "bytes_uploaded"]],
   ],
   import_documents: [
-    ["imported (success)", ["success_count", "imported", "success"]],
-    ["failed", ["failure_count", "failed", "failures"]],
+    ["imported (success)", ["success_count", "imported_count", "imported", "success"]],
+    ["already imported (skipped)", ["skipped_count", "skipped"]],
+    ["failed", ["failure_count", "failed_count", "failed", "failures"]],
     ["total", ["total_count", "total"]],
+    ["batches", ["batches"]],
     ["operation time", ["operation_ms", "import_ms", "poll_ms"]],
     ["polls", ["polls"]],
   ],
   verify_counts: [
     ["documents in data store", ["document_count", "documents", "count"]],
+    ["files in RagCorpus", ["file_count"]],
+    ["active RagFiles", ["active_files"]],
     ["expected", ["expected", "expected_count", "local_docs"]],
     ["indexed", ["indexed"]],
     ["outside corpus", ["outside_corpus"]],
@@ -373,14 +377,16 @@ export function managedIngestSummary(stageId: string, payload: JsonObject | null
     return parts.length ? parts.join(" · ") : null;
   }
   if (stageId === "import_documents") {
-    const ok = pick(payload, ["success_count", "imported", "success"]);
-    const bad = pick(payload, ["failure_count", "failed", "failures"]);
+    const ok = pick(payload, ["success_count", "imported_count", "imported", "success"]);
+    const bad = pick(payload, ["failure_count", "failed_count", "failed", "failures"]);
     const parts = [ok !== null ? `success=${ok}` : null, bad !== null ? `failed=${bad}` : null].filter(Boolean);
     return parts.length ? parts.join(" · ") : null;
   }
   if (stageId === "verify_counts") {
     const docs = pick(payload, ["document_count", "documents"]);
-    return docs !== null ? `documents=${docs}` : null;
+    if (docs !== null) return `documents=${docs}`;
+    const files = pick(payload, ["file_count", "active_files"]);
+    return files !== null ? `files=${files}` : null;
   }
   return null;
 }
@@ -390,7 +396,10 @@ export function managedIngestSummary(stageId: string, payload: JsonObject | null
  * verify, then the skipped canonical stages), then anything else the stream reported.
  */
 export function ingestStageOrder(levelId: string, canonical: readonly string[], seen: readonly string[]): string[] {
-  const declared = levelId === "managed_vertex" ? [...MANAGED_INGEST_STAGES, ...MANAGED_SKIPPED_STAGES] : [...canonical];
+  const declared =
+    levelId === "managed_vertex" || levelId === "rag_engine"
+      ? [...MANAGED_INGEST_STAGES, ...MANAGED_SKIPPED_STAGES]
+      : [...canonical];
   for (const s of seen) if (!declared.includes(s)) declared.push(s);
   return declared;
 }

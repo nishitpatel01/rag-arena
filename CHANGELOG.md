@@ -3,6 +3,34 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-11-03
+
+Level 6: Managed Vertex AI RAG Engine (`rag_engine`) across the benchmark corpus and private user PDF uploads.
+
+### Added
+- **Level 6 — Managed Vertex AI RAG Engine (`rag_engine`)**:
+  - **Safe minimum-cost provisioning (`scripts/provision_rag_engine.py`)**: inspects regional `ragEngineConfig` before
+    touching `RagManagedDb` — reuses active regional configurations untouched (`$0/mo` incremental compute on projects
+    already running `RagManagedDb`), defaults fresh projects to `RagManagedDbConfig(serverless=Serverless())` via
+    `aiplatform_v1beta1`, and never calls `unprovisioned` or modifies corpora outside `rag-arena-*`.
+  - **Corpus & isolated private upload ingestion (`backend/app/ingestion/rag_engine_job.py`, `uploads_api.py`)**:
+    idempotent GCS-backed `ImportRagFiles` (`512`-token chunks, `100`-token overlap, `text-embedding-005`) into
+    `rag-arena-procurement` (`45` PDFs across bounded `<=25`-URI batches), plus zero-download per-workspace isolated
+    `RagCorpus` (`rag-arena-upl_<12hex>`) deleted synchronously by `DELETE /api/v1/uploads/{id}` (raw numeric
+    `rag_corpus_id` stripped from public HTTP manifests and redacted as `${RAG_ENGINE_CORPUS_ID}` in recordings).
+  - **Two-mode live query engine (`backend/app/engines/rag_engine.py`, `backend/app/core/rag_engine_client.py`)**:
+    - *Mode (a)*: regional `:retrieveContexts` (`$0/query` API fee, cosine distance + `chunk.pageSpan` PDF page
+      citations, `ragFileIds` solicitation scoping) paired with any verified catalog synthesis LLM (`gemini-4-argon`,
+      `gemini-3.8-flash`, etc.).
+    - *Mode (b)*: pseudo-model `vertex-rag-engine-grounded` (Level 6 only) invoking Gemini `generate_content` with native
+      `Tool(retrieval=Retrieval(vertex_rag_store=VertexRagStore(...)))` and extracting `grounding_metadata.grounding_chunks`
+      into clickable PDF citations.
+  - **Live diagram, Level 6 telemetry views, replay recordings, and Cloud Run parity**:
+    `level6Payloads.ts` + `level6Views.tsx` (`RetrieveContexts` cosine-distance table, `RagCorpus` ingestion summary,
+    `VertexRagStore` grounding mode), **24 new `DEMO_MODE=record` golden runs** (**103 committed recordings** total),
+    and `roles/aiplatform.user` + `RAG_ENGINE_*` wiring in `scripts/deploy_cloudrun.sh` and `infra/main.tf`.
+  - Offline test suites expanded to **415 backend tests** (`38` files) and **182 frontend tests** (`18` suites).
+
 ## [1.1.1] — 2026-11-03
 
 Upload ingestion index-inspection fast-path (`~58 s` → `<3 s` on `build_indexes`).

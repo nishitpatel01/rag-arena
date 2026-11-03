@@ -9,6 +9,8 @@ import { ELEMENT_LABEL } from "../../lib/elements";
 import { AlignLeft, Network, Table2 } from "lucide-react";
 import { parseManagedSynthesize } from "./level5Payloads";
 import { SynthModeBadge } from "./level5Views";
+import { parseRagEngineSynthesize } from "./level6Payloads";
+import { RagSynthModeBadge } from "./level6Views";
 
 export interface AnswerPanelProps {
   readonly timeline: EngineTimeline | undefined;
@@ -21,8 +23,10 @@ export interface AnswerPanelProps {
 
 export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, selectedCitation, onSelectCitation, labelFor }) => {
   const answer = timeline?.answer ?? null;
-  // Level 5: which synthesis path produced this answer (managed summary vs catalog model over segments).
-  const managedSynth = parseManagedSynthesize(timeline?.stages.synthesize?.payload ?? null);
+  const synthPayload = timeline?.stages.synthesize?.payload ?? null;
+  // Level 5 & Level 6: which synthesis path produced this answer (managed/grounded vs catalog model over retrieved contexts).
+  const managedSynth = parseManagedSynthesize(synthPayload);
+  const ragSynth = parseRagEngineSynthesize(synthPayload);
   if (timeline?.error && !answer) {
     return (
       <div role="alert" className="rounded-md border border-err p-3 text-xs">
@@ -42,6 +46,7 @@ export const AnswerPanel: React.FC<AnswerPanelProps> = ({ timeline, running, sel
       <MiniMarkdown text={answer.answer} />
       <div className="flex flex-wrap gap-1.5">
         {managedSynth && <SynthModeBadge view={managedSynth} labelFor={labelFor} />}
+        {ragSynth && <RagSynthModeBadge view={ragSynth} labelFor={labelFor} />}
         <Pill tone={answer.flags.reranker_used ? "ok" : "neutral"}>reranker {answer.flags.reranker_used ? "used" : "not used"}</Pill>
         <Pill tone={answer.flags.adk_runner_used ? "ok" : "neutral"}>ADK runner {answer.flags.adk_runner_used ? "used" : "not used"}</Pill>
         {answer.flags.layout_source && <Pill tone="info" mono>layout: {answer.flags.layout_source}</Pill>}

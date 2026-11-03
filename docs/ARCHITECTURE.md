@@ -1,6 +1,6 @@
 # The RAG Arena — System Architecture
 
-This document describes the architecture **as implemented** in `v1.1.0` with Levels 1–5 and private user PDF uploads
+This document describes the architecture **as implemented** in `v1.2.0` with Levels 1–6 and private user PDF uploads
 live. The product rule behind every decision: **nothing is shown that was not measured** (principles P1–P6 in
 [§0](#0-design-principles-v3)).
 
@@ -40,6 +40,7 @@ flowchart LR
         L3["engines/level3_multimodal.py"]
         L4["engines/level4_agentic.py<br/>+ agent_runtime / agent_tools"]
         L5["engines/managed_vertex.py<br/>+ vais_search.py"]
+        L6["engines/rag_engine.py<br/>+ core/rag_engine_client.py"]
         RP["engines/replay_engine.py"]
         EV["evaluation/evaluator.py + judges.py"]
         IJ["ingestion/jobs.py<br/>IngestJobRunner"]
@@ -47,6 +48,7 @@ flowchart LR
     end
     subgraph GCP["Google Cloud (live / record modes)"]
         VX["Vertex AI<br/>gemini-embedding-2 · Gemini · Claude rawPredict"]
+        VRE["Vertex AI RAG Engine<br/>RagCorpus + RetrieveContexts + VertexRagStore"]
         RA["Discovery Engine<br/>Ranking API + Vertex AI Search (corpus & uploads)"]
         DA["Document AI<br/>Layout Parser"]
         BQ["BigQuery rag_arena<br/>document_chunks_v3 · ingest_runs · query_runs"]
@@ -59,15 +61,16 @@ flowchart LR
     UI -- "/api/v1/uploads/*" --> UP
     UI -- "PUT resumable chunks (Origin-bound)" --> GCS
     UI -- "GET /api/v1/documents/*" --> D
-    R --> REG --> L1 & L2 & L3 & L4 & L5 & RP
+    R --> REG --> L1 & L2 & L3 & L4 & L5 & L6 & RP
     L1 --> VX & BQ
     L2 --> VX & BQ & RA
     L3 --> VX & BQ & RA
     L4 --> VX & BQ & RA
     L5 --> VX & RA
+    L6 --> VX & VRE
     EV --> VX
-    IJ --> VX & BQ & DA & RA & GCS
-    UP --> GCS & BQ & RA & IJ
+    IJ --> VX & VRE & BQ & DA & RA & GCS
+    UP --> GCS & BQ & RA & VRE & IJ
     R --> REC --> FS
     RP --> FS
     D --> FS & GCS
@@ -76,7 +79,7 @@ flowchart LR
 | Mode (`DEMO_MODE`) | Engines | Judge | Uploads | Writes |
 | :-- | :-- | :-- | :-- | :-- |
 | `replay` (default) | `ReplayRAGEngine` per enabled level, streaming recorded events with original relative timing × `REPLAY_SPEED` | recorded judge outcome of the selected pair | disabled (all `/api/v1/uploads/*` return `404`) | nothing; no credentials needed |
-| `live` | real engines (Levels 1–5) | selected judge model, live | enabled (`UPLOAD_BUCKET` verified private) | `query_runs` row per run (`scope='golden'\|'uploads'`); `ingest_runs` row per ingestion job |
+| `live` | real engines (Levels 1–6) | selected judge model, live | enabled (`UPLOAD_BUCKET` verified private) | `query_runs` row per run (`scope='golden'\|'uploads'`); `ingest_runs` row per ingestion job |
 | `record` | `live` + recorder | live | enabled (`upl_*` runs emit `stream_warning` instead of overwriting golden recordings) | `live` writes + `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` (golden runs only) |
 
 Settings are validated once at startup (`core/config.py`); invalid configuration fails the process, and
@@ -276,7 +279,31 @@ redacts `${UPLOAD_BUCKET}`, and fails loud if any returned hit falls outside the
 
 ---
 
-## 3f. What each stage shows (UI)
+## 3f. Level 6 query path (`engines/rag_engine.py`, `core/rag_engine_client.py`)
+
+Managed Vertex AI RAG Engine (`aiplatform` REST v1 in a regional location such as `us-central1`, never `global`).
+`scripts/provision_rag_engine.py` inspects the regional `ragEngineConfig` first: if the project already runs an active
+`RagManagedDb` mode (e.g. `spanner.basic`), it reuses it untouched at \$0 incremental Spanner compute and never mutates
+or unprovisions regional config; on an uninitialized project, it patches `RagManagedDbConfig(serverless=Serverless())`
+via `v1beta1`.
+
+1. **Benchmark corpus**: `RAG_ENGINE_CORPUS_ID` (`rag-arena-procurement`, `text-embedding-005`, `chunk_size=512`,
+   `chunk_overlap=100`). Solicitation filters (`solicitation_01`..`03`) resolve matching `ragFileIds` inside that corpus.
+2. **Private user uploads (`v1.2`)**: each `upl_<12hex>` workspace creates an isolated `RagCorpus` named
+   `rag-arena-upl_<12hex>` (`ingestion/rag_engine_job.py`), queried directly during upload runs and deleted synchronously
+   on `DELETE /api/v1/uploads/{id}` without touching neighbor corpora.
+
+| Stage | What runs | Payload (measured) |
+| :-- | :-- | :-- |
+| `query_prep` | Level 2 acronym expansion | `original_query`, `prepared_query`, `expansions[]` |
+| `retrieve` | REST `POST locations/<loc>:retrieveContexts` (`topK = RAG_ENGINE_TOP_K`, \$0/query API fee) | `api_request`, `corpus`, `location`, `embedding_model`, `rows_returned`, `api_ms`, `attempts`, `retrieval_api_fee_usd` (`0.0`), `contexts[]` (`rank`, `chunk_id`, `doc_name`, `page_number`, `last_page`, `page_source`, cosine distance `score`, `text`) |
+| `synthesize` (a) | any catalog LLM (Gemini or Claude) over the retrieved `RagChunk` context | standard synthesize payload + `context_source`, `context_chunks`, `corpus` |
+| `synthesize` (b) | pseudo-model `vertex-rag-engine-grounded` (provider `vertex_rag_engine`, Level 6 only, else HTTP 400): `models.generate_content` (`GEMINI_FAST_MODEL`) grounded natively via `Tool(retrieval=Retrieval(vertex_rag_store=...))` | `model`, `underlying_gemini_model`, `corpus`, `prompt_tokens`, `output_tokens`, `thinking_tokens`, `grounding_chunks_count`, `answer` |
+| `evaluate` | judge (≠ synthesis) over the retrieved `RagChunk` contexts | as Levels 1–5 |
+
+---
+
+## 3g. What each stage shows (UI)
 
 Every value is read from the stage event payloads the engine emits (recordings store them verbatim).
 
@@ -298,11 +325,12 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
 ## 4. Model selection and evaluation
 
 - **Catalog** (`core/models_catalog.py`): `gemini-4-argon`, `gemini-4-carbon`, `gemini-3.8-flash` (provider
-  `vertex_gemini`), `claude-opus-5-5`, `claude-fable-5-1` (provider `anthropic_vertex`), plus Level-5-only
-  `vertex-ai-search-summary` (provider `vertex_ai_search`). Location defaults to `global` (`MODEL_LOCATION_<ID>`
-  overrides). An LLM model is `available` only if it has a published price in `pricing.PRICE_TABLE` **and** an `ok`
-  entry in `data/model_verification.json` (`scripts/verify_models.py`); otherwise the recorded error is surfaced in the
-  picker's `"Pricing & availability"` disclosure (`unavailable_reason`).
+  `vertex_gemini`), `claude-opus-5-5`, `claude-fable-5-1` (provider `anthropic_vertex`), Level-5-only
+  `vertex-ai-search-summary` (provider `vertex_ai_search`), and Level-6-only `vertex-rag-engine-grounded` (provider
+  `vertex_rag_engine`). Location defaults to `global` (`MODEL_LOCATION_<ID>` overrides). An LLM model is `available`
+  only if it has a published price in `pricing.PRICE_TABLE` **and** an `ok` entry in `data/model_verification.json`
+  (`scripts/verify_models.py`); otherwise the recorded error is surfaced in the picker's `"Pricing & availability"`
+  disclosure (`unavailable_reason`).
 - **Request gate**: `ModelCatalog.select(synthesis_model, judge_model)` rejects unknown, unavailable, role-disallowed
   and identical models → HTTP 400 before streaming. No fallback model.
 - **Claude transport** (`core/anthropic_vertex.py`): Anthropic Messages body to
@@ -318,6 +346,9 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
   - `gemini-embedding-2`: $0.20 / 1M input tokens (2026-10-20).
   - Vertex AI ranking API: $1.00 / 1,000 counts, 1 count = 1 query of ≤ 100 docs (2026-10-21).
   - Vertex AI Search (Enterprise + LLM add-on): $4 / 1,000 queries + $4 / 1,000 generative answers (2026-10-23).
+  - Vertex AI RAG Engine (`RagCorpus` + `:retrieveContexts`): \$0 / 1,000 retrieval queries (`text-embedding-005`
+    \$0.000025 / 1k chars at import; `RagManagedDb` Serverless \$0/mo idle or reused active regional Spanner at \$0
+    incremental compute; synthesis billed at the selected LLM's token rates).
   - Document AI Layout Parser (Level 3 ingestion): $10 / 1,000 pages (`multimodal_job.py`, 2026-10-22).
 - **Judge** (`evaluation/judges.py`, `evaluation/evaluator.py`): strict parse of one JSON object
   `{groundedness, qa_relevance, context_precision, rationale}` with values in `[0, 1]`. Golden benchmark runs grade QA
@@ -334,8 +365,8 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
 
 ## 5. Ingestion (`ingestion/jobs.py`, `ingestion/live_backends.py`)
 
-`POST /api/v1/ingest/jobs {"level": "level1_naive" | "level2_hybrid" | "level3_multimodal" | "managed_vertex"}` starts a
-benchmark corpus `IngestJobRunner` job (≤ 20 jobs held, bounded by `INGEST_JOB_TIMEOUT_SECONDS`). Stages:
+`POST /api/v1/ingest/jobs {"level": "level1_naive" | "level2_hybrid" | "level3_multimodal" | "managed_vertex" | "rag_engine"}`
+starts a benchmark corpus `IngestJobRunner` job (≤ 20 jobs held, bounded by `INGEST_JOB_TIMEOUT_SECONDS`). Stages:
 
 | Stage | Implementation |
 | :-- | :-- |
@@ -344,10 +375,10 @@ benchmark corpus `IngestJobRunner` job (≤ 20 jobs held, bounded by `INGEST_JOB
 | `chunk` | `naive` (360-char windows, 60 overlap), `hybrid` (one page chunk prefixed with Contextual Lineage header), `multimodal` (atomic Markdown tables, 1 diagram chunk per vision page, heading-grouped text ≤ 1,800 chars, PDF text-layer `bbox_source`) |
 | `embed` | `VertexEmbedder`: `RETRIEVAL_DOCUMENT`, ≤ 32 texts/batch, ≤ 8 worker threads, ≤ 3 attempts on 429/5xx; Level 3 embeds diagram chunks as text + rendered page image into `embedding_multimodal` |
 | `load_bigquery` | Load jobs into a 2 h TTL staging table, then one transaction: benchmark corpus replaces `tier_profile = @tier AND NOT STARTS_WITH(solicitation_id, 'upl_')` (never touching user uploads); upload jobs replace `tier_profile = @tier AND solicitation_id = @scope` |
-| `build_indexes` | `CREATE VECTOR INDEX IF NOT EXISTS` (IVF, COSINE) and `CREATE SEARCH INDEX IF NOT EXISTS`, polling `INFORMATION_SCHEMA` for ≤ 60 s |
-| `verify_counts` | Scoped or corpus (`NOT STARTS_WITH(solicitation_id, 'upl_')`) `COUNT(*)` read back from BigQuery; `ingest_runs` row written with `git_sha` and stage log |
+| `build_indexes` | Corpus jobs (`scope=None`): `CREATE VECTOR INDEX IF NOT EXISTS` (IVF, COSINE) and `CREATE SEARCH INDEX IF NOT EXISTS`, polling `INFORMATION_SCHEMA` for ≤ 60 s. Upload jobs (`scope=upl_*`, `v1.1.1`): `snapshot_upload_indexes` inspects existing table indexes once (`poll_skipped_reason: "upload_scope_uses_table_indexes"`, `<3 s`) instead of re-polling |
+| `verify_counts` | Scoped or corpus (`NOT STARTS_WITH(solicitation_id, 'upl_')`) `COUNT(*)` read back from BigQuery (or `ragFiles.list` / `documents.list` for managed levels); `ingest_runs` row written with `git_sha` and stage log |
 
-### 5b. Private user PDF uploads (`v1.1` — `api/uploads_api.py`, `ingestion/{upload_bucket,uploads,managed_upload_job}.py`)
+### 5b. Private user PDF uploads (`v1.1`–`v1.2` — `api/uploads_api.py`, `ingestion/{upload_bucket,uploads,managed_upload_job,rag_engine_job}.py`)
 
 - **Private upload bucket (`upload_bucket.py`)**: `UPLOAD_BUCKET_MODE=auto` (default) checks or creates `UPLOAD_BUCKET`
   (`<project>-rag-arena-uploads`, forbidden from equalling `GCS_CORPUS_BUCKET`) with enforced public access prevention,
@@ -374,9 +405,13 @@ benchmark corpus `IngestJobRunner` job (≤ 20 jobs held, bounded by `INGEST_JOB
     `upl_<12hex>_f_<12hex>`, `structData.{workspace_id, doc_name}`) directly into GCS without downloading PDFs locally,
     runs an `INCREMENTAL` import into `VAIS_UPLOADS_DATA_STORE_ID`, and verifies each doc via point `documents.get`
     (never enumerating other workspaces).
+  - `rag_engine_job.py` provisions an isolated per-workspace `RagCorpus` (`rag-arena-upl_<12hex>`, stripping the numeric
+    `rag_corpus_id` from `_public_manifest`), imports GCS URIs in batches of `<=25` with zero local PDF downloads, and
+    verifies every expected URI is `ACTIVE`.
 - **Synchronous retry-safe deletion (`DELETE /api/v1/uploads/{id}`)**: deletes BigQuery rows (`delete_scope`) first,
-  then Vertex AI Search upload documents (`delete_if_exists`), and finally GCS objects (`uploads/<ws>/*`), preserving
-  the manifest if an earlier backend fails so the owner can retry cleanly.
+  then Vertex AI Search upload documents (`delete_if_exists`), then the workspace's isolated Vertex AI RAG Engine
+  `RagCorpus` (`delete_rag_corpus`), and finally GCS objects (`uploads/<ws>/*`), preserving the manifest if an earlier
+  backend fails so the owner can retry cleanly.
 
 ---
 
@@ -412,9 +447,9 @@ CREATE TABLE IF NOT EXISTS `<project>.rag_arena.<BQ_TABLE>` (
   `run_id`, `project_id` placeholder), `events` (each with `t_rel_ms`), `result` and `evaluation`. Runs scoped to
   `upl_*` emit a `stream_warning` and never write to `data/recordings/`.
 - **Redaction** (`recording/redaction.py`): `GCP_PROJECT_ID`, `GCS_CORPUS_BUCKET`, `UPLOAD_BUCKET` (configured or
-  default `<project>-rag-arena-uploads`), `CLOUDSDK_CONFIG`, `GOOGLE_APPLICATION_CREDENTIALS`, and the home directory
-  become `${…}` placeholders; `projects/<digits>` becomes `projects/${GCP_PROJECT_NUMBER}`; `assert_redacted` refuses
-  to write if any raw token survives.
+  default `<project>-rag-arena-uploads`), `RAG_ENGINE_CORPUS_ID`, `CLOUDSDK_CONFIG`, `GOOGLE_APPLICATION_CREDENTIALS`,
+  and the home directory become `${…}` placeholders; `projects/<digits>` becomes `projects/${GCP_PROJECT_NUMBER}`;
+  `assert_redacted` refuses to write if any raw token survives.
 - **Replay** streams recorded events with their original relative timing; unrecorded pairs/questions return
   `engine_error`, and synthetic fixtures under `data/recordings/_dev/` require `ALLOW_DEV_FIXTURES=1`.
 
@@ -454,7 +489,8 @@ follows the active node unless pinned.
 
 ## 10. Status
 
-Levels 1–5, private user PDF uploads (`v1.1`), Compare, Leaderboard (`query_runs` Golden set + Uploads scopes with
-winner highlighting), `docker-compose.yml`, and the configurable Cloud Run deployment (single multi-stage container,
-least-privilege service account, IAP-protected live service, optional public replay service) are live (`v1.1.0`).
-Vector Search 2.0 / AlloyDB ScaNN engines stay parked (`engines/parked/`, zero GCP resources).
+Levels 1–6 (including Managed Vertex AI RAG Engine), private user PDF uploads (`v1.1`–`v1.2`), Compare, Leaderboard
+(`query_runs` Golden set + Uploads scopes with winner highlighting), `docker-compose.yml`, and the configurable Cloud
+Run deployment (single multi-stage container, least-privilege service account, IAP-protected live service, optional
+public replay service) are live (`v1.2.0`). Vector Search 2.0 / AlloyDB ScaNN engines stay parked (`engines/parked/`,
+zero GCP resources).

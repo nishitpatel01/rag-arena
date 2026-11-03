@@ -30,6 +30,7 @@ export const PROVIDER_LABELS: Readonly<Record<string, string>> = {
   vertex_gemini: "Vertex AI Gemini",
   anthropic_vertex: "Anthropic on Vertex AI",
   vertex_ai_search: "Vertex AI Search (managed)",
+  vertex_rag_engine: "Vertex AI RAG Engine (grounded)",
 };
 
 export function providerLabel(provider: string): string {
@@ -39,13 +40,26 @@ export function providerLabel(provider: string): string {
 /** Synthesis-only pseudo model: the managed Vertex AI Search summary (server returns 400 off `managed_vertex`). */
 export const MANAGED_SUMMARY_MODEL = "vertex-ai-search-summary";
 export const MANAGED_LEVEL = "managed_vertex";
+/** Synthesis-only pseudo model: Gemini grounded natively via `VertexRagStore` (server returns 400 off `rag_engine`). */
+export const RAG_ENGINE_GROUNDED_MODEL = "vertex-rag-engine-grounded";
+export const RAG_ENGINE_LEVEL = "rag_engine";
 
 /** Level ids a catalog entry is valid on, or null when it is valid everywhere. */
 export function allowedLevels(entry: ModelCatalogEntry): readonly string[] | null {
   if (Array.isArray(entry.allowed_levels) && entry.allowed_levels.length > 0) return entry.allowed_levels;
   if (Array.isArray(entry.levels) && entry.levels.length > 0) return entry.levels;
   if (entry.id === MANAGED_SUMMARY_MODEL || entry.provider === "vertex_ai_search") return [MANAGED_LEVEL];
+  if (entry.id === RAG_ENGINE_GROUNDED_MODEL || entry.provider === "vertex_rag_engine") return [RAG_ENGINE_LEVEL];
   return null;
+}
+
+/** Short `<option>` suffix when a model is restricted to specific level(s); empty string when unrestricted. */
+export function restrictedOptionSuffix(entry: ModelCatalogEntry): string {
+  const allowed = allowedLevels(entry);
+  if (!allowed || allowed.length === 0) return "";
+  if (allowed.length === 1 && allowed[0] === MANAGED_LEVEL) return " — Level 5 only";
+  if (allowed.length === 1 && allowed[0] === RAG_ENGINE_LEVEL) return " — Level 6 only";
+  return ` — ${allowed.join(", ")} only`;
 }
 
 /** Why `entry` cannot be used on `levelId` (null when allowed, or when no level is given). */
@@ -53,9 +67,13 @@ export function levelRestriction(entry: ModelCatalogEntry, levelId: string | nul
   if (!levelId) return null;
   const allowed = allowedLevels(entry);
   if (allowed === null || allowed.includes(levelId)) return null;
-  return allowed.includes(MANAGED_LEVEL) && allowed.length === 1
-    ? "managed Vertex AI Search summary — valid only on Level 5 (Managed Vertex AI Search)"
-    : `valid only on ${allowed.join(", ")}`;
+  if (allowed.includes(MANAGED_LEVEL) && allowed.length === 1) {
+    return "managed Vertex AI Search summary — valid only on Level 5 (Managed Vertex AI Search)";
+  }
+  if (allowed.includes(RAG_ENGINE_LEVEL) && allowed.length === 1) {
+    return "VertexRagStore grounded synthesis — valid only on Level 6 (Managed Vertex AI RAG Engine)";
+  }
+  return `valid only on ${allowed.join(", ")}`;
 }
 
 /** True for a model that only one level can use (e.g. the managed summary pseudo model). */

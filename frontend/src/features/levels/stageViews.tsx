@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUp, Equal, GitMerge, Sparkles, Spline, Type } from "luc
 import type { Citation, JsonObject } from "../../types/arena";
 import { parseManagedRetrieve, parseManagedSynthesize } from "./level5Payloads";
 import { ManagedRetrieveDetail, ManagedSynthesizeDetail } from "./level5Views";
+import { parseRagEngineRetrieve, parseRagEngineSynthesize } from "./level6Payloads";
+import { RagEngineRetrieveDetail, RagEngineSynthesizeDetail } from "./level6Views";
 import { AmendmentChip, ElementFilterChips, ElementMetaCell, ElementTypeBadge, LayoutSourceBadge } from "../../components/ElementBadges";
 import { Pill as Chip } from "../../components/ui/Pill";
 import { countElementTypes, matchesElementFilter, type ElementFilter, type ElementMeta } from "../../lib/elements";
@@ -431,9 +433,30 @@ export const SynthesizeDetail: React.FC<{ readonly view: SynthesizeL3View }> = (
 /** Payload keys rendered by a dedicated view (omitted from the generic code blocks; still in raw JSON). */
 export const DEDICATED_KEYS: Readonly<Record<string, readonly string[]>> = {
   query_prep: ["expansions", "element_intent", "intent_matches"],
-  retrieve: ["candidates", "element_types", "layout_sources", "results", "request", "api_request", "attribution_token", "total_size", "api_ms"],
+  retrieve: [
+    "candidates",
+    "element_types",
+    "layout_sources",
+    "results",
+    "contexts",
+    "request",
+    "api_request",
+    "attribution_token",
+    "total_size",
+    "api_ms",
+  ],
   rerank: ["results"],
-  synthesize: ["authority_headers", "element_mix", "summary", "references", "summary_skipped_reasons", "model_version_used", "model_version_requested"],
+  synthesize: [
+    "authority_headers",
+    "element_mix",
+    "summary",
+    "references",
+    "summary_skipped_reasons",
+    "model_version_used",
+    "model_version_requested",
+    "grounding_chunks_count",
+    "underlying_gemini_model",
+  ],
 };
 
 /** Payloads of other stages of the same run that a dedicated view may join with (e.g. rerank ← retrieve). */
@@ -469,12 +492,26 @@ export function dedicatedStageView(stageId: string, payload: JsonObject | null, 
   if (stageId === "synthesize") {
     const managed = parseManagedSynthesize(payload);
     if (managed) return <ManagedSynthesizeDetail view={managed} citations={ctx.citations} onSelectCitation={ctx.onSelectCitation} labelFor={ctx.labelFor} />;
+    const rag = parseRagEngineSynthesize(payload);
+    if (rag) return <RagEngineSynthesizeDetail view={rag} labelFor={ctx.labelFor} />;
     const v = parseSynthesizeL3(payload);
     return v ? <SynthesizeDetail view={v} /> : null;
   }
   if (stageId === "retrieve") {
     const managed = parseManagedRetrieve(payload);
     if (managed) return <ManagedRetrieveDetail view={managed} requestShownAbove={sameJson(managed.request, ctx.stageRequest ?? null) || sameJson(managed.request, requestBody(ctx.stageRequest ?? null))} />;
+    const rag = parseRagEngineRetrieve(payload);
+    if (rag) {
+      return (
+        <RagEngineRetrieveDetail
+          view={rag}
+          requestShownAbove={
+            sameJson(rag.apiRequest, ctx.stageRequest ?? null) ||
+            sameJson(rag.apiRequest, requestBody(ctx.stageRequest ?? null))
+          }
+        />
+      );
+    }
     const v = parseHybridRetrieve(payload);
     return v ? <HybridRetrieveDetail view={v} l3={parseRetrieveL3Summary(payload)} /> : null;
   }

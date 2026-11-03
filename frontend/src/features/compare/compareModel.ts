@@ -14,7 +14,7 @@ import { findModel, modelLabel, validateSelection, type ModelSelection } from ".
 
 export const LEVEL4_ENGINE = "level4_agentic";
 export const GEMINI_PROVIDER = "vertex_gemini";
-export const MAX_COMPARE_LEVELS = 5;
+export const MAX_COMPARE_LEVELS = 6;
 
 export interface LevelChoice {
   readonly levelId: string;

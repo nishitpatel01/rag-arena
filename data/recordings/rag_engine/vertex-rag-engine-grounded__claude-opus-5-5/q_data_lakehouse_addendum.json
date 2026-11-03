@@ -1,0 +1,1073 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-03T17:05:14.926Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "vertex-rag-engine-grounded",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "vertex-rag-engine-grounded",
+      "reasoning": "gemini-4-argon",
+      "embedding": "text-embedding-005",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "8e4a18873722f0a8c739d191d28f9be35d883287",
+    "app_version": "1.2.0",
+    "engine": "rag_engine",
+    "question_id": "q_data_lakehouse_addendum",
+    "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+    "run_id": "run_91043e253a17"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-11-03T17:04:30.430Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "prepared_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          }
+        ],
+        "sent_to": "Vertex AI RAG Engine query.text"
+      },
+      "ts": "2026-11-03T17:04:30.430Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "retrieve",
+      "label": "Vertex AI RAG Engine (:retrieveContexts)",
+      "service": "Vertex AI RAG Engine \u00b7 retrieveContexts",
+      "request": {
+        "method": "POST",
+        "endpoint": "locations/us-central1:retrieveContexts",
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "body": {
+          "vertexRagStore": {
+            "ragResources": [
+              {
+                "ragCorpus": "projects/${GCP_PROJECT_ID}/locations/us-central1/ragCorpora/${RAG_ENGINE_CORPUS_ID}"
+              }
+            ]
+          },
+          "query": {
+            "text": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+            "ragRetrievalConfig": {
+              "topK": 10
+            }
+          }
+        }
+      },
+      "ts": "2026-11-03T17:04:30.431Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "retrieve",
+      "duration_ms": 397,
+      "payload": {
+        "api_request": {
+          "vertexRagStore": {
+            "ragResources": [
+              {
+                "ragCorpus": "projects/${GCP_PROJECT_ID}/locations/us-central1/ragCorpora/${RAG_ENGINE_CORPUS_ID}"
+              }
+            ]
+          },
+          "query": {
+            "text": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+            "ragRetrievalConfig": {
+              "topK": 10
+            }
+          }
+        },
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "location": "us-central1",
+        "embedding_model": "text-embedding-005",
+        "rows_returned": 10,
+        "api_ms": 397,
+        "attempts": 1,
+        "retrieval_api_fee_usd": 0.0,
+        "query_embedding_tokens": "managed internally by Vertex AI RAG Engine",
+        "solicitation_filter": "all corpus files",
+        "contexts": [
+          {
+            "rank": 1,
+            "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "solicitation_id": "solicitation_02",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2054,
+            "text": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DATA-SLA-3.1,CLIN-1004\r\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\r\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\r\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\r\n To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\r\n is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\r\n streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\r\n BigQuery Storage Write API committed streams.\r\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\r\n For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\r\n a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\r\n ($1,224,000 annual total for 6,000 TB instead of $1,440,000).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 2,
+            "chunk_id": "rag_5823471087807006_p1_5823471087802484",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "solicitation_id": "solicitation_02",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2724,
+            "text": "SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\r\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\r\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\r\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\r\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\r\n PII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\r\n3. Medallion Storage in BigQuery + BigLake Iceberg:\r\n - Bronze Layer: Raw append-only change-data-capture (CDC) tables.\r\n - Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\r\n - Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\r\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\r\nCloud Pub/Sub Ingest Dataflow + Cloud DLP BigQuery Bronze (Raw)\r\nBigQuery Silver (Curated) BigQuery Gold (Governed) Vertex AI Feature Store\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 3,
+            "chunk_id": "rag_5823471084770169_p1_5823471084775350",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "solicitation_id": "solicitation_02",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2729,
+            "text": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\r\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\r\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\r\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\r\nCatalog governance, column-level policy tags, and fine-grained row-level security.\r\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\r\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\r\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\r\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 4,
+            "chunk_id": "rag_5823471092870070_p1_5823471092868229",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "solicitation_id": "solicitation_02",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2739,
+            "text": "SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\r\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\r\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\r\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\r\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\r\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\r\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\r\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 5,
+            "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "last_page": 2,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2977,
+            "text": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\r\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 6,
+            "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2995,
+            "text": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB\r\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\r\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\r\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\r\n Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\r\n The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\r\n and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\r\n (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\r\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\r\n Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\r\n the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\r\n is increased from $210.00/hr to $245.00/hr.\r\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\r\n When contracted CLIN-0004-AB hours exceed 1,500 hou"
+          },
+          {
+            "rank": 7,
+            "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3056,
+            "text": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\r\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\r\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\r\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\r\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 8,
+            "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3106,
+            "text": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\r\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\r\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\r\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\r\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\r\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\r\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\r\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\r\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\r\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\r\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Proc"
+          },
+          {
+            "rank": 9,
+            "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "solicitation_id": "solicitation_03",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3141,
+            "text": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\r\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\r\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\r\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\r\n Aggregate liability under this Agreement is capped at two times (2x) the total\r\n annual contract value, excluding willful misconduct or indemnification obligations.\r\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\r\n Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\r\n MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\r\n CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\r\n CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\r\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 10,
+            "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "last_page": 2,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3182,
+            "text": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\r\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\r\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\r\nThe Contractor shall maintain multi-region cloud infrastructure with an original\r\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\r\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\r\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\r\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\r\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\r\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\r\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\r\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement RecordSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation."
+          }
+        ]
+      },
+      "ts": "2026-11-03T17:04:30.828Z",
+      "t_rel_ms": 398
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "synthesize",
+      "label": "VertexRagStore grounded synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon + VertexRagStore",
+      "request": {
+        "model": "gemini-4-argon",
+        "pseudo_model": "vertex-rag-engine-grounded",
+        "location": "global",
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "top_k": 10,
+        "thinking_level": "HIGH",
+        "method": "models.generate_content (VertexRagStore tool)"
+      },
+      "ts": "2026-11-03T17:04:30.829Z",
+      "t_rel_ms": 399
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "synthesize",
+      "duration_ms": 39335,
+      "payload": {
+        "model": "vertex-rag-engine-grounded",
+        "underlying_gemini_model": "gemini-4-argon",
+        "provider": "vertex_rag_engine",
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "thinking_level": "HIGH",
+        "prompt_tokens": 385,
+        "output_tokens": 727,
+        "thinking_tokens": 1802,
+        "grounding_chunks_count": 4,
+        "stop_reason": "STOP",
+        "response_id": "HhTqapjqNdC9w8cP2vPp-QQ",
+        "answer": "**1. Modification to the Streaming Ingestion Latency SLA (DATA-SLA-3.1)**\n* In the base solicitation (`01_RFP_Data_Platform.pdf`, Page 1), Clause DATA-SLA-3.1 originally required that end-to-end streaming ingestion latency from Cloud Pub/Sub through Apache Beam / Dataflow into BigQuery Silver tables not exceed 30 seconds (p99).\n* Addendum 0001 (`05_Amendments_and_Addenda.pdf`, Page 1) supersedes Clause DATA-SLA-3.1 to support real-time fraud detection, reducing the maximum end-to-end Pub/Sub to Dataflow to BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\n\n**2. Modification to the Annual Cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004)**\n* In the base pricing schedule (`03_Pricing_and_Volume_Tiers.pdf`, Page 1), CLIN-1004 (Active Lakehouse Storage) for a monthly quantity of 6,000 TB was priced at a base unit rate of $20.00/TB/mo for an annual total of $1,440,000.\n* Addendum 0001 (`05_Amendments_and_Addenda.pdf`, Page 1) supersedes CLIN-1004 by introducing a 15% volume discount for Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), which reduces the effective rate from $20.00/TB/mo to $17.00/TB/mo and lowers the annual cost for 6,000 TB from $1,440,000 to $1,224,000.\n\n**3. Three Medallion Storage Layers in the Architecture Diagram**\n* In Exhibit A (`02_Architecture_Requirements.pdf`, Page 1), the Lakehouse Medallion Pipeline specification (ARCH-MEDALLION-02) and vector diagram define three Medallion storage layers in BigQuery and BigLake Iceberg:\n  * **Bronze Layer (`BigQuery Bronze (Raw)`)**: Consists of raw append-only change-data-capture (CDC) tables (`02_Architecture_Requirements.pdf`, Page 1).\n  * **Silver Layer (`BigQuery Silver (Curated)`)**: Consists of deduplicated, schema-enforced enterprise entity tables (`02_Architecture_Requirements.pdf`, Page 1).\n  * **Gold Layer (`BigQuery Gold (Governed)`)**: Consists of governed semantic marts and Vertex AI Feature Store embeddings (`02_Architecture_Requirements.pdf`, Page 1)."
+      },
+      "ts": "2026-11-03T17:05:10.164Z",
+      "t_rel_ms": 39734
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-11-03T17:05:10.165Z",
+      "t_rel_ms": 39735
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_91043e253a17",
+      "engine": "rag_engine",
+      "stage": "evaluate",
+      "duration_ms": 4760,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 0.97,
+        "context_precision": 0.45,
+        "reference_answer_used": true,
+        "input_tokens": 7581,
+        "output_tokens": 406,
+        "judge_cost_usd": 0.038444,
+        "rationale": "Every claim is directly supported by the retrieved chunks: the 30s-to-5s p99 SLA change via Storage Write API, the 15% discount lowering the rate from $20 to $17/TB/mo and the annual cost from $1,440,000 to $1,224,000, and the Bronze/Silver/Gold layer descriptions. The answer fully matches the reference, missing only the explicit $216,000 annual savings figure, which follows directly from the stated totals. The four top-ranked chunks are on-target for SOL-2026-DATA-02, but roughly half the retrieved context comes from unrelated solicitations (SOL-2026-CLOUD-01 and SOL-2026-SEC-03), which dilut",
+        "judge_response_id": "msg_vrtx_011CggMkYa4xA3osUBi7Auuz"
+      },
+      "ts": "2026-11-03T17:05:14.926Z",
+      "t_rel_ms": 44496
+    }
+  ],
+  "result": {
+    "engine_id": "rag_engine",
+    "engine_label": "Level 6: Managed Vertex AI RAG Engine",
+    "answer": "**1. Modification to the Streaming Ingestion Latency SLA (DATA-SLA-3.1)**\n* In the base solicitation (`01_RFP_Data_Platform.pdf`, Page 1), Clause DATA-SLA-3.1 originally required that end-to-end streaming ingestion latency from Cloud Pub/Sub through Apache Beam / Dataflow into BigQuery Silver tables not exceed 30 seconds (p99).\n* Addendum 0001 (`05_Amendments_and_Addenda.pdf`, Page 1) supersedes Clause DATA-SLA-3.1 to support real-time fraud detection, reducing the maximum end-to-end Pub/Sub to Dataflow to BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\n\n**2. Modification to the Annual Cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004)**\n* In the base pricing schedule (`03_Pricing_and_Volume_Tiers.pdf`, Page 1), CLIN-1004 (Active Lakehouse Storage) for a monthly quantity of 6,000 TB was priced at a base unit rate of $20.00/TB/mo for an annual total of $1,440,000.\n* Addendum 0001 (`05_Amendments_and_Addenda.pdf`, Page 1) supersedes CLIN-1004 by introducing a 15% volume discount for Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), which reduces the effective rate from $20.00/TB/mo to $17.00/TB/mo and lowers the annual cost for 6,000 TB from $1,440,000 to $1,224,000.\n\n**3. Three Medallion Storage Layers in the Architecture Diagram**\n* In Exhibit A (`02_Architecture_Requirements.pdf`, Page 1), the Lakehouse Medallion Pipeline specification (ARCH-MEDALLION-02) and vector diagram define three Medallion storage layers in BigQuery and BigLake Iceberg:\n  * **Bronze Layer (`BigQuery Bronze (Raw)`)**: Consists of raw append-only change-data-capture (CDC) tables (`02_Architecture_Requirements.pdf`, Page 1).\n  * **Silver Layer (`BigQuery Silver (Curated)`)**: Consists of deduplicated, schema-enforced enterprise entity tables (`02_Architecture_Requirements.pdf`, Page 1).\n  * **Gold Layer (`BigQuery Gold (Governed)`)**: Consists of governed semantic marts and Vertex AI Feature Store embeddings (`02_Architecture_Requirements.pdf`, Page 1).",
+    "citations": [
+      {
+        "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r ADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r DOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=D",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471087807006_p1_5823471087802484",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\r EXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\r DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AM",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471084770169_p1_5823471084775350",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\r SOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\r DOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r Solic",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471092870070_p1_5823471092868229",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\r SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\r DOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 2,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 2,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r Factor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r Offerors must acknowledge all formal Amendments (0001 and 0002) prior to",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r DOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r VENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r DOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r S",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r DOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r Base Solicitati",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r MASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r DOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r DOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r Solicit",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DATA-SLA-3.1,CLIN-1004\r\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\r\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\r\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\r\n To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\r\n is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\r\n streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\r\n BigQuery Storage Write API committed streams.\r\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\r\n For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\r\n a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\r\n ($1,224,000 annual total for 6,000 TB instead of $1,440,000).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+        "score": 0.2054,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471087807006_p1_5823471087802484",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\r\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\r\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\r\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\r\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\r\n PII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\r\n3. Medallion Storage in BigQuery + BigLake Iceberg:\r\n - Bronze Layer: Raw append-only change-data-capture (CDC) tables.\r\n - Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\r\n - Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\r\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\r\nCloud Pub/Sub Ingest Dataflow + Cloud DLP BigQuery Bronze (Raw)\r\nBigQuery Silver (Curated) BigQuery Gold (Governed) Vertex AI Feature Store\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+        "score": 0.2724,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471084770169_p1_5823471084775350",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\r\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\r\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\r\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\r\nCatalog governance, column-level policy tags, and fine-grained row-level security.\r\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\r\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\r\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\r\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+        "score": 0.2729,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471092870070_p1_5823471092868229",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\r\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\r\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\r\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\r\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\r\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\r\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\r\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+        "score": 0.2739,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 2,
+        "bbox": {
+          "page": 2,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\r\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.2977,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB\r\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\r\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\r\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\r\n Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\r\n The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\r\n and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\r\n (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\r\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\r\n Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\r\n the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\r\n is increased from $210.00/hr to $245.00/hr.\r\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\r\n When contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\r\n volume discount applies to the entire CLIN-0004-AB order:\r\n For 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.2995,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\r\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\r\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\r\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\r\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.3056,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\r\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\r\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\r\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\r\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\r\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\r\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\r\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\r\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\r\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\r\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.3106,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\r\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\r\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\r\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\r\n Aggregate liability under this Agreement is capped at two times (2x) the total\r\n annual contract value, excluding willful misconduct or indemnification obligations.\r\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\r\n Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\r\n MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\r\n CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\r\n CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\r\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.3141,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\r\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\r\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\r\nThe Contractor shall maintain multi-region cloud infrastructure with an original\r\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\r\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\r\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\r\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\r\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\r\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\r\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\r\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement RecordSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\r\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.",
+        "score": 0.3182,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 39734,
+    "cost_usd": 0.02606,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-03T17:04:30.430Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+          "prepared_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "SLA",
+              "expansion": "Service Level Agreement"
+            }
+          ],
+          "sent_to": "Vertex AI RAG Engine query.text"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "Vertex AI RAG Engine (:retrieveContexts)",
+        "service": "Vertex AI RAG Engine \u00b7 retrieveContexts",
+        "status": "completed",
+        "started_at": "2026-11-03T17:04:30.431Z",
+        "duration_ms": 397,
+        "request": {},
+        "payload": {
+          "api_request": {
+            "vertexRagStore": {
+              "ragResources": [
+                {
+                  "ragCorpus": "projects/${GCP_PROJECT_ID}/locations/us-central1/ragCorpora/${RAG_ENGINE_CORPUS_ID}"
+                }
+              ]
+            },
+            "query": {
+              "text": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+              "ragRetrievalConfig": {
+                "topK": 10
+              }
+            }
+          },
+          "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+          "location": "us-central1",
+          "embedding_model": "text-embedding-005",
+          "rows_returned": 10,
+          "api_ms": 397,
+          "attempts": 1,
+          "retrieval_api_fee_usd": 0.0,
+          "query_embedding_tokens": "managed internally by Vertex AI RAG Engine",
+          "solicitation_filter": "all corpus files",
+          "contexts": [
+            {
+              "rank": 1,
+              "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "solicitation_id": "solicitation_02",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2054,
+              "text": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DATA-SLA-3.1,CLIN-1004\r\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\r\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\r\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\r\n To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\r\n is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\r\n streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\r\n BigQuery Storage Write API committed streams.\r\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\r\n For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\r\n a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\r\n ($1,224,000 annual total for 6,000 TB instead of $1,440,000).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 2,
+              "chunk_id": "rag_5823471087807006_p1_5823471087802484",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "solicitation_id": "solicitation_02",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2724,
+              "text": "SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\r\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\r\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\r\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\r\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\r\n PII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\r\n3. Medallion Storage in BigQuery + BigLake Iceberg:\r\n - Bronze Layer: Raw append-only change-data-capture (CDC) tables.\r\n - Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\r\n - Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\r\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\r\nCloud Pub/Sub Ingest Dataflow + Cloud DLP BigQuery Bronze (Raw)\r\nBigQuery Silver (Curated) BigQuery Gold (Governed) Vertex AI Feature Store\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 3,
+              "chunk_id": "rag_5823471084770169_p1_5823471084775350",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "solicitation_id": "solicitation_02",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2729,
+              "text": "SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\r\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\r\nDOC_TYPE=BASE_RFP | SECTION=DATA-SLA-3.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\r\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\r\nCatalog governance, column-level policy tags, and fine-grained row-level security.\r\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\r\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\r\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\r\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 4,
+              "chunk_id": "rag_5823471092870070_p1_5823471092868229",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "solicitation_id": "solicitation_02",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2739,
+              "text": "SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\r\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-1001 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS=NONE\r\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\r\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\r\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\r\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\r\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\r\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\r\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 5,
+              "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "last_page": 2,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2977,
+              "text": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\r\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 6,
+              "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2995,
+              "text": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB\r\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\r\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\r\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\r\n Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\r\n The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\r\n and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\r\n (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\r\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\r\n Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\r\n the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\r\n is increased from $210.00/hr to $245.00/hr.\r\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\r\n When contracted CLIN-0004-AB hours exceed 1,500 hou"
+            },
+            {
+              "rank": 7,
+              "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3056,
+              "text": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\r\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\r\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\r\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\r\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 8,
+              "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3106,
+              "text": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\r\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\r\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\r\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\r\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\r\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\r\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\r\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\r\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\r\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\r\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Proc"
+            },
+            {
+              "rank": 9,
+              "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "solicitation_id": "solicitation_03",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3141,
+              "text": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\r\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\r\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\r\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\r\n Aggregate liability under this Agreement is capped at two times (2x) the total\r\n annual contract value, excluding willful misconduct or indemnification obligations.\r\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\r\n Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\r\n MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\r\n CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\r\n CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\r\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 10,
+              "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "last_page": 2,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3182,
+              "text": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\r\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\r\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\r\nThe Contractor shall maintain multi-region cloud infrastructure with an original\r\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\r\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\r\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\r\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\r\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\r\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\r\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\r\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement RecordSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation."
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "VertexRagStore grounded synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon + VertexRagStore",
+        "status": "completed",
+        "started_at": "2026-11-03T17:04:30.829Z",
+        "duration_ms": 39335,
+        "request": {},
+        "payload": {
+          "model": "vertex-rag-engine-grounded",
+          "underlying_gemini_model": "gemini-4-argon",
+          "provider": "vertex_rag_engine",
+          "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+          "thinking_level": "HIGH",
+          "prompt_tokens": 385,
+          "output_tokens": 727,
+          "thinking_tokens": 1802,
+          "grounding_chunks_count": 4,
+          "stop_reason": "STOP",
+          "response_id": "HhTqapjqNdC9w8cP2vPp-QQ",
+          "answer": "**1. Modification to the Streaming Ingestion Latency SLA (DATA-SLA-3.1)**\n* In the base solicitation (`01_RFP_Data_Platform.pdf`, Page 1), Clause DATA-SLA-3.1 originally required that end-to-end streaming ingestion latency from Cloud Pub/Sub through Apache Beam / Dataflow into BigQuery Silver tables not exceed 30 seconds (p99).\n* Addendum 0001 (`05_Amendments_and_Addenda.pdf`, Page 1) supersedes Clause DATA-SLA-3.1 to support real-time fraud detection, reducing the maximum end-to-end Pub/Sub to Dataflow to BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\n\n**2. Modification to the Annual Cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004)**\n* In the base pricing schedule (`03_Pricing_and_Volume_Tiers.pdf`, Page 1), CLIN-1004 (Active Lakehouse Storage) for a monthly quantity of 6,000 TB was priced at a base unit rate of $20.00/TB/mo for an annual total of $1,440,000.\n* Addendum 0001 (`05_Amendments_and_Addenda.pdf`, Page 1) supersedes CLIN-1004 by introducing a 15% volume discount for Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), which reduces the effective rate from $20.00/TB/mo to $17.00/TB/mo and lowers the annual cost for 6,000 TB from $1,440,000 to $1,224,000.\n\n**3. Three Medallion Storage Layers in the Architecture Diagram**\n* In Exhibit A (`02_Architecture_Requirements.pdf`, Page 1), the Lakehouse Medallion Pipeline specification (ARCH-MEDALLION-02) and vector diagram define three Medallion storage layers in BigQuery and BigLake Iceberg:\n  * **Bronze Layer (`BigQuery Bronze (Raw)`)**: Consists of raw append-only change-data-capture (CDC) tables (`02_Architecture_Requirements.pdf`, Page 1).\n  * **Silver Layer (`BigQuery Silver (Curated)`)**: Consists of deduplicated, schema-enforced enterprise entity tables (`02_Architecture_Requirements.pdf`, Page 1).\n  * **Gold Layer (`BigQuery Gold (Governed)`)**: Consists of governed semantic marts and Vertex AI Feature Store embeddings (`02_Architecture_Requirements.pdf`, Page 1)."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 385,
+      "output_tokens": 727,
+      "embedding_tokens": 0,
+      "thinking_tokens": 1802,
+      "model": "vertex-rag-engine-grounded",
+      "embedding_model": "text-embedding-005"
+    },
+    "flags": {
+      "reranker_used": false,
+      "adk_runner_used": false,
+      "layout_source": "vertex_ai_rag_engine"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 0.97,
+      "context_precision": 0.45
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 4759,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 7581,
+    "output_tokens": 406,
+    "judge_cost_usd": 0.038444,
+    "rationale": "Every claim is directly supported by the retrieved chunks: the 30s-to-5s p99 SLA change via Storage Write API, the 15% discount lowering the rate from $20 to $17/TB/mo and the annual cost from $1,440,000 to $1,224,000, and the Bronze/Silver/Gold layer descriptions. The answer fully matches the reference, missing only the explicit $216,000 annual savings figure, which follows directly from the stated totals. The four top-ranked chunks are on-target for SOL-2026-DATA-02, but roughly half the retrieved context comes from unrelated solicitations (SOL-2026-CLOUD-01 and SOL-2026-SEC-03), which dilut",
+    "judge_response_id": "msg_vrtx_011CggMkYa4xA3osUBi7Auuz"
+  }
+}

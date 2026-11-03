@@ -28,7 +28,7 @@ export interface WorkspaceIngestCardProps {
 function levelStatusPill(entry: UploadLevelStatus | undefined): { tone: PillTone; text: string } {
   if (!entry) return { tone: "neutral", text: "not ingested" };
   if (entry.status === "completed") {
-    const unit = entry.tier_profile === "managed_vertex" ? "docs" : "chunks";
+    const unit = entry.tier_profile === "managed_vertex" ? "docs" : entry.tier_profile === "rag_engine" ? "files" : "chunks";
     const count = typeof entry.chunks === "number" ? ` · ${entry.chunks} ${unit}` : "";
     return { tone: "ok", text: `completed${count}` };
   }

@@ -6,6 +6,7 @@ import {
   modelLabel,
   optionStates,
   providerLabel,
+  restrictedOptionSuffix,
   type ModelSelection,
   type ReplayGate,
 } from "./modelSelection";
@@ -50,7 +51,7 @@ const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, ot
         {options.map((o) => (
           <option key={o.entry.id} value={o.entry.id} disabled={o.disabled} title={o.reason ? mask(o.reason) : undefined}>
             {o.entry.label} · {providerLabel(o.entry.provider)} · {o.entry.location}
-            {o.unavailable ? " — unavailable" : o.restricted ? " — Level 5 only" : o.disabled ? (role === "judge" ? " — used for synthesis" : " — used as judge") : ""}
+            {o.unavailable ? " — unavailable" : o.restricted ? restrictedOptionSuffix(o.entry) : o.disabled ? (role === "judge" ? " — used for synthesis" : " — used as judge") : ""}
           </option>
         ))}
       </select>

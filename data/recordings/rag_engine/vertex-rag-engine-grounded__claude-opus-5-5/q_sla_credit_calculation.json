@@ -1,0 +1,1089 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-03T17:07:37.640Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "vertex-rag-engine-grounded",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "vertex-rag-engine-grounded",
+      "reasoning": "gemini-4-argon",
+      "embedding": "text-embedding-005",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "8e4a18873722f0a8c739d191d28f9be35d883287",
+    "app_version": "1.2.0",
+    "engine": "rag_engine",
+    "question_id": "q_sla_credit_calculation",
+    "query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+    "run_id": "run_c54072e42df7"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-11-03T17:06:01.816Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+        "prepared_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "sent_to": "Vertex AI RAG Engine query.text"
+      },
+      "ts": "2026-11-03T17:06:01.816Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "retrieve",
+      "label": "Vertex AI RAG Engine (:retrieveContexts)",
+      "service": "Vertex AI RAG Engine \u00b7 retrieveContexts",
+      "request": {
+        "method": "POST",
+        "endpoint": "locations/us-central1:retrieveContexts",
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "body": {
+          "vertexRagStore": {
+            "ragResources": [
+              {
+                "ragCorpus": "projects/${GCP_PROJECT_ID}/locations/us-central1/ragCorpora/${RAG_ENGINE_CORPUS_ID}"
+              }
+            ]
+          },
+          "query": {
+            "text": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+            "ragRetrievalConfig": {
+              "topK": 10
+            }
+          }
+        }
+      },
+      "ts": "2026-11-03T17:06:01.817Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "retrieve",
+      "duration_ms": 683,
+      "payload": {
+        "api_request": {
+          "vertexRagStore": {
+            "ragResources": [
+              {
+                "ragCorpus": "projects/${GCP_PROJECT_ID}/locations/us-central1/ragCorpora/${RAG_ENGINE_CORPUS_ID}"
+              }
+            ]
+          },
+          "query": {
+            "text": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+            "ragRetrievalConfig": {
+              "topK": 10
+            }
+          }
+        },
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "location": "us-central1",
+        "embedding_model": "text-embedding-005",
+        "rows_returned": 10,
+        "api_ms": 682,
+        "attempts": 1,
+        "retrieval_api_fee_usd": 0.0,
+        "query_embedding_tokens": "managed internally by Vertex AI RAG Engine",
+        "solicitation_filter": "all corpus files",
+        "contexts": [
+          {
+            "rank": 1,
+            "chunk_id": "rag_5823471036933809_p1_5823471036942548",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2319,
+            "text": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\r\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\r\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\r\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\r\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\r\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\r\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\r\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\r\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\r\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\r\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\r\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 2,
+            "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2593,
+            "text": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\r\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\r\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\r\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\r\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\r\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\r\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\r\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\r\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\r\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\r\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Proc"
+          },
+          {
+            "rank": 3,
+            "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "last_page": 2,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2931,
+            "text": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\r\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 4,
+            "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.2985,
+            "text": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\r\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\r\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\r\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\r\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 5,
+            "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "last_page": 2,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3028,
+            "text": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\r\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\r\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\r\nThe Contractor shall maintain multi-region cloud infrastructure with an original\r\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\r\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\r\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\r\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\r\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\r\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\r\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\r\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement RecordSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation."
+          },
+          {
+            "rank": 6,
+            "chunk_id": "rag_5823471013054714_p1_5823471013062558",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3054,
+            "text": "SOL-2026-CLOUD-01 | 02_Statement_of_Work_SOW.pdf\r\nSTATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\r\nDOC_TYPE=SOW | SECTION=SOW-2.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSOW Section 2.1: Phased Workload Migration & Deliverable Payment Schedule\r\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\r\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\r\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\r\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |\r\nSOW Section 3.2: Contractor shall provide weekly burn-rate telemetry in BigQuery.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 7,
+            "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3131,
+            "text": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB\r\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\r\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\r\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\r\n Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\r\n The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\r\n and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\r\n (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\r\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\r\n Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\r\n the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\r\n is increased from $210.00/hr to $245.00/hr.\r\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\r\n When contracted CLIN-0004-AB hours exceed 1,500 hou"
+          },
+          {
+            "rank": 8,
+            "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "solicitation_id": "solicitation_03",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.326,
+            "text": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\r\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\r\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\r\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\r\n Aggregate liability under this Agreement is capped at two times (2x) the total\r\n annual contract value, excluding willful misconduct or indemnification obligations.\r\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\r\n Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\r\n MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\r\n CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\r\n CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\r\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 9,
+            "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "solicitation_id": "solicitation_02",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.3347,
+            "text": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DATA-SLA-3.1,CLIN-1004\r\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\r\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\r\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\r\n To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\r\n is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\r\n streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\r\n BigQuery Storage Write API committed streams.\r\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\r\n For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\r\n a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\r\n ($1,224,000 annual total for 6,000 TB instead of $1,440,000).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+          },
+          {
+            "rank": 10,
+            "chunk_id": "rag_5823471078521015_p1_5823471078533347",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "solicitation_id": "solicitation_01",
+            "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "last_page": 1,
+            "page_source": "chunk.pageSpan",
+            "score": 0.34,
+            "text": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\r\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\r\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\r\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\r\n enforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\r\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\r\n Cloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\r\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\r\n cross-region replica and automated failover to Secondary Region us-east4.\r\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\r\n privately to BigQuery and Vertex AI without traversing the public internet.\r\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\r\nCloud Armor WAF + Global LB Cloud HA VPN (BGP ASN 64512) Primary VPC: us-central1\r\nFailover VPC: us-east4 Private Service Connect (PSC) BigQuery + Vertex AI"
+          }
+        ]
+      },
+      "ts": "2026-11-03T17:06:02.500Z",
+      "t_rel_ms": 684
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "synthesize",
+      "label": "VertexRagStore grounded synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon + VertexRagStore",
+      "request": {
+        "model": "gemini-4-argon",
+        "pseudo_model": "vertex-rag-engine-grounded",
+        "location": "global",
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "top_k": 10,
+        "thinking_level": "HIGH",
+        "method": "models.generate_content (VertexRagStore tool)"
+      },
+      "ts": "2026-11-03T17:06:02.501Z",
+      "t_rel_ms": 685
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "synthesize",
+      "duration_ms": 89918,
+      "payload": {
+        "model": "vertex-rag-engine-grounded",
+        "underlying_gemini_model": "gemini-4-argon",
+        "provider": "vertex_rag_engine",
+        "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+        "thinking_level": "HIGH",
+        "prompt_tokens": 390,
+        "output_tokens": 1669,
+        "thinking_tokens": 3264,
+        "grounding_chunks_count": 3,
+        "stop_reason": "STOP",
+        "response_id": "ehTqat2BI_Cjw8cPuMSquQM",
+        "answer": "Under Solicitation 01 (`SOL-2026-CLOUD-01`), the combined dollar SLA service credit owed under Exhibit 05 (`05_SLA_and_QASP_Requirements.pdf`, Page 1) is **$13,750.00** (or **$12,500.00** if CLIN-0002-AA is categorized as a P2 High Non-Core Service).\n\n---\n\n### 1. Applicable SLA Formula and Tiers (`05_SLA_and_QASP_Requirements.pdf`, Page 1)\nPer Clause SLA-4.2 (Monthly Infrastructure Availability & Service Credit Formula) in `05_SLA_and_QASP_Requirements.pdf` (Page 1), service credits are calculated using the formula `Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage` based on the following availability tiers:\n* **P1 Critical (`99.99% Target (<99.99% to 99.50%)`):** `10% of Monthly CLIN Fee`.\n* **P1 Severe Breach (`< 99.50% Monthly Availability`):** `25% of Monthly CLIN Fee`.\n* **P2 High (`< 99.90% Non-Core Services`):** `5% of Monthly CLIN Fee`.\n\n---\n\n### 2. Step-by-Step Credit Calculation for Month 4\n\n#### **A. Shared VPC & Landing Zone Core (CLIN-0001-AA)**\n* **Monthly CLIN Fee:** According to Schedule B (`04_Pricing_Schedule_CLINs.pdf`, Page 1), CLIN-0001-AA has a base rate of **$45,000/mo**.\n* **Applicable SLA Tier:** At **99.40%** monthly availability (`< 99.50%`), CLIN-0001-AA triggers a **P1 Severe Breach**, which carries a **25%** service credit (`05_SLA_and_QASP_Requirements.pdf`, Page 1).\n* **SLA Credit Owed:** `05_SLA_and_QASP_Requirements.pdf` (Page 1) explicitly provides this exact calculation as an example: `$45,000 * 0.25 = $11,250.00`.\n\n#### **B. GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 Active Nodes)**\n* **Monthly CLIN Fee:** According to Schedule B (`04_Pricing_Schedule_CLINs.pdf`, Page 1), CLIN-0002-AA is billed per `Node-Mo` at a base rate of **$1,250/mo** (with 240 total Node-Months in Year 1, or 20 nodes per month). For 20 active nodes in Month 4, the monthly CLIN invoice is `20 nodes * $1,250/mo = $25,000.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1).\n* **Applicable SLA Tier & Credit (Primary \u2014 P1 Critical):** In Statement of Work Section 2.1 (`02_Statement_of_Work_SOW.pdf`, Page 1), CLIN-0002-AA supports \"Core ERP & 45 Microservices on GKE\". At **99.70%** monthly availability, it falls within the **P1 Critical** range (`<99.99% to 99.50%`), which carries a **10%** service credit (`05_SLA_and_QASP_Requirements.pdf`, Page 1).\n  * **SLA Credit Owed (P1 Critical):** `$25,000.00 * 0.10 = $2,500.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1; `05_SLA_and_QASP_Requirements.pdf`, Page 1).\n* **Alternative Tier (If Treated as P2 High Non-Core Services):** If CLIN-0002-AA were evaluated under the **P2 High** tier (`< 99.90% Non-Core Services`), a **5%** service credit would apply, equaling `$25,000.00 * 0.05 = $1,250.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1; `05_SLA_and_QASP_Requirements.pdf`, Page 1).\n\n---\n\n### 3. Combined Dollar SLA Service Credit Summary\n\n| CLIN | Service Description | Month 4 Invoice | Availability | SLA Tier & Credit % | Dollar Credit Owed |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **CLIN-0001-AA** | Shared VPC & Landing Zone Core | $45,000.00 | 99.40% | P1 Severe Breach (25%) | **$11,250.00** |\n| **CLIN-0002-AA** | GKE Enterprise Managed Cluster (20 nodes) | $25,000.00 | 99.70% | P1 Critical (10%) *(or P2 High 5%)* | **$2,500.00** *(or $1,250.00)* |\n| **Combined Total** | | **$70,000.00** | | | **$13,750.00** *(or $12,500.00)* |\n\nBased on `04_Pricing_Schedule_CLINs.pdf` (Page 1) and `05_SLA_and_QASP_Requirements.pdf` (Page 1), the combined SLA service credit owed is **$13,750.00** (`$11,250.00 + $2,500.00`), or **$12,500.00** (`$11,250.00 + $1,250.00`) if CLIN-0002-AA is classified as a non-core service."
+      },
+      "ts": "2026-11-03T17:07:32.420Z",
+      "t_rel_ms": 90603
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-11-03T17:07:32.420Z",
+      "t_rel_ms": 90604
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_c54072e42df7",
+      "engine": "rag_engine",
+      "stage": "evaluate",
+      "duration_ms": 5220,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.92,
+        "qa_relevance": 0.85,
+        "context_precision": 0.4,
+        "reference_answer_used": true,
+        "input_tokens": 8534,
+        "output_tokens": 432,
+        "judge_cost_usd": 0.042776,
+        "rationale": "All figures ($45,000/mo, $1,250/node-month, the 25% and 10% tiers, and the $11,250 and $2,500 credits) are directly supported by the pricing and SLA chunks; the P2 High alternative is speculative, though it is based on a tier that does appear in context. The primary answer of $13,750.00 matches the reference, but hedging with an alternative $12,500.00 total adds ambiguity to what should be a definitive answer. Only the SLA-4.2 and pricing chunks are needed, while much of the retrieved context is irrelevant, including other solicitations (SEC-03, DATA-02), architecture, DR amendments, and the v",
+        "judge_response_id": "msg_vrtx_011CggMw4tETpLgBLDFyrnWb"
+      },
+      "ts": "2026-11-03T17:07:37.640Z",
+      "t_rel_ms": 95824
+    }
+  ],
+  "result": {
+    "engine_id": "rag_engine",
+    "engine_label": "Level 6: Managed Vertex AI RAG Engine",
+    "answer": "Under Solicitation 01 (`SOL-2026-CLOUD-01`), the combined dollar SLA service credit owed under Exhibit 05 (`05_SLA_and_QASP_Requirements.pdf`, Page 1) is **$13,750.00** (or **$12,500.00** if CLIN-0002-AA is categorized as a P2 High Non-Core Service).\n\n---\n\n### 1. Applicable SLA Formula and Tiers (`05_SLA_and_QASP_Requirements.pdf`, Page 1)\nPer Clause SLA-4.2 (Monthly Infrastructure Availability & Service Credit Formula) in `05_SLA_and_QASP_Requirements.pdf` (Page 1), service credits are calculated using the formula `Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage` based on the following availability tiers:\n* **P1 Critical (`99.99% Target (<99.99% to 99.50%)`):** `10% of Monthly CLIN Fee`.\n* **P1 Severe Breach (`< 99.50% Monthly Availability`):** `25% of Monthly CLIN Fee`.\n* **P2 High (`< 99.90% Non-Core Services`):** `5% of Monthly CLIN Fee`.\n\n---\n\n### 2. Step-by-Step Credit Calculation for Month 4\n\n#### **A. Shared VPC & Landing Zone Core (CLIN-0001-AA)**\n* **Monthly CLIN Fee:** According to Schedule B (`04_Pricing_Schedule_CLINs.pdf`, Page 1), CLIN-0001-AA has a base rate of **$45,000/mo**.\n* **Applicable SLA Tier:** At **99.40%** monthly availability (`< 99.50%`), CLIN-0001-AA triggers a **P1 Severe Breach**, which carries a **25%** service credit (`05_SLA_and_QASP_Requirements.pdf`, Page 1).\n* **SLA Credit Owed:** `05_SLA_and_QASP_Requirements.pdf` (Page 1) explicitly provides this exact calculation as an example: `$45,000 * 0.25 = $11,250.00`.\n\n#### **B. GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 Active Nodes)**\n* **Monthly CLIN Fee:** According to Schedule B (`04_Pricing_Schedule_CLINs.pdf`, Page 1), CLIN-0002-AA is billed per `Node-Mo` at a base rate of **$1,250/mo** (with 240 total Node-Months in Year 1, or 20 nodes per month). For 20 active nodes in Month 4, the monthly CLIN invoice is `20 nodes * $1,250/mo = $25,000.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1).\n* **Applicable SLA Tier & Credit (Primary \u2014 P1 Critical):** In Statement of Work Section 2.1 (`02_Statement_of_Work_SOW.pdf`, Page 1), CLIN-0002-AA supports \"Core ERP & 45 Microservices on GKE\". At **99.70%** monthly availability, it falls within the **P1 Critical** range (`<99.99% to 99.50%`), which carries a **10%** service credit (`05_SLA_and_QASP_Requirements.pdf`, Page 1).\n  * **SLA Credit Owed (P1 Critical):** `$25,000.00 * 0.10 = $2,500.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1; `05_SLA_and_QASP_Requirements.pdf`, Page 1).\n* **Alternative Tier (If Treated as P2 High Non-Core Services):** If CLIN-0002-AA were evaluated under the **P2 High** tier (`< 99.90% Non-Core Services`), a **5%** service credit would apply, equaling `$25,000.00 * 0.05 = $1,250.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1; `05_SLA_and_QASP_Requirements.pdf`, Page 1).\n\n---\n\n### 3. Combined Dollar SLA Service Credit Summary\n\n| CLIN | Service Description | Month 4 Invoice | Availability | SLA Tier & Credit % | Dollar Credit Owed |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **CLIN-0001-AA** | Shared VPC & Landing Zone Core | $45,000.00 | 99.40% | P1 Severe Breach (25%) | **$11,250.00** |\n| **CLIN-0002-AA** | GKE Enterprise Managed Cluster (20 nodes) | $25,000.00 | 99.70% | P1 Critical (10%) *(or P2 High 5%)* | **$2,500.00** *(or $1,250.00)* |\n| **Combined Total** | | **$70,000.00** | | | **$13,750.00** *(or $12,500.00)* |\n\nBased on `04_Pricing_Schedule_CLINs.pdf` (Page 1) and `05_SLA_and_QASP_Requirements.pdf` (Page 1), the combined SLA service credit owed is **$13,750.00** (`$11,250.00 + $2,500.00`), or **$12,500.00** (`$11,250.00 + $1,250.00`) if CLIN-0002-AA is classified as a non-core service.",
+    "citations": [
+      {
+        "chunk_id": "rag_5823471036933809_p1_5823471036942548",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\r EXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\r DOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r Clause SLA-",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r DOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r Base Solicitati",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 2,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 2,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r Factor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r Offerors must acknowledge all formal Amendments (0001 and 0002) prior to",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r VENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r DOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r S",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r DOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r Solicit",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471013054714_p1_5823471013062558",
+        "doc_name": "02_Statement_of_Work_SOW.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 02_Statement_of_Work_SOW.pdf\r STATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\r DOC_TYPE=SOW | SECTION=SOW-2.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r SOW Section 2.1: Phased Worklo",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r DOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r MASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r DOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r ADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r DOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=D",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471078521015_p1_5823471078533347",
+        "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": null,
+        "element_type": "rag_chunk",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\r TECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\r DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE",
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "rag_5823471036933809_p1_5823471036942548",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\r\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\r\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\r\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\r\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\r\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\r\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\r\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\r\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\r\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\r\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\r\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.2319,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\r\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\r\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\r\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\r\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\r\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\r\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\r\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\r\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\r\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\r\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.2593,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 2,
+        "bbox": {
+          "page": 2,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\r\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.2931,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\r\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\r\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\r\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\r\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.2985,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\r\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\r\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\r\nThe Contractor shall maintain multi-region cloud infrastructure with an original\r\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\r\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\r\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\r\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\r\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\r\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\r\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\r\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement RecordSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 5: EVALUATION FACTORS & PROPOSAL SUBMISSION INSTRUCTIONS\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-5.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nFactor 1 (Technical Architecture - 40%): Verified via Technical Exhibit 03 diagram.\r\nFactor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.",
+        "score": 0.3028,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471013054714_p1_5823471013062558",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "02_Statement_of_Work_SOW.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 02_Statement_of_Work_SOW.pdf\r\nSTATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\r\nDOC_TYPE=SOW | SECTION=SOW-2.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSOW Section 2.1: Phased Workload Migration & Deliverable Payment Schedule\r\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\r\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\r\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\r\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |\r\nSOW Section 3.2: Contractor shall provide weekly burn-rate telemetry in BigQuery.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.3054,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB\r\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\r\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\r\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\r\n Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\r\n The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\r\n and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\r\n (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\r\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\r\n Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\r\n the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\r\n is increased from $210.00/hr to $245.00/hr.\r\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\r\n When contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\r\n volume discount applies to the entire CLIN-0004-AB order:\r\n For 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.3131,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\r\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\r\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\r\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\r\n Aggregate liability under this Agreement is capped at two times (2x) the total\r\n annual contract value, excluding willful misconduct or indemnification obligations.\r\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\r\n Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\r\n MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\r\n CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\r\n CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\r\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record",
+        "score": 0.326,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DATA-SLA-3.1,CLIN-1004\r\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\r\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\r\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\r\n To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\r\n is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\r\n streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\r\n BigQuery Storage Write API committed streams.\r\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\r\n For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\r\n a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\r\n ($1,224,000 annual total for 6,000 TB instead of $1,440,000).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record",
+        "score": 0.3347,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "rag_5823471078521015_p1_5823471078533347",
+        "tier_profile": "rag_engine",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+        "doc_type": "UNKNOWN",
+        "element_type": "rag_chunk",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\r\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\r\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\r\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\r\n enforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\r\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\r\n Cloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\r\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\r\n cross-region replica and automated failover to Secondary Region us-east4.\r\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\r\n privately to BigQuery and Vertex AI without traversing the public internet.\r\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\r\nCloud Armor WAF + Global LB Cloud HA VPN (BGP ASN 64512) Primary VPC: us-central1\r\nFailover VPC: us-east4 Private Service Connect (PSC) BigQuery + Vertex AI Endpoints\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record",
+        "score": 0.34,
+        "layout_source": "vertex_ai_rag_engine",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 90604,
+    "cost_usd": 0.05011,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-03T17:06:01.816Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+          "prepared_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "SLA",
+              "expansion": "Service Level Agreement"
+            },
+            {
+              "term": "VPC",
+              "expansion": "Virtual Private Cloud"
+            },
+            {
+              "term": "GKE",
+              "expansion": "Google Kubernetes Engine"
+            }
+          ],
+          "sent_to": "Vertex AI RAG Engine query.text"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "Vertex AI RAG Engine (:retrieveContexts)",
+        "service": "Vertex AI RAG Engine \u00b7 retrieveContexts",
+        "status": "completed",
+        "started_at": "2026-11-03T17:06:01.817Z",
+        "duration_ms": 683,
+        "request": {},
+        "payload": {
+          "api_request": {
+            "vertexRagStore": {
+              "ragResources": [
+                {
+                  "ragCorpus": "projects/${GCP_PROJECT_ID}/locations/us-central1/ragCorpora/${RAG_ENGINE_CORPUS_ID}"
+                }
+              ]
+            },
+            "query": {
+              "text": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+              "ragRetrievalConfig": {
+                "topK": 10
+              }
+            }
+          },
+          "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+          "location": "us-central1",
+          "embedding_model": "text-embedding-005",
+          "rows_returned": 10,
+          "api_ms": 682,
+          "attempts": 1,
+          "retrieval_api_fee_usd": 0.0,
+          "query_embedding_tokens": "managed internally by Vertex AI RAG Engine",
+          "solicitation_filter": "all corpus files",
+          "contexts": [
+            {
+              "rank": 1,
+              "chunk_id": "rag_5823471036933809_p1_5823471036942548",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2319,
+              "text": "SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\r\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\r\nDOC_TYPE=SLA_MATRIX | SECTION=SLA-4.2 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\r\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\r\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\r\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\r\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\r\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\r\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\r\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\r\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\r\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 2,
+              "chunk_id": "rag_5823471082132024_p1_5823471082135753",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2593,
+              "text": "SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\r\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\r\nDOC_TYPE=PRICING_CLIN | SECTION=CLIN-0004-AB | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\r\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\r\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\r\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\r\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\r\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\r\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\r\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\r\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\r\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\r\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Proc"
+            },
+            {
+              "rank": 3,
+              "chunk_id": "rag_5823471065005788_p2_5823471065010447",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "last_page": 2,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2931,
+              "text": "Factor 2 (Pricing & CLIN Realism - 35%): Evaluated against Schedule 04 CLIN tables.\r\nFactor 3 (SLA Commitments & QASP - 25%): Governed by Exhibit 05 penalty matrices.\r\nOfferors must acknowledge all formal Amendments (0001 and 0002) prior to award.\r\nPage 2 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 4,
+              "chunk_id": "rag_5823471057045740_p1_5823471057048943",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.2985,
+              "text": "SOL-2026-CLOUD-01 | 08_Vendor_A_Proposal_Redacted.pdf\r\nVENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)\r\nDOC_TYPE=VENDOR_PROPOSAL | SECTION=PROP-EXEC-01 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-04-10 | AMENDS=NONE\r\nSubmitted in Response to Solicitation SOL-2026-CLOUD-01 (Includes Amendments 0001 & 0002)\r\nVendor A proposes a dual-region us-central1 / us-east4 landing zone meeting the\r\namended 15-minute RTO and 0-minute RPO mandate via Cloud Spanner & Cloud SQL HA.\r\nPricing Acknowledgment: CLIN-0004-AB priced at $245/hr less 5% volume discount\r\nfor 2,000 hours ($465,500.00), matching Amendment 0001.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 5,
+              "chunk_id": "rag_5823471065005788_p1_5823471065007877",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "last_page": 2,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3028,
+              "text": "SOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation.pdf\r\nSECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES\r\nDOC_TYPE=BASE_RFP | SECTION=SEC-4.2.1 | ELEMENT=narrative_text | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSolicitation ID: SOL-2026-CLOUD-01 (Enterprise Cloud Hosting & Migration)\r\nIssuing Office: Enterprise IT Procurement Division | Base Effective Date: 2026-01-15\r\nClause SEC-4.2.1 (Disaster Recovery & Continuity Baseline):\r\nThe Contractor shall maintain multi-region cloud infrastructure with an original\r\nRecovery Time Objective (RTO) of 4 hours (240 minutes) and a Recovery Point Objective\r\n(RPO) of 1 hour (60 minutes) across Primary Region us-central1 and Failover us-east4.\r\nClause SEC-4.3.2 (Key Personnel & Labor Reference):\r\nLead architecture oversight is billed under CLIN-0004-AB (Cloud Security Architect)\r\nat the base solicitation hourly rate of $210/hr for an estimated 2,000 base hours\r\n($420,000.00 Year 1 ceiling), subject to formal contract amendments.\r\nAll proposals must comply with FedRAMP High and NIST SP 800-53 Rev 5 baselines.\r\nPage 1 of 2 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement RecordSOL-2026-CLOUD-01 | 01_RFP_Base_Solicitation."
+            },
+            {
+              "rank": 6,
+              "chunk_id": "rag_5823471013054714_p1_5823471013062558",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3054,
+              "text": "SOL-2026-CLOUD-01 | 02_Statement_of_Work_SOW.pdf\r\nSTATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\r\nDOC_TYPE=SOW | SECTION=SOW-2.1 | ELEMENT=table | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nSOW Section 2.1: Phased Workload Migration & Deliverable Payment Schedule\r\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\r\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\r\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\r\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |\r\nSOW Section 3.2: Contractor shall provide weekly burn-rate telemetry in BigQuery.\r\nPage 1 of 1 | SOL-2026-CLOUD-01 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 7,
+              "chunk_id": "rag_5823471086185829_p1_5823471086184898",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3131,
+              "text": "SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\r\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\r\nDOC_TYPE=AMENDMENT | SECTION=AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-15 | AMENDS=SEC-4.2.1,CLIN-0004-AB\r\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\r\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\r\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\r\n Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\r\n The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\r\n and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\r\n (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\r\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\r\n Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\r\n the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\r\n is increased from $210.00/hr to $245.00/hr.\r\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\r\n When contracted CLIN-0004-AB hours exceed 1,500 hou"
+            },
+            {
+              "rank": 8,
+              "chunk_id": "rag_5823471314868806_p1_5823471314876151",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "solicitation_id": "solicitation_03",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_03_cybersecurity_operations/05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.326,
+              "text": "SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\r\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\r\nDOC_TYPE=MSA | SECTION=MSA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-25 | AMENDS=CLIN-2001\r\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\r\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\r\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\r\n Aggregate liability under this Agreement is capped at two times (2x) the total\r\n annual contract value, excluding willful misconduct or indemnification obligations.\r\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\r\n Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\r\n MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\r\n CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\r\n CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\r\nPage 1 of 1 | SOL-2026-SEC-03 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 9,
+              "chunk_id": "rag_5823471104808634_p1_5823471104809252",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "solicitation_id": "solicitation_02",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_02_data_analytics_platform/05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.3347,
+              "text": "SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\r\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\r\nDOC_TYPE=AMENDMENT | SECTION=DATA-AMD-0001 | ELEMENT=narrative_text | AMENDMENT=1 | EFFECTIVE=2026-03-20 | AMENDS=DATA-SLA-3.1,CLIN-1004\r\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\r\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\r\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\r\n To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\r\n is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\r\n streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\r\n BigQuery Storage Write API committed streams.\r\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\r\n For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\r\n a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\r\n ($1,224,000 annual total for 6,000 TB instead of $1,440,000).\r\nPage 1 of 1 | SOL-2026-DATA-02 | Verified Enterprise Procurement Record"
+            },
+            {
+              "rank": 10,
+              "chunk_id": "rag_5823471078521015_p1_5823471078533347",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "solicitation_id": "solicitation_01",
+              "uri": "gs://${GCS_CORPUS_BUCKET}/sample_docs/procurement_corpus/solicitation_01_cloud_infrastructure/03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "last_page": 1,
+              "page_source": "chunk.pageSpan",
+              "score": 0.34,
+              "text": "SOL-2026-CLOUD-01 | 03_Technical_Exhibit_Architecture.pdf\r\nTECHNICAL EXHIBIT A: MULTI-REGION VPC & FAILOVER TOPOLOGY\r\nDOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-TOPOLOGY-01 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-01-15 | AMENDS=NONE\r\nArchitecture Specification ARCH-TOPOLOGY-01 (Multi-Region Cloud Network):\r\n1. Ingress Layer: Global External Application Load Balancer protected by Cloud Armor WAF\r\n enforcing OWASP Top 10 preconfigured rules and adaptive DDoS protection.\r\n2. Hybrid Connectivity: Redundant Cloud HA VPN tunnels (99.99% SLA) terminating on\r\n Cloud Router with dynamic BGP ASN 64512 (On-Premises ASN 65001) and MED failover.\r\n3. Regional Compute: Primary Region us-central1 (GKE Autopilot + Cloud SQL HA) with\r\n cross-region replica and automated failover to Secondary Region us-east4.\r\n4. Data & AI Plane: Private Service Connect (PSC) endpoints in both regions routing\r\n privately to BigQuery and Vertex AI without traversing the public internet.\r\nVECTOR DIAGRAM: SOL-2026-CLOUD-01 Multi-Region VPC & HA VPN Topology\r\nCloud Armor WAF + Global LB Cloud HA VPN (BGP ASN 64512) Primary VPC: us-central1\r\nFailover VPC: us-east4 Private Service Connect (PSC) BigQuery + Vertex AI"
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "VertexRagStore grounded synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon + VertexRagStore",
+        "status": "completed",
+        "started_at": "2026-11-03T17:06:02.501Z",
+        "duration_ms": 89918,
+        "request": {},
+        "payload": {
+          "model": "vertex-rag-engine-grounded",
+          "underlying_gemini_model": "gemini-4-argon",
+          "provider": "vertex_rag_engine",
+          "corpus": "ragCorpora/${RAG_ENGINE_CORPUS_ID}",
+          "thinking_level": "HIGH",
+          "prompt_tokens": 390,
+          "output_tokens": 1669,
+          "thinking_tokens": 3264,
+          "grounding_chunks_count": 3,
+          "stop_reason": "STOP",
+          "response_id": "ehTqat2BI_Cjw8cPuMSquQM",
+          "answer": "Under Solicitation 01 (`SOL-2026-CLOUD-01`), the combined dollar SLA service credit owed under Exhibit 05 (`05_SLA_and_QASP_Requirements.pdf`, Page 1) is **$13,750.00** (or **$12,500.00** if CLIN-0002-AA is categorized as a P2 High Non-Core Service).\n\n---\n\n### 1. Applicable SLA Formula and Tiers (`05_SLA_and_QASP_Requirements.pdf`, Page 1)\nPer Clause SLA-4.2 (Monthly Infrastructure Availability & Service Credit Formula) in `05_SLA_and_QASP_Requirements.pdf` (Page 1), service credits are calculated using the formula `Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage` based on the following availability tiers:\n* **P1 Critical (`99.99% Target (<99.99% to 99.50%)`):** `10% of Monthly CLIN Fee`.\n* **P1 Severe Breach (`< 99.50% Monthly Availability`):** `25% of Monthly CLIN Fee`.\n* **P2 High (`< 99.90% Non-Core Services`):** `5% of Monthly CLIN Fee`.\n\n---\n\n### 2. Step-by-Step Credit Calculation for Month 4\n\n#### **A. Shared VPC & Landing Zone Core (CLIN-0001-AA)**\n* **Monthly CLIN Fee:** According to Schedule B (`04_Pricing_Schedule_CLINs.pdf`, Page 1), CLIN-0001-AA has a base rate of **$45,000/mo**.\n* **Applicable SLA Tier:** At **99.40%** monthly availability (`< 99.50%`), CLIN-0001-AA triggers a **P1 Severe Breach**, which carries a **25%** service credit (`05_SLA_and_QASP_Requirements.pdf`, Page 1).\n* **SLA Credit Owed:** `05_SLA_and_QASP_Requirements.pdf` (Page 1) explicitly provides this exact calculation as an example: `$45,000 * 0.25 = $11,250.00`.\n\n#### **B. GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 Active Nodes)**\n* **Monthly CLIN Fee:** According to Schedule B (`04_Pricing_Schedule_CLINs.pdf`, Page 1), CLIN-0002-AA is billed per `Node-Mo` at a base rate of **$1,250/mo** (with 240 total Node-Months in Year 1, or 20 nodes per month). For 20 active nodes in Month 4, the monthly CLIN invoice is `20 nodes * $1,250/mo = $25,000.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1).\n* **Applicable SLA Tier & Credit (Primary \u2014 P1 Critical):** In Statement of Work Section 2.1 (`02_Statement_of_Work_SOW.pdf`, Page 1), CLIN-0002-AA supports \"Core ERP & 45 Microservices on GKE\". At **99.70%** monthly availability, it falls within the **P1 Critical** range (`<99.99% to 99.50%`), which carries a **10%** service credit (`05_SLA_and_QASP_Requirements.pdf`, Page 1).\n  * **SLA Credit Owed (P1 Critical):** `$25,000.00 * 0.10 = $2,500.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1; `05_SLA_and_QASP_Requirements.pdf`, Page 1).\n* **Alternative Tier (If Treated as P2 High Non-Core Services):** If CLIN-0002-AA were evaluated under the **P2 High** tier (`< 99.90% Non-Core Services`), a **5%** service credit would apply, equaling `$25,000.00 * 0.05 = $1,250.00` (`04_Pricing_Schedule_CLINs.pdf`, Page 1; `05_SLA_and_QASP_Requirements.pdf`, Page 1).\n\n---\n\n### 3. Combined Dollar SLA Service Credit Summary\n\n| CLIN | Service Description | Month 4 Invoice | Availability | SLA Tier & Credit % | Dollar Credit Owed |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **CLIN-0001-AA** | Shared VPC & Landing Zone Core | $45,000.00 | 99.40% | P1 Severe Breach (25%) | **$11,250.00** |\n| **CLIN-0002-AA** | GKE Enterprise Managed Cluster (20 nodes) | $25,000.00 | 99.70% | P1 Critical (10%) *(or P2 High 5%)* | **$2,500.00** *(or $1,250.00)* |\n| **Combined Total** | | **$70,000.00** | | | **$13,750.00** *(or $12,500.00)* |\n\nBased on `04_Pricing_Schedule_CLINs.pdf` (Page 1) and `05_SLA_and_QASP_Requirements.pdf` (Page 1), the combined SLA service credit owed is **$13,750.00** (`$11,250.00 + $2,500.00`), or **$12,500.00** (`$11,250.00 + $1,250.00`) if CLIN-0002-AA is classified as a non-core service."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 390,
+      "output_tokens": 1669,
+      "embedding_tokens": 0,
+      "thinking_tokens": 3264,
+      "model": "vertex-rag-engine-grounded",
+      "embedding_model": "text-embedding-005"
+    },
+    "flags": {
+      "reranker_used": false,
+      "adk_runner_used": false,
+      "layout_source": "vertex_ai_rag_engine"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.92,
+      "qa_relevance": 0.85,
+      "context_precision": 0.4
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 5218,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 8534,
+    "output_tokens": 432,
+    "judge_cost_usd": 0.042776,
+    "rationale": "All figures ($45,000/mo, $1,250/node-month, the 25% and 10% tiers, and the $11,250 and $2,500 credits) are directly supported by the pricing and SLA chunks; the P2 High alternative is speculative, though it is based on a tier that does appear in context. The primary answer of $13,750.00 matches the reference, but hedging with an alternative $12,500.00 total adds ambiguity to what should be a definitive answer. Only the SLA-4.2 and pricing chunks are needed, while much of the retrieved context is irrelevant, including other solicitations (SEC-03, DATA-02), architecture, DR amendments, and the v",
+    "judge_response_id": "msg_vrtx_011CggMw4tETpLgBLDFyrnWb"
+  }
+}

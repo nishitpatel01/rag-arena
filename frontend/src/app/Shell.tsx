@@ -140,6 +140,7 @@ export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => {
                 )}
               </span>
             </NavLink>
+            <NavLink to="/workbench" className={navClass}>Workbench</NavLink>
             <NavLink to="/compare" className={navClass}>Compare</NavLink>
             <NavLink to="/leaderboard" className={navClass}>Leaderboard</NavLink>
           </nav>

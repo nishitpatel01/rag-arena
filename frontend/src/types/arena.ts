@@ -75,11 +75,100 @@ export interface ArchEdge {
 }
 
 export interface ArchitectureDescriptor {
-  readonly level_id: LevelId;
+  readonly level_id: LevelId | (string & {});
   readonly nodes: readonly ArchNode[];
   readonly edges: readonly ArchEdge[];
   readonly ingest_nodes: readonly ArchNode[];
   readonly ingest_edges: readonly ArchEdge[];
+}
+
+// ---------------------------------------------------------------------------
+// Composable PipelineSpec & Workbench contracts (Release 1.3.0)
+// ---------------------------------------------------------------------------
+
+export type IndexProfile = "naive" | "hybrid" | "multimodal" | "vertex_ai_search" | "rag_engine";
+export type QueryTransform = "none" | "acronym" | "acronym_plus_intent";
+export type RetrievalMode = "vector_cosine" | "lexical_bm25" | "hybrid_rrf" | "managed_retrieval";
+export type RerankerKind = "none" | "vertex_ranking_api";
+export type ContextOrder = "score_order" | "authority_amendment_first";
+export type ReasoningMode = "single_pass" | "adk_agent";
+export type CanonicalAgentTool =
+  | "search_procurement_corpus"
+  | "check_amendments"
+  | "calculate_contract_pricing"
+  | "verify_citations";
+
+export interface QuerySlots {
+  readonly query_transform: QueryTransform;
+  readonly retrieval_mode: RetrievalMode;
+  readonly candidate_k: number;
+  readonly top_k: number;
+  readonly reranker: RerankerKind;
+  readonly context_order: ContextOrder;
+  readonly reasoning_mode: ReasoningMode;
+  readonly agent_tools: readonly CanonicalAgentTool[];
+}
+
+export interface PipelineSpec {
+  readonly pipeline_id?: string;
+  readonly index_profile: IndexProfile;
+  readonly slots: QuerySlots;
+  readonly synthesis_model?: string | null;
+  readonly judge_model?: string | null;
+  readonly label?: string;
+}
+
+export interface PipelineRecipeWire extends PipelineSpec {
+  readonly slot_id?: string;
+}
+
+export interface PipelinePresetEntry {
+  readonly level_id: LevelId;
+  readonly label: string;
+  readonly enabled: boolean;
+  readonly backing_level_id: LevelId;
+  readonly pipeline_id: string;
+  readonly active_stages: readonly string[];
+  readonly spec: PipelineSpec;
+  readonly descriptor: ArchitectureDescriptor;
+}
+
+export interface PipelineSchemaPayload {
+  readonly index_profiles: readonly IndexProfile[];
+  readonly bq_index_profiles: readonly IndexProfile[];
+  readonly managed_index_profiles: readonly IndexProfile[];
+  readonly backing_level_by_profile: Readonly<Record<string, LevelId>>;
+  readonly profile_labels: Readonly<Record<string, string>>;
+  readonly max_candidate_k_by_profile: Readonly<Record<string, number>>;
+  readonly query_transforms: readonly QueryTransform[];
+  readonly retrieval_modes: readonly RetrievalMode[];
+  readonly bq_retrieval_modes: readonly RetrievalMode[];
+  readonly rerankers: readonly RerankerKind[];
+  readonly context_orders: readonly ContextOrder[];
+  readonly reasoning_modes: readonly ReasoningMode[];
+  readonly agent_tools: readonly CanonicalAgentTool[];
+  readonly top_k_range: readonly [number, number];
+  readonly max_pipelines_per_battle: number;
+}
+
+export interface PipelinesPresetsResponse {
+  readonly demo_mode: DemoMode | string;
+  readonly enabled_levels: readonly string[];
+  readonly presets: readonly PipelinePresetEntry[];
+  readonly schema: PipelineSchemaPayload;
+}
+
+export interface PipelineValidateResponse {
+  readonly valid: boolean;
+  readonly error?: string;
+  readonly pipeline_id?: string;
+  readonly preset_level_id?: LevelId | null;
+  readonly backing_level_id?: LevelId;
+  readonly enabled?: boolean;
+  readonly summary_label?: string;
+  readonly active_stages?: readonly string[];
+  readonly spec?: PipelineSpec;
+  readonly descriptor?: ArchitectureDescriptor;
 }
 
 export interface LevelDescriptor {
@@ -496,6 +585,19 @@ export interface RetrievedChunkText {
   readonly content: string;
 }
 
+/** Structured retrieved-chunk metadata for the Release 1.3.0 Retrieval Diff Inspector. */
+export interface RetrievedChunkSummary {
+  readonly chunk_id: string;
+  readonly content: string;
+  readonly doc_name: string | null;
+  readonly solicitation_id: string | null;
+  readonly page_number: number | null;
+  readonly section_id: string | null;
+  readonly element_type: string | null;
+  readonly score: number | null;
+  readonly amendment_number: number | null;
+}
+
 export interface EvalCompleteEvent extends BaseEvent {
   readonly event: "eval_complete";
   readonly engine: string;
@@ -711,6 +813,8 @@ export interface EngineAnswer {
   readonly citations: readonly Citation[];
   /** From `answer_complete.retrieved_chunks` (chunk_id + content only); empty when the server sent none. */
   readonly retrievedChunks: readonly RetrievedChunkText[];
+  /** Enriched retrieved-chunk metadata (`doc_name`, `page_number`, `score`, etc.) for Retrieval Diff Inspector. */
+  readonly retrievedChunkDetails?: readonly RetrievedChunkSummary[];
   readonly latencyMs: number;
   readonly costUsd: number;
   readonly usage: TokenUsage;

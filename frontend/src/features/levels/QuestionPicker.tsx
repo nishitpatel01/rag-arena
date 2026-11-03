@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, RotateCcw, Square } from "lucide-react";
-import type { BenchmarkQuestion } from "../../types/arena";
+import type { BenchmarkQuestion, PipelinePresetEntry, PipelineSpec } from "../../types/arena";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN, validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
 import type { RunGate } from "../ingest/ingestStatus";
+import { validateModelsForSpec, workbenchReplayGate } from "../workbench/pipelineSpecModel";
 import { ModelPicker } from "./ModelPicker";
 import { isMockRequested } from "./useBattleStream";
 import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
@@ -34,6 +35,10 @@ export interface QuestionPickerProps {
   readonly resetMode?: "reset" | "clear";
   readonly scopeControl?: React.ReactNode;
   readonly uploadScopeId?: string | null;
+  /** Optional Composable `PipelineSpec` (Workbench): switches validation & replay gate to recipe rules. */
+  readonly spec?: PipelineSpec | null;
+  readonly presets?: readonly PipelinePresetEntry[];
+  readonly runLabel?: string;
 }
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 placeholder:text-ink-3";
@@ -56,6 +61,9 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
   resetMode = "reset",
   scopeControl = null,
   uploadScopeId = null,
+  spec = null,
+  presets,
+  runLabel = "Run level",
 }) => {
   const [questions, setQuestions] = useState<readonly BenchmarkQuestion[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -96,9 +104,19 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
   const validation = validateQueryInput(query, [levelId]);
   const idError = uploadMode || QUESTION_ID_PATTERN.test(questionId) ? null : QUESTION_ID_ERROR;
   const { catalog, selection } = models;
-  const modelError = catalog && selection ? validateSelection(catalog, selection, levelId) : null;
+  const modelError =
+    catalog && selection
+      ? spec
+        ? validateModelsForSpec(catalog, selection, spec)
+        : validateSelection(catalog, selection, levelId)
+      : null;
   // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.
-  const replay = !uploadMode && catalog && selection && !isMockRequested() ? replayGate(catalog, levelId, questionId, selection) : null;
+  const replay =
+    !uploadMode && catalog && selection && !isMockRequested()
+      ? spec
+        ? workbenchReplayGate(catalog, spec, questionId, selection, presets)
+        : replayGate(catalog, levelId, questionId, selection)
+      : null;
   const disabled =
     isStreaming || validation !== null || idError !== null || gate.blocked || modelError !== null || Boolean(replay?.blockedReason);
   const runModels = catalog && selection ? selection : null;
@@ -161,6 +179,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
         validationError={modelError}
         replay={replay}
         levelId={levelId}
+        spec={spec}
       />
       {validation && query.length > 0 && <p className="text-xs text-clay">{validation}</p>}
       {gate.blocked && gate.count === 0 && (
@@ -171,7 +190,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
       )}
       <div className="flex items-center gap-2">
         <Button type="submit" variant="primary" disabled={disabled} leadingIcon={<Play className="h-3.5 w-3.5" aria-hidden />}>
-          {isStreaming ? "Running…" : "Run level"}
+          {isStreaming ? "Running…" : runLabel}
         </Button>
         {isStreaming && (
           <Button variant="danger" onClick={onAbort} leadingIcon={<Square className="h-3.5 w-3.5" aria-hidden />}>Stop</Button>

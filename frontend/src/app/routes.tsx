@@ -3,12 +3,14 @@ import { IngestPage } from "../features/ingest/IngestPage";
 import { LevelPage } from "../features/levels/LevelPage";
 import { OverviewPage } from "../pages/OverviewPage";
 import { ComparePage } from "../features/compare/ComparePage";
+import { WorkbenchPage } from "../features/workbench/WorkbenchPage";
 import { LeaderboardPage } from "../pages/LeaderboardPage";
 import { EmptyState } from "../components/ui/EmptyState";
 
 export const routes: RouteObject[] = [
   { path: "/", element: <OverviewPage /> },
   { path: "/ingest", element: <IngestPage /> },
+  { path: "/workbench", element: <WorkbenchPage /> },
   { path: "/levels/:levelId", element: <LevelPage /> },
   { path: "/compare", element: <ComparePage /> },
   { path: "/leaderboard", element: <LeaderboardPage /> },

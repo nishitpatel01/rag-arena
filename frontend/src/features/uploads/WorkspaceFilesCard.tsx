@@ -198,7 +198,7 @@ export const WorkspaceFilesCard: React.FC<WorkspaceFilesCardProps> = ({
           aria-label="Confirm workspace deletion"
         >
           <span className="text-ink-1">
-            Permanently delete <span className="font-mono font-semibold">{selectedWorkspace.id}</span> (BigQuery rows, Vertex AI Search docs, and bucket objects)?
+            Permanently delete <span className="font-mono font-semibold">{selectedWorkspace.id}</span> (BigQuery rows, Vertex AI Search docs, RAG Engine corpus, and bucket objects)?
           </span>
           <div className="flex items-center gap-2">
             <Button

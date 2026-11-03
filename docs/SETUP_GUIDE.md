@@ -2,16 +2,16 @@
 
 Two ways to run it:
 
-1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–5
+1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–6
    runs. No Google Cloud account, no credentials, no network calls to GCP.
-2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI, BigQuery, Document AI, Cloud
-   Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI, and (in `record`) new
-   golden-set recordings.
+2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI (including Vertex AI RAG Engine),
+   BigQuery, Document AI, Cloud Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI,
+   and (in `record`) new golden-set recordings.
 
-**All five levels**, private user PDF uploads (`v1.1`), `/compare`, `/leaderboard` (with winner highlighting), and the
-configurable Cloud Run deployment are live and enabled by default
-(`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex`; override in `.env` or the
-environment). Level 5 needs the `VAIS_*` keys in live mode.
+**All six levels**, private user PDF uploads (`v1.1`–`v1.2`), `/compare`, `/leaderboard` (with winner highlighting), and
+the configurable Cloud Run deployment are live and enabled by default
+(`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine`; override in
+`.env` or the environment). Level 5 needs the `VAIS_*` keys and Level 6 needs `RAG_ENGINE_CORPUS_ID` in live mode.
 
 ---
 
@@ -43,7 +43,8 @@ cd frontend && npm run dev
 ```
 
 - Open **Level 1**, choose one of the 8 golden questions, and a recorded model pair: synthesis
-  `gemini-4-argon` or `gemini-3.8-flash`, judge `claude-opus-5-5` (or `vertex-ai-search-summary` on Level 5).
+  `gemini-4-argon` or `gemini-3.8-flash`, judge `claude-opus-5-5` (or `vertex-ai-search-summary` on Level 5,
+  `vertex-rag-engine-grounded` on Level 6).
   `GET /api/v1/models` lists the playable pairs under `recorded_pairs`.
 - Stage events replay with their recorded relative timing; speed it up with `REPLAY_SPEED=4.0` (range `(0, 100]`).
 - An ad-hoc question returns `engine_error: No recording for this question in replay mode` — replay never
@@ -92,6 +93,8 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `DOCAI_TIMEOUT_SECONDS` / `VISION_MODEL` | `120` / `gemini-4-argon` | Layout Parser request bound; Gemini model that transcribes diagram pages |
 | `VAIS_LOCATION` / `VAIS_DATA_STORE_ID` / `VAIS_ENGINE_ID` | `global` / `rag-arena-procurement` / `rag-arena-procurement-search` | Level 5 corpus Vertex AI Search short ids printed by `scripts/provision_vertex_search.py` |
 | `VAIS_UPLOADS_DATA_STORE_ID` / `VAIS_UPLOADS_ENGINE_ID` | `rag-arena-uploads` / `rag-arena-uploads-search` | Level 5 private uploads data store + search app short ids (must differ from corpus ids) |
+| `RAG_ENGINE_LOCATION` / `RAG_ENGINE_CORPUS_ID` | `us-central1` / short corpus id | Level 6 regional Vertex AI RAG Engine location (never `global`) + corpus id printed by `scripts/provision_rag_engine.py` |
+| `RAG_ENGINE_EMBEDDING_MODEL` / `RAG_ENGINE_TOP_K` / `RAG_ENGINE_CHUNK_SIZE` / `RAG_ENGINE_CHUNK_OVERLAP` / `RAG_ENGINE_TIMEOUT_SECONDS` | `text-embedding-005` / `10` / `512` / `100` / `30` | Level 6 `RagCorpus` publisher embedding model, `:retrieveContexts` top-k, chunking spec, and HTTP bound |
 
 ### 3.2 Authenticate
 
@@ -169,11 +172,16 @@ cd frontend && npm run dev
 5. **Level 5 (`managed_vertex`)**: run `PYTHONPATH=backend .venv/bin/python scripts/provision_vertex_search.py` once
    (idempotently creates both the corpus store/app `rag-arena-procurement*` and the filterable uploads store/app
    `rag-arena-uploads*`), set the `VAIS_*` keys in `.env`, and run Level 5 ingestion from `/ingest`.
-6. To capture new golden-set recordings, run with `DEMO_MODE=record`; files land in
+6. **Level 6 (`rag_engine`)**: run `PYTHONPATH=backend .venv/bin/python scripts/provision_rag_engine.py` once
+   (reuses any active regional `ragEngineConfig` untouched at \$0 incremental Spanner compute, defaults uninitialized
+   projects to `RagManagedDb` **Serverless** mode, and never sets `unprovisioned`), set `RAG_ENGINE_LOCATION` and
+   `RAG_ENGINE_CORPUS_ID` in `.env`, and run Level 6 ingestion from `/ingest` (imports the 45 GCS PDFs in batches of
+   `<=25` URIs with `chunk_size=512, overlap=100`).
+7. To capture new golden-set recordings, run with `DEMO_MODE=record`; files land in
    `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` with identity values redacted (`upl_*` upload
    runs never overwrite golden recordings).
 
-### 3.6 Uploading your own PDFs (v1.1)
+### 3.6 Uploading your own PDFs (v1.1–v1.2)
 
 1. Open `/ingest` in `DEMO_MODE=live` or `record`. Verify the **Upload bucket** card reports `private ✓ · ok`, or click
    **Create / verify bucket** (if permissions or org policies block creation, the card shows the exact missing
@@ -183,22 +191,25 @@ cd frontend && npm run dev
    32 MiB HTTP/1 body cap, with no app-imposed size, page, or file-count limits). `/finalize` validates each file in
    constant memory (`O(1)` heap) and rejects non-PDFs, encrypted PDFs, JavaScript, `/Launch` actions, and embedded files.
 3. Click **Ingest** for **Level 1**, **Level 2**, **Level 3** (displays a pre-flight Document AI + Gemini vision max
-   cost estimate requiring confirmation before any paid call starts), and/or **Level 5** (zero-download JSONL import
-   into `rag-arena-uploads`). **Level 4** unlocks automatically once Level 3 is ingested for that workspace. Live
-   ingestion progress stays visible across route changes and full page reloads.
+   cost estimate requiring confirmation before any paid call starts; Levels 1–3 inspect existing BigQuery indexes
+   without waiting out the 60 s DDL poll), **Level 5** (zero-download JSONL import into `rag-arena-uploads`), and/or
+   **Level 6** (provisions an isolated per-workspace `rag-arena-upl_<12hex>` `RagCorpus` and imports GCS URIs with zero
+   local PDF downloads). **Level 4** unlocks automatically once Level 3 is ingested for that workspace. Live ingestion
+   progress stays visible across route changes and full page reloads.
 4. On any Level page or **`/compare`**, select your `upl_<12hex>` workspace in the **Scope** dropdown and ask any
    question. Upload runs use reference-free QA relevance judging (`no reference answer` badge) and are tracked under
    **`Scope: Uploads`** on **`/leaderboard`**, with **Highlight best by** available on both Compare and Leaderboard.
 5. Uploads persist until you click **Delete workspace**, which synchronously deletes the workspace's BigQuery rows,
-   Vertex AI Search documents, and Cloud Storage objects while leaving the 45-PDF benchmark corpus untouched.
+   Vertex AI Search documents, isolated Vertex AI RAG Engine `RagCorpus`, and Cloud Storage objects while leaving the
+   45-PDF benchmark corpus and any neighbor `RagCorpus` resources untouched.
 
 ---
 
 ## 4. Tests
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 394 passed (offline; no GCP calls)
-cd frontend && npm test && npm run build                # 176 passed across 17 suites + tsc/vite build
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 415 passed (offline; no GCP calls)
+cd frontend && npm test && npm run build                # 182 passed across 18 suites + tsc/vite build
 ```
 
 `backend/tests/test_publish_manifest.py` scans `README.md`, `docs/ARCHITECTURE.md`, `docs/SETUP_GUIDE.md`,
@@ -219,26 +230,28 @@ concrete Cloud Run URLs.
 | HTTP 400 `judge_model must differ from synthesis_model` | Pick two different models; a model never grades its own answers. |
 | Vector index `ACTIVE (coverage 0%)` or `mm_vec_idx` `NOT CREATED` | BigQuery builds IVF above 5,000 rows and allows one vector index per table; `VECTOR_SEARCH` falls back to exact brute-force scan automatically. |
 | Search index `TEMPORARILY DISABLED` or `UNUSED` | BigQuery disables search indexes below 10 GB and reports `UNUSED` when combined with `VECTOR_SEARCH` in one query; `SEARCH()` still executes accurately. |
+| Level 6 error `rag_engine needs RAG_ENGINE_CORPUS_ID` or `RAG_ENGINE_LOCATION` rejected | Run `scripts/provision_rag_engine.py`, copy `RAG_ENGINE_CORPUS_ID` into `.env`, and use a regional location such as `us-central1` (`global` is not supported by Vertex AI RAG Engine). |
 
 ---
 
 ## 6. Cloud Run
 
 Prerequisites: the project is bootstrapped (BigQuery dataset, corpus bucket, Document AI processor, Vertex AI Search
-corpus + uploads stores) and your deployer identity can enable APIs, create buckets/service accounts, grant IAM, run
-Cloud Build, and deploy Cloud Run.
+corpus + uploads stores, and Vertex AI RAG Engine `RagCorpus`) and your deployer identity can enable APIs, create
+buckets/service accounts, grant IAM, run Cloud Build, and deploy Cloud Run.
 
 1. `cp deploy/cloudrun.env.example deploy/cloudrun.env` (git-ignored) and set `GCP_PROJECT_ID`, `GCS_CORPUS_BUCKET`,
    `UPLOAD_BUCKET` (optional; defaults to `<project>-rag-arena-uploads`), `UPLOAD_BUCKET_MODE` (`auto` | `existing`),
-   `DOCAI_PROCESSOR_ID`, `VAIS_*` (including `VAIS_UPLOADS_*`), `REGION`, `ACCESS_MODE` (`iap` | `public`),
-   `IAP_MEMBERS`, `DEPLOY_REPLAY`, and `LIVE_INGEST`.
+   `DOCAI_PROCESSOR_ID`, `VAIS_*` (including `VAIS_UPLOADS_*`), `RAG_ENGINE_LOCATION`, `RAG_ENGINE_CORPUS_ID`,
+   `REGION`, `ACCESS_MODE` (`iap` | `public`), `IAP_MEMBERS`, `DEPLOY_REPLAY`, and `LIVE_INGEST`.
 2. `scripts/deploy_cloudrun.sh --dry-run`, then `scripts/deploy_cloudrun.sh --yes` (or `--upload-bucket-only` to
    provision/verify just the private upload bucket and its IAM). It leak-scans the Cloud Build upload set, creates or
    verifies the private upload bucket (PAP enforced, UBLA on, no auto-delete lifecycle), grants the live runtime SA
-   least-privilege roles (`aiplatform.user`, `bigquery.jobUser`, dataset `WRITER`, `documentai.apiUser`,
-   `discoveryengine.editor|viewer`, corpus bucket access, and `storage.objectUser` + `storage.legacyBucketReader` on
-   `UPLOAD_BUCKET`, plus `storage.objectViewer` on `UPLOAD_BUCKET` for the Vertex AI Search service agent), leaves the
-   replay SA with zero roles, deploys the services, and prints their URLs.
+   least-privilege roles (`aiplatform.user` covering Vertex AI models + RAG Engine, `bigquery.jobUser`, dataset `WRITER`,
+   `documentai.apiUser`, `discoveryengine.editor|viewer`, corpus bucket access, and `storage.objectUser` +
+   `storage.legacyBucketReader` on `UPLOAD_BUCKET`, plus `storage.objectViewer` on `UPLOAD_BUCKET` for the Vertex AI
+   Search service agent while Google's project-level `aiplatform.ragServiceAgent` reads corpus/upload buckets directly),
+   leaves the replay SA with zero roles, deploys the services, and prints their URLs.
 3. IAP: open the live URL and sign in with an allowlisted account; each signed-in user sees only their own `upl_*`
    workspaces (keyed by SHA-256 of the IAP email), while the public replay service exposes zero upload routes (`404`)
    or identity fields.

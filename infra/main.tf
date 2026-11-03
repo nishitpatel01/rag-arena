@@ -265,6 +265,13 @@ output "vais_uploads_engine_id" {
   value       = google_discovery_engine_search_engine.uploads.engine_id
 }
 
+# v1.2 Level 6: Managed Vertex AI RAG Engine (`rag_engine`).
+# Provision the `rag-arena-procurement` RagCorpus via `scripts/provision_rag_engine.py --apply` (which inspects the
+# regional `ragEngineConfig` before creating the corpus so shared `spanner.scaled` / `spanner.basic` tiers and sibling
+# corpora in the region are never altered) and put its short numeric id in `.env` / `deploy/cloudrun.env` as
+# `RAG_ENGINE_CORPUS_ID`. Runtime access is covered by `roles/aiplatform.user` on `rag-arena-run` plus the automatic
+# Vertex AI RAG Data Service Agent (`roles/aiplatform.ragServiceAgent`).
+
 # =====================================================================================================================
 # Phase 6: Cloud Run deployment (parity with scripts/deploy_cloudrun.sh — the script is the SUPPORTED, tested path;
 # this block is provided for Terraform users and has not been applied by the project). Build and push the image first

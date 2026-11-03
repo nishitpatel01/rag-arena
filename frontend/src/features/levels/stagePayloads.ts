@@ -21,6 +21,12 @@ import { formatBytes, formatUsd, summarizePayload } from "../../lib/format";
 import { EMPTY_ELEMENT_META, hasElementMeta, parseElementMeta, type ElementMeta } from "../../lib/elements";
 import { elementMixLine, ingestParseSummary, parseIngestParse, parseSynthesizeL3 } from "./level3Payloads";
 import { managedIngestSummary, managedRetrieveSummary, managedSynthesizeSummary, parseManagedRetrieve, parseManagedSynthesize } from "./level5Payloads";
+import {
+  parseRagEngineRetrieve,
+  parseRagEngineSynthesize,
+  ragEngineRetrieveSummary,
+  ragEngineSynthesizeSummary,
+} from "./level6Payloads";
 
 /** Bound on rows parsed from one payload (backend sends ≤ 50 candidates; this is a safety cap). */
 export const MAX_PAYLOAD_ROWS = 500;
@@ -483,6 +489,8 @@ export function rerankNodeSummary(view: RerankView): string {
 /** One-line summary for a completed stage: dedicated summaries for hybrid retrieve / rerank, generic otherwise. */
 export function summarizeStage(stageId: string | null, payload: JsonObject | null): string {
   if (stageId === "retrieve") {
+    const rag = parseRagEngineRetrieve(payload);
+    if (rag) return ragEngineRetrieveSummary(rag);
     const m = parseManagedRetrieve(payload);
     if (m) return managedRetrieveSummary(m);
     const v = parseHybridRetrieve(payload);
@@ -494,6 +502,8 @@ export function summarizeStage(stageId: string | null, payload: JsonObject | nul
     const v = parseRerank(payload);
     if (v) return rerankNodeSummary(v);
   } else if (stageId === "synthesize") {
+    const rag = parseRagEngineSynthesize(payload);
+    if (rag) return ragEngineSynthesizeSummary(rag);
     const m = parseManagedSynthesize(payload);
     if (m) return managedSynthesizeSummary(m);
     const v = parseSynthesizeL3(payload);

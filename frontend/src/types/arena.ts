@@ -14,6 +14,7 @@ export const LEVEL_IDS = [
   "level3_multimodal",
   "level4_agentic",
   "managed_vertex",
+  "rag_engine",
 ] as const;
 export type LevelId = (typeof LEVEL_IDS)[number];
 
@@ -180,6 +181,23 @@ export interface IngestStatusResponse {
   readonly table?: string;
   /** Level 5 (provisional): Vertex AI Search data store status; absent on pre-Level-5 backends. */
   readonly managed_vertex?: ManagedVertexIngestStatus | null;
+  /** Level 6: Vertex AI RAG Engine corpus status; absent on pre-Level-6 backends. */
+  readonly rag_engine?: RagEngineIngestStatus | null;
+}
+
+/** `GET /api/v1/ingest/status` → `rag_engine` (every field optional, shown verbatim). */
+export interface RagEngineIngestStatus {
+  readonly available?: boolean;
+  readonly reason?: string | null;
+  readonly db_mode?: string | null;
+  readonly location?: string | null;
+  readonly corpus_state?: string | null;
+  readonly corpus_display_name?: string | null;
+  readonly file_count?: number | null;
+  readonly active_files?: number | null;
+  readonly embedding_model?: string | null;
+  readonly chunk_size?: number | null;
+  readonly chunk_overlap?: number | null;
 }
 
 /** `GET /api/v1/ingest/status` → `managed_vertex` (provisional; every field optional, shown verbatim). */
@@ -205,7 +223,12 @@ export interface IngestJobCreated {
 // ---------------------------------------------------------------------------
 
 export type ModelRole = "synthesis" | "judge";
-export type ModelProvider = "vertex_gemini" | "anthropic_vertex" | "vertex_ai_search" | (string & {});
+export type ModelProvider =
+  | "vertex_gemini"
+  | "anthropic_vertex"
+  | "vertex_ai_search"
+  | "vertex_rag_engine"
+  | (string & {});
 
 export interface ModelCatalogEntry {
   readonly id: string;

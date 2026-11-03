@@ -19,6 +19,7 @@ export const UPLOAD_INGEST_LEVELS = [
   "level2_hybrid",
   "level3_multimodal",
   "managed_vertex",
+  "rag_engine",
 ] as const;
 export type UploadIngestLevel = (typeof UPLOAD_INGEST_LEVELS)[number];
 

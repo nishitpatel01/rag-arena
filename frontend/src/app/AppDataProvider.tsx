@@ -22,6 +22,7 @@ function devFixtureLevels(
     level3_multimodal: "Layout-Aware Multimodal RAG (dev fixture)",
     level4_agentic: "Agentic RAG with Google ADK (dev fixture)",
     managed_vertex: "Managed Vertex AI Search (dev fixture)",
+    rag_engine: "Managed Vertex AI RAG Engine (dev fixture)",
   };
   const arch: Record<string, ArchitectureDescriptor> = { level1_naive: arch1, level2_hybrid: arch2, level3_multimodal: arch3, level4_agentic: arch4, managed_vertex: arch5 };
   return LEVEL_IDS.map((id, i) => ({
@@ -33,7 +34,7 @@ function devFixtureLevels(
     stages:
       id === "level4_agentic"
         ? ["query_prep", "agent_turn", "synthesize", "evaluate"]
-        : id === "managed_vertex"
+        : id === "managed_vertex" || id === "rag_engine"
         ? ["query_prep", "retrieve", "synthesize", "evaluate"]
         : QUERY_STAGE_IDS.filter((s) => s !== "agent_turn" && (s !== "rerank" || id === "level2_hybrid" || id === "level3_multimodal")),
     architecture: arch[id] ?? { ...empty, level_id: id },

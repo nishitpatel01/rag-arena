@@ -111,7 +111,7 @@ def test_descriptor_regions_are_placeholders_resolved_from_settings_not_hardcode
     dumped = json.dumps(resolved.to_dict())
     for placeholder in (GCP_LOCATION_PLACEHOLDER, GENAI_LOCATION_PLACEHOLDER, JUDGE_LOCATION_PLACEHOLDER):
         assert placeholder not in dumped
-    assert len(list_architecture_descriptors(settings)) == 5
+    assert len(list_architecture_descriptors(settings)) == 6
 
 
 def test_judge_node_service_and_region_come_from_judge_settings() -> None:

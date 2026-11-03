@@ -297,7 +297,7 @@ const IngestStatusPill: React.FC<{
     const label = activeUpload
       ? gate.blocked
         ? `${activeUpload.id} · not ingested`
-        : `${activeUpload.id} · ${gate.count ?? 0} ${levelId === "managed_vertex" ? "docs" : "chunks"}`
+        : `${activeUpload.id} · ${gate.count ?? 0} ${levelId === "managed_vertex" ? "docs" : levelId === "rag_engine" ? "files" : "chunks"}`
       : "upload workspace";
     return (
       <Link to="/ingest" className="inline-flex max-w-[40rem]" aria-label="Open ingestion page" title={gate.note ?? undefined}>

@@ -13,7 +13,7 @@ import { INGEST_STAGE_IDS } from "../../types/arena";
 import { ingestParseItems, isReleaseCandidateChannel, parseIngestParse } from "../levels/level3Payloads";
 import type { IngestJobStream } from "./useIngestJobStream";
 import { MANAGED_INGEST_STAGES, importErrorSamples, ingestStageOrder, managedIngestItems } from "../levels/level5Payloads";
-import { isManagedLevel } from "./ingestStatus";
+import { isManagedLevel, isRagEngineLevel } from "./ingestStatus";
 import { STAGE_LABELS } from "../levels/StageRail";
 
 export interface IngestJobViewProps {
@@ -30,6 +30,7 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
   const progress = deriveIngestProgress(job.state.events);
   const stageIds = ingestStageOrder(level.level_id, INGEST_STAGE_IDS, timeline?.stageOrder ?? []);
   const managed = isManagedLevel(level.level_id);
+  const ragEngine = isRagEngineLevel(level.level_id);
   const skipped = Object.entries(timeline?.stages ?? {}).filter(([, st]) => st.status === "skipped");
   const embedSkipped = timeline?.stages.embed?.status === "skipped";
   const managedRows = managed
@@ -88,7 +89,13 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
 
       <Panel
         title="Ingestion architecture"
-        subtitle={managed ? "corpus → Cloud Storage → Vertex AI Search import → document count" : "corpus → parser → chunker → embeddings → BigQuery → indexes"}
+        subtitle={
+          ragEngine
+            ? "corpus → Cloud Storage → Vertex AI RAG Engine import → file count"
+            : managed
+              ? "corpus → Cloud Storage → Vertex AI Search import → document count"
+              : "corpus → parser → chunker → embeddings → BigQuery → indexes"
+        }
         className="xl:col-span-2"
       >
         <ArchitectureDiagram
@@ -120,7 +127,9 @@ export const IngestJobView: React.FC<IngestJobViewProps> = ({ level, job, select
               </div>
               {importErrors.length > 0 && (
                 <div role="alert" className="rounded-md border border-err p-2 text-xs">
-                  <p className="mb-1 font-semibold text-err">Import errors reported by Vertex AI Search (verbatim, first {importErrors.length})</p>
+                  <p className="mb-1 font-semibold text-err">
+                    Import errors reported by {ragEngine ? "Vertex AI RAG Engine" : "Vertex AI Search"} (verbatim, first {importErrors.length})
+                  </p>
                   <ul className="list-disc pl-5 font-mono text-ink-1">
                     {importErrors.map((e, i) => (
                       <li key={i} className="break-words">{e}</li>

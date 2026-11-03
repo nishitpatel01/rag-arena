@@ -29,7 +29,14 @@ PROVIDER_VERTEX_GEMINI = "vertex_gemini"
 PROVIDER_ANTHROPIC_VERTEX = "anthropic_vertex"
 # Level 5 pseudo provider: the managed Vertex AI Search summary (not a token-priced LLM; synthesis on managed_vertex only).
 PROVIDER_VERTEX_AI_SEARCH = "vertex_ai_search"
-PROVIDERS: tuple[str, ...] = (PROVIDER_VERTEX_GEMINI, PROVIDER_ANTHROPIC_VERTEX, PROVIDER_VERTEX_AI_SEARCH)
+# Level 6 pseudo provider: Gemini grounded natively with VertexRagStore (synthesis on rag_engine only).
+PROVIDER_VERTEX_RAG_ENGINE = "vertex_rag_engine"
+PROVIDERS: tuple[str, ...] = (
+    PROVIDER_VERTEX_GEMINI,
+    PROVIDER_ANTHROPIC_VERTEX,
+    PROVIDER_VERTEX_AI_SEARCH,
+    PROVIDER_VERTEX_RAG_ENGINE,
+)
 ROLE_SYNTHESIS = "synthesis"
 ROLE_JUDGE = "judge"
 ROLES: tuple[str, ...] = (ROLE_SYNTHESIS, ROLE_JUDGE)
@@ -51,10 +58,13 @@ CATALOG_ENTRIES: tuple[tuple[str, str, str], ...] = (
 )
 # (id, label, allowed level) — pseudo synthesis models served by a managed service, valid on ONE level only.
 VAIS_SUMMARY_MODEL_ID = "vertex-ai-search-summary"
+RAG_ENGINE_GROUNDED_MODEL_ID = "vertex-rag-engine-grounded"
 PSEUDO_ENTRIES: tuple[tuple[str, str, str], ...] = (
     (VAIS_SUMMARY_MODEL_ID, "Vertex AI Search summary", "managed_vertex"),
+    (RAG_ENGINE_GROUNDED_MODEL_ID, "Vertex AI RAG Engine Grounded (Gemini)", "rag_engine"),
 )
 VAIS_NOT_CONFIGURED = "VAIS_ENGINE_ID / VAIS_DATA_STORE_ID not configured (run scripts/provision_vertex_search.py)"
+RAG_ENGINE_NOT_CONFIGURED = "RAG_ENGINE_CORPUS_ID not configured (run scripts/provision_rag_engine.py)"
 
 
 class ModelSelectionError(ValueError):
@@ -244,9 +254,44 @@ def _spec(model_id: str, label: str, provider: str, settings: ArenaSettings, ent
     )
 
 
-def _pseudo_spec(model_id: str, label: str, level_id: str, settings: ArenaSettings) -> ModelSpec:
-    """Synthesis-only managed model: available when its published price exists and (live) VAIS ids are configured."""
+def _pseudo_spec(
+    model_id: str,
+    label: str,
+    level_id: str,
+    settings: ArenaSettings,
+    verification: dict[str, dict[str, Any]],
+) -> ModelSpec:
+    """Synthesis-only managed model: available when its published price exists and required service ids are configured."""
     price = PRICE_TABLE.get(model_id)
+    if model_id == RAG_ENGINE_GROUNDED_MODEL_ID:
+        base_ok, base_reason, verified_at = _availability(
+            settings.gemini_fast_model, verification.get(settings.gemini_fast_model)
+        )
+        has_rag = bool(settings.rag_engine_corpus_id or settings.upload_bucket)
+        if price is None or not price.source or price.input_usd_per_1m <= 0:
+            available, reason = False, PRICE_NOT_VERIFIED
+        elif not base_ok:
+            available, reason = False, base_reason
+        elif settings.is_live and not has_rag:
+            available, reason = False, RAG_ENGINE_NOT_CONFIGURED
+        else:
+            available, reason = True, None
+        return ModelSpec(
+            id=model_id,
+            label=label,
+            provider=PROVIDER_VERTEX_RAG_ENGINE,
+            location=settings.rag_engine_location,
+            roles=(ROLE_SYNTHESIS,),
+            input_usd_per_1m=float(price.input_usd_per_1m) if price else 0.0,
+            output_usd_per_1m=float(price.output_usd_per_1m) if price else 0.0,
+            price_source=price.source if price else "",
+            price_as_of=price.price_as_of if price else "",
+            available=available,
+            unavailable_reason=reason,
+            verified_at=verified_at,
+            allowed_levels=(level_id,),
+            usd_per_1k_requests=0.0,
+        )
     has_vais = bool(
         (settings.vais_engine_id and settings.vais_data_store_id)
         or (settings.vais_uploads_engine_id and settings.vais_uploads_data_store_id)
@@ -272,7 +317,7 @@ def load_catalog(settings: ArenaSettings, verification_path: Path | None = None)
         raise TypeError("settings must be an ArenaSettings instance")
     verification = load_verification(verification_path or settings.model_verification_path)
     llms = tuple(_spec(mid, label, provider, settings, verification.get(mid)) for mid, label, provider in CATALOG_ENTRIES)
-    pseudo = tuple(_pseudo_spec(mid, label, level, settings) for mid, label, level in PSEUDO_ENTRIES)
+    pseudo = tuple(_pseudo_spec(mid, label, level, settings, verification) for mid, label, level in PSEUDO_ENTRIES)
     return ModelCatalog(models=llms + pseudo)
 
 
@@ -295,7 +340,10 @@ __all__ = [
     "NOT_VERIFIED",
     "PRICE_NOT_VERIFIED",
     "PROVIDER_VERTEX_AI_SEARCH",
+    "PROVIDER_VERTEX_RAG_ENGINE",
     "PSEUDO_ENTRIES",
+    "RAG_ENGINE_GROUNDED_MODEL_ID",
+    "RAG_ENGINE_NOT_CONFIGURED",
     "VAIS_NOT_CONFIGURED",
     "VAIS_SUMMARY_MODEL_ID",
     "PROVIDER_ANTHROPIC_VERTEX",

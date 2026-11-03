@@ -71,7 +71,7 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone="neutral" mono>{pairText}</Pill>
         {pair.substituted && (
-          <Pill tone="warn" mono title="The managed summary exists only on Level 5; lower-level baselines use the server default synthesis model with the same judge.">
+          <Pill tone="warn" mono title="This synthesis model is restricted to this level; lower-level baselines use the server default synthesis model with the same judge.">
             baselines: synthesis {labelFor(pair.synthesisModel) ?? "—"} · judge {labelFor(judgeModel) ?? "—"}
           </Pill>
         )}
@@ -118,7 +118,7 @@ export const CompareTeaser: React.FC<CompareTeaserProps> = ({ timeline, catalog,
           />
           <p className="text-xs text-ink-3">
             "Ln avg · N" = server-side average over all N recorded runs of {pair.substituted ? "the baseline pair" : "this pair"} on that level (not only this question).
-            {pair.substituted ? " The Vertex AI Search summary has no equivalent on Levels 1–4, so their columns use the default synthesis model with the same judge." : ""}
+            {pair.substituted ? " Level-restricted synthesis models have no equivalent on lower levels, so their columns use the default synthesis model with the same judge." : ""}
             {shownLeaderboard?.source ? ` Source: ${shownLeaderboard.source}.` : ""}
           </p>
         </>

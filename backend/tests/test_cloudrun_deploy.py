@@ -162,11 +162,15 @@ def test_deploy_env_example_has_only_placeholders() -> None:
     for key in ("REGION", "SERVICE_NAME", "ACCESS_MODE", "DEPLOY_REPLAY", "REPLAY_SERVICE_NAME", "ARTIFACT_REPO",
                 "RUNTIME_SA_NAME", "REPLAY_SA_NAME", "LIVE_INGEST", "MIN_INSTANCES", "MAX_INSTANCES",
                 "REPLAY_MAX_INSTANCES", "CPU", "MEMORY", "REPLAY_MEMORY", "TIMEOUT", "REPLAY_TIMEOUT",
-                "VAIS_UPLOADS_DATA_STORE_ID", "VAIS_UPLOADS_ENGINE_ID"):
+                "VAIS_UPLOADS_DATA_STORE_ID", "VAIS_UPLOADS_ENGINE_ID",
+                "RAG_ENGINE_LOCATION", "RAG_ENGINE_CORPUS_ID", "RAG_ENGINE_EMBEDDING_MODEL",
+                "RAG_ENGINE_TOP_K", "RAG_ENGINE_CHUNK_SIZE", "RAG_ENGINE_CHUNK_OVERLAP", "RAG_ENGINE_TIMEOUT_SECONDS"):
         assert key in values, f"cloudrun.env.example is missing {key}"
+    assert values["RAG_ENGINE_CORPUS_ID"] == ""
     dotenv_text = (PROJECT_ROOT / ".env.example").read_text(encoding="utf-8")
     dotenv_values = dict(line.split("=", 1) for line in dotenv_text.splitlines() if "=" in line and not line.startswith("#"))
     assert "VAIS_UPLOADS_DATA_STORE_ID" in dotenv_values and "VAIS_UPLOADS_ENGINE_ID" in dotenv_values
+    assert "RAG_ENGINE_LOCATION" in dotenv_values and dotenv_values["RAG_ENGINE_CORPUS_ID"] == ""
     assert "CLOUDSDK_CONFIG" not in values and "GOOGLE_APPLICATION_CREDENTIALS" not in values
 
 
@@ -282,6 +286,8 @@ def test_deploy_env_vars_never_forward_local_credentials() -> None:
             "GOOGLE_APPLICATION_CREDENTIALS": "/home/x/adc.json",
             "VAIS_UPLOADS_DATA_STORE_ID": "rag-arena-uploads",
             "VAIS_UPLOADS_ENGINE_ID": "rag-arena-uploads-search",
+            "RAG_ENGINE_LOCATION": "us-central1",
+            "RAG_ENGINE_CORPUS_ID": "12345",
         },
         "--dry-run",
     )
@@ -291,6 +297,8 @@ def test_deploy_env_vars_never_forward_local_credentials() -> None:
     assert env_lines and not any("CLOUDSDK_CONFIG" in l or "GOOGLE_APPLICATION_CREDENTIALS" in l for l in env_lines)
     assert "ENV live VAIS_UPLOADS_DATA_STORE_ID=rag-arena-uploads" in env_lines
     assert "ENV live VAIS_UPLOADS_ENGINE_ID=rag-arena-uploads-search" in env_lines
+    assert "ENV live RAG_ENGINE_LOCATION=us-central1" in env_lines
+    assert "ENV live RAG_ENGINE_CORPUS_ID=12345" in env_lines
     replay_env = [line for line in proc.stdout.splitlines() if line.startswith("ENV replay ")]
     keys = {line.split()[2].split("=")[0] for line in replay_env}
     assert keys == {"DEMO_MODE", "ALLOW_DEV_FIXTURES", "ENABLED_LEVELS"}, keys

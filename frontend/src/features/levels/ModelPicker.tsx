@@ -1,6 +1,10 @@
 import React from "react";
 import { useSafeMode } from "../../app/SafeMode";
-import type { ModelRole, ModelsResponse, RecordedPair } from "../../types/arena";
+import type { ModelRole, ModelsResponse, PipelineSpec, RecordedPair } from "../../types/arena";
+import {
+  buildSpecPickerDetails,
+  synthesisOptionsForSpec,
+} from "../workbench/pipelineSpecModel";
 import {
   buildPickerDetails,
   modelLabel,
@@ -23,6 +27,8 @@ export interface ModelPickerProps {
   readonly replay: ReplayGate | null;
   /** Level of the page: level-restricted models (e.g. the managed summary pseudo model) are disabled elsewhere. */
   readonly levelId?: string | null;
+  /** Optional Composable `PipelineSpec` (Workbench / Ablation): gates synthesis options by recipe invariants. */
+  readonly spec?: PipelineSpec | null;
 }
 
 const fieldClass = "w-full rounded-md border border-line bg-surface-0 px-2 py-1.5 text-xs text-ink-1 disabled:opacity-60";
@@ -36,24 +42,41 @@ interface RoleSelectProps {
   readonly disabled: boolean;
   readonly onSelect: (id: string) => void;
   readonly levelId: string | null;
+  readonly spec: PipelineSpec | null;
   readonly mask: (text: string) => string;
 }
 
-const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, other, disabled, onSelect, levelId, mask }) => {
+const RoleSelect: React.FC<RoleSelectProps> = ({ role, label, catalog, value, other, disabled, onSelect, levelId, spec, mask }) => {
   const id = `model-${role}`;
-  const options = optionStates(catalog, role, other, levelId);
+  const options =
+    role === "synthesis" && spec
+      ? synthesisOptionsForSpec(catalog, other, spec)
+      : optionStates(catalog, role, other, levelId);
   const known = options.some((o) => o.entry.id === value);
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <label htmlFor={id} className="text-xs font-medium text-ink-2">{label}</label>
       <select id={id} value={value} onChange={(e) => onSelect(e.target.value)} disabled={disabled} className={fieldClass} data-role={role}>
         {!known && <option value={value}>{value} (not offered for this role)</option>}
-        {options.map((o) => (
-          <option key={o.entry.id} value={o.entry.id} disabled={o.disabled} title={o.reason ? mask(o.reason) : undefined}>
-            {o.entry.label} · {providerLabel(o.entry.provider)} · {o.entry.location}
-            {o.unavailable ? " — unavailable" : o.restricted ? restrictedOptionSuffix(o.entry) : o.disabled ? (role === "judge" ? " — used for synthesis" : " — used as judge") : ""}
-          </option>
-        ))}
+        {options.map((o) => {
+          const suffix = o.unavailable
+            ? " — unavailable"
+            : o.restricted
+              ? spec
+                ? " — incompatible with recipe"
+                : restrictedOptionSuffix(o.entry)
+              : o.disabled
+                ? role === "judge"
+                  ? " — used for synthesis"
+                  : " — used as judge"
+                : "";
+          return (
+            <option key={o.entry.id} value={o.entry.id} disabled={o.disabled} title={o.reason ? mask(o.reason) : undefined}>
+              {o.entry.label} · {providerLabel(o.entry.provider)} · {o.entry.location}
+              {suffix}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
@@ -66,7 +89,7 @@ const pairText = (catalog: ModelsResponse, p: RecordedPair): string =>
  * Synthesis + judge model selects (spec §7.2). Options, availability, prices and replay recordings
  * all come from GET /api/v1/models; the judge must differ from the synthesis model.
  */
-export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, error, selection, onChange, disabled, validationError, replay, levelId = null }) => {
+export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, error, selection, onChange, disabled, validationError, replay, levelId = null, spec = null }) => {
   const { mask } = useSafeMode();
   if (error || !catalog || !selection) {
     return (
@@ -85,13 +108,13 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, erro
     );
   }
 
-  const details = buildPickerDetails(catalog, selection, levelId);
+  const details = spec ? buildSpecPickerDetails(catalog, selection, spec) : buildPickerDetails(catalog, selection, levelId);
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 rounded-md border border-line p-2" data-testid="model-picker">
       <legend className="px-1 text-xs font-medium text-ink-2">Models</legend>
-      <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId} mask={mask}
+      <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId} spec={spec} mask={mask}
         onSelect={(id) => onChange({ ...selection, synthesis: id })} />
-      <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled} levelId={levelId} mask={mask}
+      <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled} levelId={levelId} spec={spec} mask={mask}
         onSelect={(id) => onChange({ ...selection, judge: id })} />
       {validationError && <p className="text-xs text-err" role="alert">{mask(validationError)}</p>}
       <details className="rounded-md border border-line bg-surface-1 px-2 py-1.5 text-xs text-ink-3" data-testid="model-picker-details">

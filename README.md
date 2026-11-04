@@ -2,9 +2,9 @@
 
 **Six RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.2.0](https://img.shields.io/badge/release-v1.2.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 415 passed](https://img.shields.io/badge/backend%20tests-415%20passed-brightgreen.svg) ![Frontend tests: 182 passed](https://img.shields.io/badge/frontend%20tests-182%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.3.0](https://img.shields.io/badge/release-v1.3.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 431 passed](https://img.shields.io/badge/backend%20tests-431%20passed-brightgreen.svg) ![Frontend tests: 190 passed](https://img.shields.io/badge/frontend%20tests-190%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.2.0 (2026-11-03, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all six levels live · private user PDF uploads, Compare, Leaderboard and Cloud Run deployment live.
+**Release:** v1.3.0 (2026-11-03, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all six levels, Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), private PDF uploads, Leaderboard and Cloud Run live.
 
 ## The problem
 
@@ -290,10 +290,11 @@ PYTHONPATH=backend .venv/bin/python scripts/verify_models.py   # writes data/mod
 
 Set the printed `DOCAI_PROCESSOR_ID` (plus `VAIS_*` from `scripts/provision_vertex_search.py` for Level 5 and `RAG_ENGINE_CORPUS_ID` from `scripts/provision_rag_engine.py` for Level 6) in `.env`, start the backend and UI, and open `/ingest` to ingest the benchmark corpus or create a private upload workspace. Full guide: [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
 
-## Compare & Leaderboard
+## Workbench, Compare & Leaderboard
 
-- **`/compare`** runs one question on selected levels concurrently (on the benchmark corpus or an uploaded workspace): stacked live stage rails, side-by-side answers + citations, and a server-computed Battle Score scoreboard.
-- **`/leaderboard`** aggregates live runs from BigQuery `query_runs` (`Scope: Golden set | Uploads`) or the committed recordings, one table per (synthesis, judge) pair with provenance per row; scores are never averaged across pairs or scopes.
+- **`/workbench`** builds custom RAG recipes (`PipelineSpec` = `IndexProfile` + 7 `QuerySlots`) from 1-click Level 1–6 presets or mix-and-match controls (e.g. `rag_engine` + Discovery Engine reranker + amendment-first context order, or ADK tool-subset ablations) over existing indexed stores at \$0/mo new cloud cost, updating the live architecture diagram in 0 ms.
+- **`/compare`** switches between the **Preset Ladder** (Levels 1–6) and the **Controlled Ablation Lab** (2–4 custom recipes, starter templates, live `varying: …` axis badge, per-slot synthesis override) with a **Retrieval Diff Inspector** tracking rank shifts (`promoted`, `demoted`, `added`, `dropped`) by `chunk_id` or cross-store `doc_name + page`.
+- **`/leaderboard`** aggregates live runs from BigQuery `query_runs` (`Scope: Golden set | Uploads`, recording `pipeline_id` + `pipeline_spec`) or committed recordings, one table per (synthesis, judge) pair with provenance per row; scores are never averaged across pairs or scopes.
 - **Winner highlighting ("Highlight best by")**: highlights the winning row (and all ties) per table by Battle Score, QA relevance, groundedness, context precision (highest wins), latency, or run cost (lowest wins), persisted across Leaderboard and Compare.
 - **Battle Score** (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20).
 
@@ -316,8 +317,9 @@ Choices: `REGION` (default `us-central1`); `ACCESS_MODE=iap` (only `IAP_MEMBERS`
 | Method & path | Purpose |
 | :-- | :-- |
 | `GET /api/v1/health` · `GET /api/v1/levels` · `GET /api/v1/models` | Mode, version and `.env` identity; level descriptors; verified catalog + `recorded_pairs` |
+| `GET /api/v1/pipelines/presets` · `POST /api/v1/pipelines/validate` | Level 1–6 `PipelineSpec` presets (`pipe_<12hex>`); cross-slot validation + dynamic diagram descriptor |
 | `GET /api/v1/benchmarks` · `GET /api/v1/leaderboard?scope=golden\|uploads` | Golden benchmark (8 questions); aggregates per (engine, synthesis, judge) with provenance |
-| `POST /api/v1/battle/stream` | Run: `{query, question_id?, engines?, solicitation_filter?, synthesis_model?, judge_model?}` → SSE |
+| `POST /api/v1/battle/stream` | Run: `{query, question_id?, engines?, pipelines?, solicitation_filter?, synthesis_model?, judge_model?}` → SSE |
 | `POST /api/v1/ingest/jobs` · `GET …/jobs/{id}` · `GET …/jobs/{id}/stream` · `GET /api/v1/ingest/status` | Benchmark ingestion jobs, live counts, index states, and owner-scoped `active_jobs` |
 | `GET\|POST /api/v1/uploads/bucket` · `GET\|POST /api/v1/uploads` · `GET\|DELETE /api/v1/uploads/{id}` | Private upload bucket check/create; owner-isolated upload workspaces and synchronous cleanup |
 | `POST …/uploads/{id}/files` · `POST …/files/{fid}/finalize` · `GET …/estimate` · `POST …/ingest` | Direct-to-GCS resumable session URI, PDF safety validation, L3 cost estimate, scoped L1–L3/L5/L6 ingest |
@@ -331,18 +333,19 @@ All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI
 
 | Suite | Checks | What it guards |
 | :-- | --: | :-- |
-| **Backend total** (`pytest`, 38 files) | **415 passed** | engines, scoped uploads, ingestion, API/SSE, evaluation, recording, deployment |
+| **Backend total** (`pytest`, 40 files) | **431 passed** | engines, composable workbench, scoped uploads, ingestion, API/SSE, evaluation, recording, deployment |
 | `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 2 · 3 | no API-layer stage pacing; AST scan of `engines/**` against swallowed errors/fallbacks |
 | `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${RAG_ENGINE_CORPUS_ID}` and project numbers; replay fidelity |
 | `test_model_selection.py` · `test_judges.py` | 20 · 17 | judge ≠ synthesis, role/level gates (`vertex-rag-engine-grounded`); golden and reference-free judge parsing |
 | `test_uploads.py` · `test_upload_security.py` | 15 · 9 | bucket privacy, resumable sessions, IDOR/replay `404` matrices, unscoped SQL isolation, L4 `upload_scope` pinning, `O(1)` streaming |
 | `test_rag_engine.py` · `test_rag_engine_client.py` · `test_rag_engine_ingest.py` | 7 · 6 · 6 | `:retrieveContexts` + `VertexRagStore` grounding, safe `ragEngineConfig` reuse, isolated `upl_*` `RagCorpus` lifecycle |
+| `test_pipeline_spec.py` · `test_composable_engine.py` | 9 · 7 | `PipelineSpec` cross-slot validation, `pipe_<12hex>` IDs, custom `rag_engine` rerank, lexical SQL, `query_runs` provenance |
 | `test_publish_manifest.py` · `test_cloudrun_deploy.py` | 5 · 23 | tracked-repo + `frontend/dist` leak scan; SPA/API routing, deploy plan, public-registry lockfiles |
-| **Frontend total** (`npm test`, 18 suites) | **182 passed** | stream reducer, per-level views (L1–L6), uploads, persistent ingest sessions, winner highlight, bootstrap retry, safe mode |
+| **Frontend total** (`npm test`, 20 suites) | **190 passed** | stream reducer, per-level views (L1–L6), composable workbench, ablation & retrieval diff, uploads, winner highlight, safe mode |
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 415 passed
-cd frontend && npm test                                 # 182 pass across 18 suites
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 431 passed
+cd frontend && npm test                                 # 190 pass across 20 suites
 cd frontend && npm run build                            # tsc + vite build
 ```
 
@@ -353,21 +356,21 @@ rag-arena/
 ├── backend/
 │   ├── app/
 │   │   ├── api/             REST routes, uploads API, SSE forwarder, documents, query_runs, SPA serving
-│   │   ├── core/            config, telemetry, GCP client lock, model catalog, pricing, ranking, architectures
-│   │   ├── engines/         Levels 1–6, ADK runtime + scoped tools, replay; parked/
+│   │   ├── core/            config, telemetry, GCP client lock, model catalog, pricing, ranking, architectures, pipeline_spec
+│   │   ├── engines/         Levels 1–6, composable engine, ADK runtime + scoped tools, replay; parked/
 │   │   ├── evaluation/      LLM judges (golden + reference-free), evaluator, Battle Score, leaderboard
 │   │   ├── ingestion/       job runner, upload bucket/store, PyMuPDF / Document AI / vision, BQ + VAIS + RAG Engine loaders
 │   │   └── recording/       recorder, store, redaction
-│   └── tests/               415 offline tests + fakes (38 files)
+│   └── tests/               431 offline tests + fakes (40 files)
 ├── frontend/
 │   ├── src/
 │   │   ├── app/             router, shell, bootstrap retry, sessions, persistent ingest session, safe mode
-│   │   ├── features/        levels/ · compare/ · ingest/ · uploads/
+│   │   ├── features/        levels/ · workbench/ · compare/ · ingest/ · uploads/
 │   │   ├── components/      UI primitives, document drawer and viewer
 │   │   ├── lib/             API client, bounded SSE reader, winner highlight, safe-mode masking
 │   │   ├── pages/           overview, leaderboard
 │   │   └── theme/ styles/ types/   themes, design tokens, SSE + API types
-│   └── tests/               18 offline test suites (182 checks)
+│   └── tests/               20 offline test suites (190 checks)
 ├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (103 runs)
 ├── deploy/                  Cloud Run env template (real file git-ignored)
 ├── scripts/                 bootstrap, provisioning, model check, corpus build, deploy/teardown
@@ -390,6 +393,7 @@ rag-arena/
 | `v1.1` | Private user PDF uploads across all levels (direct-to-GCS resumable upload, L3 cost confirmation, isolated L5 uploads store), reference-free judging, Leaderboard/Compare winner highlighting | ✅ live |
 | `v1.1.1` | Upload ingestion `build_indexes` fast-path (`~58 s` → `<3 s` via table index snapshot) | ✅ live |
 | `v1.2.0` | Level 6 Managed Vertex AI RAG Engine (`rag_engine`: `:retrieveContexts` + `VertexRagStore` grounding, isolated `upl_*` `RagCorpus`, minimum-cost provisioning) | ✅ live |
+| `v1.3.0` | Composable RAG Workbench (`/workbench`), Controlled 2–4 Recipe Ablation Lab (`/compare`), and Retrieval Diff Inspector | ✅ live |
 
 ## License
 

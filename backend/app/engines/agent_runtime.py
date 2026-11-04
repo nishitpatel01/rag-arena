@@ -54,6 +54,41 @@ def agent_instruction(max_tool_calls_per_turn: int) -> str:
     return f"{AGENT_INSTRUCTION}\nRequest at most {max_tool_calls_per_turn} tool calls in a single turn."
 
 
+def agent_instruction_for_tools(
+    max_tool_calls_per_turn: int,
+    enabled_tools: tuple[str, ...] = ("search_procurement_corpus", "check_amendments", "calculate_contract_pricing", "verify_citations"),
+) -> str:
+    """Build an ADK system instruction tailored to the enabled subset of tools (exact Level 4 prompt when all 4 enabled)."""
+    if tuple(enabled_tools) == ("search_procurement_corpus", "check_amendments", "calculate_contract_pricing", "verify_citations"):
+        return agent_instruction(max_tool_calls_per_turn)
+    steps = [
+        "1. Call search_procurement_corpus to find relevant clauses, CLIN pricing tables, SLA matrices or diagrams."
+    ]
+    if "check_amendments" in enabled_tools:
+        steps.append(
+            f"{len(steps) + 1}. Call check_amendments for reported CLINs or clauses; the latest amendment governs."
+        )
+    if "calculate_contract_pricing" in enabled_tools:
+        steps.append(
+            f"{len(steps) + 1}. Compute totals, discounts, credits or sums with calculate_contract_pricing."
+        )
+    if "verify_citations" in enabled_tools:
+        steps.append(
+            f"{len(steps) + 1}. Call verify_citations on your draft and cited chunk_ids; repair once if unsupported claims remain."
+        )
+    steps.append(
+        f"{len(steps) + 1}. Final answer: concise, cite document names, and end with `CITED_CHUNK_IDS: <comma-separated chunk_ids>` "
+        "listing only chunk_ids returned by tools."
+    )
+    body = (
+        "You are an enterprise procurement analyst agent. Answer ONLY from tool results — never from memory.\n"
+        f"Available tools: {', '.join(enabled_tools)}.\nWorkflow:\n"
+        + "\n".join(steps)
+        + f"\nRequest at most {max_tool_calls_per_turn} tool calls in a single turn."
+    )
+    return body
+
+
 class AgentLimitError(RuntimeError):
     """The agent exceeded a configured bound (turns or tool calls per turn)."""
 
@@ -145,7 +180,13 @@ def agent_client_kwargs(spec: ModelSpec, settings: ArenaSettings) -> dict[str, A
     }
 
 
-def build_agent(spec: ModelSpec, settings: ArenaSettings, tools: list[Callable[..., Any]]) -> Any:
+def build_agent(
+    spec: ModelSpec,
+    settings: ArenaSettings,
+    tools: list[Callable[..., Any]],
+    *,
+    enabled_tools: tuple[str, ...] = ("search_procurement_corpus", "check_amendments", "calculate_contract_pricing", "verify_citations"),
+) -> Any:
     """``LlmAgent`` on Vertex AI Gemini (explicit per-agent Vertex routing via ``client_kwargs``)."""
     ensure_agent_model(spec)
     from google.adk.agents import LlmAgent
@@ -158,7 +199,7 @@ def build_agent(spec: ModelSpec, settings: ArenaSettings, tools: list[Callable[.
         name=AGENT_NAME,
         model=model,
         description="Multi-hop procurement RAG agent: search, amendment supersession, exact pricing math, citation check.",
-        instruction=agent_instruction(settings.agent_max_tool_calls_per_turn),
+        instruction=agent_instruction_for_tools(settings.agent_max_tool_calls_per_turn, enabled_tools),
         tools=tools,
         # ADK rejects thinking_config inside generate_content_config ("Thinking config should be set via
         # LlmAgent.planner"); the built-in planner forwards it to Gemini unchanged.
@@ -328,6 +369,6 @@ async def _consume(stream: Any, translator: TurnTranslator, emitter: BaseStageEm
 
 __all__ = [
     "AGENT_INSTRUCTION", "AGENT_NAME", "APP_NAME", "AgentLimitError", "AgentLimits", "AgentModelNotSupportedError",
-    "AgentOutcome", "AgentProtocolError", "AgentTimeoutError", "ModelTurn", "TurnTokens", "TurnTranslator", "agent_instruction", "build_agent",
-    "ensure_agent_model", "run_agent",
+    "AgentOutcome", "AgentProtocolError", "AgentTimeoutError", "ModelTurn", "TurnTokens", "TurnTranslator",
+    "agent_instruction", "agent_instruction_for_tools", "build_agent", "ensure_agent_model", "run_agent",
 ]

@@ -338,17 +338,26 @@ export const LevelPage: React.FC = () => {
   }
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-semibold text-ink-1">
-          {/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
-        </h1>
-        <IngestStatusPill
-          levelId={level.level_id}
-          ingestState={ingestState}
-          activeUpload={uploadScope.activeWorkspace}
-          isUploadActive={uploadScope.isUploadActive}
-          levelIngest={levelIngest}
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-lg font-semibold text-ink-1">
+            {/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
+          </h1>
+          <IngestStatusPill
+            levelId={level.level_id}
+            ingestState={ingestState}
+            activeUpload={uploadScope.activeWorkspace}
+            isUploadActive={uploadScope.isUploadActive}
+            levelIngest={levelIngest}
+          />
+        </div>
+        <Link
+          to={`/workbench?preset=${level.level_id}`}
+          className="text-xs font-medium text-moss underline"
+          data-testid="customize-in-workbench"
+        >
+          Customize in Workbench →
+        </Link>
       </div>
       <LevelBody
         key={level.level_id}

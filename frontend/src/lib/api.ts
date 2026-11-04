@@ -12,6 +12,9 @@ import type {
   LeaderboardSource,
   LevelsResponse,
   ModelsResponse,
+  PipelineSpec,
+  PipelineValidateResponse,
+  PipelinesPresetsResponse,
 } from "../types/arena";
 import { createSingleFlight } from "./bootstrap";
 
@@ -109,6 +112,14 @@ const fetchIngestStatusSingleFlight = createSingleFlight(() =>
 export const api = {
   health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health", {}, BOOTSTRAP_TIMEOUT_MS),
   levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels", {}, BOOTSTRAP_TIMEOUT_MS),
+  pipelinesPresets: (): Promise<PipelinesPresetsResponse> =>
+    requestJson<PipelinesPresetsResponse>("/pipelines/presets", {}, BOOTSTRAP_TIMEOUT_MS),
+  validatePipeline: (spec: PipelineSpec): Promise<PipelineValidateResponse> =>
+    requestJson<PipelineValidateResponse>("/pipelines/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(spec),
+    }),
   benchmarks: (): Promise<BenchmarksResponse> => requestJson<BenchmarksResponse>("/benchmarks"),
   models: fetchModels,
   leaderboard: (query: LeaderboardQuery = {}): Promise<LeaderboardResponse> =>

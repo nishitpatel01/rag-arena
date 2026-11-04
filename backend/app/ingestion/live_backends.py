@@ -78,6 +78,7 @@ _QUERY_RUN_SCHEMA: tuple[tuple[str, str, str], ...] = (
     ("citations", "JSON", "NULLABLE"), ("demo_mode", "STRING", "NULLABLE"), ("git_sha", "STRING", "NULLABLE"),
     ("synthesis_model", "STRING", "NULLABLE"), ("judge_model", "STRING", "NULLABLE"),
     ("solicitation_id", "STRING", "NULLABLE"), ("scope", "STRING", "NULLABLE"),
+    ("pipeline_id", "STRING", "NULLABLE"), ("pipeline_spec", "JSON", "NULLABLE"),
 )
 
 

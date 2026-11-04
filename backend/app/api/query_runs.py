@@ -7,6 +7,7 @@ from typing import Any, Protocol
 
 from app.core.config import ArenaSettings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.pipeline_spec import PipelineSpec
 from app.core.telemetry import BaseStageEmitter, utc_now_iso
 from app.recording.recorder import read_git_sha
 
@@ -38,15 +39,18 @@ def build_query_run_row(
     result: EngineResult,
     outcome: EvalOutcome,
     solicitation_filter: str | None = None,
+    pipeline_spec: PipelineSpec | None = None,
 ) -> dict[str, Any]:
     """Assemble the spec §5 row from measured values only (stage_log includes the judge's ``evaluate`` stage)."""
     if not isinstance(result, EngineResult) or not isinstance(outcome, EvalOutcome):
         raise TypeError("result must be an EngineResult and outcome an EvalOutcome")
+    if pipeline_spec is not None and not isinstance(pipeline_spec, PipelineSpec):
+        raise TypeError("pipeline_spec must be a PipelineSpec or None")
     if not run_id or not started_at:
         raise ValueError("run_id and started_at are required")
     sol = solicitation_filter.strip() if isinstance(solicitation_filter, str) and solicitation_filter.strip() else None
     scope = "uploads" if (sol is not None and sol.startswith("upl_")) else "golden"
-    return {
+    row: dict[str, Any] = {
         "run_id": run_id,
         "engine": result.engine_id,
         "question_id": question_id,
@@ -67,7 +71,10 @@ def build_query_run_row(
         "judge_model": outcome.judge_model or None,
         "solicitation_id": sol,
         "scope": scope,
+        "pipeline_id": pipeline_spec.pipeline_id if pipeline_spec is not None else None,
+        "pipeline_spec": pipeline_spec.to_dict() if pipeline_spec is not None else None,
     }
+    return row
 
 
 async def write_query_run_or_warn(

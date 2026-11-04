@@ -8,6 +8,7 @@ import type {
   BattleEvent,
   EngineTimeline,
   IngestEvent,
+  RetrievedChunkSummary,
   RetrievedChunkText,
   ScoreBreakdown,
   StageState,
@@ -238,6 +239,7 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
           answer: ev.answer,
           citations: ev.citations ?? [],
           retrievedChunks: retrievedChunkTexts(ev.retrieved_chunks),
+          retrievedChunkDetails: retrievedChunkSummaries(ev.retrieved_chunks),
           latencyMs: ev.latency_ms,
           costUsd: ev.cost_usd,
           usage: ev.usage,
@@ -314,7 +316,37 @@ export function retrievedChunkTexts(raw: unknown): RetrievedChunkText[] {
   for (const item of raw.slice(0, MAX_RETRIEVED_CHUNKS)) {
     if (typeof item !== "object" || item === null) continue;
     const { chunk_id, content } = item as Record<string, unknown>;
-    if (typeof chunk_id === "string" && chunk_id.length > 0 && typeof content === "string" && content.length > 0) out.push({ chunk_id, content });
+    if (typeof chunk_id === "string" && chunk_id.length > 0 && typeof content === "string" && content.length > 0) {
+      out.push({ chunk_id, content });
+    }
+  }
+  return out;
+}
+
+/** `retrieved_chunks[]` → structured `RetrievedChunkSummary` rows for the Retrieval Diff Inspector; bounded. */
+export function retrievedChunkSummaries(raw: unknown): RetrievedChunkSummary[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RetrievedChunkSummary[] = [];
+  for (const item of raw.slice(0, MAX_RETRIEVED_CHUNKS)) {
+    if (typeof item !== "object" || item === null) continue;
+    const rec = item as Record<string, unknown>;
+    const chunkId = rec.chunk_id;
+    const content = rec.content;
+    if (typeof chunkId !== "string" || chunkId.length === 0 || typeof content !== "string" || content.length === 0) {
+      continue;
+    }
+    out.push({
+      chunk_id: chunkId,
+      content,
+      doc_name: typeof rec.doc_name === "string" && rec.doc_name.length > 0 ? rec.doc_name : null,
+      solicitation_id: typeof rec.solicitation_id === "string" && rec.solicitation_id.length > 0 ? rec.solicitation_id : null,
+      page_number: typeof rec.page_number === "number" && Number.isFinite(rec.page_number) ? rec.page_number : null,
+      section_id: typeof rec.section_id === "string" && rec.section_id.length > 0 ? rec.section_id : null,
+      element_type: typeof rec.element_type === "string" && rec.element_type.length > 0 ? rec.element_type : null,
+      score: typeof rec.score === "number" && Number.isFinite(rec.score) ? rec.score : null,
+      amendment_number:
+        typeof rec.amendment_number === "number" && Number.isFinite(rec.amendment_number) ? rec.amendment_number : null,
+    });
   }
   return out;
 }

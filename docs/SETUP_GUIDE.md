@@ -8,8 +8,9 @@ Two ways to run it:
    BigQuery, Document AI, Cloud Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI,
    and (in `record`) new golden-set recordings.
 
-**All six levels**, private user PDF uploads (`v1.1`–`v1.2`), `/compare`, `/leaderboard` (with winner highlighting), and
-the configurable Cloud Run deployment are live and enabled by default
+**All six levels**, the **Composable RAG Workbench** (`/workbench`), private user PDF uploads (`v1.1`–`v1.2`), `/compare`
+(6-level Preset Ladder + 2–4 recipe Controlled Ablation Lab with Retrieval Diff Inspector), `/leaderboard` (with winner
+highlighting), and the configurable Cloud Run deployment are live and enabled by default
 (`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine`; override in
 `.env` or the environment). Level 5 needs the `VAIS_*` keys and Level 6 needs `RAG_ENGINE_CORPUS_ID` in live mode.
 

@@ -4,13 +4,15 @@
  * unsubscribing (page unmount) never aborts the stream. Only `abort`, `reset` or a new `run` end it.
  * In-memory only — nothing here is written to localStorage/sessionStorage.
  */
-import type { BattleEvent } from "../../types/arena";
+import type { BattleEvent, PipelineRecipeWire } from "../../types/arena";
 import { INITIAL_STREAM_STATE, reduceStreamEvent, streamEndReason, streamInterruptedEvent, type StreamState } from "./model";
 
 export interface BattleRunParams {
   readonly query: string;
   readonly questionId?: string | null;
   readonly engines: readonly string[];
+  /** Composable pipeline recipes (1..4); when non-empty, `sseTransport` posts `pipelines` instead of `engines`. */
+  readonly pipelines?: readonly PipelineRecipeWire[];
   readonly solicitationFilter?: string | null;
   /** Catalog ids; omitted from the request when null (server defaults apply). */
   readonly synthesisModel?: string | null;
@@ -104,7 +106,21 @@ export class BattleSession {
     this.state = INITIAL_STREAM_STATE;
     this.error = null;
     this.streaming = true;
-    this.runInfo = { startedAt: this.clock(), params: { ...params, engines: [...params.engines] } };
+    this.runInfo = {
+      startedAt: this.clock(),
+      params: {
+        ...params,
+        engines: [...params.engines],
+        ...(params.pipelines
+          ? {
+              pipelines: params.pipelines.map((p) => ({
+                ...p,
+                slots: { ...p.slots, agent_tools: [...p.slots.agent_tools] },
+              })),
+            }
+          : {}),
+      },
+    };
     this.emit();
     this.handle = this.openTransport(params, {
       onFrame: (frame) => {

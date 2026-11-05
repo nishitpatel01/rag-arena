@@ -17,6 +17,8 @@ export const SHORT_LEVEL_LABEL: Record<string, string> = {
   level4_agentic: "L4 Agentic",
   managed_vertex: "Managed Vertex",
   rag_engine: "L6 RAG Engine",
+  alloydb_scann: "L7 AlloyDB",
+  vertex_vector_v2: "L8 Vector v2",
 };
 
 export function lockedTitle(level: LevelDescriptor, all: readonly LevelDescriptor[]): string {

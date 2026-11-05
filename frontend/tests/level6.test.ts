@@ -86,7 +86,7 @@ const RAG_RETRIEVE = {
 };
 
 test("LEVEL_IDS and layoutSource include Level 6 rag_engine", () => {
-  assert.equal(LEVEL_IDS.length, 6);
+  assert.equal(LEVEL_IDS.length, 8);
   assert.equal(LEVEL_IDS[5], "rag_engine");
   assert.equal(isLayoutSource("vertex_ai_rag_engine"), true);
   assert.equal(layoutSourceLabel("vertex_ai_rag_engine"), "Vertex AI RAG Engine");
@@ -220,7 +220,7 @@ test("model picker & Compare rules: vertex-rag-engine-grounded is Level 6 only, 
     judgeModel: "claude-opus-5-5",
     substituted: true,
   });
-  const sixLevels: LevelDescriptor[] = LEVEL_IDS.map((id, i) => ({
+  const allLevels: LevelDescriptor[] = LEVEL_IDS.map((id, i) => ({
     level_id: id,
     label: `Level ${i + 1}`,
     order: i + 1,
@@ -228,13 +228,13 @@ test("model picker & Compare rules: vertex-rag-engine-grounded is Level 6 only, 
     stages: [],
     architecture: { level_id: id, nodes: [], edges: [], ingest_nodes: [], ingest_edges: [] },
   }));
-  const lower = lowerEnabledLevels(sixLevels, sixLevels[5]);
+  const lower = lowerEnabledLevels(allLevels, allLevels[5]);
   assert.equal(lower.length, 5);
   assert.equal(teaserTitle(lower), "Same question on Levels 1–5");
 
-  // Compare page offers all 6 levels (not truncated at 5)
-  const choices = levelChoices(sixLevels, CATALOG_6, { synthesis: "gemini-4-argon", judge: "claude-opus-5-5" }, "q1");
-  assert.equal(choices.length, 6);
+  // Compare page offers all 8 levels (including Level 6 rag_engine and Levels 7–8 ScaNN)
+  const choices = levelChoices(allLevels, CATALOG_6, { synthesis: "gemini-4-argon", judge: "claude-opus-5-5" }, "q1");
+  assert.equal(choices.length, 8);
   assert.equal(choices[5].levelId, "rag_engine");
   assert.equal(choices[5].disabledReason, null);
 });

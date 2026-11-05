@@ -36,8 +36,10 @@ def test_registry_is_gated_by_enabled_levels_and_replay_mode_returns_players() -
     assert list(two) == ["level1_naive", "level2_hybrid"]
     live = get_engine_registry(live_settings(enabled_levels=("level1_naive", "managed_vertex")))
     assert type(live["level1_naive"]).__name__ == "Level1NaiveEngine" and type(live["managed_vertex"]).__name__ == "ManagedVertexSearchEngine"
+    assert type(build_engine("alloydb_scann", live_settings())).__name__ == "AlloyDBScaNNEngine"
+    assert type(build_engine("vertex_vector_v2", live_settings())).__name__ == "VertexVectorSearchV2Engine"
     with pytest.raises(KeyError):
-        build_engine("vertex_vector_v2", live_settings())
+        build_engine("unknown_future_engine", live_settings())
     for cls in ENGINE_CLASSES:
         assert issubclass(cls, BaseRAGEngine) and cls.stages[-1] == "evaluate" and cls.stages[0] == "query_prep"
         assert "stage_log" in cls.run_query.__code__.co_names or True  # signature enforced by base
@@ -45,13 +47,13 @@ def test_registry_is_gated_by_enabled_levels_and_replay_mode_returns_players() -
     assert list(BaseRAGEngine.run_query.__code__.co_varnames[:5]) == ["self", "query", "question_id", "solicitation_filter", "emitter"]
 
 
-def test_parked_engines_are_not_importable_from_the_registry_module() -> None:
+def test_promoted_scann_engines_and_parked_compatibility_shims() -> None:
     import app.engines as engines
 
-    assert not hasattr(engines, "VertexVectorSearchV2Engine") and not hasattr(engines, "AlloyDBScaNNEngine")
+    assert hasattr(engines, "AlloyDBScaNNEngine") and hasattr(engines, "VertexVectorSearchV2Engine")
     parked = Path(engines.__file__).parent / "parked"
     assert (parked / "vertex_vector_v2.py").is_file() and (parked / "alloydb_scann.py").is_file()
-    assert "PARKED" in (parked / "alloydb_scann.py").read_text(encoding="utf-8")[:200]
+    assert "PROMOTED" in (parked / "alloydb_scann.py").read_text(encoding="utf-8")[:240]
 
 
 def test_replay_mode_live_engines_refuse_to_run() -> None:

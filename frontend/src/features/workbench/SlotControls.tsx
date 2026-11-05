@@ -38,6 +38,7 @@ import {
   coerceSpec,
   defaultPresetSpec,
   isBqProfile,
+  isScannProfile,
   matchingPresetLevelId,
 } from "./pipelineSpecModel";
 
@@ -181,6 +182,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
   const activePreset = matchingPresetLevelId(spec, presets);
   const backingLevel = backingLevelForProfile(spec.index_profile);
   const bq = isBqProfile(spec.index_profile);
+  const scann = isScannProfile(spec.index_profile);
   const maxCand = MAX_CANDIDATE_K_BY_PROFILE[spec.index_profile];
   const maxTopK = Math.min(TOP_K_RANGE[1], maxCand);
   const stages = activeQueryStages(spec);
@@ -272,7 +274,11 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
             className={selectClass}
           >
             {RETRIEVAL_MODES.map((rm) => {
-              const modeValid = bq ? BQ_RETRIEVAL_MODES.includes(rm) : rm === "managed_retrieval";
+              const modeValid = bq
+                ? BQ_RETRIEVAL_MODES.includes(rm)
+                : scann
+                  ? rm === "hybrid_rrf"
+                  : rm === "managed_retrieval";
               return (
                 <option key={rm} value={rm} disabled={!modeValid}>
                   {RETRIEVAL_MODE_LABELS[rm]}

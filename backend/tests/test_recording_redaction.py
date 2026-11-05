@@ -72,6 +72,22 @@ def test_redact_value_is_recursive_over_keys_lists_and_substrings() -> None:
     with pytest.raises(RedactionError, match="UPLOAD_BUCKET"):
         assert_redacted({"leak": "custom-team-uploads-bkt"}, redaction_tokens(custom_upload))
 
+    alloy_cfg = live_settings(
+        demo_mode="record",
+        gcp_project_id="acme-secret-proj",
+        alloydb_dsn="postgresql://db_admin:TopSecretDbPass@127.0.0.1:15432/rag_arena",
+    )
+    dsn_doc = {
+        "dsn": "postgresql://db_admin:TopSecretDbPass@127.0.0.1:15432/rag_arena",
+        "other_uri": "postgres://other_user:OtherSecret@10.0.0.5:5432/prod",
+    }
+    redacted_dsn = redact_value(dsn_doc, redaction_tokens(alloy_cfg))
+    assert "TopSecretDbPass" not in json.dumps(redacted_dsn)
+    assert "OtherSecret" not in json.dumps(redacted_dsn)
+    assert_redacted(redacted_dsn, redaction_tokens(alloy_cfg))
+    with pytest.raises(RedactionError):
+        assert_redacted({"leak": "postgresql://u:pw@127.0.0.1:5432/db"}, redaction_tokens(alloy_cfg))
+
 
 def test_recordings_written_in_record_mode_contain_no_identity_values() -> None:
     from app.core.models import EngineFlags, EngineResult, TokenUsage

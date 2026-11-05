@@ -272,13 +272,28 @@ export function dataLevelFor(levelId: string): string {
   return levelId === "level4_agentic" ? "level3_multimodal" : levelId;
 }
 
+const EPHEMERAL_UPLOAD_NOTE =
+  "Upload workspaces run on Standing Levels 1–6; switch to Procurement corpus for Ephemeral ScaNN Levels 7–8.";
+
+function isEphemeralBenchmarkLevel(levelId: string): boolean {
+  return levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
+}
+
 export function isWorkspaceLevelReady(ws: UploadWorkspace | null | undefined, levelId: string): boolean {
-  if (!ws) return false;
+  if (!ws || isEphemeralBenchmarkLevel(levelId)) return false;
   const dataLevel = dataLevelFor(levelId);
   return ws.levels?.[dataLevel]?.status === "completed";
 }
 
 export function uploadRunGateFor(levelId: string, ws: UploadWorkspace | null | undefined): RunGate {
+  if (isEphemeralBenchmarkLevel(levelId)) {
+    return {
+      blocked: true,
+      tone: "warn",
+      count: 0,
+      note: EPHEMERAL_UPLOAD_NOTE,
+    };
+  }
   if (!ws) {
     return {
       blocked: true,
@@ -310,6 +325,9 @@ export function applyUploadScopeToChoices(
 ): LevelChoice[] {
   return choices.map((c) => {
     if (c.disabledReason !== null) return c;
+    if (isEphemeralBenchmarkLevel(c.levelId)) {
+      return { ...c, disabledReason: EPHEMERAL_UPLOAD_NOTE };
+    }
     if (isWorkspaceLevelReady(ws, c.levelId)) return c;
     const dataLevel = dataLevelFor(c.levelId);
     const reason = ws

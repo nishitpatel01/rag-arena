@@ -50,6 +50,7 @@ from app.core.pipeline_spec import (
     REASONING_MODES,
     RERANKERS,
     RETRIEVAL_MODES,
+    SCANN_INDEX_PROFILES,
     TOP_K_RANGE,
     PipelineSpec,
     PipelineSpecError,
@@ -72,7 +73,7 @@ from app.recording.recorder import build_recording, record_run
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
-_MAX_ENGINES_PER_BATTLE = 6
+_MAX_ENGINES_PER_BATTLE = 8
 _MAX_PIPELINES_PER_BATTLE = 4
 _MAX_QUERY_CHARS = 4000
 _MAX_CITATIONS_IN_FRAME = 10
@@ -507,6 +508,7 @@ def _pipeline_schema_payload() -> dict[str, Any]:
         "index_profiles": list(INDEX_PROFILES),
         "bq_index_profiles": list(BQ_INDEX_PROFILES),
         "managed_index_profiles": list(MANAGED_INDEX_PROFILES),
+        "scann_index_profiles": list(SCANN_INDEX_PROFILES),
         "backing_level_by_profile": dict(BACKING_LEVEL_BY_PROFILE),
         "profile_labels": dict(PROFILE_LABELS),
         "max_candidate_k_by_profile": dict(MAX_CANDIDATE_K_BY_PROFILE),

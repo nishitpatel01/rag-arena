@@ -389,13 +389,15 @@ def test_http_presets_validate_and_ablation_battle_stream_collision_free_with_qu
         presets_resp = client.get("/api/v1/pipelines/presets")
         assert presets_resp.status_code == 200
         presets_body = presets_resp.json()
-        assert len(presets_body["presets"]) == 6
+        assert len(presets_body["presets"]) == 8
         assert presets_body["schema"]["index_profiles"] == [
             "naive",
             "hybrid",
             "multimodal",
             "vertex_ai_search",
             "rag_engine",
+            "alloydb_scann",
+            "vertex_vector_v2",
         ]
 
         # 2. POST /api/v1/pipelines/validate (valid + invalid)
@@ -511,3 +513,145 @@ def test_pipelines_battle_stream_enforces_upload_workspace_ownership_and_readine
         )
         assert unready.status_code == 400
         assert "not ingested" in unready.json()["error"]
+
+
+def test_composable_scann_ablation_skips_reranker_and_orders_authority_first() -> None:
+    from test_alloydb_scann_engine import _FakeConn
+
+    class _StubVvs2:
+        def __init__(self, doc: dict[str, Any]) -> None:
+            self._doc = doc
+
+        def request(self, *args: Any, **kwargs: Any) -> tuple[dict[str, Any], int]:
+            return self._doc, 1
+
+    alloy_rows = [
+        (
+            "chk_base_1",
+            "04_Pricing_Schedule.pdf",
+            "sol_01",
+            2,
+            "CLIN-0004-AB",
+            "Base CLIN-0004-AB labor rate is $210.00/hr.",
+            "table",
+            0,
+            0.12,
+            1,
+            0.55,
+            1,
+            0.0328,
+        ),
+        (
+            "chk_amend_1",
+            "06_Amendment_0001.pdf",
+            "sol_01",
+            1,
+            "CLIN-0004-AB",
+            "Amendment 0001 supersedes CLIN-0004-AB rate to $225.00/hr.",
+            "narrative_text",
+            1,
+            0.14,
+            2,
+            0.52,
+            2,
+            0.0322,
+        ),
+    ]
+    spec_alloy = PipelineSpec(
+        index_profile="alloydb_scann",
+        slots=QuerySlots(
+            query_transform="acronym",
+            retrieval_mode="hybrid_rrf",
+            candidate_k=10,
+            top_k=2,
+            reranker="none",
+            context_order="authority_amendment_first",
+            reasoning_mode="single_pass",
+        ),
+    )
+    cfg_alloy = live_settings(
+        enabled_levels=("alloydb_scann",),
+        alloydb_dsn="postgresql://postgres:secret@127.0.0.1:15432/postgres",
+    )
+    fake_conn = _FakeConn(alloy_rows)
+    em_alloy = RecordingStageEmitter(run_id="run_scann_alloy", engine=spec_alloy.pipeline_id)
+    with fake_clients(FakeGenaiClient()) as (genai_a, _):
+        eng_alloy = ComposableRAGEngine(
+            spec_alloy,
+            settings=cfg_alloy,
+            alloydb_conn_factory=lambda _s: fake_conn,
+        )
+        res_alloy = run(
+            eng_alloy.run_query(
+                "What is the governing CLIN-0004-AB rate?",
+                question_id="q_test",
+                solicitation_filter=None,
+                emitter=em_alloy,
+            )
+        )
+    assert [r.stage for r in em_alloy.records] == ["query_prep", "embed_query", "retrieve", "synthesize"]
+    assert res_alloy.flags.reranker_used is False
+    assert res_alloy.flags.layout_source == "alloydb_scann"
+    prompt_a = str(genai_a.calls[-1][1]["contents"])
+    assert "[AMENDMENT" in prompt_a
+
+    # Also test vertex_vector_v2 custom ablation (reranker="none")
+    vvs_doc = {
+        "results": [
+            {
+                "results": [
+                    {
+                        "dataObject": {
+                            "name": "projects/acme/locations/us-central1/collections/rag-arena-ephem-vvs2/dataObjects/chk-000000000000000000000001",
+                            "data": {
+                                "chunk_id": "chk_vvs_1",
+                                "doc_name": "06_Amendment_0001.pdf",
+                                "doc_type": "AMENDMENT",
+                                "solicitation_id": "sol_01",
+                                "page_number": 1,
+                                "section_id": "CLIN-0004-AB",
+                                "content": "Amendment 0001 supersedes CLIN-0004-AB rate to $225.00/hr.",
+                                "element_type": "narrative_text",
+                                "amendment_number": 1,
+                            },
+                        },
+                        "distance": 0.91,
+                    }
+                ]
+            }
+        ]
+    }
+    spec_vvs = PipelineSpec(
+        index_profile="vertex_vector_v2",
+        slots=QuerySlots(
+            query_transform="acronym",
+            retrieval_mode="hybrid_rrf",
+            candidate_k=10,
+            top_k=1,
+            reranker="none",
+            context_order="score_order",
+            reasoning_mode="single_pass",
+        ),
+    )
+    cfg_vvs = live_settings(
+        enabled_levels=("vertex_vector_v2",),
+        vvs2_collection="rag-arena-ephem-vvs2",
+    )
+    em_vvs = RecordingStageEmitter(run_id="run_scann_vvs", engine=spec_vvs.pipeline_id)
+    with fake_clients(FakeGenaiClient()):
+        eng_vvs = ComposableRAGEngine(
+            spec_vvs,
+            settings=cfg_vvs,
+            vvs2_client=_StubVvs2(vvs_doc),
+        )
+        res_vvs = run(
+            eng_vvs.run_query(
+                "What is the governing CLIN-0004-AB rate?",
+                question_id="q_test",
+                solicitation_filter=None,
+                emitter=em_vvs,
+            )
+        )
+    assert [r.stage for r in em_vvs.records] == ["query_prep", "embed_query", "retrieve", "synthesize"]
+    assert res_vvs.flags.reranker_used is False
+    assert res_vvs.flags.layout_source == "vertex_vector_v2"

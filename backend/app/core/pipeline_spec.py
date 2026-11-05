@@ -23,6 +23,7 @@ from app.core.architectures import (
     RAG_ENGINE_LOCATION_PLACEHOLDER,
     RAG_ENGINE_STORE_SERVICE_PLACEHOLDER,
     VAIS_LOCATION_PLACEHOLDER,
+    VVS2_LOCATION_PLACEHOLDER,
     ArchEdge,
     ArchNode,
     ArchitectureDescriptor,
@@ -42,15 +43,20 @@ INDEX_PROFILES: tuple[str, ...] = (
     "multimodal",
     "vertex_ai_search",
     "rag_engine",
+    "alloydb_scann",
+    "vertex_vector_v2",
 )
 BQ_INDEX_PROFILES: tuple[str, ...] = ("naive", "hybrid", "multimodal")
 MANAGED_INDEX_PROFILES: tuple[str, ...] = ("vertex_ai_search", "rag_engine")
+SCANN_INDEX_PROFILES: tuple[str, ...] = ("alloydb_scann", "vertex_vector_v2")
 BACKING_LEVEL_BY_PROFILE: dict[str, str] = {
     "naive": "level1_naive",
     "hybrid": "level2_hybrid",
     "multimodal": "level3_multimodal",
     "vertex_ai_search": "managed_vertex",
     "rag_engine": "rag_engine",
+    "alloydb_scann": "alloydb_scann",
+    "vertex_vector_v2": "vertex_vector_v2",
 }
 PROFILE_LABELS: dict[str, str] = {
     "naive": "BigQuery · Naive chunks",
@@ -58,6 +64,8 @@ PROFILE_LABELS: dict[str, str] = {
     "multimodal": "BigQuery · DocAI + Vision multimodal",
     "vertex_ai_search": "Vertex AI Search · Extractive segments",
     "rag_engine": "Vertex AI RAG Engine · RagCorpus",
+    "alloydb_scann": "AlloyDB PostgreSQL · ScaNN + GIN FTS",
+    "vertex_vector_v2": "Vector Search 2.0 · ScaNN + Sparse",
 }
 MAX_CANDIDATE_K_BY_PROFILE: dict[str, int] = {
     "naive": 100,
@@ -65,6 +73,8 @@ MAX_CANDIDATE_K_BY_PROFILE: dict[str, int] = {
     "multimodal": 100,
     "rag_engine": 50,
     "vertex_ai_search": 20,
+    "alloydb_scann": 100,
+    "vertex_vector_v2": 100,
 }
 
 QUERY_TRANSFORMS: tuple[str, ...] = ("none", "acronym", "acronym_plus_intent")
@@ -211,6 +221,11 @@ def _check_cross_slot_invariants(index_profile: str, slots: QuerySlots) -> None:
     if index_profile in MANAGED_INDEX_PROFILES and slots.retrieval_mode != "managed_retrieval":
         raise PipelineSpecError(
             f"Managed index_profile '{index_profile}' requires retrieval_mode 'managed_retrieval', "
+            f"got '{slots.retrieval_mode}'"
+        )
+    if index_profile in SCANN_INDEX_PROFILES and slots.retrieval_mode != "hybrid_rrf":
+        raise PipelineSpecError(
+            f"ScaNN index_profile '{index_profile}' requires retrieval_mode 'hybrid_rrf', "
             f"got '{slots.retrieval_mode}'"
         )
     if slots.reasoning_mode == "adk_agent" and index_profile not in BQ_INDEX_PROFILES:
@@ -392,6 +407,22 @@ def preset_spec(level_id: str, settings: ArenaSettings | None = None) -> Pipelin
                 "none", "score_order", "single_pass",
             ),
         )
+    if level_id == "alloydb_scann":
+        return PipelineSpec(
+            "alloydb_scann",
+            QuerySlots(
+                "acronym", "hybrid_rrf", cfg.alloydb_candidate_k, cfg.rerank_top_n,
+                "vertex_ranking_api", "score_order", "single_pass",
+            ),
+        )
+    if level_id == "vertex_vector_v2":
+        return PipelineSpec(
+            "vertex_vector_v2",
+            QuerySlots(
+                "acronym", "hybrid_rrf", cfg.vvs2_top_k, cfg.rerank_top_n,
+                "vertex_ranking_api", "score_order", "single_pass",
+            ),
+        )
     raise PipelineSpecError(f"Unknown preset level_id {level_id!r}; expected one of {list(PRESET_LEVEL_IDS)}")
 
 
@@ -406,7 +437,7 @@ def active_query_stages(spec: PipelineSpec) -> tuple[str, ...]:
     if spec.slots.reasoning_mode == "adk_agent":
         return ("query_prep", "agent_turn", "synthesize", "evaluate")
     stages: list[str] = ["query_prep"]
-    if spec.index_profile in BQ_INDEX_PROFILES and spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
+    if (spec.index_profile in BQ_INDEX_PROFILES or spec.index_profile in SCANN_INDEX_PROFILES) and spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
         stages.append("embed_query")
     stages.append("retrieve")
     if spec.slots.reranker == "vertex_ranking_api":
@@ -455,6 +486,26 @@ def _single_pass_retrieval(spec: PipelineSpec) -> tuple[list[ArchNode], list[Arc
             edges.append(ArchEdge("user", "bq", "lexical terms"))
         nodes.append(bq)
         return nodes, edges, "bq"
+    if spec.index_profile == "alloydb_scann":
+        embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",), region=GENAI_LOCATION_PLACEHOLDER)
+        alloydb = ArchNode(
+            "alloydb", "AlloyDB PostgreSQL + ScaNN",
+            f"alloydb_scann cosine + GIN FTS → RRF (top-{spec.slots.candidate_k})",
+            "store", 2, 1, ("retrieve",), region=GCP_LOCATION_PLACEHOLDER,
+        )
+        nodes.extend([embed, alloydb])
+        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "alloydb", "3072-d vector"), ArchEdge("user", "alloydb", "websearch tsquery")])
+        return nodes, edges, "alloydb"
+    if spec.index_profile == "vertex_vector_v2":
+        embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",), region=GENAI_LOCATION_PLACEHOLDER)
+        vvs2 = ArchNode(
+            "vvs2", "Vector Search 2.0 Collection",
+            f"dataObjects:batchSearch · ScaNN + Sparse RRF (top-{spec.slots.candidate_k})",
+            "store", 2, 1, ("retrieve",), region=VVS2_LOCATION_PLACEHOLDER,
+        )
+        nodes.extend([embed, vvs2])
+        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "vvs2", "3072-d vector"), ArchEdge("user", "vvs2", "CRC32 sparse tokens")])
+        return nodes, edges, "vvs2"
     if spec.index_profile == "vertex_ai_search":
         search = ArchNode("search", "Search app", "Vertex AI Search · :search", "api", 1, 1, ("retrieve",), region=VAIS_LOCATION_PLACEHOLDER)
         ds = ArchNode("ds", "Data store", "Vertex AI Search data store", "store", 2, 0, ("retrieve",), region=VAIS_LOCATION_PLACEHOLDER)
@@ -565,6 +616,7 @@ __all__ = [
     "REASONING_MODES",
     "RERANKERS",
     "RETRIEVAL_MODES",
+    "SCANN_INDEX_PROFILES",
     "TOP_K_RANGE",
     "PipelineSpec",
     "PipelineSpecError",

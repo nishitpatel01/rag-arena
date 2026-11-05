@@ -43,6 +43,13 @@ LEVEL_TIER_PROFILES: dict[str, str] = {
     "level4_agentic": "multimodal",
     "managed_vertex": "vertex_ai_search",
     "rag_engine": "rag_engine",
+    "alloydb_scann": "alloydb_scann",
+    "vertex_vector_v2": "vertex_vector_v2",
+}
+EPHEMERAL_SCANN_LEVELS: tuple[str, ...] = ("alloydb_scann", "vertex_vector_v2")
+EPHEMERAL_SCANN_SCRIPTS: dict[str, str] = {
+    "alloydb_scann": "scripts/ephemeral_alloydb.sh",
+    "vertex_vector_v2": "scripts/ephemeral_vvs2.sh",
 }
 _MAX_SOLICITATION_DIRS = 20
 _MAX_PDFS_PER_SOLICITATION = 50
@@ -308,6 +315,12 @@ class IngestJobRunner:
         """Create and schedule a job for ``level`` over the corpus, or over one upload workspace (``upload``)."""
         if level not in ALL_LEVEL_IDS:
             raise ValueError(f"Unknown level '{level}'; valid levels: {ALL_LEVEL_IDS}")
+        if level in EPHEMERAL_SCANN_LEVELS:
+            script = EPHEMERAL_SCANN_SCRIPTS[level]
+            raise ValueError(
+                f"{level} is an ephemeral benchmark store provisioned on demand via {script} "
+                "(never via standing web ingestion jobs)"
+            )
         if upload is not None and level not in UPLOAD_LEVELS:
             raise ValueError(f"{level} ingestion is not available for uploads yet (available: {', '.join(UPLOAD_LEVELS)})")
         if len(self._jobs) >= _MAX_JOBS:
@@ -594,7 +607,7 @@ class IngestJobRunner:
         except IngestBackendUnavailable as exc:
             mv_status, re_status = await asyncio.gather(managed_task, rag_engine_task)
             return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {},
-                    "managed_vertex": mv_status, "rag_engine": re_status}
+                    "managed_vertex": mv_status, "rag_engine": re_status, "ephemeral_scann": self._ephemeral_scann_status()}
         except BaseException:
             managed_task.cancel()
             rag_engine_task.cancel()
@@ -602,7 +615,36 @@ class IngestJobRunner:
             raise
         mv_status, re_status = await asyncio.gather(managed_task, rag_engine_task)
         return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn,
-                "managed_vertex": mv_status, "rag_engine": re_status}
+                "managed_vertex": mv_status, "rag_engine": re_status, "ephemeral_scann": self._ephemeral_scann_status()}
+
+    def _ephemeral_scann_status(self) -> dict[str, Any]:
+        """Levels 7–8 ephemeral benchmark stores (CLI-provisioned on demand; $0/mo idle; replay-ready via recordings)."""
+        replay = self.settings.demo_mode == "replay"
+        alloydb_cfg = bool(self.settings.alloydb_dsn.strip())
+        vvs2_col = self.settings.vvs2_collection.strip()
+        return {
+            "alloydb_scann": {
+                "enabled": "alloydb_scann" in self.settings.enabled_levels,
+                "ephemeral": True,
+                "configured": True if replay else alloydb_cfg,
+                "table": self.settings.alloydb_table,
+                "script": EPHEMERAL_SCANN_SCRIPTS["alloydb_scann"],
+                "reason": None if (replay or alloydb_cfg) else (
+                    "ALLOYDB_DSN is unset ($0/mo idle) — run scripts/ephemeral_alloydb.sh --up (or --omni) for live runs"
+                ),
+            },
+            "vertex_vector_v2": {
+                "enabled": "vertex_vector_v2" in self.settings.enabled_levels,
+                "ephemeral": True,
+                "configured": True if replay else bool(vvs2_col),
+                "location": self.settings.vvs2_location,
+                "index_id": self.settings.vvs2_index_id,
+                "script": EPHEMERAL_SCANN_SCRIPTS["vertex_vector_v2"],
+                "reason": None if (replay or bool(vvs2_col)) else (
+                    "VVS2_COLLECTION is unset ($0/mo idle) — run scripts/ephemeral_vvs2.sh --up for live runs"
+                ),
+            },
+        }
 
     async def _managed_status(self) -> dict[str, Any]:
         """Level 5 entry (data store state + document count) or an explicit reason — only when the level is enabled."""

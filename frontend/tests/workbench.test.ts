@@ -83,8 +83,8 @@ const LIVE_CATALOG: ModelsResponse = {
   ],
 };
 
-test("all 6 Level presets round-trip through validatePipelineSpec and match their canonical level_id", () => {
-  assert.equal(INDEX_PROFILES.length, 5);
+test("all 8 Level presets round-trip through validatePipelineSpec and match their canonical level_id", () => {
+  assert.equal(INDEX_PROFILES.length, 7);
   for (const levelId of LEVEL_IDS) {
     const spec = defaultPresetSpec(levelId);
     assert.equal(validatePipelineSpec(spec), null, `preset ${levelId} must be valid`);

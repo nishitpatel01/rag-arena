@@ -12,7 +12,9 @@ import type { IngestRunSummary, LevelDescriptor } from "../../types/arena";
 import { IngestJobView } from "./IngestJobView";
 import {
   TIER_FOR_LEVEL,
+  ephemeralScannFor,
   formatIngestRunCount,
+  isEphemeralScannLevel,
   isManagedLevel,
   isRagEngineLevel,
   managedStoreFor,
@@ -36,38 +38,65 @@ const LevelIngestCard: React.FC<{
   readonly storeReason?: string | null;
   /** Level 6: `RagManagedDb` mode (`spanner_basic`, `spanner_scaled`, …). */
   readonly ragDbMode?: string | null;
-}> = ({ level, count, lastRuns, busy, unavailableReason, onRun, storeState = null, storeReason = null, ragDbMode = null }) => {
+  /** Levels 7–8: CLI script path + configured state from `status.ephemeral_scann`. */
+  readonly ephemeralScript?: string | null;
+  readonly ephemeralConfigured?: boolean | null;
+}> = ({
+  level,
+  count,
+  lastRuns,
+  busy,
+  unavailableReason,
+  onRun,
+  storeState = null,
+  storeReason = null,
+  ragDbMode = null,
+  ephemeralScript = null,
+  ephemeralConfigured = null,
+}) => {
   const tier = TIER_FOR_LEVEL[level.level_id];
   const managed = isManagedLevel(level.level_id);
   const ragEngine = isRagEngineLevel(level.level_id);
+  const ephemeralScann = isEphemeralScannLevel(level.level_id);
   // DEV `?mock=1`: levels with an ingest fixture play it instead of calling the backend.
   const devIngestFixture = import.meta.env.DEV && isMockRequested() && DEV_INGEST_FIXTURE_LEVELS.includes(level.level_id);
-  const alreadyLoaded = count !== null && count > 0;
-  const countItems: (readonly [string, string])[] = ragEngine
+  const alreadyLoaded = (count !== null && count > 0) || (ephemeralScann && ephemeralConfigured === true);
+  const cliScript =
+    ephemeralScript ?? (level.level_id === "alloydb_scann" ? "scripts/ephemeral_alloydb.sh" : "scripts/ephemeral_vvs2.sh");
+  const countItems: (readonly [string, string])[] = ephemeralScann
     ? [
-        ["files in RagCorpus", count === null ? "not reported" : count.toLocaleString()],
-        ["RagCorpus state", storeState ?? "not reported"],
-        ["RagManagedDb mode", ragDbMode ?? "not reported"],
+        ["provisioning mode", "CLI-ephemeral ($0/mo standing cost)"],
+        ["CLI workflow", cliScript],
+        ["live endpoint state", ephemeralConfigured ? "configured" : "idle ($0/mo)"],
         ...(storeReason ? [["status note", storeReason] as const] : []),
       ]
-    : managed
+    : ragEngine
       ? [
-          ["corpus documents in data store", count === null ? "not reported" : count.toLocaleString()],
-          ["data store state", storeState ?? "not reported"],
+          ["files in RagCorpus", count === null ? "not reported" : count.toLocaleString()],
+          ["RagCorpus state", storeState ?? "not reported"],
+          ["RagManagedDb mode", ragDbMode ?? "not reported"],
           ...(storeReason ? [["status note", storeReason] as const] : []),
         ]
-      : [["corpus chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
+      : managed
+        ? [
+            ["corpus documents in data store", count === null ? "not reported" : count.toLocaleString()],
+            ["data store state", storeState ?? "not reported"],
+            ...(storeReason ? [["status note", storeReason] as const] : []),
+          ]
+        : [["corpus chunks in BigQuery", count === null ? (tier === null ? "n/a (managed)" : "—") : count.toLocaleString()]];
   return (
     <Panel
       title={/^level\s*\d/i.test(level.label) ? level.label : `Level ${level.order} · ${level.label}`}
       subtitle={
-        tier
-          ? `benchmark corpus · tier_profile = ${tier}`
-          : ragEngine
-            ? "benchmark corpus · Vertex AI RAG Engine (RagCorpus)"
-            : managed
-              ? "benchmark corpus · Vertex AI Search data store"
-              : "managed service — no BigQuery tier"
+        ephemeralScann
+          ? "ephemeral ScaNN benchmark · CLI-provisioned ($0/mo idle)"
+          : tier
+            ? `benchmark corpus · tier_profile = ${tier}`
+            : ragEngine
+              ? "benchmark corpus · Vertex AI RAG Engine (RagCorpus)"
+              : managed
+                ? "benchmark corpus · Vertex AI Search data store"
+                : "managed service — no BigQuery tier"
       }
       actions={
         <div className="flex flex-wrap items-center gap-1.5">
@@ -98,25 +127,41 @@ const LevelIngestCard: React.FC<{
         <Button
           variant="primary"
           size="sm"
-          disabled={busy || !level.enabled || (level.dev_fixture === true && !devIngestFixture) || (tier === null && !managed) || (unavailableReason !== null && !devIngestFixture)}
+          disabled={
+            ephemeralScann ||
+            busy ||
+            !level.enabled ||
+            (level.dev_fixture === true && !devIngestFixture) ||
+            (tier === null && !managed) ||
+            (unavailableReason !== null && !devIngestFixture)
+          }
           onClick={onRun}
           leadingIcon={<Play className="h-3.5 w-3.5" aria-hidden />}
           title={
-            tier === null && !managed
-              ? "Managed service; no ingestion job"
-              : level.dev_fixture
-                ? "Unlocked only by the DEV ?mock=1 fixture — the backend has this level disabled"
-                : unavailableReason ?? undefined
+            ephemeralScann
+              ? `Provisioned on demand via ${cliScript} (--up / --record / --down)`
+              : tier === null && !managed
+                ? "Managed service; no ingestion job"
+                : level.dev_fixture
+                  ? "Unlocked only by the DEV ?mock=1 fixture — the backend has this level disabled"
+                  : unavailableReason ?? undefined
           }
         >
-          {managed
-            ? alreadyLoaded
-              ? "Re-import corpus"
-              : "Run managed import"
-            : alreadyLoaded
-              ? "Re-ingest corpus"
-              : "Run ingestion"}
+          {ephemeralScann
+            ? "CLI-provisioned (--up / --down)"
+            : managed
+              ? alreadyLoaded
+                ? "Re-import corpus"
+                : "Run managed import"
+              : alreadyLoaded
+                ? "Re-ingest corpus"
+                : "Run ingestion"}
         </Button>
+        {ephemeralScann && (
+          <p className="mt-1 text-xs text-ink-3">
+            Spun up on demand via <span className="font-mono">{cliScript}</span> (<span className="font-mono">--up / --record / --down</span>) loading existing 3072-d vectors from BigQuery, then torn down to $0/mo idle; golden recordings stay replayable at zero standing cost.
+          </p>
+        )}
         {managed && (
           <p className="mt-1 text-xs text-ink-3">
             {ragEngine
@@ -223,6 +268,7 @@ export const IngestPage: React.FC = () => {
           {levels.map((level) => {
             const rag = isRagEngineLevel(level.level_id) ? ragCorpusFor(status) : null;
             const store = !rag && isManagedLevel(level.level_id) ? managedStoreFor(status) : null;
+            const scann = isEphemeralScannLevel(level.level_id) ? ephemeralScannFor(level.level_id, status) : null;
             return (
               <li key={level.level_id}>
                 <LevelIngestCard
@@ -233,8 +279,10 @@ export const IngestPage: React.FC = () => {
                   unavailableReason={unavailableReason}
                   onRun={() => onRun(level)}
                   storeState={rag ? rag.state : store?.state ?? null}
-                  storeReason={rag ? rag.reason : store?.reason ?? null}
+                  storeReason={scann ? scann.reason ?? null : rag ? rag.reason : store?.reason ?? null}
                   ragDbMode={rag ? rag.dbMode : null}
+                  ephemeralScript={scann?.script ?? null}
+                  ephemeralConfigured={scann?.configured ?? null}
                 />
               </li>
             );

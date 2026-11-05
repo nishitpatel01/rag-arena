@@ -196,20 +196,26 @@ def get_vector_search_v2_client(settings: ArenaSettings) -> Any:
 
 
 def get_alloydb_client(settings: ArenaSettings) -> Any:
-    """Return a cached AlloyDB PostgreSQL connection or pool configured via settings.alloydb_dsn."""
+    """Return a cached AlloyDB PostgreSQL connection configured via ``settings.alloydb_dsn``."""
     _ensure_live_settings(settings)
     dsn = settings.alloydb_dsn.strip()
     if not dsn:
-        raise ValueError("settings.alloydb_dsn must be configured for live AlloyDB ScaNN queries")
-    if dsn in _ALLOYDB_POOLS:
-        return _ALLOYDB_POOLS[dsn]
+        raise RuntimeError(
+            "ALLOYDB_DSN is not configured — run scripts/ephemeral_alloydb.sh --up (or --omni) "
+            "or use DEMO_MODE=replay"
+        )
+    connect_timeout = max(2, min(15, int(getattr(settings, "alloydb_timeout_seconds", 30))))
+    with _CLIENT_LOCK:
+        cached = _ALLOYDB_POOLS.get(dsn)
+        if cached is not None and not getattr(cached, "closed", False):
+            return cached
+        _ALLOYDB_POOLS.pop(dsn, None)
+        try:
+            import psycopg  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise RuntimeError("psycopg is required for live AlloyDB ScaNN execution") from exc
 
-    try:
-        import psycopg  # type: ignore[import-not-found]
-    except ImportError as exc:
-        raise RuntimeError("psycopg is required for live AlloyDB ScaNN execution") from exc
-
-    _evict_if_full(_ALLOYDB_POOLS)
-    conn = psycopg.connect(dsn)
-    _ALLOYDB_POOLS[dsn] = conn
-    return conn
+        _evict_if_full(_ALLOYDB_POOLS)
+        conn = psycopg.connect(dsn, connect_timeout=connect_timeout)
+        _ALLOYDB_POOLS[dsn] = conn
+        return conn

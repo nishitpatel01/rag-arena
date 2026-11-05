@@ -101,14 +101,14 @@ def _sample_retrieve_doc(uri: str, *, page: int | None = 4, text: str = "CLIN-00
 
 def test_level6_registration_descriptor_and_pseudo_model_gating() -> None:
     assert "rag_engine" in ALL_LEVEL_IDS
-    assert ENGINE_CLASSES[-1] is RagEngine
+    assert ENGINE_CLASSES[5] is RagEngine
     settings = live_settings(
         gcp_project_id="acme-proj",
         enabled_levels=ALL_LEVEL_IDS,
         rag_engine_location="us-central1",
         rag_engine_corpus_id=_CORPUS_ID,
     )
-    assert len(list_architecture_descriptors(settings)) == 6
+    assert len(list_architecture_descriptors(settings)) == 8
     desc = get_architecture_descriptor("rag_engine", settings)
     stage_mapped = {sid for n in desc.nodes for sid in n.stage_ids}
     ingest_mapped = {sid for n in desc.ingest_nodes for sid in n.stage_ids}

@@ -6,6 +6,7 @@ import pytest
 
 from app.core.config import (
     ALL_LEVEL_IDS,
+    DEFAULT_LIVE_LEVELS,
     ArenaSettings,
     get_settings,
 )
@@ -26,6 +27,8 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
         "level4_agentic",
         "managed_vertex",
         "rag_engine",
+        "alloydb_scann",
+        "vertex_vector_v2",
     )
     assert settings.demo_mode == "replay"
     assert settings.replay_speed == 1.0
@@ -40,16 +43,56 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
         "level4_agentic",
         "managed_vertex",
         "rag_engine",
+        "alloydb_scann",
+        "vertex_vector_v2",
+    )
+    live_defaults = get_settings({"DEMO_MODE": "live", "GCP_PROJECT_ID": "test-project"})
+    assert live_defaults.enabled_levels == DEFAULT_LIVE_LEVELS == (
+        "level1_naive",
+        "level2_hybrid",
+        "level3_multimodal",
+        "level4_agentic",
+        "managed_vertex",
+        "rag_engine",
     )
 
 
 def test_enabled_levels_parses_comma_list_and_rejects_unknown_or_parked() -> None:
-    settings = get_settings(_env(ENABLED_LEVELS=" level1_naive, level2_hybrid "))
-    assert settings.enabled_levels == ("level1_naive", "level2_hybrid")
+    settings = get_settings(_env(ENABLED_LEVELS=" level1_naive, alloydb_scann, vertex_vector_v2 "))
+    assert settings.enabled_levels == ("level1_naive", "alloydb_scann", "vertex_vector_v2")
     with pytest.raises(ValueError, match="ENABLED_LEVELS"):
-        get_settings(_env(ENABLED_LEVELS="level1_naive,vertex_vector_v2"))
+        get_settings(_env(ENABLED_LEVELS="level1_naive,unknown_future_level"))
     with pytest.raises(ValueError, match="ENABLED_LEVELS"):
         get_settings(_env(ENABLED_LEVELS=""))
+
+
+def test_scann_ephemeral_settings_validate_identifiers_and_bounds() -> None:
+    cfg = get_settings(
+        _env(
+            VVS2_LOCATION="us-central1",
+            VVS2_COLLECTION="rag-arena-ephem-vvs2",
+            VVS2_INDEX_ID="dense-scann",
+            VVS2_TOP_K="30",
+            ALLOYDB_TABLE="document_chunks",
+            ALLOYDB_CANDIDATE_K="30",
+        )
+    )
+    assert cfg.vvs2_location == "us-central1"
+    assert cfg.vvs2_collection == "rag-arena-ephem-vvs2"
+    assert cfg.vvs2_index_id == "dense-scann"
+    assert cfg.vvs2_top_k == 30
+    assert cfg.alloydb_table == "document_chunks"
+    assert cfg.alloydb_candidate_k == 30
+    for bad in (
+        {"VVS2_LOCATION": "global"},
+        {"VVS2_COLLECTION": "Bad_Collection"},
+        {"VVS2_INDEX_ID": "Bad_Index"},
+        {"ALLOYDB_TABLE": "chunks;drop"},
+        {"VVS2_TOP_K": "0"},
+        {"ALLOYDB_CANDIDATE_K": "500"},
+    ):
+        with pytest.raises(ValueError):
+            get_settings(_env(**bad))
 
 
 def test_demo_mode_accepts_live_record_replay_only() -> None:

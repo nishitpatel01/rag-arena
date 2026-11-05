@@ -304,6 +304,17 @@ def test_deploy_env_vars_never_forward_local_credentials() -> None:
     assert keys == {"DEMO_MODE", "ALLOW_DEV_FIXTURES", "ENABLED_LEVELS"}, keys
     assert "ENV replay DEMO_MODE=replay" in proc.stdout and "ENV live DEMO_MODE=live" in proc.stdout
 
+    proc_split = _run_deploy(
+        {
+            "ENABLED_LEVELS": "level1_naive,level2_hybrid",
+            "REPLAY_ENABLED_LEVELS": "level1_naive,level2_hybrid,alloydb_scann,vertex_vector_v2",
+        },
+        "--dry-run",
+    )
+    assert proc_split.returncode == 0, proc_split.stderr
+    assert "ENV live ENABLED_LEVELS=level1_naive,level2_hybrid" in proc_split.stdout
+    assert "ENV replay ENABLED_LEVELS=level1_naive,level2_hybrid,alloydb_scann,vertex_vector_v2" in proc_split.stdout
+
 
 def _assert_rejected(overrides: dict[str, str | None], needle: str) -> None:
     proc = _run_deploy(overrides, "--dry-run")

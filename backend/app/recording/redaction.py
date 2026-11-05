@@ -18,7 +18,9 @@ from app.core.config import ArenaSettings
 _MAX_DEPTH = 64
 _MIN_TOKEN_CHARS = 4
 _PROJECT_NUMBER_RE = re.compile(r"projects/\d{6,}")
+_POSTGRES_DSN_RE = re.compile(r"postgres(?:ql)?://(?!\$\{ALLOYDB_DSN\})[^\s\"'`]+", re.IGNORECASE)
 PROJECT_NUMBER_PLACEHOLDER = "projects/${GCP_PROJECT_NUMBER}"
+POSTGRES_DSN_PLACEHOLDER = "postgresql://${ALLOYDB_DSN}"
 
 
 class RedactionError(RuntimeError):
@@ -41,6 +43,7 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
         (settings.gcs_corpus_bucket, "${GCS_CORPUS_BUCKET}"),
         (eff_upload_bucket, "${UPLOAD_BUCKET}"),
         (settings.rag_engine_corpus_id, "${RAG_ENGINE_CORPUS_ID}"),
+        (settings.alloydb_dsn, "${ALLOYDB_DSN}"),
         (settings.cloudsdk_config, "${CLOUDSDK_CONFIG}"),
         (settings.google_application_credentials, "${GOOGLE_APPLICATION_CREDENTIALS}"),
         (home_dir, "${HOME}"),
@@ -52,6 +55,7 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
 def _redact_str(text: str, tokens: tuple[tuple[str, str], ...]) -> str:
     for value, label in tokens:
         text = text.replace(value, label)
+    text = _POSTGRES_DSN_RE.sub(POSTGRES_DSN_PLACEHOLDER, text)
     return _PROJECT_NUMBER_RE.sub(PROJECT_NUMBER_PLACEHOLDER, text)
 
 
@@ -81,6 +85,8 @@ def assert_redacted(value: Any, tokens: tuple[tuple[str, str], ...]) -> None:
     """Raise ``RedactionError`` naming the placeholder of any identity value still present."""
     blob = json.dumps(value, ensure_ascii=False)
     leaked = [label for token, label in tokens if token in blob]
+    if _POSTGRES_DSN_RE.search(blob) and "${ALLOYDB_DSN}" not in leaked:
+        leaked.append("${ALLOYDB_DSN}")
     if _PROJECT_NUMBER_RE.search(blob):
         leaked.append("${GCP_PROJECT_NUMBER}")
     if leaked:

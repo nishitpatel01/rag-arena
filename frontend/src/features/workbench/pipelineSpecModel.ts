@@ -53,10 +53,13 @@ export const INDEX_PROFILES: readonly IndexProfile[] = [
   "multimodal",
   "vertex_ai_search",
   "rag_engine",
+  "alloydb_scann",
+  "vertex_vector_v2",
 ] as const;
 
 export const BQ_INDEX_PROFILES: readonly IndexProfile[] = ["naive", "hybrid", "multimodal"] as const;
 export const MANAGED_INDEX_PROFILES: readonly IndexProfile[] = ["vertex_ai_search", "rag_engine"] as const;
+export const SCANN_INDEX_PROFILES: readonly IndexProfile[] = ["alloydb_scann", "vertex_vector_v2"] as const;
 
 export const BACKING_LEVEL_BY_PROFILE: Readonly<Record<IndexProfile, LevelId>> = {
   naive: "level1_naive",
@@ -64,6 +67,8 @@ export const BACKING_LEVEL_BY_PROFILE: Readonly<Record<IndexProfile, LevelId>> =
   multimodal: "level3_multimodal",
   vertex_ai_search: "managed_vertex",
   rag_engine: "rag_engine",
+  alloydb_scann: "alloydb_scann",
+  vertex_vector_v2: "vertex_vector_v2",
 };
 
 export const PROFILE_LABELS: Readonly<Record<IndexProfile, string>> = {
@@ -72,6 +77,8 @@ export const PROFILE_LABELS: Readonly<Record<IndexProfile, string>> = {
   multimodal: "BigQuery · DocAI + Vision multimodal",
   vertex_ai_search: "Vertex AI Search · Extractive segments",
   rag_engine: "Vertex AI RAG Engine · RagCorpus",
+  alloydb_scann: "AlloyDB PostgreSQL · ScaNN + GIN FTS",
+  vertex_vector_v2: "Vertex AI Vector Search 2.0 · ScaNN + Sparse RRF",
 };
 
 export const MAX_CANDIDATE_K_BY_PROFILE: Readonly<Record<IndexProfile, number>> = {
@@ -80,6 +87,8 @@ export const MAX_CANDIDATE_K_BY_PROFILE: Readonly<Record<IndexProfile, number>> 
   multimodal: 100,
   rag_engine: 50,
   vertex_ai_search: 20,
+  alloydb_scann: 100,
+  vertex_vector_v2: 100,
 };
 
 export const QUERY_TRANSFORMS: readonly QueryTransform[] = ["none", "acronym", "acronym_plus_intent"] as const;
@@ -146,7 +155,12 @@ export function isBqProfile(profile: IndexProfile): boolean {
   return BQ_INDEX_PROFILES.includes(profile);
 }
 
-/** Returns the canonical default `PipelineSpec` for one of the 6 delivery levels. */
+/** Returns true when `profile` queries an ephemeral ScaNN hybrid store (Level 7 AlloyDB or Level 8 VVS2). */
+export function isScannProfile(profile: IndexProfile): boolean {
+  return SCANN_INDEX_PROFILES.includes(profile);
+}
+
+/** Returns the canonical default `PipelineSpec` for one of the 8 delivery levels. */
 export function defaultPresetSpec(levelId: LevelId, presets?: readonly PipelinePresetEntry[]): PipelineSpec {
   const fromServer = presets?.find((p) => p.level_id === levelId);
   if (fromServer) {
@@ -240,6 +254,34 @@ export function defaultPresetSpec(levelId: LevelId, presets?: readonly PipelineP
           agent_tools: [],
         },
       };
+    case "alloydb_scann":
+      return {
+        index_profile: "alloydb_scann",
+        slots: {
+          query_transform: "acronym",
+          retrieval_mode: "hybrid_rrf",
+          candidate_k: 25,
+          top_k: 5,
+          reranker: "vertex_ranking_api",
+          context_order: "score_order",
+          reasoning_mode: "single_pass",
+          agent_tools: [],
+        },
+      };
+    case "vertex_vector_v2":
+      return {
+        index_profile: "vertex_vector_v2",
+        slots: {
+          query_transform: "acronym",
+          retrieval_mode: "hybrid_rrf",
+          candidate_k: 25,
+          top_k: 5,
+          reranker: "vertex_ranking_api",
+          context_order: "score_order",
+          reasoning_mode: "single_pass",
+          agent_tools: [],
+        },
+      };
   }
 }
 
@@ -299,6 +341,7 @@ function clampInt(raw: number, lo: number, hi: number): number {
 export function coerceSpec(raw: PipelineSpec): PipelineSpec {
   const profile: IndexProfile = INDEX_PROFILES.includes(raw.index_profile) ? raw.index_profile : "hybrid";
   const bq = isBqProfile(profile);
+  const scann = isScannProfile(profile);
   const maxCand = MAX_CANDIDATE_K_BY_PROFILE[profile];
   const topK = clampInt(raw.slots.top_k, TOP_K_RANGE[0], Math.min(TOP_K_RANGE[1], maxCand));
   const candidateK = clampInt(raw.slots.candidate_k, topK, maxCand);
@@ -308,7 +351,9 @@ export function coerceSpec(raw: PipelineSpec): PipelineSpec {
       : profile === "naive"
         ? "vector_cosine"
         : "hybrid_rrf"
-    : "managed_retrieval";
+    : scann
+      ? "hybrid_rrf"
+      : "managed_retrieval";
   const reasoningMode: ReasoningMode = bq && raw.slots.reasoning_mode === "adk_agent" ? "adk_agent" : "single_pass";
   const reranker: RerankerKind = RERANKERS.includes(raw.slots.reranker) ? raw.slots.reranker : "none";
   const queryTransform: QueryTransform = QUERY_TRANSFORMS.includes(raw.slots.query_transform)
@@ -371,7 +416,10 @@ export function validatePipelineSpec(spec: PipelineSpec): string | null {
   if (isBqProfile(spec.index_profile) && !BQ_RETRIEVAL_MODES.includes(s.retrieval_mode)) {
     return `BigQuery index_profile "${spec.index_profile}" requires retrieval_mode in ${BQ_RETRIEVAL_MODES.join(", ")}.`;
   }
-  if (!isBqProfile(spec.index_profile) && s.retrieval_mode !== "managed_retrieval") {
+  if (isScannProfile(spec.index_profile) && s.retrieval_mode !== "hybrid_rrf") {
+    return `ScaNN index_profile "${spec.index_profile}" requires retrieval_mode "hybrid_rrf".`;
+  }
+  if (!isBqProfile(spec.index_profile) && !isScannProfile(spec.index_profile) && s.retrieval_mode !== "managed_retrieval") {
     return `Managed index_profile "${spec.index_profile}" requires retrieval_mode "managed_retrieval".`;
   }
   if (s.reasoning_mode === "adk_agent") {
@@ -393,7 +441,10 @@ export function activeQueryStages(spec: PipelineSpec): readonly string[] {
     return ["query_prep", "agent_turn", "synthesize", "evaluate"];
   }
   const stages: string[] = ["query_prep"];
-  if (isBqProfile(spec.index_profile) && (spec.slots.retrieval_mode === "vector_cosine" || spec.slots.retrieval_mode === "hybrid_rrf")) {
+  if (
+    isScannProfile(spec.index_profile) ||
+    (isBqProfile(spec.index_profile) && (spec.slots.retrieval_mode === "vector_cosine" || spec.slots.retrieval_mode === "hybrid_rrf"))
+  ) {
     stages.push("embed_query");
   }
   stages.push("retrieve");
@@ -548,7 +599,7 @@ export function workbenchReplayGate(
   return {
     replay: true,
     pairs: [],
-    blockedReason: "Custom component recipes require Live mode — pick one of the 6 Level Presets above to play recorded runs.",
+    blockedReason: "Custom component recipes require Live mode — pick one of the 8 Level Presets above to play recorded runs.",
   };
 }
 
@@ -631,6 +682,30 @@ function singlePassRetrievalGraph(spec: PipelineSpec): {
     }
     nodes.push(bq);
     return { nodes, edges, outId: "bq" };
+  }
+  if (spec.index_profile === "alloydb_scann") {
+    nodes.push(
+      { id: "embed", label: "Query embedding", service: "Vertex AI · gemini-embedding-2", kind: "model", col: 1, row: 0, stage_ids: ["embed_query"] },
+      { id: "alloydb", label: "AlloyDB ScaNN + GIN FTS", service: `AlloyDB for PostgreSQL · ScaNN RRF (top-${spec.slots.candidate_k})`, kind: "store", col: 2, row: 1, stage_ids: ["retrieve"] },
+    );
+    edges.push(
+      { from: "user", to: "embed", label: "prepared query" },
+      { from: "embed", to: "alloydb", label: "3072-d vector" },
+      { from: "user", to: "alloydb", label: "tsquery terms" },
+    );
+    return { nodes, edges, outId: "alloydb" };
+  }
+  if (spec.index_profile === "vertex_vector_v2") {
+    nodes.push(
+      { id: "embed", label: "Query embedding", service: "Vertex AI · gemini-embedding-2", kind: "model", col: 1, row: 0, stage_ids: ["embed_query"] },
+      { id: "vvs2", label: "Vector Search 2.0 Collection", service: `dataObjects:batchSearch · ScaNN + Sparse RRF (top-${spec.slots.candidate_k})`, kind: "store", col: 2, row: 1, stage_ids: ["retrieve"] },
+    );
+    edges.push(
+      { from: "user", to: "embed", label: "prepared query" },
+      { from: "embed", to: "vvs2", label: "3072-d vector" },
+      { from: "user", to: "vvs2", label: "sparse tokens" },
+    );
+    return { nodes, edges, outId: "vvs2" };
   }
   if (spec.index_profile === "vertex_ai_search") {
     nodes.push(

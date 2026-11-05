@@ -43,11 +43,11 @@ def _expect_spec_error(fn, needle: str = "") -> str:
     raise AssertionError("expected PipelineSpecError, but call succeeded")
 
 
-def test_presets_cover_all_six_levels_and_round_trip() -> None:
+def test_presets_cover_all_eight_levels_and_round_trip() -> None:
     settings = ArenaSettings()
     assert PRESET_LEVEL_IDS == ALL_LEVEL_IDS
     presets = list_preset_specs(settings)
-    assert len(presets) == 6
+    assert len(presets) == 8
 
     seen_ids: set[str] = set()
     for level_id in ALL_LEVEL_IDS:
@@ -485,9 +485,62 @@ def test_validate_slot_id_and_enum_exports() -> None:
     assert validate_slot_id("recipe_a-1") == "recipe_a-1"
     _expect_spec_error(lambda: validate_slot_id(""), "slot_id")
     _expect_spec_error(lambda: validate_slot_id("bad space"), "slot_id")
-    assert len(INDEX_PROFILES) == 5
+    assert len(INDEX_PROFILES) == 7
     assert len(QUERY_TRANSFORMS) == 3
     assert len(RETRIEVAL_MODES) == 4
     assert len(RERANKERS) == 2
     assert len(CONTEXT_ORDERS) == 2
     assert len(REASONING_MODES) == 2
+
+
+def test_scann_index_profile_invariants_and_presets() -> None:
+    settings = ArenaSettings()
+    for lvl in ("alloydb_scann", "vertex_vector_v2"):
+        spec = preset_spec(lvl, settings)
+        assert spec.index_profile == lvl
+        assert spec.backing_level_id == lvl
+        assert active_query_stages(spec) == (
+            "query_prep",
+            "embed_query",
+            "retrieve",
+            "rerank",
+            "synthesize",
+            "evaluate",
+        )
+        desc = descriptor_for_pipeline(spec, settings)
+        node_ids = {n.id for n in desc.nodes}
+        assert "alloydb" in node_ids if lvl == "alloydb_scann" else "vvs2" in node_ids
+        assert "rank" in node_ids
+
+    # ScaNN profiles reject lexical_bm25 and adk_agent with explicit PipelineSpecError
+    _expect_spec_error(
+        lambda: PipelineSpec(
+            index_profile="alloydb_scann",
+            slots=QuerySlots(
+                query_transform="acronym",
+                retrieval_mode="lexical_bm25",
+                candidate_k=25,
+                top_k=5,
+                reranker="none",
+                context_order="score_order",
+                reasoning_mode="single_pass",
+            ),
+        ),
+        "hybrid_rrf",
+    )
+    _expect_spec_error(
+        lambda: PipelineSpec(
+            index_profile="vertex_vector_v2",
+            slots=QuerySlots(
+                query_transform="acronym",
+                retrieval_mode="hybrid_rrf",
+                candidate_k=25,
+                top_k=5,
+                reranker="none",
+                context_order="score_order",
+                reasoning_mode="adk_agent",
+                agent_tools=("search_procurement_corpus",),
+            ),
+        ),
+        "bigquery",
+    )

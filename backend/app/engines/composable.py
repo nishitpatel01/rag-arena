@@ -24,6 +24,7 @@ from app.core.models_catalog import (
 )
 from app.core.pipeline_spec import (
     BQ_INDEX_PROFILES,
+    SCANN_INDEX_PROFILES,
     PipelineSpec,
     active_query_stages,
     validate_pipeline_models,
@@ -44,6 +45,7 @@ from app.engines.agent_runtime import (
     run_agent,
 )
 from app.engines.agent_tools import ToolDeps, build_tools
+from app.engines.alloydb_scann import LAYOUT_SOURCE as ALLOYDB_LAYOUT_SOURCE, AlloyDBScaNNEngine
 from app.engines.base import BaseRAGEngine
 from app.engines.common_stages import embed_query_stage, synthesize_stage
 from app.engines.level1_naive import _row_bbox, _run_vector_search_job, build_vector_search_sql
@@ -87,6 +89,7 @@ from app.engines.managed_vertex import ManagedVertexSearchEngine, is_upload_scop
 from app.engines.rag_engine import LAYOUT_SOURCE as RAG_ENGINE_LAYOUT_SOURCE, RagEngine, hits_to_chunks
 from app.engines.replay_engine import ReplayRAGEngine, ReplayUnavailableError
 from app.engines.vais_search import LAYOUT_SOURCE as VAIS_LAYOUT_SOURCE, segment_chunks
+from app.engines.vertex_vector_v2 import LAYOUT_SOURCE as VVS2_LAYOUT_SOURCE, VertexVectorSearchV2Engine
 from app.ingestion.bq_indexer import build_hybrid_rrf_sql, build_lexical_search_sql, build_lexical_terms
 from app.ingestion.uploads import check_workspace_id
 
@@ -212,6 +215,8 @@ class ComposableRAGEngine(BaseRAGEngine):
         ranking_client: RankingClient | None = None,
         vais_client: DiscoveryEngineClient | None = None,
         rag_client: VertexRagClient | None = None,
+        alloydb_conn_factory: Any | None = None,
+        vvs2_client: Any | None = None,
     ) -> None:
         if not isinstance(spec, PipelineSpec):
             raise TypeError("spec must be a PipelineSpec instance")
@@ -235,6 +240,8 @@ class ComposableRAGEngine(BaseRAGEngine):
         self._ranking_client = ranking_client
         self._vais_client = vais_client
         self._rag_client = rag_client
+        self._alloydb_conn_factory = alloydb_conn_factory
+        self._vvs2_client = vvs2_client
 
     @property
     def _embed_model(self) -> str:
@@ -404,6 +411,59 @@ class ComposableRAGEngine(BaseRAGEngine):
         return await synthesize_stage(
             self, self.synthesis_model, query, context_block, len(chunks), emitter, emb_tokens,
             embedding_model=self._embed_model, extra_payload={"context_order": "score_order"},
+        )
+
+    async def _run_scann_single_pass(
+        self, cleaned: str, prepared: str, original: str, sol_filter: str | None, start: float, emitter: StageEmitter
+    ) -> EngineResult:
+        slots = self.spec.slots
+        genai_client = gcp_clients.get_genai_client(self.settings)
+        vector, emb_tokens = await embed_query_stage(self, prepared, genai_client, emitter, model=self._embed_model)
+        if self.spec.index_profile == "alloydb_scann":
+            helper_alloy = AlloyDBScaNNEngine(
+                settings=self.settings,
+                synthesis_model=self.synthesis_model,
+                ranking_client=self._ranking_client,
+                conn_factory=self._alloydb_conn_factory,
+            )
+            cands = await helper_alloy._retrieve_candidates(
+                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k
+            )
+            layout = ALLOYDB_LAYOUT_SOURCE
+        else:
+            helper_vvs = VertexVectorSearchV2Engine(
+                settings=self.settings,
+                synthesis_model=self.synthesis_model,
+                ranking_client=self._ranking_client,
+                vvs2_client=self._vvs2_client,
+            )
+            cands = await helper_vvs._retrieve_candidates(
+                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k
+            )
+            layout = VVS2_LAYOUT_SOURCE
+
+        rank_cost = 0.0
+        reranked_flag = False
+        if slots.reranker == "vertex_ranking_api":
+            ranked = await self._rerank(original, cands, emitter)
+            top = [replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: slots.top_k]]
+            rank_cost = rank_cost_usd(rank_billed_counts(len(cands)))
+            reranked_flag = True
+        else:
+            top = [c.chunk for c in cands[: slots.top_k]]
+        answer, usage = await self._synthesize_chunks(cleaned, top, emitter, emb_tokens)
+        return EngineResult(
+            engine_id=self.engine_id,
+            engine_label=self.engine_label,
+            answer=answer,
+            citations=self.chunks_to_citations(top, max_citations=len(top)),
+            retrieved_chunks=top,
+            agent_steps=[],
+            latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+            cost_usd=round(cost_from_usage(usage, self.synthesis_model.id) + rank_cost, 8),
+            stage_log=self.stage_log_of(emitter),
+            usage=usage,
+            flags=EngineFlags(reranker_used=reranked_flag, adk_runner_used=False, layout_source=layout),
         )
 
     async def _run_managed_single_pass(
@@ -600,6 +660,8 @@ class ComposableRAGEngine(BaseRAGEngine):
 
         start = time.perf_counter()
         prepared, original, _ = await self._run_query_prep(cleaned, emitter)
+        if self.spec.index_profile in SCANN_INDEX_PROFILES:
+            return await self._run_scann_single_pass(cleaned, prepared, original, solicitation_filter, start, emitter)
         if self.spec.index_profile not in BQ_INDEX_PROFILES:
             return await self._run_managed_single_pass(cleaned, prepared, original, solicitation_filter, start, emitter)
 

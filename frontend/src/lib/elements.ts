@@ -24,7 +24,9 @@ export type LayoutSource =
   | "gemini_vision"
   | "pymupdf"
   | "vertex_ai_search"
-  | "vertex_ai_rag_engine";
+  | "vertex_ai_rag_engine"
+  | "alloydb_scann"
+  | "vertex_vector_v2";
 
 export const LAYOUT_SOURCE_LABEL: Readonly<Record<LayoutSource, string>> = {
   documentai_layout: "Document AI layout",
@@ -32,6 +34,8 @@ export const LAYOUT_SOURCE_LABEL: Readonly<Record<LayoutSource, string>> = {
   pymupdf: "PyMuPDF",
   vertex_ai_search: "Vertex AI Search",
   vertex_ai_rag_engine: "Vertex AI RAG Engine",
+  alloydb_scann: "AlloyDB + ScaNN",
+  vertex_vector_v2: "Vector Search 2.0",
 };
 
 /**
@@ -81,7 +85,9 @@ export function isLayoutSource(v: unknown): v is LayoutSource {
     v === "gemini_vision" ||
     v === "pymupdf" ||
     v === "vertex_ai_search" ||
-    v === "vertex_ai_rag_engine"
+    v === "vertex_ai_rag_engine" ||
+    v === "alloydb_scann" ||
+    v === "vertex_vector_v2"
   );
 }
 

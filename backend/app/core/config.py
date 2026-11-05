@@ -50,11 +50,14 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
     "level4_agentic",
     "managed_vertex",
     "rag_engine",
+    "alloydb_scann",
+    "vertex_vector_v2",
 )
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-DEFAULT_ENABLED_LEVELS: tuple[str, ...] = (
+# Standing $0/mo levels enabled by default in live/record mode; ephemeral ScaNN levels opt in via ENABLED_LEVELS.
+DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
     "level1_naive",
     "level2_hybrid",
     "level3_multimodal",
@@ -62,6 +65,8 @@ DEFAULT_ENABLED_LEVELS: tuple[str, ...] = (
     "managed_vertex",
     "rag_engine",
 )
+# Replay mode enables all 8 recorded levels by default (including ephemeral ScaNN benchmarks).
+DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
@@ -120,6 +125,17 @@ _RAG_ENGINE_CHUNK_OVERLAP_RANGE: tuple[int, int] = (0, 512)
 _RAG_ENGINE_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
 _RAG_ENGINE_LOCATION_RE = re.compile(r"[a-z]+-[a-z]+[0-9]+")
 _RAG_ENGINE_CORPUS_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
+# Levels 7 & 8 Ephemeral ScaNN benchmarks (AlloyDB + Vertex AI Vector Search 2.0 REST v1beta).
+DEFAULT_VVS2_LOCATION: str = "us-central1"
+DEFAULT_VVS2_INDEX_ID: str = "dense-scann"
+DEFAULT_VVS2_TOP_K: int = 25
+DEFAULT_VVS2_TIMEOUT_SECONDS: int = 30
+DEFAULT_ALLOYDB_CANDIDATE_K: int = 25
+DEFAULT_ALLOYDB_TIMEOUT_SECONDS: int = 30
+_SCANN_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
+_SCANN_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
+_VVS2_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,62}")
+_PG_IDENT_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}")
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -168,9 +184,15 @@ class ArenaSettings:
     google_application_credentials: str = ""
     bq_dataset: str = "rag_arena"
     bq_table: str = "document_chunks"
-    vvs2_collection: str = "procurement-chunks-v2"
+    vvs2_location: str = DEFAULT_VVS2_LOCATION
+    vvs2_collection: str = ""
+    vvs2_index_id: str = DEFAULT_VVS2_INDEX_ID
+    vvs2_top_k: int = DEFAULT_VVS2_TOP_K
+    vvs2_timeout_seconds: int = DEFAULT_VVS2_TIMEOUT_SECONDS
     alloydb_table: str = "document_chunks"
     alloydb_dsn: str = ""
+    alloydb_candidate_k: int = DEFAULT_ALLOYDB_CANDIDATE_K
+    alloydb_timeout_seconds: int = DEFAULT_ALLOYDB_TIMEOUT_SECONDS
     gemini_fast_model: str = DEFAULT_GEMINI_FAST_MODEL
     gemini_pro_model: str = DEFAULT_GEMINI_PRO_MODEL
     gemini_thinking_level: str = DEFAULT_GEMINI_THINKING_LEVEL
@@ -184,7 +206,7 @@ class ArenaSettings:
     ingest_job_timeout_seconds: int = DEFAULT_INGEST_JOB_TIMEOUT_SECONDS
     allow_dev_fixtures: bool = False
     recordings_dir: str = ""
-    app_version: str = "1.3.0"
+    app_version: str = "1.4.0"
     static_dir: str = ""  # built SPA served with history fallback (container: /app/frontend/dist); empty = frontend/dist if built
     judge_provider: str = DEFAULT_JUDGE_PROVIDER
     judge_model: str = DEFAULT_JUDGE_MODEL
@@ -286,7 +308,38 @@ class ArenaSettings:
         self._validate_agent()
         self._validate_vais()
         self._validate_rag_engine()
+        self._validate_scann()
         self._validate_upload_bucket()
+
+    def _validate_scann(self) -> None:
+        """Levels 7 & 8 (AlloyDB ScaNN + Vector Search 2.0) regional/identifier allow-lists and numeric bounds."""
+        if not isinstance(self.vvs2_location, str) or not _RAG_ENGINE_LOCATION_RE.fullmatch(self.vvs2_location):
+            raise ValueError(
+                f"VVS2_LOCATION must be a regional location (e.g. 'us-central1', never 'global'), got {self.vvs2_location!r}"
+            )
+        if not isinstance(self.vvs2_collection, str) or (
+            self.vvs2_collection and not _VVS2_ID_RE.fullmatch(self.vvs2_collection)
+        ):
+            raise ValueError(
+                f"VVS2_COLLECTION must match [a-z][a-z0-9-]{{0,62}} (or empty when unprovisioned), got {self.vvs2_collection!r}"
+            )
+        if not isinstance(self.vvs2_index_id, str) or not _VVS2_ID_RE.fullmatch(self.vvs2_index_id):
+            raise ValueError(f"VVS2_INDEX_ID must match [a-z][a-z0-9-]{{0,62}}, got {self.vvs2_index_id!r}")
+        if not isinstance(self.alloydb_table, str) or not _PG_IDENT_RE.fullmatch(self.alloydb_table):
+            raise ValueError(
+                f"ALLOYDB_TABLE must be an unqualified SQL identifier matching [a-zA-Z_][a-zA-Z0-9_]{{0,62}}, "
+                f"got {self.alloydb_table!r}"
+            )
+        if not isinstance(self.alloydb_dsn, str):
+            raise TypeError("ALLOYDB_DSN must be a string")
+        for name, value, (low, high) in (
+            ("VVS2_TOP_K", self.vvs2_top_k, _SCANN_CANDIDATE_K_RANGE),
+            ("VVS2_TIMEOUT_SECONDS", self.vvs2_timeout_seconds, _SCANN_TIMEOUT_RANGE),
+            ("ALLOYDB_CANDIDATE_K", self.alloydb_candidate_k, _SCANN_CANDIDATE_K_RANGE),
+            ("ALLOYDB_TIMEOUT_SECONDS", self.alloydb_timeout_seconds, _SCANN_TIMEOUT_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
 
     def _validate_rag_engine(self) -> None:
         """Level 6 Vertex AI RAG Engine regional location/corpus id (empty = not provisioned) and bounds."""
@@ -549,9 +602,21 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         google_application_credentials=source.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip(),
         bq_dataset=source.get("BQ_DATASET", "rag_arena").strip(),
         bq_table=source.get("BQ_TABLE", "document_chunks").strip(),
-        vvs2_collection=source.get("VVS2_COLLECTION", "procurement-chunks-v2").strip(),
+        vvs2_location=source.get("VVS2_LOCATION", DEFAULT_VVS2_LOCATION).strip(),
+        vvs2_collection=source.get("VVS2_COLLECTION", "").strip(),
+        vvs2_index_id=source.get("VVS2_INDEX_ID", DEFAULT_VVS2_INDEX_ID).strip(),
+        vvs2_top_k=_parse_int(source.get("VVS2_TOP_K", str(DEFAULT_VVS2_TOP_K)), "VVS2_TOP_K"),
+        vvs2_timeout_seconds=_parse_int(
+            source.get("VVS2_TIMEOUT_SECONDS", str(DEFAULT_VVS2_TIMEOUT_SECONDS)), "VVS2_TIMEOUT_SECONDS"
+        ),
         alloydb_table=source.get("ALLOYDB_TABLE", "document_chunks").strip(),
         alloydb_dsn=source.get("ALLOYDB_DSN", "").strip(),
+        alloydb_candidate_k=_parse_int(
+            source.get("ALLOYDB_CANDIDATE_K", str(DEFAULT_ALLOYDB_CANDIDATE_K)), "ALLOYDB_CANDIDATE_K"
+        ),
+        alloydb_timeout_seconds=_parse_int(
+            source.get("ALLOYDB_TIMEOUT_SECONDS", str(DEFAULT_ALLOYDB_TIMEOUT_SECONDS)), "ALLOYDB_TIMEOUT_SECONDS"
+        ),
         gemini_fast_model=source.get("GEMINI_FAST_MODEL", DEFAULT_GEMINI_FAST_MODEL).strip(),
         gemini_pro_model=pro_model,
         gemini_thinking_level=thinking_level,
@@ -561,7 +626,11 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         ).strip(),
         reranker_model=source.get("RERANKER_MODEL", "semantic-ranker-default@latest").strip(),
         query_timeout_seconds=_parse_int(timeout_raw, "QUERY_TIMEOUT_SECONDS"),
-        enabled_levels=_parse_enabled_levels(source.get("ENABLED_LEVELS", ",".join(DEFAULT_ENABLED_LEVELS))),
+        enabled_levels=_parse_enabled_levels(
+            source["ENABLED_LEVELS"]
+            if "ENABLED_LEVELS" in source
+            else ",".join(DEFAULT_ENABLED_LEVELS if mode == "replay" else DEFAULT_LIVE_LEVELS)
+        ),
         replay_speed=_parse_float(source.get("REPLAY_SPEED", "1.0"), "REPLAY_SPEED"),
         max_sse_frames=_parse_int(source.get("MAX_SSE_FRAMES", str(DEFAULT_MAX_SSE_FRAMES)), "MAX_SSE_FRAMES"),
         ingest_job_timeout_seconds=_parse_int(
@@ -570,7 +639,7 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         ),
         allow_dev_fixtures=_parse_bool(source.get("ALLOW_DEV_FIXTURES", "0")),
         recordings_dir=source.get("RECORDINGS_DIR", "").strip(),
-        app_version=source.get("APP_VERSION", "1.3.0").strip() or "1.3.0",
+        app_version=source.get("APP_VERSION", "1.4.0").strip() or "1.4.0",
         static_dir=source.get("STATIC_DIR", "").strip(),
         hybrid_candidate_k=_parse_int(source.get("HYBRID_CANDIDATE_K", str(DEFAULT_HYBRID_CANDIDATE_K)), "HYBRID_CANDIDATE_K"),
         rerank_top_n=_parse_int(source.get("RERANK_TOP_N", str(DEFAULT_RERANK_TOP_N)), "RERANK_TOP_N"),

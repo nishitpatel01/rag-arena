@@ -9,6 +9,7 @@ from typing import Any
 from app.core.architectures import get_architecture_descriptor, ingest_stages_for
 from app.core.config import ALL_LEVEL_IDS, ArenaSettings, get_settings
 from app.core.models_catalog import RunModels
+from app.engines.alloydb_scann import AlloyDBScaNNEngine
 from app.engines.base import BaseRAGEngine
 from app.engines.level1_naive import Level1NaiveEngine, build_vector_search_sql
 from app.engines.level2_hybrid import Level2HybridEngine, expand_procurement_acronyms, prepare_query
@@ -20,6 +21,7 @@ from app.engines.level4_agentic import Level4AgenticEngine
 from app.engines.managed_vertex import ManagedVertexSearchEngine
 from app.engines.rag_engine import RagEngine
 from app.engines.replay_engine import ReplayRAGEngine
+from app.engines.vertex_vector_v2 import VertexVectorSearchV2Engine
 
 ENGINE_CLASSES: tuple[type[BaseRAGEngine], ...] = (
     Level1NaiveEngine,
@@ -28,6 +30,8 @@ ENGINE_CLASSES: tuple[type[BaseRAGEngine], ...] = (
     Level4AgenticEngine,
     ManagedVertexSearchEngine,
     RagEngine,
+    AlloyDBScaNNEngine,
+    VertexVectorSearchV2Engine,
 )
 _ENGINE_CLASS_BY_ID: dict[str, type[BaseRAGEngine]] = {cls.engine_id: cls for cls in ENGINE_CLASSES}
 
@@ -113,6 +117,7 @@ def list_levels(settings: ArenaSettings | None = None) -> list[dict[str, Any]]:
 
 
 __all__ = [
+    "AlloyDBScaNNEngine",
     "BaseRAGEngine",
     "ENGINE_CLASSES",
     "Level1NaiveEngine",
@@ -122,6 +127,7 @@ __all__ = [
     "ManagedVertexSearchEngine",
     "RagEngine",
     "ReplayRAGEngine",
+    "VertexVectorSearchV2Engine",
     "build_engine",
     "build_vector_search_sql",
     "engine_labels",

@@ -301,7 +301,7 @@ export const WorkbenchPage: React.FC = () => {
 
       <Panel
         title="Pipeline recipe builder"
-        subtitle="Start from any of the 6 Level presets or mix-and-match index store, retriever, semantic reranker, context order, and ADK tools"
+        subtitle="Start from any of the 8 Level presets or mix-and-match index store, retriever, semantic reranker, context order, and ADK tools"
       >
         <SlotControls
           idPrefix="workbench"

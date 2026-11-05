@@ -1,0 +1,1707 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-04T21:53:29.685Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-3.8-flash",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-3.8-flash",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "d9535d6c05f92d4ea819f20503f20dc341a87ee1",
+    "app_version": "1.4.0",
+    "engine": "vertex_vector_v2",
+    "question_id": "q_amendment_rate_comparison",
+    "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+    "run_id": "run_7b5507f14eea"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-11-04T21:52:24.865Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          }
+        ]
+      },
+      "ts": "2026-11-04T21:52:24.865Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-11-04T21:52:24.865Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "embed_query",
+      "duration_ms": 198,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 76,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-11-04T21:52:25.064Z",
+      "t_rel_ms": 199
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "retrieve",
+      "label": "Hybrid ScaNN ANN + sparse RRF (dataObjects:batchSearch)",
+      "service": "Vertex AI Vector Search 2.0 (REST v1beta \u00b7 ScaNN + Sparse RRF)",
+      "request": {
+        "searches": [
+          {
+            "vectorSearch": {
+              "searchField": "dense_embedding",
+              "vector": {
+                "values": [
+                  0.0065216287,
+                  0.029456677,
+                  -0.0022463882,
+                  -0.0055999984
+                ]
+              },
+              "distanceMetric": "COSINE_DISTANCE",
+              "topK": 25,
+              "outputFields": {
+                "dataFields": [
+                  "*"
+                ]
+              },
+              "searchHint": {
+                "indexHint": {
+                  "name": "projects/${GCP_PROJECT_ID}/locations/us-central1/collections/rag-arena-ephem-vvs2/indexes/dense-scann"
+                }
+              }
+            }
+          },
+          {
+            "vectorSearch": {
+              "searchField": "sparse_embedding",
+              "sparseVector": {
+                "non_zero_dimensions": 23,
+                "indices_preview": [
+                  200671339,
+                  230338189,
+                  325559801,
+                  405181692,
+                  422807473,
+                  511920237,
+                  558843162,
+                  582302429
+                ],
+                "values_preview": [
+                  1.0,
+                  1.0,
+                  1.693147,
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ]
+              },
+              "topK": 25,
+              "outputFields": {
+                "dataFields": [
+                  "*"
+                ]
+              },
+              "searchHint": {
+                "knnHint": {}
+              }
+            }
+          }
+        ],
+        "metadataOptions": {
+          "searchSignalsEnabled": true
+        },
+        "combine": {
+          "ranker": {
+            "rrf": {
+              "weights": [
+                1.0,
+                1.0
+              ]
+            }
+          },
+          "topK": 25,
+          "outputFields": {
+            "dataFields": [
+              "*"
+            ]
+          }
+        },
+        "collection": "projects/${GCP_PROJECT_ID}/locations/us-central1/collections/rag-arena-ephem-vvs2",
+        "query_vector_dimensions": 3072
+      },
+      "ts": "2026-11-04T21:52:25.064Z",
+      "t_rel_ms": 199
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "retrieve",
+      "duration_ms": 235,
+      "payload": {
+        "collection": "projects/${GCP_PROJECT_ID}/locations/us-central1/collections/rag-arena-ephem-vvs2",
+        "index": "projects/${GCP_PROJECT_ID}/locations/us-central1/collections/rag-arena-ephem-vvs2/indexes/dense-scann",
+        "location": "us-central1",
+        "fusion": "RRF(weights=[1.0, 1.0])",
+        "candidate_k": 25,
+        "rows_returned": 25,
+        "api_ms": 235,
+        "attempts": 1,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 1,
+            "lexical_rank": 2,
+            "vector_distance": 0.169991,
+            "rrf_score": 0.032522
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 2,
+            "lexical_rank": 1,
+            "vector_distance": 0.182917,
+            "rrf_score": 0.032522
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 3,
+            "lexical_rank": 3,
+            "vector_distance": 0.184715,
+            "rrf_score": 0.031746
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 4,
+            "lexical_rank": 4,
+            "vector_distance": 0.199191,
+            "rrf_score": 0.03125
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 6,
+            "lexical_rank": 5,
+            "vector_distance": 0.244023,
+            "rrf_score": 0.030536
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 5,
+            "lexical_rank": 6,
+            "vector_distance": 0.238618,
+            "rrf_score": 0.030536
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 7,
+            "lexical_rank": 9,
+            "vector_distance": 0.26275,
+            "rrf_score": 0.029418
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-1001",
+            "vector_rank": 10,
+            "lexical_rank": 8,
+            "vector_distance": 0.291278,
+            "rrf_score": 0.028992
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 12,
+            "lexical_rank": 7,
+            "vector_distance": 0.305745,
+            "rrf_score": 0.028814
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 9,
+            "lexical_rank": 10,
+            "vector_distance": 0.279517,
+            "rrf_score": 0.028778
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 8,
+            "lexical_rank": 12,
+            "vector_distance": 0.265279,
+            "rrf_score": 0.028595
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 11,
+            "lexical_rank": 16,
+            "vector_distance": 0.292657,
+            "rrf_score": 0.027242
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 16,
+            "lexical_rank": 15,
+            "vector_distance": 0.351571,
+            "rrf_score": 0.026491
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 17,
+            "lexical_rank": 17,
+            "vector_distance": 0.355015,
+            "rrf_score": 0.025974
+          },
+          {
+            "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p23_hybrid",
+            "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+            "page_number": 23,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 11,
+            "vector_distance": null,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p7_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 7,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 13,
+            "vector_distance": null,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 13,
+            "lexical_rank": null,
+            "vector_distance": 0.337533,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p6_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 14,
+            "vector_distance": null,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 14,
+            "lexical_rank": null,
+            "vector_distance": 0.347075,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 15,
+            "lexical_rank": null,
+            "vector_distance": 0.350226,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 8,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 18,
+            "vector_distance": null,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.382674,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "section_id": "ZTA-NIST-800-207",
+            "vector_rank": 19,
+            "lexical_rank": null,
+            "vector_distance": 0.386564,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_02_emeraldhealthbioceuticalsinc_20200218_1-a_ex1a-6 mat ctrct_11987205_ex1a-6 mat ctrct_development agreement_p2_hybrid",
+            "doc_name": "EmeraldHealthBioceuticalsInc_20200218_1-A_EX1A-6 MAT CTRCT_11987205_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 19,
+            "vector_distance": null,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p25_hybrid",
+            "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+            "page_number": 25,
+            "section_id": null,
+            "vector_rank": null,
+            "lexical_rank": 20,
+            "vector_distance": null,
+            "rrf_score": 0.0125
+          }
+        ]
+      },
+      "ts": "2026-11-04T21:52:25.300Z",
+      "t_rel_ms": 435
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "rerank",
+      "label": "Cross-encoder reranking",
+      "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+      "request": {
+        "endpoint": "https://discoveryengine.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/global/rankingConfigs/default_ranking_config:rank",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 5,
+        "records_sent": 25,
+        "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?"
+      },
+      "ts": "2026-11-04T21:52:25.301Z",
+      "t_rel_ms": 436
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "rerank",
+      "duration_ms": 227,
+      "payload": {
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 25,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 4,
+            "rrf_score": 0.03125,
+            "rerank_rank": 1,
+            "rerank_score": 0.699
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.031746,
+            "rerank_rank": 2,
+            "rerank_score": 0.5771
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.032522,
+            "rerank_rank": 3,
+            "rerank_score": 0.5717
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.032522,
+            "rerank_rank": 4,
+            "rerank_score": 0.5156
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 6,
+            "rrf_score": 0.030536,
+            "rerank_rank": 5,
+            "rerank_score": 0.4212
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 7,
+            "rrf_score": 0.029418,
+            "rerank_rank": 6,
+            "rerank_score": 0.337
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 5,
+            "rrf_score": 0.030536,
+            "rerank_rank": 7,
+            "rerank_score": 0.3198
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "rrf_rank": 8,
+            "rrf_score": 0.028992,
+            "rerank_rank": 8,
+            "rerank_score": 0.1282
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 11,
+            "rrf_score": 0.028595,
+            "rerank_rank": 9,
+            "rerank_score": 0.1033
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 9,
+            "rrf_score": 0.028814,
+            "rerank_rank": 10,
+            "rerank_score": 0.0832
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 13,
+            "rrf_score": 0.026491,
+            "rerank_rank": 11,
+            "rerank_score": 0.0598
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 12,
+            "rrf_score": 0.027242,
+            "rerank_rank": 12,
+            "rerank_score": 0.0429
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 19,
+            "rrf_score": 0.013514,
+            "rerank_rank": 13,
+            "rerank_score": 0.0371
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.028778,
+            "rerank_rank": 14,
+            "rerank_score": 0.0348
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 8,
+            "rrf_rank": 21,
+            "rrf_score": 0.012821,
+            "rerank_rank": 15,
+            "rerank_score": 0.0327
+          },
+          {
+            "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p23_hybrid",
+            "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+            "page_number": 23,
+            "rrf_rank": 15,
+            "rrf_score": 0.014085,
+            "rerank_rank": 16,
+            "rerank_score": 0.0308
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "rrf_rank": 23,
+            "rrf_score": 0.012658,
+            "rerank_rank": 17,
+            "rerank_score": 0.0308
+          },
+          {
+            "chunk_id": "solicitation_02_emeraldhealthbioceuticalsinc_20200218_1-a_ex1a-6 mat ctrct_11987205_ex1a-6 mat ctrct_development agreement_p2_hybrid",
+            "doc_name": "EmeraldHealthBioceuticalsInc_20200218_1-A_EX1A-6 MAT CTRCT_11987205_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+            "page_number": 2,
+            "rrf_rank": 24,
+            "rrf_score": 0.012658,
+            "rerank_rank": 18,
+            "rerank_score": 0.0307
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 14,
+            "rrf_score": 0.025974,
+            "rerank_rank": 19,
+            "rerank_score": 0.0286
+          },
+          {
+            "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p7_hybrid",
+            "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+            "page_number": 7,
+            "rrf_rank": 16,
+            "rrf_score": 0.013699,
+            "rerank_rank": 20,
+            "rerank_score": 0.0259
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 20,
+            "rrf_score": 0.013333,
+            "rerank_rank": 21,
+            "rerank_score": 0.0251
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 17,
+            "rrf_score": 0.013699,
+            "rerank_rank": 22,
+            "rerank_score": 0.0212
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 22,
+            "rrf_score": 0.012821,
+            "rerank_rank": 23,
+            "rerank_score": 0.0199
+          },
+          {
+            "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p25_hybrid",
+            "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+            "page_number": 25,
+            "rrf_rank": 25,
+            "rrf_score": 0.0125,
+            "rerank_rank": 24,
+            "rerank_score": 0.0191
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p6_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 6,
+            "rrf_rank": 18,
+            "rrf_score": 0.013514,
+            "rerank_rank": 25,
+            "rerank_score": 0.0188
+          }
+        ],
+        "rank_api_ms": 227,
+        "attempts": 1,
+        "records_truncated": 2,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-11-04T21:52:25.529Z",
+      "t_rel_ms": 664
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 3.8 Flash",
+      "request": {
+        "model": "gemini-3.8-flash",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[05_Master_Services_Agreement_MSA.pdf | Sec: MSA-AMD-0001 | p.1]: [Contextual Lineage: Solicitation=solicitation_03 | Document=05_Master_Services_Agreement_MSA.pdf | DocType=MSA | Section=MSA-AMD-0001]\nSOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\nAggregate liability under this Agreement is capped at two times (2x) the total\nannual contract value, excluding willful misconduct or indemnification obligations.\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\nNotwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\nMSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\nCLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\nCLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).\n\n[04_Pricing_Labor_Categories.pdf | Sec: CLIN-2001 | p.1]: [Contextual Lineage: Solicitation=solicitation_03 | Document=04_Pricing_Labor_Categories.pdf | DocType=PRICING_CLIN | Section=CLIN-2001]\nSOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.\n\n[06_Amendment_0001_Scope_Update.pdf | Sec: AMD-0001 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.\n\n[04_Pricing_Schedule_CLINs.pdf | Sec: CLIN-0004-AB | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=04_Pricing_Schedule_CLINs.pdf | DocType=PRICING_CLIN | Section=CLIN-0004-AB]\nSOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).\n\n[07_Amendment_0002_Vendor_QA.pdf | Sec: AMD-0002-QA | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA]\nSOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\nQuestion: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-11-04T21:52:25.529Z",
+      "t_rel_ms": 664
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "synthesize",
+      "duration_ms": 61134,
+      "payload": {
+        "model": "gemini-3.8-flash",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 2332,
+        "output_tokens": 504,
+        "thinking_tokens": 1359,
+        "stop_reason": "STOP",
+        "response_id": "GanrapWEJMSHptQPtfKRoAs",
+        "attempts": 1,
+        "answer": "Based on the provided context, here is the comparison between the Cloud Security Architect rates and costs in Solicitation 01 and Solicitation 03:\n\n### **Solicitation 01 (SOL-2026-CLOUD-01 | CLIN-0004-AB)**\n* **Amended Hourly Rate:** Increased from $210.00/hr to **$245.00/hr** per Amendment 0001.\n* **Volume Discount:** A **5% volume discount** applies to the entire CLIN order because contracted hours exceed 1,500 hours.\n* **2,000-Hour Net Year 1 Cost:** **$465,500.00**  \n  $$\\text{Calculation: } 2,000 \\times \\$245.00 \\times (1 - 0.05) = \\$465,500.00$$\n\n---\n\n### **Solicitation 03 (SOL-2026-SEC-03 | CLIN-2001)**\n* **Amended Hourly Rate Cap:** Capped at **$250.00/hr** via MSA Amendment 0001 (superseding the base rate of $265.00/hr).\n* **2,000-Hour Net Cost:** **$500,000.00**  \n  $$\\text{Calculation: } 2,000 \\times \\$250.00 = \\$500,000.00$$\n\n---\n\n### **Summary Comparison**\n* **Hourly Rate:** Solicitation 01 has an amended base rate of **$245.00/hr**, compared to the binding rate cap of **$250.00/hr** in Solicitation 03 ($5.00/hr lower).\n* **2,000-Hour Cost:** Due to the 5% volume discount, Solicitation 01's Year 1 net total is **$465,500.00**, which is **$34,500.00 lower** than Solicitation 03's amended total of **$500,000.00**.",
+        "thinking_level": "HIGH",
+        "context_source": "Vertex AI Vector Search 2.0 (ScaNN + Sparse RRF)",
+        "context_chunks": 5
+      },
+      "ts": "2026-11-04T21:53:26.664Z",
+      "t_rel_ms": 61799
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-11-04T21:53:26.665Z",
+      "t_rel_ms": 61799
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_7b5507f14eea",
+      "engine": "vertex_vector_v2",
+      "stage": "evaluate",
+      "duration_ms": 3020,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 0.97,
+        "context_precision": 0.9,
+        "reference_answer_used": true,
+        "input_tokens": 4178,
+        "output_tokens": 224,
+        "judge_cost_usd": 0.021192,
+        "rationale": "Every figure in the answer appears in or follows directly from the retrieved context: $245/hr with a 5% discount gives $465,500, the $250/hr cap gives $500,000, and the difference is $34,500. The answer agrees with the reference and covers both solicitations, though it never states the effective net rate of $232.75/hr that the reference includes. Most chunks are directly relevant, but the Amendment 0002 chunk includes an off-topic KMS Q&A alongside the useful Q19, and the MSA chunk carries unrelated liability text.",
+        "judge_response_id": "msg_vrtx_011CgidYUQKvJVvrSdms27bT"
+      },
+      "ts": "2026-11-04T21:53:29.685Z",
+      "t_rel_ms": 64820
+    }
+  ],
+  "result": {
+    "engine_id": "vertex_vector_v2",
+    "engine_label": "Level 8: Vertex AI Vector Search 2.0 (ScaNN + Sparse RRF)",
+    "answer": "Based on the provided context, here is the comparison between the Cloud Security Architect rates and costs in Solicitation 01 and Solicitation 03:\n\n### **Solicitation 01 (SOL-2026-CLOUD-01 | CLIN-0004-AB)**\n* **Amended Hourly Rate:** Increased from $210.00/hr to **$245.00/hr** per Amendment 0001.\n* **Volume Discount:** A **5% volume discount** applies to the entire CLIN order because contracted hours exceed 1,500 hours.\n* **2,000-Hour Net Year 1 Cost:** **$465,500.00**  \n  $$\\text{Calculation: } 2,000 \\times \\$245.00 \\times (1 - 0.05) = \\$465,500.00$$\n\n---\n\n### **Solicitation 03 (SOL-2026-SEC-03 | CLIN-2001)**\n* **Amended Hourly Rate Cap:** Capped at **$250.00/hr** via MSA Amendment 0001 (superseding the base rate of $265.00/hr).\n* **2,000-Hour Net Cost:** **$500,000.00**  \n  $$\\text{Calculation: } 2,000 \\times \\$250.00 = \\$500,000.00$$\n\n---\n\n### **Summary Comparison**\n* **Hourly Rate:** Solicitation 01 has an amended base rate of **$245.00/hr**, compared to the binding rate cap of **$250.00/hr** in Solicitation 03 ($5.00/hr lower).\n* **2,000-Hour Cost:** Due to the 5% volume discount, Solicitation 01's Year 1 net total is **$465,500.00**, which is **$34,500.00 lower** than Solicitation 03's amended total of **$500,000.00**.",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "MSA-AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=05_Master_Services_Agreement_MSA.pdf | DocType=MSA | Section=MSA-AMD-0001] SOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf MASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 ",
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "CLIN-2001",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=04_Pricing_Labor_Categories.pdf | DocType=PRICING_CLIN | Section=CLIN-2001] SOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf SCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD ",
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001] SOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CL",
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=04_Pricing_Schedule_CLINs.pdf | DocType=PRICING_CLIN | Section=CLIN-0004-AB] SOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING",
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0002-QA",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA] SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf AMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTA",
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+        "tier_profile": "vertex_vector_v2",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "MSA",
+        "element_type": "narrative_text",
+        "section_id": "MSA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-25",
+        "amends_section": "CLIN-2001",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=05_Master_Services_Agreement_MSA.pdf | DocType=MSA | Section=MSA-AMD-0001]\nSOL-2026-SEC-03 | 05_Master_Services_Agreement_MSA.pdf\nMASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE\n[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\n1. LIMITATION OF LIABILITY (MSA SECTION 8.1):\nAggregate liability under this Agreement is capped at two times (2x) the total\nannual contract value, excluding willful misconduct or indemnification obligations.\n2. MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001):\nNotwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf,\nMSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for\nCLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended\nCLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).",
+        "score": 0.699,
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+        "tier_profile": "vertex_vector_v2",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-2001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=04_Pricing_Labor_Categories.pdf | DocType=PRICING_CLIN | Section=CLIN-2001]\nSOL-2026-SEC-03 | 04_Pricing_Labor_Categories.pdf\nSCHEDULE B: CYBERSECURITY OPERATIONS LABOR RATE CARD (BASE SCHEDULE)\nBase Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.",
+        "score": 0.5771,
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+        "tier_profile": "vertex_vector_v2",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=06_Amendment_0001_Scope_Update.pdf | DocType=AMENDMENT | Section=AMD-0001]\nSOL-2026-CLOUD-01 | 06_Amendment_0001_Scope_Update.pdf\nAMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION\n[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n1. SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO):\nSection SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full.\nThe required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes,\nand the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes\n(synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n2. SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE):\nDue to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope,\nthe CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf\nis increased from $210.00/hr to $245.00/hr.\n3. VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB:\nWhen contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5%\nvolume discount applies to the entire CLIN-0004-AB order:\nFor 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.",
+        "score": 0.5717,
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+        "tier_profile": "vertex_vector_v2",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=04_Pricing_Schedule_CLINs.pdf | DocType=PRICING_CLIN | Section=CLIN-0004-AB]\nSOL-2026-CLOUD-01 | 04_Pricing_Schedule_CLINs.pdf\nSCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nBase Solicitation Rate Card (Prior to Amendment 0001 Adjustments):\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).",
+        "score": 0.5156,
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+        "tier_profile": "vertex_vector_v2",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.06,
+          "y0": 0.14,
+          "x1": 0.94,
+          "y1": 0.86
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA]\nSOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.4212,
+        "layout_source": "vertex_vector_v2",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 61799,
+    "cost_usd": 0.00975045,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-04T21:52:24.865Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+          "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-11-04T21:52:24.865Z",
+        "duration_ms": 198,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 76,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "Hybrid ScaNN ANN + sparse RRF (dataObjects:batchSearch)",
+        "service": "Vertex AI Vector Search 2.0 (REST v1beta \u00b7 ScaNN + Sparse RRF)",
+        "status": "completed",
+        "started_at": "2026-11-04T21:52:25.064Z",
+        "duration_ms": 235,
+        "request": {},
+        "payload": {
+          "collection": "projects/${GCP_PROJECT_ID}/locations/us-central1/collections/rag-arena-ephem-vvs2",
+          "index": "projects/${GCP_PROJECT_ID}/locations/us-central1/collections/rag-arena-ephem-vvs2/indexes/dense-scann",
+          "location": "us-central1",
+          "fusion": "RRF(weights=[1.0, 1.0])",
+          "candidate_k": 25,
+          "rows_returned": 25,
+          "api_ms": 235,
+          "attempts": 1,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 1,
+              "lexical_rank": 2,
+              "vector_distance": 0.169991,
+              "rrf_score": 0.032522
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 2,
+              "lexical_rank": 1,
+              "vector_distance": 0.182917,
+              "rrf_score": 0.032522
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 3,
+              "lexical_rank": 3,
+              "vector_distance": 0.184715,
+              "rrf_score": 0.031746
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 4,
+              "lexical_rank": 4,
+              "vector_distance": 0.199191,
+              "rrf_score": 0.03125
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 6,
+              "lexical_rank": 5,
+              "vector_distance": 0.244023,
+              "rrf_score": 0.030536
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 5,
+              "lexical_rank": 6,
+              "vector_distance": 0.238618,
+              "rrf_score": 0.030536
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 7,
+              "lexical_rank": 9,
+              "vector_distance": 0.26275,
+              "rrf_score": 0.029418
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-1001",
+              "vector_rank": 10,
+              "lexical_rank": 8,
+              "vector_distance": 0.291278,
+              "rrf_score": 0.028992
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 12,
+              "lexical_rank": 7,
+              "vector_distance": 0.305745,
+              "rrf_score": 0.028814
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 9,
+              "lexical_rank": 10,
+              "vector_distance": 0.279517,
+              "rrf_score": 0.028778
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 8,
+              "lexical_rank": 12,
+              "vector_distance": 0.265279,
+              "rrf_score": 0.028595
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 11,
+              "lexical_rank": 16,
+              "vector_distance": 0.292657,
+              "rrf_score": 0.027242
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 16,
+              "lexical_rank": 15,
+              "vector_distance": 0.351571,
+              "rrf_score": 0.026491
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 17,
+              "lexical_rank": 17,
+              "vector_distance": 0.355015,
+              "rrf_score": 0.025974
+            },
+            {
+              "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p23_hybrid",
+              "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+              "page_number": 23,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 11,
+              "vector_distance": null,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p7_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 7,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 13,
+              "vector_distance": null,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 13,
+              "lexical_rank": null,
+              "vector_distance": 0.337533,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p6_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 14,
+              "vector_distance": null,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 14,
+              "lexical_rank": null,
+              "vector_distance": 0.347075,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 15,
+              "lexical_rank": null,
+              "vector_distance": 0.350226,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 8,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 18,
+              "vector_distance": null,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.382674,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "section_id": "ZTA-NIST-800-207",
+              "vector_rank": 19,
+              "lexical_rank": null,
+              "vector_distance": 0.386564,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_02_emeraldhealthbioceuticalsinc_20200218_1-a_ex1a-6 mat ctrct_11987205_ex1a-6 mat ctrct_development agreement_p2_hybrid",
+              "doc_name": "EmeraldHealthBioceuticalsInc_20200218_1-A_EX1A-6 MAT CTRCT_11987205_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 19,
+              "vector_distance": null,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p25_hybrid",
+              "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+              "page_number": 25,
+              "section_id": null,
+              "vector_rank": null,
+              "lexical_rank": 20,
+              "vector_distance": null,
+              "rrf_score": 0.0125
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Cross-encoder reranking",
+        "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+        "status": "completed",
+        "started_at": "2026-11-04T21:52:25.301Z",
+        "duration_ms": 227,
+        "request": {},
+        "payload": {
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 25,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 4,
+              "rrf_score": 0.03125,
+              "rerank_rank": 1,
+              "rerank_score": 0.699
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.031746,
+              "rerank_rank": 2,
+              "rerank_score": 0.5771
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.032522,
+              "rerank_rank": 3,
+              "rerank_score": 0.5717
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.032522,
+              "rerank_rank": 4,
+              "rerank_score": 0.5156
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 6,
+              "rrf_score": 0.030536,
+              "rerank_rank": 5,
+              "rerank_score": 0.4212
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 7,
+              "rrf_score": 0.029418,
+              "rerank_rank": 6,
+              "rerank_score": 0.337
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 5,
+              "rrf_score": 0.030536,
+              "rerank_rank": 7,
+              "rerank_score": 0.3198
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "rrf_rank": 8,
+              "rrf_score": 0.028992,
+              "rerank_rank": 8,
+              "rerank_score": 0.1282
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 11,
+              "rrf_score": 0.028595,
+              "rerank_rank": 9,
+              "rerank_score": 0.1033
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 9,
+              "rrf_score": 0.028814,
+              "rerank_rank": 10,
+              "rerank_score": 0.0832
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 13,
+              "rrf_score": 0.026491,
+              "rerank_rank": 11,
+              "rerank_score": 0.0598
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 12,
+              "rrf_score": 0.027242,
+              "rerank_rank": 12,
+              "rerank_score": 0.0429
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 19,
+              "rrf_score": 0.013514,
+              "rerank_rank": 13,
+              "rerank_score": 0.0371
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.028778,
+              "rerank_rank": 14,
+              "rerank_score": 0.0348
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p8_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 8,
+              "rrf_rank": 21,
+              "rrf_score": 0.012821,
+              "rerank_rank": 15,
+              "rerank_score": 0.0327
+            },
+            {
+              "chunk_id": "solicitation_03_cytodyninc_20200109_10-q_ex-10.5_11941634_ex-10.5_license agreement_p23_hybrid",
+              "doc_name": "CytodynInc_20200109_10-Q_EX-10.5_11941634_EX-10.5_License Agreement.pdf",
+              "page_number": 23,
+              "rrf_rank": 15,
+              "rrf_score": 0.014085,
+              "rerank_rank": 16,
+              "rerank_score": 0.0308
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "rrf_rank": 23,
+              "rrf_score": 0.012658,
+              "rerank_rank": 17,
+              "rerank_score": 0.0308
+            },
+            {
+              "chunk_id": "solicitation_02_emeraldhealthbioceuticalsinc_20200218_1-a_ex1a-6 mat ctrct_11987205_ex1a-6 mat ctrct_development agreement_p2_hybrid",
+              "doc_name": "EmeraldHealthBioceuticalsInc_20200218_1-A_EX1A-6 MAT CTRCT_11987205_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+              "page_number": 2,
+              "rrf_rank": 24,
+              "rrf_score": 0.012658,
+              "rerank_rank": 18,
+              "rerank_score": 0.0307
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 14,
+              "rrf_score": 0.025974,
+              "rerank_rank": 19,
+              "rerank_score": 0.0286
+            },
+            {
+              "chunk_id": "solicitation_02_etonpharmaceuticalsinc_20191114_10-q_ex-10.1_11893941_ex-10.1_development agreement_p7_hybrid",
+              "doc_name": "EtonPharmaceuticalsInc_20191114_10-Q_EX-10.1_11893941_EX-10.1_Development Agreement.pdf",
+              "page_number": 7,
+              "rrf_rank": 16,
+              "rrf_score": 0.013699,
+              "rerank_rank": 20,
+              "rerank_score": 0.0259
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 20,
+              "rrf_score": 0.013333,
+              "rerank_rank": 21,
+              "rerank_score": 0.0251
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 17,
+              "rrf_score": 0.013699,
+              "rerank_rank": 22,
+              "rerank_score": 0.0212
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 22,
+              "rrf_score": 0.012821,
+              "rerank_rank": 23,
+              "rerank_score": 0.0199
+            },
+            {
+              "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p25_hybrid",
+              "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+              "page_number": 25,
+              "rrf_rank": 25,
+              "rrf_score": 0.0125,
+              "rerank_rank": 24,
+              "rerank_score": 0.0191
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p6_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 6,
+              "rrf_rank": 18,
+              "rrf_score": 0.013514,
+              "rerank_rank": 25,
+              "rerank_score": 0.0188
+            }
+          ],
+          "rank_api_ms": 227,
+          "attempts": 1,
+          "records_truncated": 2,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 3.8 Flash",
+        "status": "completed",
+        "started_at": "2026-11-04T21:52:25.529Z",
+        "duration_ms": 61134,
+        "request": {},
+        "payload": {
+          "model": "gemini-3.8-flash",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 2332,
+          "output_tokens": 504,
+          "thinking_tokens": 1359,
+          "stop_reason": "STOP",
+          "response_id": "GanrapWEJMSHptQPtfKRoAs",
+          "attempts": 1,
+          "answer": "Based on the provided context, here is the comparison between the Cloud Security Architect rates and costs in Solicitation 01 and Solicitation 03:\n\n### **Solicitation 01 (SOL-2026-CLOUD-01 | CLIN-0004-AB)**\n* **Amended Hourly Rate:** Increased from $210.00/hr to **$245.00/hr** per Amendment 0001.\n* **Volume Discount:** A **5% volume discount** applies to the entire CLIN order because contracted hours exceed 1,500 hours.\n* **2,000-Hour Net Year 1 Cost:** **$465,500.00**  \n  $$\\text{Calculation: } 2,000 \\times \\$245.00 \\times (1 - 0.05) = \\$465,500.00$$\n\n---\n\n### **Solicitation 03 (SOL-2026-SEC-03 | CLIN-2001)**\n* **Amended Hourly Rate Cap:** Capped at **$250.00/hr** via MSA Amendment 0001 (superseding the base rate of $265.00/hr).\n* **2,000-Hour Net Cost:** **$500,000.00**  \n  $$\\text{Calculation: } 2,000 \\times \\$250.00 = \\$500,000.00$$\n\n---\n\n### **Summary Comparison**\n* **Hourly Rate:** Solicitation 01 has an amended base rate of **$245.00/hr**, compared to the binding rate cap of **$250.00/hr** in Solicitation 03 ($5.00/hr lower).\n* **2,000-Hour Cost:** Due to the 5% volume discount, Solicitation 01's Year 1 net total is **$465,500.00**, which is **$34,500.00 lower** than Solicitation 03's amended total of **$500,000.00**.",
+          "thinking_level": "HIGH",
+          "context_source": "Vertex AI Vector Search 2.0 (ScaNN + Sparse RRF)",
+          "context_chunks": 5
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 2332,
+      "output_tokens": 504,
+      "embedding_tokens": 76,
+      "thinking_tokens": 1359,
+      "model": "gemini-3.8-flash",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "vertex_vector_v2"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 0.97,
+      "context_precision": 0.9
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 3019,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4178,
+    "output_tokens": 224,
+    "judge_cost_usd": 0.021192,
+    "rationale": "Every figure in the answer appears in or follows directly from the retrieved context: $245/hr with a 5% discount gives $465,500, the $250/hr cap gives $500,000, and the difference is $34,500. The answer agrees with the reference and covers both solicitations, though it never states the effective net rate of $232.75/hr that the reference includes. Most chunks are directly relevant, but the Amendment 0002 chunk includes an off-topic KMS Q&A alongside the useful Q19, and the MSA chunk carries unrelated liability text.",
+    "judge_response_id": "msg_vrtx_011CgidYUQKvJVvrSdms27bT"
+  }
+}

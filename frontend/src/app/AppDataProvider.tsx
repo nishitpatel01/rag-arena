@@ -23,6 +23,8 @@ function devFixtureLevels(
     level4_agentic: "Agentic RAG with Google ADK (dev fixture)",
     managed_vertex: "Managed Vertex AI Search (dev fixture)",
     rag_engine: "Managed Vertex AI RAG Engine (dev fixture)",
+    alloydb_scann: "AlloyDB PostgreSQL + ScaNN Hybrid (dev fixture)",
+    vertex_vector_v2: "Vertex AI Vector Search 2.0 (dev fixture)",
   };
   const arch: Record<string, ArchitectureDescriptor> = { level1_naive: arch1, level2_hybrid: arch2, level3_multimodal: arch3, level4_agentic: arch4, managed_vertex: arch5 };
   return LEVEL_IDS.map((id, i) => ({
@@ -36,7 +38,15 @@ function devFixtureLevels(
         ? ["query_prep", "agent_turn", "synthesize", "evaluate"]
         : id === "managed_vertex" || id === "rag_engine"
         ? ["query_prep", "retrieve", "synthesize", "evaluate"]
-        : QUERY_STAGE_IDS.filter((s) => s !== "agent_turn" && (s !== "rerank" || id === "level2_hybrid" || id === "level3_multimodal")),
+        : QUERY_STAGE_IDS.filter(
+            (s) =>
+              s !== "agent_turn" &&
+              (s !== "rerank" ||
+                id === "level2_hybrid" ||
+                id === "level3_multimodal" ||
+                id === "alloydb_scann" ||
+                id === "vertex_vector_v2")
+          ),
     architecture: arch[id] ?? { ...empty, level_id: id },
   }));
 }

@@ -15,6 +15,8 @@ export const LEVEL_IDS = [
   "level4_agentic",
   "managed_vertex",
   "rag_engine",
+  "alloydb_scann",
+  "vertex_vector_v2",
 ] as const;
 export type LevelId = (typeof LEVEL_IDS)[number];
 
@@ -86,7 +88,14 @@ export interface ArchitectureDescriptor {
 // Composable PipelineSpec & Workbench contracts (Release 1.3.0)
 // ---------------------------------------------------------------------------
 
-export type IndexProfile = "naive" | "hybrid" | "multimodal" | "vertex_ai_search" | "rag_engine";
+export type IndexProfile =
+  | "naive"
+  | "hybrid"
+  | "multimodal"
+  | "vertex_ai_search"
+  | "rag_engine"
+  | "alloydb_scann"
+  | "vertex_vector_v2";
 export type QueryTransform = "none" | "acronym" | "acronym_plus_intent";
 export type RetrievalMode = "vector_cosine" | "lexical_bm25" | "hybrid_rrf" | "managed_retrieval";
 export type RerankerKind = "none" | "vertex_ranking_api";
@@ -137,6 +146,7 @@ export interface PipelineSchemaPayload {
   readonly index_profiles: readonly IndexProfile[];
   readonly bq_index_profiles: readonly IndexProfile[];
   readonly managed_index_profiles: readonly IndexProfile[];
+  readonly scann_index_profiles?: readonly IndexProfile[];
   readonly backing_level_by_profile: Readonly<Record<string, LevelId>>;
   readonly profile_labels: Readonly<Record<string, string>>;
   readonly max_candidate_k_by_profile: Readonly<Record<string, number>>;
@@ -272,6 +282,24 @@ export interface IngestStatusResponse {
   readonly managed_vertex?: ManagedVertexIngestStatus | null;
   /** Level 6: Vertex AI RAG Engine corpus status; absent on pre-Level-6 backends. */
   readonly rag_engine?: RagEngineIngestStatus | null;
+  /** Levels 7–8: Ephemeral ScaNN benchmark stores ($0/mo idle; CLI-provisioned on demand). */
+  readonly ephemeral_scann?: EphemeralScannIngestStatusMap | null;
+}
+
+export interface EphemeralScannStoreStatus {
+  readonly enabled?: boolean;
+  readonly ephemeral?: boolean;
+  readonly configured?: boolean;
+  readonly table?: string | null;
+  readonly location?: string | null;
+  readonly index_id?: string | null;
+  readonly script?: string | null;
+  readonly reason?: string | null;
+}
+
+export interface EphemeralScannIngestStatusMap {
+  readonly alloydb_scann?: EphemeralScannStoreStatus | null;
+  readonly vertex_vector_v2?: EphemeralScannStoreStatus | null;
 }
 
 /** `GET /api/v1/ingest/status` → `rag_engine` (every field optional, shown verbatim). */

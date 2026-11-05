@@ -163,6 +163,7 @@ class ArchitectureDescriptor:
         vais_location: str = "",
         rag_engine_location: str = "",
         rag_engine_embedding_model: str = "",
+        vvs2_location: str = "",
     ) -> "ArchitectureDescriptor":
         """Resolve region + model placeholders from settings (regions/models are never hardcoded)."""
         if not gcp_location or not vertex_genai_location:
@@ -176,6 +177,8 @@ class ArchitectureDescriptor:
             mapping[VAIS_LOCATION_PLACEHOLDER] = vais_location
         if rag_engine_location:
             mapping[RAG_ENGINE_LOCATION_PLACEHOLDER] = rag_engine_location
+        if vvs2_location:
+            mapping[VVS2_LOCATION_PLACEHOLDER] = vvs2_location
         services = {JUDGE_SERVICE_PLACEHOLDER: f"Vertex AI · {judge_model}"} if judge_model else {}
         if vision_model:
             services[VISION_SERVICE_PLACEHOLDER] = f"Vertex AI · {vision_model} (vision)"
@@ -207,6 +210,7 @@ class ArchitectureDescriptor:
             vais_location=getattr(settings, "vais_location", ""),
             rag_engine_location=getattr(settings, "rag_engine_location", ""),
             rag_engine_embedding_model=getattr(settings, "rag_engine_embedding_model", ""),
+            vvs2_location=getattr(settings, "vvs2_location", ""),
         )
 
 
@@ -218,6 +222,7 @@ DOCAI_LOCATION_PLACEHOLDER = "{DOCAI_LOCATION}"
 VAIS_LOCATION_PLACEHOLDER = "{VAIS_LOCATION}"
 RAG_ENGINE_LOCATION_PLACEHOLDER = "{RAG_ENGINE_LOCATION}"
 RAG_ENGINE_STORE_SERVICE_PLACEHOLDER = "RagCorpus · RagManagedDb KNN + {RAG_ENGINE_EMBEDDING_MODEL}"
+VVS2_LOCATION_PLACEHOLDER = "{VVS2_LOCATION}"
 VISION_SERVICE_PLACEHOLDER = "Vertex AI · {VISION_MODEL} (vision)"
 MM_EMBED_SERVICE_PLACEHOLDER = "Vertex AI · {MULTIMODAL_EMBEDDING_MODEL} (multimodal)"
 _GENAI_REGION = GENAI_LOCATION_PLACEHOLDER
@@ -562,7 +567,121 @@ def _level6() -> ArchitectureDescriptor:
     )
 
 
-_DESCRIPTORS: tuple[ArchitectureDescriptor, ...] = (_level1(), _level2(), _level3(), _level4(), _managed(), _level6())
+_ALLOY_REF = "app.engines.alloydb_scann:AlloyDBScaNNEngine"
+_VVS2_REF = "app.engines.vertex_vector_v2:VertexVectorSearchV2Engine"
+
+
+def _level7_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """BigQuery hybrid chunks + embeddings → ephemeral AlloyDB cluster/Omni → ScaNN + GIN indexes → count verify."""
+    nodes = (
+        ArchNode("bq_src", "Hybrid corpus rows (BigQuery)", "BigQuery · document_chunks_v3 (hybrid tier)", "store", 0, 0,
+                 ("discover_docs", "parse", "chunk", "embed"), region=_BQ_REGION),
+        ArchNode("pg_load", "Bulk COPY / INSERT (3072-d)", "AlloyDB PostgreSQL · scripts/record_scann_benchmarks.py",
+                 "process", 1, 0, ("load_bigquery",), region=_BQ_REGION),
+        ArchNode("scann_idx", "alloydb_scann + GIN FTS indexes", "USING scann (embedding cosine) + GIN tsvector",
+                 "process", 2, 0, ("build_indexes",), region=_BQ_REGION),
+        ArchNode("alloydb_ready", "Verified AlloyDB table", "AlloyDB PostgreSQL · ephemeral / Omni",
+                 "store", 3, 0, ("verify_counts",), region=_BQ_REGION),
+    )
+    edges = (
+        ArchEdge("bq_src", "pg_load", "chunks + 3072-d vectors"),
+        ArchEdge("pg_load", "scann_idx", "table rows"),
+        ArchEdge("scann_idx", "alloydb_ready", "indexed leaves + tsvector"),
+    )
+    return nodes, edges
+
+
+def _level7() -> ArchitectureDescriptor:
+    """User → query prep → Gemini embedding → AlloyDB ScaNN + GIN FTS in-DB RRF → Ranking API → LLM → judge."""
+    ingest_nodes, ingest_edges = _level7_ingest()
+    user = ArchNode("user", "User question + acronym expansion", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_ALLOY_REF}._query_prep")
+    embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",),
+                     region=_GENAI_REGION, code_ref="app.engines.common_stages:embed_query_stage")
+    alloydb = ArchNode("alloydb", "AlloyDB PostgreSQL + ScaNN", "alloydb_scann cosine + GIN FTS → in-DB RRF",
+                       "store", 2, 1, ("retrieve",), region=_BQ_REGION, code_ref=f"{_ALLOY_REF}._retrieve_candidates")
+    rank = ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API · semantic-ranker", "api", 3, 1,
+                    ("rerank",), region="global", code_ref=f"{_ALLOY_REF}._rerank")
+    llm = ArchNode("llm", "Answer synthesis", "Catalog LLM (Gemini | Claude)", "model", 4, 1, ("synthesize",),
+                   region=_GENAI_REGION, code_ref="app.engines.common_stages:synthesize_stage")
+    judge = replace(_JUDGE, col=5, row=1)
+    return ArchitectureDescriptor(
+        level_id="alloydb_scann",
+        nodes=(user, embed, alloydb, rank, llm, judge),
+        edges=(
+            ArchEdge("user", "embed", "prepared query"),
+            ArchEdge("embed", "alloydb", "3072-d vector"),
+            ArchEdge("user", "alloydb", "websearch tsquery"),
+            ArchEdge("alloydb", "rank", "RRF candidates"),
+            ArchEdge("rank", "llm", "top reranked chunks"),
+            ArchEdge("llm", "judge", "answer + chunks"),
+        ),
+        ingest_nodes=ingest_nodes,
+        ingest_edges=ingest_edges,
+    )
+
+
+def _level8_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """BigQuery hybrid chunks + embeddings → VVS2 Collection DataObjects → DenseScann index → aggregate count."""
+    nodes = (
+        ArchNode("bq_src", "Hybrid corpus rows (BigQuery)", "BigQuery · document_chunks_v3 (hybrid tier)", "store", 0, 0,
+                 ("discover_docs", "parse", "chunk", "embed"), region=_BQ_REGION),
+        ArchNode("vvs2_batch", "dataObjects:batchCreate", "Vector Search 2.0 · dense + CRC32 sparse vectors",
+                 "api", 1, 0, ("load_bigquery",), region=VVS2_LOCATION_PLACEHOLDER),
+        ArchNode("vvs2_idx", "DenseScann ANN index", "Vector Search 2.0 · COSINE_DISTANCE UNIT_L2_NORM",
+                 "process", 2, 0, ("build_indexes",), region=VVS2_LOCATION_PLACEHOLDER),
+        ArchNode("vvs2_ready", "Verified VVS2 Collection", "Vector Search 2.0 · dataObjects:aggregate",
+                 "store", 3, 0, ("verify_counts",), region=VVS2_LOCATION_PLACEHOLDER),
+    )
+    edges = (
+        ArchEdge("bq_src", "vvs2_batch", "RFC1035 DataObjects"),
+        ArchEdge("vvs2_batch", "vvs2_idx", "dense_embedding field"),
+        ArchEdge("vvs2_idx", "vvs2_ready", "ACTIVE ANN index"),
+    )
+    return nodes, edges
+
+
+def _level8() -> ArchitectureDescriptor:
+    """User → query prep → Gemini embedding → VVS2 batchSearch (ScaNN + Sparse RRF) → Ranking API → LLM → judge."""
+    ingest_nodes, ingest_edges = _level8_ingest()
+    user = ArchNode("user", "User question + acronym expansion", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_VVS2_REF}._query_prep")
+    embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",),
+                     region=_GENAI_REGION, code_ref="app.engines.common_stages:embed_query_stage")
+    vvs2 = ArchNode("vvs2", "Vector Search 2.0 Collection", "dataObjects:batchSearch · ScaNN ANN + Sparse RRF",
+                    "store", 2, 1, ("retrieve",), region=VVS2_LOCATION_PLACEHOLDER,
+                    code_ref=f"{_VVS2_REF}._retrieve_candidates")
+    rank = ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API · semantic-ranker", "api", 3, 1,
+                    ("rerank",), region="global", code_ref=f"{_VVS2_REF}._rerank")
+    llm = ArchNode("llm", "Answer synthesis", "Catalog LLM (Gemini | Claude)", "model", 4, 1, ("synthesize",),
+                   region=_GENAI_REGION, code_ref="app.engines.common_stages:synthesize_stage")
+    judge = replace(_JUDGE, col=5, row=1)
+    return ArchitectureDescriptor(
+        level_id="vertex_vector_v2",
+        nodes=(user, embed, vvs2, rank, llm, judge),
+        edges=(
+            ArchEdge("user", "embed", "prepared query"),
+            ArchEdge("embed", "vvs2", "3072-d vector"),
+            ArchEdge("user", "vvs2", "CRC32 sparse tokens"),
+            ArchEdge("vvs2", "rank", "RRF DataObjects"),
+            ArchEdge("rank", "llm", "top reranked chunks"),
+            ArchEdge("llm", "judge", "answer + chunks"),
+        ),
+        ingest_nodes=ingest_nodes,
+        ingest_edges=ingest_edges,
+    )
+
+
+_DESCRIPTORS: tuple[ArchitectureDescriptor, ...] = (
+    _level1(),
+    _level2(),
+    _level3(),
+    _level4(),
+    _managed(),
+    _level6(),
+    _level7(),
+    _level8(),
+)
 _BY_ID: dict[str, ArchitectureDescriptor] = {d.level_id: d for d in _DESCRIPTORS}
 
 
@@ -595,6 +714,7 @@ __all__ = [
     "ingest_stages_for",
     "JUDGE_LOCATION_PLACEHOLDER",
     "JUDGE_SERVICE_PLACEHOLDER",
+    "VVS2_LOCATION_PLACEHOLDER",
     "get_architecture_descriptor",
     "list_architecture_descriptors",
 ]

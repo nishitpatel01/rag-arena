@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useOptionalIngestSession } from "../../app/IngestSessions";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
-import type { IngestStatusResponse } from "../../types/arena";
+import type { EphemeralScannStoreStatus, IngestStatusResponse } from "../../types/arena";
 
-/** Level → BigQuery `tier_profile`; `managed_vertex` and `rag_engine` have no BigQuery tier. */
+/** Level → BigQuery `tier_profile`; managed (L5–L6) and ephemeral ScaNN (L7–L8) levels have no BigQuery tier. */
 export const TIER_FOR_LEVEL: Record<string, string | null> = {
   level1_naive: "naive",
   level2_hybrid: "hybrid",
@@ -12,6 +12,8 @@ export const TIER_FOR_LEVEL: Record<string, string | null> = {
   level4_agentic: "multimodal",
   managed_vertex: null,
   rag_engine: null,
+  alloydb_scann: null,
+  vertex_vector_v2: null,
 };
 
 /** Formats nullable BigQuery `ingest_runs` integer cells (`managed_vertex` / `rag_engine` rows have `chunks = null`). */
@@ -24,9 +26,25 @@ export function isRagEngineLevel(levelId: string): boolean {
   return levelId === "rag_engine";
 }
 
+/** True for Levels 7–8 (`alloydb_scann` / `vertex_vector_v2`, CLI-ephemeral ScaNN benchmark stores). */
+export function isEphemeralScannLevel(levelId: string): boolean {
+  return levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
+}
+
 /** Levels whose ingestion is a managed import (Vertex AI Search data store or RAG Engine `RagCorpus`) instead of BigQuery. */
 export function isManagedLevel(levelId: string): boolean {
   return levelId === "managed_vertex" || levelId === "rag_engine";
+}
+
+/** Ephemeral ScaNN store status from `status.ephemeral_scann` for Levels 7–8. */
+export function ephemeralScannFor(
+  levelId: string,
+  status: IngestStatusResponse | null,
+): EphemeralScannStoreStatus | null {
+  if (!status?.ephemeral_scann) return null;
+  if (levelId === "alloydb_scann") return status.ephemeral_scann.alloydb_scann ?? null;
+  if (levelId === "vertex_vector_v2") return status.ephemeral_scann.vertex_vector_v2 ?? null;
+  return null;
 }
 
 export interface RagCorpusStatusView {
@@ -91,9 +109,10 @@ export function managedStoreFor(status: IngestStatusResponse | null): { readonly
   return null;
 }
 
-/** Tier row count for a level; `managed_vertex` → document count, `rag_engine` → `RagCorpus` file count. */
+/** Tier row count for a level; `managed_vertex` → document count, `rag_engine` → `RagCorpus` file count, L7–L8 → null. */
 export function tierCountFor(levelId: string, status: IngestStatusResponse | null): number | null {
   if (!status) return null;
+  if (isEphemeralScannLevel(levelId)) return null;
   if (isRagEngineLevel(levelId)) return ragCorpusFor(status)?.files ?? null;
   const tier = TIER_FOR_LEVEL[levelId];
   if (tier === null || isManagedLevel(levelId)) return managedStoreFor(status)?.documents ?? null;
@@ -115,6 +134,34 @@ export interface RunGate {
 export function runGateFor(levelId: string, status: IngestStatusResponse | null, error: string | null): RunGate {
   if (error) return { blocked: false, note: `ingest status unavailable: ${error}`, tone: "err", count: null };
   if (!status) return { blocked: true, note: null, tone: "neutral", count: null };
+  if (isEphemeralScannLevel(levelId)) {
+    if (status.demo_mode === "replay") {
+      return { blocked: false, note: null, tone: "ok", count: null };
+    }
+    const scann = ephemeralScannFor(levelId, status);
+    if (scann) {
+      if (scann.configured === true) {
+        return { blocked: false, note: null, tone: "ok", count: null };
+      }
+      if (scann.configured === false) {
+        return {
+          blocked: true,
+          note: scann.reason?.trim() || "Ephemeral ScaNN store is idle ($0/mo) — run CLI script to provision",
+          tone: "warn",
+          count: 0,
+        };
+      }
+    }
+    if (status.available === false) {
+      return { blocked: false, note: status.reason || "ingest status not available", tone: "info", count: null };
+    }
+    return {
+      blocked: false,
+      note: "ephemeral ScaNN status not reported by GET /api/v1/ingest/status",
+      tone: "info",
+      count: null,
+    };
+  }
   if (status.available === false) {
     return { blocked: false, note: status.reason || "ingest status not available", tone: "info", count: null };
   }
@@ -156,6 +203,12 @@ export function runGateFor(levelId: string, status: IngestStatusResponse | null,
 
 /** Header pill text: "naive tier: 5067 chunks", "data store: 45 documents · ACTIVE", or "RagCorpus: 45 files · ACTIVE (spanner_basic)". */
 export function ingestPillText(levelId: string, gate: RunGate, status: IngestStatusResponse | null): string {
+  if (isEphemeralScannLevel(levelId)) {
+    if (status?.demo_mode === "replay") return "ephemeral benchmark · replay ($0/mo idle)";
+    const scann = ephemeralScannFor(levelId, status);
+    if (scann?.configured) return "ephemeral benchmark · live configured";
+    return gate.note ?? "ephemeral benchmark ($0/mo idle)";
+  }
   if (isRagEngineLevel(levelId)) {
     const corpus = ragCorpusFor(status);
     if (gate.count === null) return gate.note ?? "RagCorpus status";

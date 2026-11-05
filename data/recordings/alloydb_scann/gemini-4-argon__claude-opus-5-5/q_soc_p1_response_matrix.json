@@ -1,0 +1,1626 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-04T20:14:16.331Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "d9535d6c05f92d4ea819f20503f20dc341a87ee1",
+    "app_version": "1.4.0",
+    "engine": "alloydb_scann",
+    "question_id": "q_soc_p1_response_matrix",
+    "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+    "run_id": "run_93848392ecdb"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:13:52.677Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "expansions": []
+      },
+      "ts": "2026-11-04T20:13:52.677Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-11-04T20:13:52.677Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "embed_query",
+      "duration_ms": 211,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 82,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-11-04T20:13:52.888Z",
+      "t_rel_ms": 211
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "retrieve",
+      "label": "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
+      "service": "AlloyDB for PostgreSQL \u00b7 ScaNN ANN + GIN FTS (RRF)",
+      "request": {
+        "dsn": "postgresql://${ALLOYDB_DSN}",
+        "table": "document_chunks",
+        "sql": "WITH vec_leg AS (\n    SELECT\n        chunk_id,\n        (embedding <=> %(query_vector)s::vector) AS vec_distance,\n        ROW_NUMBER() OVER (ORDER BY embedding <=> %(query_vector)s::vector ASC, chunk_id ASC) AS vec_rank\n    FROM \"document_chunks\"\n    WHERE tier_profile = 'hybrid'\n    ORDER BY embedding <=> %(query_vector)s::vector ASC\n    LIMIT %(candidate_k)s\n),\nlex_leg AS (\n    SELECT\n        chunk_id,\n        ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', %(query_text)s)) AS lex_score,\n        ROW_NUMBER() OVER (\n            ORDER BY ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', %(query_text)s)) DESC,\n            chunk_id ASC\n        ) AS lex_rank\n    FROM \"document_chunks\"\n    WHERE tier_profile = 'hybrid'\n      AND to_tsvector('english', content) @@ websearch_to_tsquery('english', %(query_text)s)\n    LIMIT %(candidate_k)s\n),\nfused AS (\n    SELECT\n        COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,\n        v.vec_distance,\n        v.vec_rank,\n        l.lex_score,\n        l.lex_rank,\n        (COALESCE(1.0 / (%(rrf_k)s + v.vec_rank), 0.0) + COALESCE(1.0 / (%(rrf_k)s + l.lex_rank), 0.0)) AS rrf_score\n    FROM vec_leg v\n    FULL OUTER JOIN lex_leg l ON v.chunk_id = l.chunk_id\n)\nSELECT\n    c.chunk_id,\n    c.doc_name,\n    c.solicitation_id,\n    c.page_number,\n    c.section_id,\n    c.content,\n    c.element_type,\n    c.amendment_number,\n    f.vec_distance,\n    f.vec_rank,\n    f.lex_score,\n    f.lex_rank,\n    f.rrf_score\nFROM fused f\nJOIN \"document_chunks\" c ON c.chunk_id = f.chunk_id\nORDER BY f.rrf_score DESC, COALESCE(f.vec_rank, 9999) ASC, c.chunk_id ASC\nLIMIT %(candidate_k)s;",
+        "parameters": {
+          "query_vector": {
+            "dimensions": 3072,
+            "preview": [
+              -0.029712679,
+              0.02808584,
+              -0.011538323,
+              -0.010708342
+            ]
+          },
+          "query_text": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "candidate_k": 25,
+          "rrf_k": 60,
+          "scann.num_leaves_to_search": 8
+        }
+      },
+      "ts": "2026-11-04T20:13:52.889Z",
+      "t_rel_ms": 213
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "retrieve",
+      "duration_ms": 285,
+      "payload": {
+        "table": "document_chunks",
+        "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
+        "fusion": "RRF(k=60)",
+        "candidate_k": 25,
+        "rows_returned": 25,
+        "db_exec_ms": 284,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 1,
+            "lexical_rank": null,
+            "vector_distance": 0.193267,
+            "rrf_score": 0.016393
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 2,
+            "lexical_rank": null,
+            "vector_distance": 0.234571,
+            "rrf_score": 0.016129
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 3,
+            "lexical_rank": null,
+            "vector_distance": 0.284749,
+            "rrf_score": 0.015873
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 4,
+            "lexical_rank": null,
+            "vector_distance": 0.310155,
+            "rrf_score": 0.015625
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 5,
+            "lexical_rank": null,
+            "vector_distance": 0.313432,
+            "rrf_score": 0.015385
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 6,
+            "lexical_rank": null,
+            "vector_distance": 0.313496,
+            "rrf_score": 0.015152
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 7,
+            "lexical_rank": null,
+            "vector_distance": 0.329897,
+            "rrf_score": 0.014925
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 8,
+            "lexical_rank": null,
+            "vector_distance": 0.336221,
+            "rrf_score": 0.014706
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 9,
+            "lexical_rank": null,
+            "vector_distance": 0.340391,
+            "rrf_score": 0.014493
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 10,
+            "lexical_rank": null,
+            "vector_distance": 0.344286,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 11,
+            "lexical_rank": null,
+            "vector_distance": 0.347988,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 12,
+            "lexical_rank": null,
+            "vector_distance": 0.350513,
+            "rrf_score": 0.013889
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 13,
+            "lexical_rank": null,
+            "vector_distance": 0.354803,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 14,
+            "lexical_rank": null,
+            "vector_distance": 0.355992,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 15,
+            "lexical_rank": null,
+            "vector_distance": 0.359779,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 11,
+            "section_id": null,
+            "vector_rank": 16,
+            "lexical_rank": null,
+            "vector_distance": 0.367431,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 22,
+            "section_id": null,
+            "vector_rank": 17,
+            "lexical_rank": null,
+            "vector_distance": 0.37645,
+            "rrf_score": 0.012987
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 24,
+            "section_id": null,
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.377915,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 19,
+            "lexical_rank": null,
+            "vector_distance": 0.378492,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "section_id": "ZTA-NIST-800-207",
+            "vector_rank": 20,
+            "lexical_rank": null,
+            "vector_distance": 0.379335,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 12,
+            "section_id": null,
+            "vector_rank": 21,
+            "lexical_rank": null,
+            "vector_distance": 0.379755,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 25,
+            "section_id": null,
+            "vector_rank": 22,
+            "lexical_rank": null,
+            "vector_distance": 0.380496,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 23,
+            "lexical_rank": null,
+            "vector_distance": 0.382686,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 17,
+            "section_id": null,
+            "vector_rank": 24,
+            "lexical_rank": null,
+            "vector_distance": 0.383395,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 25,
+            "lexical_rank": null,
+            "vector_distance": 0.387965,
+            "rrf_score": 0.011765
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:13:53.175Z",
+      "t_rel_ms": 498
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "rerank",
+      "label": "Cross-encoder reranking",
+      "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+      "request": {
+        "endpoint": "https://discoveryengine.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/global/rankingConfigs/default_ranking_config:rank",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 5,
+        "records_sent": 25,
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf)."
+      },
+      "ts": "2026-11-04T20:13:53.175Z",
+      "t_rel_ms": 498
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "rerank",
+      "duration_ms": 226,
+      "payload": {
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 25,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.016393,
+            "rerank_rank": 1,
+            "rerank_score": 0.5367
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 4,
+            "rrf_score": 0.015625,
+            "rerank_rank": 2,
+            "rerank_score": 0.3341
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.016129,
+            "rerank_rank": 3,
+            "rerank_score": 0.3049
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 17,
+            "rrf_rank": 24,
+            "rrf_score": 0.011905,
+            "rerank_rank": 4,
+            "rerank_score": 0.1579
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 11,
+            "rrf_rank": 16,
+            "rrf_score": 0.013158,
+            "rerank_rank": 5,
+            "rerank_score": 0.0969
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 22,
+            "rrf_rank": 17,
+            "rrf_score": 0.012987,
+            "rerank_rank": 6,
+            "rerank_score": 0.0964
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.015873,
+            "rerank_rank": 7,
+            "rerank_score": 0.072
+          },
+          {
+            "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+            "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+            "page_number": 12,
+            "rrf_rank": 21,
+            "rrf_score": 0.012346,
+            "rerank_rank": 8,
+            "rerank_score": 0.0578
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 14,
+            "rrf_score": 0.013514,
+            "rerank_rank": 9,
+            "rerank_score": 0.0481
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "rrf_rank": 25,
+            "rrf_score": 0.011765,
+            "rerank_rank": 10,
+            "rerank_score": 0.0464
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.014286,
+            "rerank_rank": 11,
+            "rerank_score": 0.0435
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 25,
+            "rrf_rank": 22,
+            "rrf_score": 0.012195,
+            "rerank_rank": 12,
+            "rerank_score": 0.0338
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 12,
+            "rrf_score": 0.013889,
+            "rerank_rank": 13,
+            "rerank_score": 0.0329
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 5,
+            "rrf_score": 0.015385,
+            "rerank_rank": 14,
+            "rerank_score": 0.029
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 13,
+            "rrf_score": 0.013699,
+            "rerank_rank": 15,
+            "rerank_score": 0.0281
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 6,
+            "rrf_score": 0.015152,
+            "rerank_rank": 16,
+            "rerank_score": 0.0275
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 8,
+            "rrf_score": 0.014706,
+            "rerank_rank": 17,
+            "rerank_score": 0.027
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "rrf_rank": 20,
+            "rrf_score": 0.0125,
+            "rerank_rank": 18,
+            "rerank_score": 0.0262
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 23,
+            "rrf_score": 0.012048,
+            "rerank_rank": 19,
+            "rerank_score": 0.0261
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 19,
+            "rrf_score": 0.012658,
+            "rerank_rank": 20,
+            "rerank_score": 0.0259
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 9,
+            "rrf_score": 0.014493,
+            "rerank_rank": 21,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 15,
+            "rrf_score": 0.013333,
+            "rerank_rank": 22,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+            "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+            "page_number": 24,
+            "rrf_rank": 18,
+            "rrf_score": 0.012821,
+            "rerank_rank": 23,
+            "rerank_score": 0.0246
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 7,
+            "rrf_score": 0.014925,
+            "rerank_rank": 24,
+            "rerank_score": 0.0209
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 11,
+            "rrf_score": 0.014085,
+            "rerank_rank": 25,
+            "rerank_score": 0.0207
+          }
+        ],
+        "rank_api_ms": 226,
+        "attempts": 1,
+        "records_truncated": 2,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-11-04T20:13:53.402Z",
+      "t_rel_ms": 725
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[03_Incident_Response_SLAs.pdf | Sec: SLA-SEC-3.1 | p.1]: [Contextual Lineage: Solicitation=solicitation_03 | Document=03_Incident_Response_SLAs.pdf | DocType=SLA_MATRIX | Section=SLA-SEC-3.1]\nSOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |\n\n[05_SLA_and_QASP_Requirements.pdf | Sec: SLA-4.2 | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=05_SLA_and_QASP_Requirements.pdf | DocType=SLA_MATRIX | Section=SLA-4.2]\nSOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).\n\n[04_Compliance_and_SOC2_Matrix.pdf | Sec: CTRL-SOC2-MATRIX | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\n[FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | Sec: GENERAL | p.17]: [Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nANNEX\u00a02:\u00a0SERVICES\u00a0AND\u00a0LIABILITIES\nService\nPeriod\nTimetable\nResponse\nLiability\nEvaluation\nPeriod\nType\u00a0of\u00a0Evaluation\nNetwork\u00a0Availability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0network\u00a0is\u00a0not\navailable\nFault\u00a0reports\u00a0of\u00a0network\nand\u00a0server\u00a0infrastructure\nproblems\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\nAlert\u00a0in\u00a0the\u00a015\u00a0minutes\u00a0following\u00a0the\nfault\u00a0report\u00a0as\u00a0well\u00a0as\u00a0an\u00a0account\nwhen\u00a0the\u00a0problem\u00a0has\u00a0been\u00a0solved.\nDefine\u00a0what\u00a0alert,\u00a0how\u00a0and\u00a0who\ncommunicates\u00a0it.\n98%\u00a0of\u00a0faults\nreported\u00a0in\u00a0the\ntime\u00a0period\nMonthly\nMeasuring\u00a0the\u00a0period\nbetween\u00a0the\u00a0beginning\nand\u00a0the\u00a0end\u00a0of\u00a0the\nproblem,\u00a0and\u00a0fault\nreporting\nGes-Indus\nAvailability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0application\u00a0is\u00a0not\navailable\nGes-Indus\u00a0Support\u00a0Level\n2\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u00d8\nResponse:\u00a0less\u00a0than\u00a0two\u00a0South\nAfrican\u00a0working\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0response\u00a0times\nfor\u00a0each\u00a0request\n\u00d8\u00a0 Blocking\u00a0Bug:\nGes-Indus\nMaintenance\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0two\u00a0South\u00a0African\nworking\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0the\u00a0response\ntimes\u00a0for\u00a0encountered\nproblems\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0less\nthan\u00a0one\u00a0South\u00a0African\nworkday\n\u00d8\nNon-blocking\u00a0Bug:\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0three\u00a0South\u00a0African\nworkdays\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0set\nout\u00a0by\u00a0the\u00a0requestor\nElectronic\u00a0Mail\u00a0Service\nAvailability\n7d/7d\n24h/24h\n99%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nthe\u00a0electronic\u00a0mail\u00a0service\nis\u00a0not\u00a0available\nOFINET\u00a0Availability\n7d/7d\n24h/24h\n95%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nOFINET\u00a0is\u00a0not\u00a0available\nSource: FERROGLOBE PLC, F-4/A, 6/24/2015\n\n[VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf | Sec: GENERAL | p.11]: [Contextual Lineage: Solicitation=solicitation_01 | Document=VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nEXHIBIT C\nSERVICE LEVELS\nVOTOCAST shall provide support to Licensee, in English, through e-mail (support@VOTOCAST.com), five (5) days a week, eight hours a day (9:00\nto 5:00 PST). Monday to Friday, excluding federal and banking holidays. Licensee shall be solely responsible for support to Licensee Users.\nLicensee agrees that VOTOCAST is responsible only for providing the Services, and is not responsible for providing any services or performing\nany tasks not specifically set forth in Exhibit A. unless such services or tasks are mutually agreed upon in writing by authorized representatives of\nthe Parties.\nSeverity\nResponse Time\nSeverity 1\nEvery Two Hours (24x7)\nSeverity 2\nEvery 8 Hours (9AM-5PM PST)\nSeverity 3\nEvery 48 Hours (9A1V1-5PM PST)\nSeverity 4\nEvery 72 Hours (9AM-5PM PST)\n\"Response Time\" means the time beginning when Licensee informs VOTOCAST of a Support incident and ending when the Support incident is\neither resolved or a reasonable fix is implemented.\nSupport Incident Severity Definitions and Responses:\nClassifications. By mutual agreement (following the definitions noted here below), Support incidents will be classified by type as a Severity I, 2, 3 or\n4.\nSeverity 1\nDefinition - Critical business impact, including Licensee being unable to use one or more of the features resulting in a critical impact on operations.\nThis condition requires immediate resolution.\nSeverity 1 Condition - Issue has a critical business impact and / or a crippling effect on the Licensee's business. Examples include the following:\n\u00b7\nThe production system is down\n\u00b7\nCritical features are unusable\n\u00b7\nData is not accessible\n\u00b7\nCompany has repeated production outages that are disrupting the success of their business\nNOTE: A critical situation does not automatically imply Severity 1. The associated problem's business impact sets the Severity.\nSeverity 2\nDefinition \u2014 To the extent not a Severity 1, significant business impact, including when one of the critical features is usable but is severely limited.\nSeverity 2 Conditions. Examples include the following:\n\u00b7\nNon-production system data is inaccessible\n\u00b7\nDegraded performance having serious negative impact on business\n\u00b7\nA database/application error has \n\nQuestion: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-11-04T20:13:53.402Z",
+      "t_rel_ms": 726
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "synthesize",
+      "duration_ms": 19244,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 2624,
+        "output_tokens": 420,
+        "thinking_tokens": 1036,
+        "stop_reason": "STOP",
+        "response_id": "AZLrasK4HJKiw8cPpuyQqQc",
+        "attempts": 1,
+        "answer": "Based on the retrieved context, here is the comparison of the incident response SLAs and penalty credits for Solicitation 03, followed by the required SOC2 Type II and HIPAA controls for Solicitation 02:\n\n### 1. Solicitation 03 (`03_Incident_Response_SLAs.pdf` - Sec: SLA-SEC-3.1)\n**Comparison of P1 Critical and P2 High Incident Response SLAs & Penalty Credits:**\n\n| Metric | P1 Critical | P2 High |\n| :--- | :--- | :--- |\n| **Definition** | Active Ransomware / Root Breach | Privileged Account Compromise |\n| **Initial Triage SLA** | $\\le$ 15 minutes | $\\le$ 30 minutes |\n| **Containment SLA** | $\\le$ 60 minutes | $\\le$ 4 hours |\n| **Penalty Credit** | 20% Monthly Fee | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02 (`04_Compliance_and_SOC2_Matrix.pdf` - Sec: CTRL-SOC2-MATRIX)\n**Required SOC2 Type II and HIPAA Controls:**\n\n* **SOC2 Type II Controls:**\n  * **Control ID:** `CTRL-SOC2-CC6.1`\n    * **Requirement:** Logical Access Boundary\n    * **GCP Implementation:** VPC Service Controls (VPC-SC)\n    * **Mandatory:** YES\n  * **Control ID:** `CTRL-SOC2-CC6.7`\n    * **Requirement:** Encryption in Transit/Rest\n    * **GCP Implementation:** Cloud KMS CMEK + TLS 1.3\n    * **Mandatory:** YES\n\n* **HIPAA Controls:**\n  * **Control ID:** `CTRL-HIPAA-164.312`\n    * **Requirement:** PHI De-Identification\n    * **GCP Implementation:** Cloud DLP Streaming Redaction\n    * **Mandatory:** YES",
+        "thinking_level": "HIGH",
+        "context_source": "AlloyDB for PostgreSQL (ScaNN + GIN FTS RRF)",
+        "context_chunks": 5
+      },
+      "ts": "2026-11-04T20:14:12.646Z",
+      "t_rel_ms": 19970
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-11-04T20:14:12.647Z",
+      "t_rel_ms": 19970
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_93848392ecdb",
+      "engine": "alloydb_scann",
+      "stage": "evaluate",
+      "duration_ms": 3683,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 1.0,
+        "context_precision": 0.4,
+        "reference_answer_used": true,
+        "input_tokens": 4533,
+        "output_tokens": 324,
+        "judge_cost_usd": 0.024612,
+        "rationale": "Every figure in the answer (triage/containment SLAs, penalty credits, control IDs, requirements and GCP implementations) appears verbatim in the SLA-SEC-3.1 and CTRL-SOC2-MATRIX chunks, so nothing is hallucinated. The answer covers every part of the query, matches the reference exactly, and correctly leaves out the ISO control and the P3/P4 rows. Only 2 of the 5 retrieved chunks are relevant; the Solicitation 01 QASP matrix and the Ferroglobe and Vitalibis commercial agreements are distractors, so precision is low.",
+        "judge_response_id": "msg_vrtx_011CgiVyaCrHMM5BNp1Gr3wp"
+      },
+      "ts": "2026-11-04T20:14:16.330Z",
+      "t_rel_ms": 23654
+    }
+  ],
+  "result": {
+    "engine_id": "alloydb_scann",
+    "engine_label": "Level 7: AlloyDB PostgreSQL + ScaNN Hybrid",
+    "answer": "Based on the retrieved context, here is the comparison of the incident response SLAs and penalty credits for Solicitation 03, followed by the required SOC2 Type II and HIPAA controls for Solicitation 02:\n\n### 1. Solicitation 03 (`03_Incident_Response_SLAs.pdf` - Sec: SLA-SEC-3.1)\n**Comparison of P1 Critical and P2 High Incident Response SLAs & Penalty Credits:**\n\n| Metric | P1 Critical | P2 High |\n| :--- | :--- | :--- |\n| **Definition** | Active Ransomware / Root Breach | Privileged Account Compromise |\n| **Initial Triage SLA** | $\\le$ 15 minutes | $\\le$ 30 minutes |\n| **Containment SLA** | $\\le$ 60 minutes | $\\le$ 4 hours |\n| **Penalty Credit** | 20% Monthly Fee | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02 (`04_Compliance_and_SOC2_Matrix.pdf` - Sec: CTRL-SOC2-MATRIX)\n**Required SOC2 Type II and HIPAA Controls:**\n\n* **SOC2 Type II Controls:**\n  * **Control ID:** `CTRL-SOC2-CC6.1`\n    * **Requirement:** Logical Access Boundary\n    * **GCP Implementation:** VPC Service Controls (VPC-SC)\n    * **Mandatory:** YES\n  * **Control ID:** `CTRL-SOC2-CC6.7`\n    * **Requirement:** Encryption in Transit/Rest\n    * **GCP Implementation:** Cloud KMS CMEK + TLS 1.3\n    * **Mandatory:** YES\n\n* **HIPAA Controls:**\n  * **Control ID:** `CTRL-HIPAA-164.312`\n    * **Requirement:** PHI De-Identification\n    * **GCP Implementation:** Cloud DLP Streaming Redaction\n    * **Mandatory:** YES",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "SLA-SEC-3.1",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=03_Incident_Response_SLAs.pdf | DocType=SLA_MATRIX | Section=SLA-SEC-3.1] SOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf EXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALT",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SLA-4.2",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=05_SLA_and_QASP_Requirements.pdf | DocType=SLA_MATRIX | Section=SLA-4.2] SOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf EXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP)",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CTRL-SOC2-MATRIX",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX] SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 17,
+        "section_id": null,
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 17,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL] ANNEX\u00a02:\u00a0SERVICES\u00a0AND\u00a0LIABILITIES Service Period ",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+        "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 11,
+        "section_id": null,
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 11,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL] EXHIBIT C SERVICE LEVELS VOTOCAST shall provide support ",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "03_Incident_Response_SLAs.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "table",
+        "section_id": "SLA-SEC-3.1",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=03_Incident_Response_SLAs.pdf | DocType=SLA_MATRIX | Section=SLA-SEC-3.1]\nSOL-2026-SEC-03 | 03_Incident_Response_SLAs.pdf\nEXHIBIT B: SOC INCIDENT RESPONSE SEVERITY MATRIX & PENALTY CREDITS\nClause SLA-SEC-3.1: Mandatory 24/7 SOC Triage, Containment & Penalty Matrix:\n| Severity | Definition | Initial Triage SLA | Containment SLA | Penalty Credit |\n| P1 Critical | Active Ransomware / Root Breach | <= 15 minutes | <= 60 minutes | 20% Monthly Fee |\n| P2 High | Privileged Account Compromise | <= 30 minutes | <= 4 hours | 10% Monthly Fee |\n| P3 Medium | Isolated Malware / Policy Alert | <= 2 hours | <= 24 hours | 5% Monthly Fee |\n| P4 Low | Informational / Posture Drift | <= 24 hours | <= 72 hours | 2% Monthly Fee |",
+        "score": 0.5367,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "table",
+        "section_id": "SLA-4.2",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=05_SLA_and_QASP_Requirements.pdf | DocType=SLA_MATRIX | Section=SLA-4.2]\nSOL-2026-CLOUD-01 | 05_SLA_and_QASP_Requirements.pdf\nEXHIBIT C: QUALITY ASSURANCE SURVEILLANCE PLAN (QASP) & SLA CREDITS\nClause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | <= 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | < 99.50% Monthly Availability | <= 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | < 99.90% Non-Core Services | <= 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | <= 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | <= 24 hours | 0% (Corrective Action) |\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage.\nExample: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the\napplicable P1 Severe Breach credit is 25% ($45,000 * 0.25 = $11,250.00 credit).",
+        "score": 0.3341,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "table",
+        "section_id": "CTRL-SOC2-MATRIX",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |",
+        "score": 0.3049,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 17,
+        "bbox": {
+          "page": 17,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nANNEX\u00a02:\u00a0SERVICES\u00a0AND\u00a0LIABILITIES\nService\nPeriod\nTimetable\nResponse\nLiability\nEvaluation\nPeriod\nType\u00a0of\u00a0Evaluation\nNetwork\u00a0Availability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0network\u00a0is\u00a0not\navailable\nFault\u00a0reports\u00a0of\u00a0network\nand\u00a0server\u00a0infrastructure\nproblems\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\nAlert\u00a0in\u00a0the\u00a015\u00a0minutes\u00a0following\u00a0the\nfault\u00a0report\u00a0as\u00a0well\u00a0as\u00a0an\u00a0account\nwhen\u00a0the\u00a0problem\u00a0has\u00a0been\u00a0solved.\nDefine\u00a0what\u00a0alert,\u00a0how\u00a0and\u00a0who\ncommunicates\u00a0it.\n98%\u00a0of\u00a0faults\nreported\u00a0in\u00a0the\ntime\u00a0period\nMonthly\nMeasuring\u00a0the\u00a0period\nbetween\u00a0the\u00a0beginning\nand\u00a0the\u00a0end\u00a0of\u00a0the\nproblem,\u00a0and\u00a0fault\nreporting\nGes-Indus\nAvailability\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n98%\u00a0availability\nMonthly\nMeasuring\u00a0periods\u00a0when\nthe\u00a0application\u00a0is\u00a0not\navailable\nGes-Indus\u00a0Support\u00a0Level\n2\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u00d8\nResponse:\u00a0less\u00a0than\u00a0two\u00a0South\nAfrican\u00a0working\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0response\u00a0times\nfor\u00a0each\u00a0request\n\u00d8\u00a0 Blocking\u00a0Bug:\nGes-Indus\nMaintenance\nWorkdays\u00a0in\nSouth\u00a0African\nwork\u00a0schedule\n8H-20H\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0two\u00a0South\u00a0African\nworking\u00a0hours\n98%\u00a0of\u00a0requests\nsolved\u00a0in\u00a0the\u00a0time\nperiod\nMonthly\nMeasuring\u00a0the\u00a0response\ntimes\u00a0for\u00a0encountered\nproblems\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0less\nthan\u00a0one\u00a0South\u00a0African\nworkday\n\u00d8\nNon-blocking\u00a0Bug:\n\u25cf\nConsideration\u00a0and\u00a0response:\nless\u00a0than\u00a0three\u00a0South\u00a0African\nworkdays\n\u25cf\nSolution\u00a0or\u00a0work-around:\u00a0set\nout\u00a0by\u00a0the\u00a0requestor\nElectronic\u00a0Mail\u00a0Service\nAvailability\n7d/7d\n24h/24h\n99%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nthe\u00a0electronic\u00a0mail\u00a0service\nis\u00a0not\u00a0available\nOFINET\u00a0Availability\n7d/7d\n24h/24h\n95%\u00a0availability\nMeasuring\u00a0periods\u00a0when\nOFINET\u00a0is\u00a0not\u00a0available\nSource: FERROGLOBE PLC, F-4/A, 6/24/2015",
+        "score": 0.1579,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 11,
+        "bbox": {
+          "page": 11,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\nEXHIBIT C\nSERVICE LEVELS\nVOTOCAST shall provide support to Licensee, in English, through e-mail (support@VOTOCAST.com), five (5) days a week, eight hours a day (9:00\nto 5:00 PST). Monday to Friday, excluding federal and banking holidays. Licensee shall be solely responsible for support to Licensee Users.\nLicensee agrees that VOTOCAST is responsible only for providing the Services, and is not responsible for providing any services or performing\nany tasks not specifically set forth in Exhibit A. unless such services or tasks are mutually agreed upon in writing by authorized representatives of\nthe Parties.\nSeverity\nResponse Time\nSeverity 1\nEvery Two Hours (24x7)\nSeverity 2\nEvery 8 Hours (9AM-5PM PST)\nSeverity 3\nEvery 48 Hours (9A1V1-5PM PST)\nSeverity 4\nEvery 72 Hours (9AM-5PM PST)\n\"Response Time\" means the time beginning when Licensee informs VOTOCAST of a Support incident and ending when the Support incident is\neither resolved or a reasonable fix is implemented.\nSupport Incident Severity Definitions and Responses:\nClassifications. By mutual agreement (following the definitions noted here below), Support incidents will be classified by type as a Severity I, 2, 3 or\n4.\nSeverity 1\nDefinition - Critical business impact, including Licensee being unable to use one or more of the features resulting in a critical impact on operations.\nThis condition requires immediate resolution.\nSeverity 1 Condition - Issue has a critical business impact and / or a crippling effect on the Licensee's business. Examples include the following:\n\u00b7\nThe production system is down\n\u00b7\nCritical features are unusable\n\u00b7\nData is not accessible\n\u00b7\nCompany has repeated production outages that are disrupting the success of their business\nNOTE: A critical situation does not automatically imply Severity 1. The associated problem's business impact sets the Severity.\nSeverity 2\nDefinition \u2014 To the extent not a Severity 1, significant business impact, including when one of the critical features is usable but is severely limited.\nSeverity 2 Conditions. Examples include the following:\n\u00b7\nNon-production system data is inaccessible\n\u00b7\nDegraded performance having serious negative impact on business\n\u00b7\nA database/application error has occurred, severely hampering business operability\nSeverity 3\nDefinition \u2014 To the extent not a Severity I or a Severity 2, some business impact, including when one of the critical features is usable but with less\nsignificant features (e.g., not critical to operations) being unavailable.\n11\nSource: VITALIBIS, INC., 8-K, 3/16/2018",
+        "score": 0.0969,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 19970,
+    "cost_usd": 0.0208244,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-04T20:13:52.677Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "expansions": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-11-04T20:13:52.677Z",
+        "duration_ms": 211,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 82,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
+        "service": "AlloyDB for PostgreSQL \u00b7 ScaNN ANN + GIN FTS (RRF)",
+        "status": "completed",
+        "started_at": "2026-11-04T20:13:52.889Z",
+        "duration_ms": 285,
+        "request": {},
+        "payload": {
+          "table": "document_chunks",
+          "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
+          "fusion": "RRF(k=60)",
+          "candidate_k": 25,
+          "rows_returned": 25,
+          "db_exec_ms": 284,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 1,
+              "lexical_rank": null,
+              "vector_distance": 0.193267,
+              "rrf_score": 0.016393
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 2,
+              "lexical_rank": null,
+              "vector_distance": 0.234571,
+              "rrf_score": 0.016129
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 3,
+              "lexical_rank": null,
+              "vector_distance": 0.284749,
+              "rrf_score": 0.015873
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 4,
+              "lexical_rank": null,
+              "vector_distance": 0.310155,
+              "rrf_score": 0.015625
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 5,
+              "lexical_rank": null,
+              "vector_distance": 0.313432,
+              "rrf_score": 0.015385
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 6,
+              "lexical_rank": null,
+              "vector_distance": 0.313496,
+              "rrf_score": 0.015152
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 7,
+              "lexical_rank": null,
+              "vector_distance": 0.329897,
+              "rrf_score": 0.014925
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 8,
+              "lexical_rank": null,
+              "vector_distance": 0.336221,
+              "rrf_score": 0.014706
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 9,
+              "lexical_rank": null,
+              "vector_distance": 0.340391,
+              "rrf_score": 0.014493
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 10,
+              "lexical_rank": null,
+              "vector_distance": 0.344286,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 11,
+              "lexical_rank": null,
+              "vector_distance": 0.347988,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 12,
+              "lexical_rank": null,
+              "vector_distance": 0.350513,
+              "rrf_score": 0.013889
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 13,
+              "lexical_rank": null,
+              "vector_distance": 0.354803,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 14,
+              "lexical_rank": null,
+              "vector_distance": 0.355992,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 15,
+              "lexical_rank": null,
+              "vector_distance": 0.359779,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 11,
+              "section_id": null,
+              "vector_rank": 16,
+              "lexical_rank": null,
+              "vector_distance": 0.367431,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 22,
+              "section_id": null,
+              "vector_rank": 17,
+              "lexical_rank": null,
+              "vector_distance": 0.37645,
+              "rrf_score": 0.012987
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 24,
+              "section_id": null,
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.377915,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 19,
+              "lexical_rank": null,
+              "vector_distance": 0.378492,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "section_id": "ZTA-NIST-800-207",
+              "vector_rank": 20,
+              "lexical_rank": null,
+              "vector_distance": 0.379335,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 12,
+              "section_id": null,
+              "vector_rank": 21,
+              "lexical_rank": null,
+              "vector_distance": 0.379755,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 25,
+              "section_id": null,
+              "vector_rank": 22,
+              "lexical_rank": null,
+              "vector_distance": 0.380496,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 23,
+              "lexical_rank": null,
+              "vector_distance": 0.382686,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 17,
+              "section_id": null,
+              "vector_rank": 24,
+              "lexical_rank": null,
+              "vector_distance": 0.383395,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 25,
+              "lexical_rank": null,
+              "vector_distance": 0.387965,
+              "rrf_score": 0.011765
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Cross-encoder reranking",
+        "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+        "status": "completed",
+        "started_at": "2026-11-04T20:13:53.175Z",
+        "duration_ms": 226,
+        "request": {},
+        "payload": {
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 25,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.016393,
+              "rerank_rank": 1,
+              "rerank_score": 0.5367
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 4,
+              "rrf_score": 0.015625,
+              "rerank_rank": 2,
+              "rerank_score": 0.3341
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.016129,
+              "rerank_rank": 3,
+              "rerank_score": 0.3049
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p17_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 17,
+              "rrf_rank": 24,
+              "rrf_score": 0.011905,
+              "rerank_rank": 4,
+              "rerank_score": 0.1579
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p11_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 11,
+              "rrf_rank": 16,
+              "rrf_score": 0.013158,
+              "rerank_rank": 5,
+              "rerank_score": 0.0969
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p22_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 22,
+              "rrf_rank": 17,
+              "rrf_score": 0.012987,
+              "rerank_rank": 6,
+              "rerank_score": 0.0964
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.015873,
+              "rerank_rank": 7,
+              "rerank_score": 0.072
+            },
+            {
+              "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p12_hybrid",
+              "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+              "page_number": 12,
+              "rrf_rank": 21,
+              "rrf_score": 0.012346,
+              "rerank_rank": 8,
+              "rerank_score": 0.0578
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 14,
+              "rrf_score": 0.013514,
+              "rerank_rank": 9,
+              "rerank_score": 0.0481
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "rrf_rank": 25,
+              "rrf_score": 0.011765,
+              "rerank_rank": 10,
+              "rerank_score": 0.0464
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.014286,
+              "rerank_rank": 11,
+              "rerank_score": 0.0435
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 25,
+              "rrf_rank": 22,
+              "rrf_score": 0.012195,
+              "rerank_rank": 12,
+              "rerank_score": 0.0338
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 12,
+              "rrf_score": 0.013889,
+              "rerank_rank": 13,
+              "rerank_score": 0.0329
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 5,
+              "rrf_score": 0.015385,
+              "rerank_rank": 14,
+              "rerank_score": 0.029
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 13,
+              "rrf_score": 0.013699,
+              "rerank_rank": 15,
+              "rerank_score": 0.0281
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 6,
+              "rrf_score": 0.015152,
+              "rerank_rank": 16,
+              "rerank_score": 0.0275
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 8,
+              "rrf_score": 0.014706,
+              "rerank_rank": 17,
+              "rerank_score": 0.027
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "rrf_rank": 20,
+              "rrf_score": 0.0125,
+              "rerank_rank": 18,
+              "rerank_score": 0.0262
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 23,
+              "rrf_score": 0.012048,
+              "rerank_rank": 19,
+              "rerank_score": 0.0261
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 19,
+              "rrf_score": 0.012658,
+              "rerank_rank": 20,
+              "rerank_score": 0.0259
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 9,
+              "rrf_score": 0.014493,
+              "rerank_rank": 21,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 15,
+              "rrf_score": 0.013333,
+              "rerank_rank": 22,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p24_hybrid",
+              "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+              "page_number": 24,
+              "rrf_rank": 18,
+              "rrf_score": 0.012821,
+              "rerank_rank": 23,
+              "rerank_score": 0.0246
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 7,
+              "rrf_score": 0.014925,
+              "rerank_rank": 24,
+              "rerank_score": 0.0209
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 11,
+              "rrf_score": 0.014085,
+              "rerank_rank": 25,
+              "rerank_score": 0.0207
+            }
+          ],
+          "rank_api_ms": 226,
+          "attempts": 1,
+          "records_truncated": 2,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-11-04T20:13:53.402Z",
+        "duration_ms": 19244,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 2624,
+          "output_tokens": 420,
+          "thinking_tokens": 1036,
+          "stop_reason": "STOP",
+          "response_id": "AZLrasK4HJKiw8cPpuyQqQc",
+          "attempts": 1,
+          "answer": "Based on the retrieved context, here is the comparison of the incident response SLAs and penalty credits for Solicitation 03, followed by the required SOC2 Type II and HIPAA controls for Solicitation 02:\n\n### 1. Solicitation 03 (`03_Incident_Response_SLAs.pdf` - Sec: SLA-SEC-3.1)\n**Comparison of P1 Critical and P2 High Incident Response SLAs & Penalty Credits:**\n\n| Metric | P1 Critical | P2 High |\n| :--- | :--- | :--- |\n| **Definition** | Active Ransomware / Root Breach | Privileged Account Compromise |\n| **Initial Triage SLA** | $\\le$ 15 minutes | $\\le$ 30 minutes |\n| **Containment SLA** | $\\le$ 60 minutes | $\\le$ 4 hours |\n| **Penalty Credit** | 20% Monthly Fee | 10% Monthly Fee |\n\n---\n\n### 2. Solicitation 02 (`04_Compliance_and_SOC2_Matrix.pdf` - Sec: CTRL-SOC2-MATRIX)\n**Required SOC2 Type II and HIPAA Controls:**\n\n* **SOC2 Type II Controls:**\n  * **Control ID:** `CTRL-SOC2-CC6.1`\n    * **Requirement:** Logical Access Boundary\n    * **GCP Implementation:** VPC Service Controls (VPC-SC)\n    * **Mandatory:** YES\n  * **Control ID:** `CTRL-SOC2-CC6.7`\n    * **Requirement:** Encryption in Transit/Rest\n    * **GCP Implementation:** Cloud KMS CMEK + TLS 1.3\n    * **Mandatory:** YES\n\n* **HIPAA Controls:**\n  * **Control ID:** `CTRL-HIPAA-164.312`\n    * **Requirement:** PHI De-Identification\n    * **GCP Implementation:** Cloud DLP Streaming Redaction\n    * **Mandatory:** YES",
+          "thinking_level": "HIGH",
+          "context_source": "AlloyDB for PostgreSQL (ScaNN + GIN FTS RRF)",
+          "context_chunks": 5
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 2624,
+      "output_tokens": 420,
+      "embedding_tokens": 82,
+      "thinking_tokens": 1036,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "alloydb_scann"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 1.0,
+      "context_precision": 0.4
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 3682,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4533,
+    "output_tokens": 324,
+    "judge_cost_usd": 0.024612,
+    "rationale": "Every figure in the answer (triage/containment SLAs, penalty credits, control IDs, requirements and GCP implementations) appears verbatim in the SLA-SEC-3.1 and CTRL-SOC2-MATRIX chunks, so nothing is hallucinated. The answer covers every part of the query, matches the reference exactly, and correctly leaves out the ISO control and the P3/P4 rows. Only 2 of the 5 retrieved chunks are relevant; the Solicitation 01 QASP matrix and the Ferroglobe and Vitalibis commercial agreements are distractors, so precision is low.",
+    "judge_response_id": "msg_vrtx_011CgiVyaCrHMM5BNp1Gr3wp"
+  }
+}

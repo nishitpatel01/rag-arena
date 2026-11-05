@@ -1,9 +1,10 @@
 # The RAG Arena — System Architecture
 
-This document describes the architecture **as implemented** in `v1.3.0` with Levels 1–6, the Composable RAG Workbench
-(`/workbench`), Controlled Ablation + Retrieval Diff Inspector (`/compare`), and private user PDF uploads live. The
-product rule behind every decision: **nothing is shown that was not measured** (principles P1–P6 in
-[§0](#0-design-principles-v3)).
+This document describes the architecture **as implemented** in `v1.4.0` with Levels 1–8 (`DEFAULT_ENABLED_LEVELS` in
+`replay`; Levels 1–6 standing in `live`/`record` via `DEFAULT_LIVE_LEVELS` plus ephemeral Levels 7–8 ScaNN benchmarks),
+the Composable RAG Workbench (`/workbench`), Controlled Ablation + Retrieval Diff Inspector (`/compare`), and private
+user PDF uploads live. The product rule behind every decision: **nothing is shown that was not measured** (principles
+P1–P6 in [§0](#0-design-principles-v3)).
 
 ---
 
@@ -42,6 +43,8 @@ flowchart LR
         L4["engines/level4_agentic.py<br/>+ agent_runtime / agent_tools"]
         L5["engines/managed_vertex.py<br/>+ vais_search.py"]
         L6["engines/rag_engine.py<br/>+ core/rag_engine_client.py"]
+        L7["engines/alloydb_scann.py"]
+        L8["engines/vertex_vector_v2.py<br/>+ core/vvs2_client.py"]
         RP["engines/replay_engine.py"]
         EV["evaluation/evaluator.py + judges.py"]
         IJ["ingestion/jobs.py<br/>IngestJobRunner"]
@@ -53,6 +56,8 @@ flowchart LR
         RA["Discovery Engine<br/>Ranking API + Vertex AI Search (corpus & uploads)"]
         DA["Document AI<br/>Layout Parser"]
         BQ["BigQuery rag_arena<br/>document_chunks_v3 · ingest_runs · query_runs"]
+        ADB["AlloyDB for PostgreSQL<br/>ephemeral ScaNN + GIN FTS (or local Omni)"]
+        VVS["Vertex AI Vector Search 2.0<br/>ephemeral denseScann + Sparse RRF"]
         GCS["Cloud Storage<br/>corpus bucket + private UPLOAD_BUCKET"]
     end
     FS[("data/recordings/**<br/>data/sample_docs/**")]
@@ -62,13 +67,15 @@ flowchart LR
     UI -- "/api/v1/uploads/*" --> UP
     UI -- "PUT resumable chunks (Origin-bound)" --> GCS
     UI -- "GET /api/v1/documents/*" --> D
-    R --> REG --> L1 & L2 & L3 & L4 & L5 & L6 & RP
+    R --> REG --> L1 & L2 & L3 & L4 & L5 & L6 & L7 & L8 & RP
     L1 --> VX & BQ
     L2 --> VX & BQ & RA
     L3 --> VX & BQ & RA
     L4 --> VX & BQ & RA
     L5 --> VX & RA
     L6 --> VX & VRE
+    L7 --> VX & ADB & RA
+    L8 --> VX & VVS & RA
     EV --> VX
     IJ --> VX & VRE & BQ & DA & RA & GCS
     UP --> GCS & BQ & RA & VRE & IJ
@@ -79,8 +86,8 @@ flowchart LR
 
 | Mode (`DEMO_MODE`) | Engines | Judge | Uploads | Writes |
 | :-- | :-- | :-- | :-- | :-- |
-| `replay` (default) | `ReplayRAGEngine` per enabled level, streaming recorded events with original relative timing × `REPLAY_SPEED` | recorded judge outcome of the selected pair | disabled (all `/api/v1/uploads/*` return `404`) | nothing; no credentials needed |
-| `live` | real engines (Levels 1–6) | selected judge model, live | enabled (`UPLOAD_BUCKET` verified private) | `query_runs` row per run (`scope='golden'\|'uploads'`); `ingest_runs` row per ingestion job |
+| `replay` (default) | `ReplayRAGEngine` per enabled level (all 8 levels by default via `DEFAULT_ENABLED_LEVELS`), streaming recorded events with original relative timing × `REPLAY_SPEED` | recorded judge outcome of the selected pair | disabled (all `/api/v1/uploads/*` return `404`) | nothing; no credentials needed |
+| `live` | standing \$0/mo-idle engines (Levels 1–6 via `DEFAULT_LIVE_LEVELS`; Levels 7–8 opt in via `ENABLED_LEVELS` when an ephemeral store is up) | selected judge model, live | enabled (`UPLOAD_BUCKET` verified private) | `query_runs` row per run (`scope='golden'\|'uploads'`); `ingest_runs` row per ingestion job |
 | `record` | `live` + recorder | live | enabled (`upl_*` runs emit `stream_warning` instead of overwriting golden recordings) | `live` writes + `data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json` (golden runs only) |
 
 Settings are validated once at startup (`core/config.py`); invalid configuration fails the process, and
@@ -304,7 +311,26 @@ via `v1beta1`.
 
 ---
 
-## 3g. What each stage shows (UI)
+## 3g. Level 7 & Level 8 ephemeral ScaNN query paths (`engines/alloydb_scann.py`, `engines/vertex_vector_v2.py`, `core/vvs2_client.py`)
+
+Levels 7–8 measure operational PostgreSQL ScaNN and dedicated managed ANN retrieval against the exact `526` `3072-d`
+`hybrid` chunks exported from BigQuery (`0` re-embedding API calls), then tear down to **\$0/mo standing idle cost**:
+
+- **Level 7 (`alloydb_scann`)**: connects via `psycopg` (`ALLOYDB_DSN`, loopback `alloydb-auth-proxy` on Cloud AlloyDB
+  or local AlloyDB Omni Docker `--omni`), executes `SET LOCAL scann.num_leaves_to_search = 8` + parameterized hybrid SQL
+  (`embedding <=> %(query_vector)s::vector` ScaNN cosine leg + `ts_rank_cd` GIN full-text leg fused via `k = 60` RRF,
+  `candidate_k = ALLOYDB_CANDIDATE_K`), reranks via `RankingClient.rank`, and synthesizes with the selected catalog LLM.
+- **Level 8 (`vertex_vector_v2`)**: calls regional `vectorsearch.googleapis.com/v1beta` `dataObjects:batchSearch`
+  combining `3072-d` `denseScann` ANN (`gemini-embedding-2`) and deterministic CRC32 sublinear-TF sparse token vectors
+  via server-side `combine.ranker.rrf` (`VVS2_TOP_K`), reranks via `RankingClient.rank`, and synthesizes with the
+  selected catalog LLM.
+- **ScaNN centroid training rule**: both `scripts/ephemeral_alloydb.sh` and `scripts/ephemeral_vvs2.sh` bulk-load all
+  `526` vectors *before* building the ScaNN index so centroids are trained on the real corpus distribution, and install
+  an `EXIT`-trapped teardown verified to `0` remaining `rag-arena-ephem-*` resources.
+
+---
+
+## 3h. What each stage shows (UI)
 
 Every value is read from the stage event payloads the engine emits (recordings store them verbatim).
 
@@ -323,27 +349,28 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
 
 ---
 
-## 3h. Composable RAG Workbench & Controlled Ablation (`core/pipeline_spec.py`, `engines/composable.py`)
+## 3i. Composable RAG Workbench & Controlled Ablation (`core/pipeline_spec.py`, `engines/composable.py`)
 
-`v1.3.0` decomposes Levels 1–6 into a canonical `PipelineSpec` (`IndexProfile` + `QuerySlots`):
+`v1.3.0`–`v1.4.0` decomposes Levels 1–8 into a canonical `PipelineSpec` (`IndexProfile` + `QuerySlots`):
 
-- **`IndexProfile`**: `corpus_store` (`bigquery` | `vertex_ai_search` | `vertex_rag_engine`) × `tier_profile`
-  (`naive` | `hybrid` | `multimodal` | `managed_vais` | `managed_rag_corpus`). Reuses existing indexed stores at
-  \$0/mo new standing infrastructure cost.
-- **`QuerySlots`**: `query_prep` (`none` | `acronym_expand` | `acronym_plus_intent`), `retriever` (`vector_cosine` |
-  `lexical_search` | `hybrid_rrf` | `vais_extractive` | `rag_engine_contexts`), `candidate_k` (`1..50`), `top_k`
-  (`1..20`), `reranker` (`none` | `vertex_ranking_api`), `context_order` (`score_desc` | `authority_amendment_first`),
-  `orchestration` (`single_pass` | `adk_agent_loop`), and `agent_tools` (non-empty subset of the 4 ADK tools when
-  `orchestration == "adk_agent_loop"`).
+- **`IndexProfile`**: `BQ_INDEX_PROFILES` (`naive` | `hybrid` | `multimodal`), `MANAGED_INDEX_PROFILES`
+  (`vertex_ai_search` | `rag_engine`), and `SCANN_INDEX_PROFILES` (`alloydb_scann` | `vertex_vector_v2`). Standing
+  profiles reuse existing indexed stores at \$0/mo new standing infrastructure cost; ephemeral ScaNN profiles surface an
+  `EPHEMERAL_SCANN` badge and route presets to committed recordings in `replay` mode.
+- **`QuerySlots`**: `query_transform` (`none` | `acronym` | `acronym_plus_intent`), `retrieval_mode` (`vector_cosine` |
+  `lexical_bm25` | `hybrid_rrf` | `managed_retrieval`), `candidate_k`, `top_k` (`1..20`), `reranker` (`none` |
+  `vertex_ranking_api`), `context_order` (`score_order` | `authority_amendment_first`), `reasoning_mode` (`single_pass` |
+  `adk_agent`), and `agent_tools` (non-empty subset of the 4 ADK tools when `reasoning_mode == "adk_agent"`).
 - **Deterministic IDs & validation**: `PipelineSpec.pipeline_id` is `pipe_` + first 12 hex chars of SHA-256 over the
-  canonical JSON spec (`preset_level_id` resolves when identical to Levels 1–6). `validate_pipeline_spec` rejects
+  canonical JSON spec (`preset_level_id` resolves when identical to Levels 1–8). `validate_pipeline_spec` rejects
   invalid combinations before any GCP call (`GET /api/v1/pipelines/presets`, `POST /api/v1/pipelines/validate`).
   In `DEMO_MODE=replay`, presets route to committed recordings while custom unrecorded recipes fail closed (`HTTP 400`).
 - **Execution (`ComposableRAGEngine`)**: runs `query_prep` → optional `embed_query` → `retrieve` (BigQuery
-  `VECTOR_SEARCH`, lexical `SEARCH()`, or `hybrid_rrf`; Vertex AI Search segments; or RAG Engine `:retrieveContexts`) →
-  optional Discovery Engine `RankingClient.rank` (`rerank`) → `context_order` → `synthesize` (or `agent_turn` +
-  `synthesize` with closure-pinned `upload_scope` when `adk_agent_loop` is selected). `POST /api/v1/battle/stream`
-  accepts `pipelines[]` (`1..4` recipes with per-slot `slot_id`, `label`, and optional `synthesis_model` override).
+  `VECTOR_SEARCH`, lexical `SEARCH()`, or `hybrid_rrf`; Vertex AI Search segments; RAG Engine `:retrieveContexts`;
+  AlloyDB ScaNN + GIN RRF; or Vector Search 2.0 `batchSearchDataObjects`) → optional Discovery Engine
+  `RankingClient.rank` (`rerank`) → `context_order` → `synthesize` (or `agent_turn` + `synthesize` with closure-pinned
+  `upload_scope` when `adk_agent` is selected). `POST /api/v1/battle/stream` accepts `pipelines[]` (`1..4` recipes with
+  per-slot `slot_id`, `label`, and optional `synthesis_model` override).
 
 ---
 
@@ -473,9 +500,10 @@ CREATE TABLE IF NOT EXISTS `<project>.rag_arena.<BQ_TABLE>` (
   `run_id`, `project_id` placeholder), `events` (each with `t_rel_ms`), `result` and `evaluation`. Runs scoped to
   `upl_*` emit a `stream_warning` and never write to `data/recordings/`.
 - **Redaction** (`recording/redaction.py`): `GCP_PROJECT_ID`, `GCS_CORPUS_BUCKET`, `UPLOAD_BUCKET` (configured or
-  default `<project>-rag-arena-uploads`), `RAG_ENGINE_CORPUS_ID`, `CLOUDSDK_CONFIG`, `GOOGLE_APPLICATION_CREDENTIALS`,
-  and the home directory become `${…}` placeholders; `projects/<digits>` becomes `projects/${GCP_PROJECT_NUMBER}`;
-  `assert_redacted` refuses to write if any raw token survives.
+  default `<project>-rag-arena-uploads`), `RAG_ENGINE_CORPUS_ID`, `ALLOYDB_DSN` (plus arbitrary `postgres://` /
+  `postgresql://` URIs), `VVS2_COLLECTION`, `CLOUDSDK_CONFIG`, `GOOGLE_APPLICATION_CREDENTIALS`, and the home directory
+  become `${…}` placeholders; `projects/<digits>` becomes `projects/${GCP_PROJECT_NUMBER}`; `assert_redacted` refuses to
+  write if any raw token survives.
 - **Replay** streams recorded events with their original relative timing; unrecorded pairs/questions return
   `engine_error`, and synthetic fixtures under `data/recordings/_dev/` require `ALLOW_DEV_FIXTURES=1`.
 
@@ -514,15 +542,17 @@ follows the active node unless pinned.
   or cross-store `doc_name + page`), `Scope: Golden set | Uploads` toggle, and persisted `bestRows` winner highlighting.
 - `components/` — UI primitives, `DocumentDrawer` / `PageCanvas` / `DocumentViewer` for corpus and uploaded citations.
 - `lib/sse.ts` — bounded SSE reader; `lib/safeMode.ts` — masking of `${UPLOAD_BUCKET}`, `${GCS_CORPUS_BUCKET}`,
-  `${GCP_PROJECT_ID}`, and `projects/${GCP_PROJECT_NUMBER}`.
+  `${GCP_PROJECT_ID}`, `${RAG_ENGINE_CORPUS_ID}`, `${ALLOYDB_DSN}`, `${VVS2_COLLECTION}`, and
+  `projects/${GCP_PROJECT_NUMBER}`.
 
 ---
 
 ## 10. Status
 
-Levels 1–6 (including Managed Vertex AI RAG Engine), Composable RAG Workbench (`/workbench`), Controlled Ablation Lab &
-Retrieval Diff Inspector (`/compare`), private user PDF uploads (`v1.1`–`v1.2`), Leaderboard (`query_runs` Golden set +
-Uploads scopes with `pipeline_id` / `pipeline_spec` provenance and winner highlighting), `docker-compose.yml`, and the
-configurable Cloud Run deployment (single multi-stage container, least-privilege service account, IAP-protected live
-service, optional public replay service) are live (`v1.3.0`). Vector Search 2.0 / AlloyDB ScaNN engines stay parked
-(`engines/parked/`, zero GCP resources) ahead of `v1.4.0` ephemeral benchmarks.
+Levels 1–8 (`135` committed replay recordings across 6 standing \$0/mo-idle architectures + 2 ephemeral ScaNN
+benchmarks: AlloyDB for PostgreSQL + ScaNN and Vertex AI Vector Search 2.0), Composable RAG Workbench (`/workbench`),
+Controlled Ablation Lab & Retrieval Diff Inspector (`/compare`), private user PDF uploads (`v1.1`–`v1.2`), Leaderboard
+(`query_runs` Golden set + Uploads scopes with `pipeline_id` / `pipeline_spec` provenance and winner highlighting),
+`docker-compose.yml`, and the configurable Cloud Run deployment (single multi-stage container, least-privilege service
+account, IAP-protected live service, optional public replay service) are live (`v1.4.0`). Standing `live` deployments
+default to `DEFAULT_LIVE_LEVELS` (Levels 1–6) at \$0/mo idle with zero standing AlloyDB or Vector Search 2.0 resources.

@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-11-04
+
+Ephemeral Operational & High-QPS ScaNN Benchmarks: Level 7 (`alloydb_scann`) and Level 8 (`vertex_vector_v2`) recorded live and torn down to `$0/mo` standing idle cost.
+
+### Added
+- **Level 7 — AlloyDB for PostgreSQL + ScaNN Hybrid (`backend/app/engines/alloydb_scann.py`, `psycopg==3.3.8`)**:
+  - Parameterized PostgreSQL hybrid search inside a transaction (`SET LOCAL scann.num_leaves_to_search = 8`, two-level tree-AH ScaNN cosine `<=>` leg + `ts_rank_cd` GIN full-text leg fused in-SQL via `k = 60` RRF) followed by Discovery Engine Ranking API reranking and selectable catalog LLM synthesis.
+  - Runs identically against Cloud AlloyDB (loopback `alloydb-auth-proxy` on `127.0.0.1`) and zero-cloud local AlloyDB Omni Docker (`scripts/ephemeral_alloydb.sh --omni`).
+- **Level 8 — Vertex AI Vector Search 2.0 (`backend/app/engines/vertex_vector_v2.py`, `backend/app/core/vvs2_client.py`)**:
+  - Regional REST `v1beta` (`vectorsearch.googleapis.com`) `dataObjects:batchSearch` combining `3072-d` `denseScann` ANN (`gemini-embedding-2`) and deterministic CRC32 sublinear-TF sparse token vectors via server-side `combine.ranker.rrf`, followed by Discovery Engine Ranking API reranking and selectable catalog LLM synthesis.
+- **Ephemeral Spin-Up → Record → Teardown Automation (`scripts/ephemeral_alloydb.sh`, `scripts/ephemeral_vvs2.sh`, `scripts/record_scann_benchmarks.py`)**:
+  - Exports the existing `526` `3072-d` BigQuery `hybrid` chunks directly (`0` re-embedding API calls), trains ScaNN centroids strictly *after* bulk-loading vectors, records the `16` golden runs per engine (`gemini-4-argon` + `gemini-3.8-flash` judged by `claude-opus-5-5`) with optional `query_runs` persistence, and enforces `EXIT`-trapped teardown verified to `0` remaining `rag-arena-ephem-*` GCP resources (`$0/mo` idle).
+- **Standing `$0/mo` Live Defaults, Workbench Integration & Redaction (`config.py`, `pipeline_spec.py`, `composable.py`, `redaction.py`, `frontend/`)**:
+  - `DEMO_MODE=replay` enables all **8 levels** (`DEFAULT_ENABLED_LEVELS`, **135 committed recordings** total including **32 new Level 7–8 runs**); `DEMO_MODE=live|record` defaults to the **6 standing `$0/mo` levels** (`DEFAULT_LIVE_LEVELS`) unless `ENABLED_LEVELS` explicitly opts in.
+  - Added `SCANN_INDEX_PROFILES` (`alloydb_scann`, `vertex_vector_v2`) to `PipelineSpec`, `ComposableRAGEngine`, Workbench, Compare (`EPHEMERAL_SCANN` badges), and `/ingest` CLI runbook notice; redacts `ALLOYDB_DSN`, `postgresql://` URIs, and `VVS2_COLLECTION` across recordings and safe mode.
+  - Offline test suites expanded to **447 backend tests** (`43` files) and **194 frontend tests** (`21` suites).
+
 ## [1.3.0] — 2026-11-03
 
 Composable RAG Workbench (`/workbench`) and Controlled Ablation Lab + Retrieval Diff Inspector (`/compare`).

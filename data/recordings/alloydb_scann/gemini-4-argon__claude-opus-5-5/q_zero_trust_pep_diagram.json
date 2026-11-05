@@ -1,0 +1,1636 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-04T20:12:36.954Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-argon",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-argon",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "d9535d6c05f92d4ea819f20503f20dc341a87ee1",
+    "app_version": "1.4.0",
+    "engine": "alloydb_scann",
+    "question_id": "q_zero_trust_pep_diagram",
+    "query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+    "run_id": "run_17efda0afe15"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:12:16.431Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+        "prepared_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access? (PEP = Policy Enforcement Point)",
+        "expansions": [
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:12:16.431Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access? (PEP = Policy Enforcement Point)",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-11-04T20:12:16.431Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "embed_query",
+      "duration_ms": 193,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 77,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-11-04T20:12:16.625Z",
+      "t_rel_ms": 193
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "retrieve",
+      "label": "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
+      "service": "AlloyDB for PostgreSQL \u00b7 ScaNN ANN + GIN FTS (RRF)",
+      "request": {
+        "dsn": "postgresql://${ALLOYDB_DSN}",
+        "table": "document_chunks",
+        "sql": "WITH vec_leg AS (\n    SELECT\n        chunk_id,\n        (embedding <=> %(query_vector)s::vector) AS vec_distance,\n        ROW_NUMBER() OVER (ORDER BY embedding <=> %(query_vector)s::vector ASC, chunk_id ASC) AS vec_rank\n    FROM \"document_chunks\"\n    WHERE tier_profile = 'hybrid'\n    ORDER BY embedding <=> %(query_vector)s::vector ASC\n    LIMIT %(candidate_k)s\n),\nlex_leg AS (\n    SELECT\n        chunk_id,\n        ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', %(query_text)s)) AS lex_score,\n        ROW_NUMBER() OVER (\n            ORDER BY ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', %(query_text)s)) DESC,\n            chunk_id ASC\n        ) AS lex_rank\n    FROM \"document_chunks\"\n    WHERE tier_profile = 'hybrid'\n      AND to_tsvector('english', content) @@ websearch_to_tsquery('english', %(query_text)s)\n    LIMIT %(candidate_k)s\n),\nfused AS (\n    SELECT\n        COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,\n        v.vec_distance,\n        v.vec_rank,\n        l.lex_score,\n        l.lex_rank,\n        (COALESCE(1.0 / (%(rrf_k)s + v.vec_rank), 0.0) + COALESCE(1.0 / (%(rrf_k)s + l.lex_rank), 0.0)) AS rrf_score\n    FROM vec_leg v\n    FULL OUTER JOIN lex_leg l ON v.chunk_id = l.chunk_id\n)\nSELECT\n    c.chunk_id,\n    c.doc_name,\n    c.solicitation_id,\n    c.page_number,\n    c.section_id,\n    c.content,\n    c.element_type,\n    c.amendment_number,\n    f.vec_distance,\n    f.vec_rank,\n    f.lex_score,\n    f.lex_rank,\n    f.rrf_score\nFROM fused f\nJOIN \"document_chunks\" c ON c.chunk_id = f.chunk_id\nORDER BY f.rrf_score DESC, COALESCE(f.vec_rank, 9999) ASC, c.chunk_id ASC\nLIMIT %(candidate_k)s;",
+        "parameters": {
+          "query_vector": {
+            "dimensions": 3072,
+            "preview": [
+              -0.012335845,
+              0.028471328,
+              0.0022411973,
+              -0.00019099514
+            ]
+          },
+          "query_text": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+          "candidate_k": 25,
+          "rrf_k": 60,
+          "scann.num_leaves_to_search": 8
+        }
+      },
+      "ts": "2026-11-04T20:12:16.626Z",
+      "t_rel_ms": 195
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "retrieve",
+      "duration_ms": 291,
+      "payload": {
+        "table": "document_chunks",
+        "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
+        "fusion": "RRF(k=60)",
+        "candidate_k": 25,
+        "rows_returned": 25,
+        "db_exec_ms": 289,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "section_id": "ZTA-NIST-800-207",
+            "vector_rank": 1,
+            "lexical_rank": null,
+            "vector_distance": 0.193241,
+            "rrf_score": 0.016393
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 2,
+            "lexical_rank": null,
+            "vector_distance": 0.316481,
+            "rrf_score": 0.016129
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 3,
+            "lexical_rank": null,
+            "vector_distance": 0.375262,
+            "rrf_score": 0.015873
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 4,
+            "lexical_rank": null,
+            "vector_distance": 0.380519,
+            "rrf_score": 0.015625
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 5,
+            "lexical_rank": null,
+            "vector_distance": 0.381194,
+            "rrf_score": 0.015385
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 6,
+            "lexical_rank": null,
+            "vector_distance": 0.385582,
+            "rrf_score": 0.015152
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 7,
+            "lexical_rank": null,
+            "vector_distance": 0.389934,
+            "rrf_score": 0.014925
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 8,
+            "lexical_rank": null,
+            "vector_distance": 0.392825,
+            "rrf_score": 0.014706
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 9,
+            "lexical_rank": null,
+            "vector_distance": 0.39467,
+            "rrf_score": 0.014493
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 10,
+            "lexical_rank": null,
+            "vector_distance": 0.406166,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 11,
+            "lexical_rank": null,
+            "vector_distance": 0.408726,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 12,
+            "lexical_rank": null,
+            "vector_distance": 0.41187,
+            "rrf_score": 0.013889
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 13,
+            "lexical_rank": null,
+            "vector_distance": 0.412747,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 14,
+            "lexical_rank": null,
+            "vector_distance": 0.413267,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 15,
+            "lexical_rank": null,
+            "vector_distance": 0.418356,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 16,
+            "lexical_rank": null,
+            "vector_distance": 0.427882,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 17,
+            "lexical_rank": null,
+            "vector_distance": 0.43593,
+            "rrf_score": 0.012987
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 15,
+            "section_id": null,
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.439268,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p12_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 12,
+            "section_id": null,
+            "vector_rank": 19,
+            "lexical_rank": null,
+            "vector_distance": 0.441098,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 24,
+            "section_id": null,
+            "vector_rank": 20,
+            "lexical_rank": null,
+            "vector_distance": 0.447799,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 25,
+            "section_id": null,
+            "vector_rank": 21,
+            "lexical_rank": null,
+            "vector_distance": 0.44814,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-1001",
+            "vector_rank": 22,
+            "lexical_rank": null,
+            "vector_distance": 0.450907,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 23,
+            "lexical_rank": null,
+            "vector_distance": 0.456271,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 9,
+            "section_id": null,
+            "vector_rank": 24,
+            "lexical_rank": null,
+            "vector_distance": 0.459595,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p5_hybrid",
+            "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": 25,
+            "lexical_rank": null,
+            "vector_distance": 0.460535,
+            "rrf_score": 0.011765
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:12:16.918Z",
+      "t_rel_ms": 486
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "rerank",
+      "label": "Cross-encoder reranking",
+      "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+      "request": {
+        "endpoint": "https://discoveryengine.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/global/rankingConfigs/default_ranking_config:rank",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 5,
+        "records_sent": 25,
+        "query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?"
+      },
+      "ts": "2026-11-04T20:12:16.918Z",
+      "t_rel_ms": 487
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "rerank",
+      "duration_ms": 225,
+      "payload": {
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 25,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.016393,
+            "rerank_rank": 1,
+            "rerank_score": 0.7737
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.016129,
+            "rerank_rank": 2,
+            "rerank_score": 0.0363
+          },
+          {
+            "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p12_hybrid",
+            "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+            "page_number": 12,
+            "rrf_rank": 19,
+            "rrf_score": 0.012658,
+            "rerank_rank": 3,
+            "rerank_score": 0.0359
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.015873,
+            "rerank_rank": 4,
+            "rerank_score": 0.0302
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 5,
+            "rrf_score": 0.015385,
+            "rerank_rank": 5,
+            "rerank_score": 0.0292
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 7,
+            "rrf_score": 0.014925,
+            "rerank_rank": 6,
+            "rerank_score": 0.0285
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.014286,
+            "rerank_rank": 7,
+            "rerank_score": 0.0275
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 14,
+            "rrf_score": 0.013514,
+            "rerank_rank": 8,
+            "rerank_score": 0.0275
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 9,
+            "rrf_score": 0.014493,
+            "rerank_rank": 9,
+            "rerank_score": 0.0275
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 15,
+            "rrf_rank": 18,
+            "rrf_score": 0.012821,
+            "rerank_rank": 10,
+            "rerank_score": 0.0261
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 4,
+            "rrf_score": 0.015625,
+            "rerank_rank": 11,
+            "rerank_score": 0.0248
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 25,
+            "rrf_rank": 21,
+            "rrf_score": 0.012346,
+            "rerank_rank": 12,
+            "rerank_score": 0.0237
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 17,
+            "rrf_score": 0.012987,
+            "rerank_rank": 13,
+            "rerank_score": 0.0236
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 6,
+            "rrf_score": 0.015152,
+            "rerank_rank": 14,
+            "rerank_score": 0.0234
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 23,
+            "rrf_score": 0.012048,
+            "rerank_rank": 15,
+            "rerank_score": 0.0232
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 12,
+            "rrf_score": 0.013889,
+            "rerank_rank": 16,
+            "rerank_score": 0.0228
+          },
+          {
+            "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p5_hybrid",
+            "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+            "page_number": 5,
+            "rrf_rank": 25,
+            "rrf_score": 0.011765,
+            "rerank_rank": 17,
+            "rerank_score": 0.0223
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 24,
+            "rrf_rank": 20,
+            "rrf_score": 0.0125,
+            "rerank_rank": 18,
+            "rerank_score": 0.0214
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 8,
+            "rrf_score": 0.014706,
+            "rerank_rank": 19,
+            "rerank_score": 0.0211
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 13,
+            "rrf_score": 0.013699,
+            "rerank_rank": 20,
+            "rerank_score": 0.0202
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 15,
+            "rrf_score": 0.013333,
+            "rerank_rank": 21,
+            "rerank_score": 0.0198
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 9,
+            "rrf_rank": 24,
+            "rrf_score": 0.011905,
+            "rerank_rank": 22,
+            "rerank_score": 0.0194
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 16,
+            "rrf_score": 0.013158,
+            "rerank_rank": 23,
+            "rerank_score": 0.0174
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "rrf_rank": 22,
+            "rrf_score": 0.012195,
+            "rerank_rank": 24,
+            "rerank_score": 0.0158
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 11,
+            "rrf_score": 0.014085,
+            "rerank_rank": 25,
+            "rerank_score": 0.0156
+          }
+        ],
+        "rank_api_ms": 224,
+        "attempts": 1,
+        "records_truncated": 3,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-11-04T20:12:17.143Z",
+      "t_rel_ms": 712
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 4 Argon",
+      "request": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[02_Zero_Trust_Architecture_Specs.pdf | Sec: ZTA-NIST-800-207 | p.1]: [Contextual Lineage: Solicitation=solicitation_03 | Document=02_Zero_Trust_Architecture_Specs.pdf | DocType=TECHNICAL_EXHIBIT | Section=ZTA-NIST-800-207]\nSOL-2026-SEC-03 | 02_Zero_Trust_Architecture_Specs.pdf\nEXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\nArchitecture Specification ZTA-NIST-800-207 (Zero Trust Enforcement Flow):\n1. Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp\ncontext-aware access levels, and Chronicle threat intelligence feeds, signaling\nthe Policy Administrator (PA) to mint short-lived mTLS / OIDC session tokens.\n2. Data Plane Policy Enforcement Point (PEP): Identity-Aware Proxy (IAP) and\nEnvoy Service Mesh ingress gateways terminate all untrusted traffic and permit\nper-request access to protected enclave resources only upon PA verification.\n3. Continuous Telemetry: Every PEP allow/deny decision streams to Google SecOps SIEM.\nVECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP\nUntrusted Subject + Device\nPolicy Engine (PE) Context\nPolicy Administrator (PA)\nPolicy Enforcement Point (PEP)\nBeyondCorp IAP + mTLS Mesh\nProtected Enterprise Enclave\n\n[01_RFP_Security_Operations.pdf | Sec: SEC-OPS-1.1 | p.1]: [Contextual Lineage: Solicitation=solicitation_03 | Document=01_RFP_Security_Operations.pdf | DocType=BASE_RFP | Section=SEC-OPS-1.1]\nSOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.\n\n[FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | Sec: GENERAL | p.12]: [Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\n11.2.\nMANAGEMENT\u00a0OF\u00a0ACCESS\u00a0RIGHTS\n11.2.1.\nIn\u00a0accordance\u00a0to\u00a0Article\u00a010.1,\u00a0the\u00a0Customer\u00a0is\u00a0in\u00a0charge\u00a0of\u00a0defining\u00a0the\u00a0opening,\u00a0closing\u00a0or\u00a0modifying\u00a0of\u00a0access\u00a0to\ninformation.\u00a0The\u00a0Customer\u00a0is\u00a0also\u00a0in\u00a0charge\u00a0of\u00a0defining\u00a0the\u00a0user\u00a0accesses,\u00a0as\u00a0well\u00a0as\u00a0the\u00a0level\u00a0of\u00a0access\u00a0of\u00a0its\u00a0users.\n11.2.2.\n10.2.2.\u00a0EIT\u00a0guarantees\u00a0the\u00a0control\u00a0of\u00a0access\u00a0(through\u00a0an\u00a0access\u00a0code\u00a0and\u00a0password)\u00a0to\u00a0information\u00a0pursuant\u00a0to\u00a0the\u00a0access\nrights\u00a0defined\u00a0by\u00a0the\u00a0Customer.\n11.2.3.\n10.2.3.\u00a0EIT\u00a0will\u00a0not\u00a0be\u00a0held\u00a0responsible\u00a0if\u00a0a\u00a0Customer\u2019s\u00a0user\u00a0uses\u00a0an\u00a0access\u00a0code\u00a0and\u00a0password\u00a0of\u00a0a\u00a0third\u00a0party.\n12.\nSUPERVISION\u00a0COMMISSION\n12.1.\nThe\u00a0parties\u00a0commit\u00a0themselves\u00a0to\u00a0constitute\u00a0a\u00a0supervision\u00a0commission\u00a0formed\u00a0by\u00a0persons\u00a0appointed\u00a0for\u00a0that\u00a0purpose.\n12.2.\nThis\u00a0commission\u00a0will\u00a0act\u00a0as\u00a0an\u00a0intermediary\u00a0between\u00a0the\u00a0parties\u00a0and\u00a0it\u00a0will\u00a0accomplish\u00a0the\u00a0following\u00a0tasks:\n12.2.1.1.\nVerify\u00a0the\u00a0fulfilment,\u00a0in\u00a0particular,\u00a0the\u00a0evolution\u00a0and\u00a0implementation,\u00a0of\u00a0all\u00a0the\u00a0services\u00a0and\u00a0applications.\u00a0This\u00a0operation\u00a0will\nbe\u00a0recorded\u00a0in\u00a0the\u00a0corresponding\u00a0reports,\u00a0according\u00a0to\u00a0the\u00a0convened\u00a0periodicity.\n12.2.1.2.\nInterpret\u00a0any\u00a0Article\u00a0of\u00a0this\u00a0Agreement\u00a0that\u00a0might\u00a0be\u00a0questioned\u00a0by\u00a0the\u00a0parties.\n12.2.1.3.\nResolve\u00a0any\u00a0potential\u00a0conflict\u00a0that\u00a0may\u00a0arise\u00a0during\u00a0the\u00a0execution\u00a0of\u00a0this\u00a0Agreement.\u00a0For\u00a0this,\u00a0the\u00a0commission\u00a0members\nwill\u00a0act\u00a0at\u00a0their\u00a0best,\u00a0and\u00a0assemble\u00a0all\u00a0the\u00a0necessary\u00a0information.\n12.3.\nIf\u00a0the\u00a0commission\u00a0members\u00a0are\u00a0not\u00a0able\u00a0to\u00a0resolve\u00a0a\u00a0conflict\u00a0or\u00a0a\u00a0problem\u00a0in\u00a0the\u00a0interpretation\u00a0of\u00a0this\u00a0Agreement\u00a0within\u00a0thirty\u00a0natural\ndays,\u00a0the\u00a0representatives\u00a0of\u00a0the\u00a0parties\u00a0will\u00a0be\u00a0duly\u00a0informed\u00a0in\u00a0order\u00a0to\u00a0find\u00a0a\u00a0solution\u00a0on\u00a0friendly\u00a0terms.\n12\nSource: FERROGLOBE PLC, F-4/A, 6/24/2015\n\n[02_Architecture_Requirements.pdf | Sec: ARCH-MEDALLION-02 | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02]\nSOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nCloud Pub/Sub Ingest\nDataflow + Cloud DLP\nBigQuery Bronze (Raw)\nBigQuery Silver (Curated)\nBigQuery Gold (Governed)\nVertex AI Feature Store\n\n[04_Compliance_and_SOC2_Matrix.pdf | Sec: CTRL-SOC2-MATRIX | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |\n\nQuestion: Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-11-04T20:12:17.143Z",
+      "t_rel_ms": 712
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "synthesize",
+      "duration_ms": 15232,
+      "payload": {
+        "model": "gemini-4-argon",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 2284,
+        "output_tokens": 233,
+        "thinking_tokens": 805,
+        "stop_reason": "STOP",
+        "response_id": "oZHraruvDJGow8cPo528qAc",
+        "attempts": 1,
+        "answer": "Based on `02_Zero_Trust_Architecture_Specs.pdf` in Solicitation 03, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact through the following flow before granting access to the Protected Enterprise Enclave:\n\n1. **Policy Engine (PE) Evaluation:** Operating in the Control Plane, the PE evaluates the untrusted subject and device by checking continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds.\n2. **Policy Administrator (PA) Token Generation:** Following its evaluation, the PE signals the PA to mint short-lived mTLS / OIDC session tokens.\n3. **Policy Enforcement Point (PEP) Verification & Access:** Operating in the Data Plane, the PEP (composed of BeyondCorp Identity-Aware Proxy [IAP] and Envoy Service Mesh / mTLS Mesh ingress gateways) terminates all untrusted traffic. It permits per-request access to the protected enterprise enclave resources **only upon verification by the PA**. \n\nAdditionally, every allow or deny decision made by the PEP is continuously streamed to the Google SecOps SIEM.",
+        "thinking_level": "HIGH",
+        "context_source": "AlloyDB for PostgreSQL (ScaNN + GIN FTS RRF)",
+        "context_chunks": 5
+      },
+      "ts": "2026-11-04T20:12:32.375Z",
+      "t_rel_ms": 15944
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-11-04T20:12:32.376Z",
+      "t_rel_ms": 15945
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_17efda0afe15",
+      "engine": "alloydb_scann",
+      "stage": "evaluate",
+      "duration_ms": 4578,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.97,
+        "qa_relevance": 0.96,
+        "context_precision": 0.35,
+        "reference_answer_used": true,
+        "input_tokens": 3647,
+        "output_tokens": 378,
+        "judge_cost_usd": 0.022148,
+        "rationale": "Every claim in the answer, including the PE evaluation inputs, PA token minting, PEP composition, PA-verified per-request access and SIEM telemetry streaming, is supported by the ZTA-NIST-800-207 exhibit, and the answer adds nothing unsupported. It addresses the PE\u2192PA\u2192PEP interaction completely and agrees with the reference answer. Only the first chunk is directly relevant and the RFP scope chunk is marginal, while the Ferroglobe outsourcing agreement and both Solicitation 02 chunks are off-topic noise.",
+        "judge_response_id": "msg_vrtx_011CgiVrBB4dWzrQwvPNdRj9"
+      },
+      "ts": "2026-11-04T20:12:36.954Z",
+      "t_rel_ms": 20523
+    }
+  ],
+  "result": {
+    "engine_id": "alloydb_scann",
+    "engine_label": "Level 7: AlloyDB PostgreSQL + ScaNN Hybrid",
+    "answer": "Based on `02_Zero_Trust_Architecture_Specs.pdf` in Solicitation 03, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact through the following flow before granting access to the Protected Enterprise Enclave:\n\n1. **Policy Engine (PE) Evaluation:** Operating in the Control Plane, the PE evaluates the untrusted subject and device by checking continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds.\n2. **Policy Administrator (PA) Token Generation:** Following its evaluation, the PE signals the PA to mint short-lived mTLS / OIDC session tokens.\n3. **Policy Enforcement Point (PEP) Verification & Access:** Operating in the Data Plane, the PEP (composed of BeyondCorp Identity-Aware Proxy [IAP] and Envoy Service Mesh / mTLS Mesh ingress gateways) terminates all untrusted traffic. It permits per-request access to the protected enterprise enclave resources **only upon verification by the PA**. \n\nAdditionally, every allow or deny decision made by the PEP is continuously streamed to the Google SecOps SIEM.",
+    "citations": [
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "ZTA-NIST-800-207",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=02_Zero_Trust_Architecture_Specs.pdf | DocType=TECHNICAL_EXHIBIT | Section=ZTA-NIST-800-207] SOL-2026-SEC-03 | 02_Zero_Trust_Architecture_Specs.pdf EXHIBIT A: NIST SP 800-207 ZERO",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "SEC-OPS-1.1",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=01_RFP_Security_Operations.pdf | DocType=BASE_RFP | Section=SEC-OPS-1.1] SOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf SOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 2",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p12_hybrid",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 12,
+        "section_id": null,
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 12,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL] 11.2. MANAGEMENT\u00a0OF\u00a0ACCESS\u00a0RIGHTS 11.2.1. In\u00a0acco",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "ARCH-MEDALLION-02",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02] SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf EXHIBIT A: STREAMING PUB/SUB -> DATAF",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CTRL-SOC2-MATRIX",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX] SOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf EXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=02_Zero_Trust_Architecture_Specs.pdf | DocType=TECHNICAL_EXHIBIT | Section=ZTA-NIST-800-207]\nSOL-2026-SEC-03 | 02_Zero_Trust_Architecture_Specs.pdf\nEXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\nArchitecture Specification ZTA-NIST-800-207 (Zero Trust Enforcement Flow):\n1. Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp\ncontext-aware access levels, and Chronicle threat intelligence feeds, signaling\nthe Policy Administrator (PA) to mint short-lived mTLS / OIDC session tokens.\n2. Data Plane Policy Enforcement Point (PEP): Identity-Aware Proxy (IAP) and\nEnvoy Service Mesh ingress gateways terminate all untrusted traffic and permit\nper-request access to protected enclave resources only upon PA verification.\n3. Continuous Telemetry: Every PEP allow/deny decision streams to Google SecOps SIEM.\nVECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP\nUntrusted Subject + Device\nPolicy Engine (PE) Context\nPolicy Administrator (PA)\nPolicy Enforcement Point (PEP)\nBeyondCorp IAP + mTLS Mesh\nProtected Enterprise Enclave",
+        "score": 0.7737,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "SEC-OPS-1.1",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=01_RFP_Security_Operations.pdf | DocType=BASE_RFP | Section=SEC-OPS-1.1]\nSOL-2026-SEC-03 | 01_RFP_Security_Operations.pdf\nSOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC\nSolicitation ID: SOL-2026-SEC-03 | Base Effective Date: 2026-02-10\nScope: 24x7x365 Managed Detection and Response (MDR), Google SecOps (Chronicle SIEM/SOAR),\nand enterprise-wide NIST SP 800-207 Zero Trust Architecture implementation.\nAll labor categories in Schedule 04 are subject to the Master Services Agreement (MSA)\nrate cap provisions in Document 05_Master_Services_Agreement_MSA.pdf.",
+        "score": 0.0363,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p12_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 12,
+        "bbox": {
+          "page": 12,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_03 | Document=FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf | DocType=COMMERCIAL_AGREEMENT | Section=GENERAL]\n11.2.\nMANAGEMENT\u00a0OF\u00a0ACCESS\u00a0RIGHTS\n11.2.1.\nIn\u00a0accordance\u00a0to\u00a0Article\u00a010.1,\u00a0the\u00a0Customer\u00a0is\u00a0in\u00a0charge\u00a0of\u00a0defining\u00a0the\u00a0opening,\u00a0closing\u00a0or\u00a0modifying\u00a0of\u00a0access\u00a0to\ninformation.\u00a0The\u00a0Customer\u00a0is\u00a0also\u00a0in\u00a0charge\u00a0of\u00a0defining\u00a0the\u00a0user\u00a0accesses,\u00a0as\u00a0well\u00a0as\u00a0the\u00a0level\u00a0of\u00a0access\u00a0of\u00a0its\u00a0users.\n11.2.2.\n10.2.2.\u00a0EIT\u00a0guarantees\u00a0the\u00a0control\u00a0of\u00a0access\u00a0(through\u00a0an\u00a0access\u00a0code\u00a0and\u00a0password)\u00a0to\u00a0information\u00a0pursuant\u00a0to\u00a0the\u00a0access\nrights\u00a0defined\u00a0by\u00a0the\u00a0Customer.\n11.2.3.\n10.2.3.\u00a0EIT\u00a0will\u00a0not\u00a0be\u00a0held\u00a0responsible\u00a0if\u00a0a\u00a0Customer\u2019s\u00a0user\u00a0uses\u00a0an\u00a0access\u00a0code\u00a0and\u00a0password\u00a0of\u00a0a\u00a0third\u00a0party.\n12.\nSUPERVISION\u00a0COMMISSION\n12.1.\nThe\u00a0parties\u00a0commit\u00a0themselves\u00a0to\u00a0constitute\u00a0a\u00a0supervision\u00a0commission\u00a0formed\u00a0by\u00a0persons\u00a0appointed\u00a0for\u00a0that\u00a0purpose.\n12.2.\nThis\u00a0commission\u00a0will\u00a0act\u00a0as\u00a0an\u00a0intermediary\u00a0between\u00a0the\u00a0parties\u00a0and\u00a0it\u00a0will\u00a0accomplish\u00a0the\u00a0following\u00a0tasks:\n12.2.1.1.\nVerify\u00a0the\u00a0fulfilment,\u00a0in\u00a0particular,\u00a0the\u00a0evolution\u00a0and\u00a0implementation,\u00a0of\u00a0all\u00a0the\u00a0services\u00a0and\u00a0applications.\u00a0This\u00a0operation\u00a0will\nbe\u00a0recorded\u00a0in\u00a0the\u00a0corresponding\u00a0reports,\u00a0according\u00a0to\u00a0the\u00a0convened\u00a0periodicity.\n12.2.1.2.\nInterpret\u00a0any\u00a0Article\u00a0of\u00a0this\u00a0Agreement\u00a0that\u00a0might\u00a0be\u00a0questioned\u00a0by\u00a0the\u00a0parties.\n12.2.1.3.\nResolve\u00a0any\u00a0potential\u00a0conflict\u00a0that\u00a0may\u00a0arise\u00a0during\u00a0the\u00a0execution\u00a0of\u00a0this\u00a0Agreement.\u00a0For\u00a0this,\u00a0the\u00a0commission\u00a0members\nwill\u00a0act\u00a0at\u00a0their\u00a0best,\u00a0and\u00a0assemble\u00a0all\u00a0the\u00a0necessary\u00a0information.\n12.3.\nIf\u00a0the\u00a0commission\u00a0members\u00a0are\u00a0not\u00a0able\u00a0to\u00a0resolve\u00a0a\u00a0conflict\u00a0or\u00a0a\u00a0problem\u00a0in\u00a0the\u00a0interpretation\u00a0of\u00a0this\u00a0Agreement\u00a0within\u00a0thirty\u00a0natural\ndays,\u00a0the\u00a0representatives\u00a0of\u00a0the\u00a0parties\u00a0will\u00a0be\u00a0duly\u00a0informed\u00a0in\u00a0order\u00a0to\u00a0find\u00a0a\u00a0solution\u00a0on\u00a0friendly\u00a0terms.\n12\nSource: FERROGLOBE PLC, F-4/A, 6/24/2015",
+        "score": 0.0359,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02]\nSOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nCloud Pub/Sub Ingest\nDataflow + Cloud DLP\nBigQuery Bronze (Raw)\nBigQuery Silver (Curated)\nBigQuery Gold (Governed)\nVertex AI Feature Store",
+        "score": 0.0302,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "table",
+        "section_id": "CTRL-SOC2-MATRIX",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=04_Compliance_and_SOC2_Matrix.pdf | DocType=SLA_MATRIX | Section=CTRL-SOC2-MATRIX]\nSOL-2026-DATA-02 | 04_Compliance_and_SOC2_Matrix.pdf\nEXHIBITB: SOC2 TYPE II, HIPAA & VPC SERVICE CONTROLS COMPLIANCE MATRIX\n| Control ID | Framework | Requirement | GCP Implementation | Mandatory |\n| CTRL-SOC2-CC6.1 | SOC2 Type II | Logical Access Boundary | VPC Service Controls (VPC-SC) | YES |\n| CTRL-SOC2-CC6.7 | SOC2 Type II | Encryption in Transit/Rest | Cloud KMS CMEK + TLS 1.3 | YES |\n| CTRL-HIPAA-164.312 | HIPAA | PHI De-Identification | Cloud DLP Streaming Redaction | YES |\n| CTRL-ISO-A.12.4 | ISO 27001 | Immutable Audit Telemetry | Cloud Audit Logs -> Locked GCS | YES |",
+        "score": 0.0292,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 15944,
+    "cost_usd": 0.0159634,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-04T20:12:16.431Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access?",
+          "prepared_query": "Based on the NIST SP 800-207 Zero Trust Architecture diagram in Solicitation 03 (02_Zero_Trust_Architecture_Specs.pdf), how do the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact before granting enclave access? (PEP = Policy Enforcement Point)",
+          "expansions": [
+            {
+              "term": "PEP",
+              "expansion": "Policy Enforcement Point"
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-11-04T20:12:16.431Z",
+        "duration_ms": 193,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 77,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
+        "service": "AlloyDB for PostgreSQL \u00b7 ScaNN ANN + GIN FTS (RRF)",
+        "status": "completed",
+        "started_at": "2026-11-04T20:12:16.626Z",
+        "duration_ms": 291,
+        "request": {},
+        "payload": {
+          "table": "document_chunks",
+          "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
+          "fusion": "RRF(k=60)",
+          "candidate_k": 25,
+          "rows_returned": 25,
+          "db_exec_ms": 289,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "section_id": "ZTA-NIST-800-207",
+              "vector_rank": 1,
+              "lexical_rank": null,
+              "vector_distance": 0.193241,
+              "rrf_score": 0.016393
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 2,
+              "lexical_rank": null,
+              "vector_distance": 0.316481,
+              "rrf_score": 0.016129
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 3,
+              "lexical_rank": null,
+              "vector_distance": 0.375262,
+              "rrf_score": 0.015873
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 4,
+              "lexical_rank": null,
+              "vector_distance": 0.380519,
+              "rrf_score": 0.015625
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 5,
+              "lexical_rank": null,
+              "vector_distance": 0.381194,
+              "rrf_score": 0.015385
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 6,
+              "lexical_rank": null,
+              "vector_distance": 0.385582,
+              "rrf_score": 0.015152
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 7,
+              "lexical_rank": null,
+              "vector_distance": 0.389934,
+              "rrf_score": 0.014925
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 8,
+              "lexical_rank": null,
+              "vector_distance": 0.392825,
+              "rrf_score": 0.014706
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 9,
+              "lexical_rank": null,
+              "vector_distance": 0.39467,
+              "rrf_score": 0.014493
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 10,
+              "lexical_rank": null,
+              "vector_distance": 0.406166,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 11,
+              "lexical_rank": null,
+              "vector_distance": 0.408726,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 12,
+              "lexical_rank": null,
+              "vector_distance": 0.41187,
+              "rrf_score": 0.013889
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 13,
+              "lexical_rank": null,
+              "vector_distance": 0.412747,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 14,
+              "lexical_rank": null,
+              "vector_distance": 0.413267,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 15,
+              "lexical_rank": null,
+              "vector_distance": 0.418356,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 16,
+              "lexical_rank": null,
+              "vector_distance": 0.427882,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 17,
+              "lexical_rank": null,
+              "vector_distance": 0.43593,
+              "rrf_score": 0.012987
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 15,
+              "section_id": null,
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.439268,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p12_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 12,
+              "section_id": null,
+              "vector_rank": 19,
+              "lexical_rank": null,
+              "vector_distance": 0.441098,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 24,
+              "section_id": null,
+              "vector_rank": 20,
+              "lexical_rank": null,
+              "vector_distance": 0.447799,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 25,
+              "section_id": null,
+              "vector_rank": 21,
+              "lexical_rank": null,
+              "vector_distance": 0.44814,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-1001",
+              "vector_rank": 22,
+              "lexical_rank": null,
+              "vector_distance": 0.450907,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 23,
+              "lexical_rank": null,
+              "vector_distance": 0.456271,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 9,
+              "section_id": null,
+              "vector_rank": 24,
+              "lexical_rank": null,
+              "vector_distance": 0.459595,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p5_hybrid",
+              "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": 25,
+              "lexical_rank": null,
+              "vector_distance": 0.460535,
+              "rrf_score": 0.011765
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Cross-encoder reranking",
+        "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+        "status": "completed",
+        "started_at": "2026-11-04T20:12:16.918Z",
+        "duration_ms": 225,
+        "request": {},
+        "payload": {
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 25,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.016393,
+              "rerank_rank": 1,
+              "rerank_score": 0.7737
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.016129,
+              "rerank_rank": 2,
+              "rerank_score": 0.0363
+            },
+            {
+              "chunk_id": "solicitation_03_ferroglobeplc_20150624_f-4a_ex-10.20_9154746_ex-10.20_outsourcing agreement_p12_hybrid",
+              "doc_name": "FerroglobePlc_20150624_F-4A_EX-10.20_9154746_EX-10.20_Outsourcing Agreement.pdf",
+              "page_number": 12,
+              "rrf_rank": 19,
+              "rrf_score": 0.012658,
+              "rerank_rank": 3,
+              "rerank_score": 0.0359
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.015873,
+              "rerank_rank": 4,
+              "rerank_score": 0.0302
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 5,
+              "rrf_score": 0.015385,
+              "rerank_rank": 5,
+              "rerank_score": 0.0292
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 7,
+              "rrf_score": 0.014925,
+              "rerank_rank": 6,
+              "rerank_score": 0.0285
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.014286,
+              "rerank_rank": 7,
+              "rerank_score": 0.0275
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 14,
+              "rrf_score": 0.013514,
+              "rerank_rank": 8,
+              "rerank_score": 0.0275
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 9,
+              "rrf_score": 0.014493,
+              "rerank_rank": 9,
+              "rerank_score": 0.0275
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 15,
+              "rrf_rank": 18,
+              "rrf_score": 0.012821,
+              "rerank_rank": 10,
+              "rerank_score": 0.0261
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 4,
+              "rrf_score": 0.015625,
+              "rerank_rank": 11,
+              "rerank_score": 0.0248
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p25_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 25,
+              "rrf_rank": 21,
+              "rrf_score": 0.012346,
+              "rerank_rank": 12,
+              "rerank_score": 0.0237
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 17,
+              "rrf_score": 0.012987,
+              "rerank_rank": 13,
+              "rerank_score": 0.0236
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 6,
+              "rrf_score": 0.015152,
+              "rerank_rank": 14,
+              "rerank_score": 0.0234
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 23,
+              "rrf_score": 0.012048,
+              "rerank_rank": 15,
+              "rerank_score": 0.0232
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 12,
+              "rrf_score": 0.013889,
+              "rerank_rank": 16,
+              "rerank_score": 0.0228
+            },
+            {
+              "chunk_id": "solicitation_02_arcaustreasuryfund_20200207_n-2_ex-99.k5_11971930_ex-99.k5_development agreement_p5_hybrid",
+              "doc_name": "ArcaUsTreasuryFund_20200207_N-2_EX-99.K5_11971930_EX-99.K5_Development Agreement.pdf",
+              "page_number": 5,
+              "rrf_rank": 25,
+              "rrf_score": 0.011765,
+              "rerank_rank": 17,
+              "rerank_score": 0.0223
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p24_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 24,
+              "rrf_rank": 20,
+              "rrf_score": 0.0125,
+              "rerank_rank": 18,
+              "rerank_score": 0.0214
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 8,
+              "rrf_score": 0.014706,
+              "rerank_rank": 19,
+              "rerank_score": 0.0211
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 13,
+              "rrf_score": 0.013699,
+              "rerank_rank": 20,
+              "rerank_score": 0.0202
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 15,
+              "rrf_score": 0.013333,
+              "rerank_rank": 21,
+              "rerank_score": 0.0198
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p9_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 9,
+              "rrf_rank": 24,
+              "rrf_score": 0.011905,
+              "rerank_rank": 22,
+              "rerank_score": 0.0194
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 16,
+              "rrf_score": 0.013158,
+              "rerank_rank": 23,
+              "rerank_score": 0.0174
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "rrf_rank": 22,
+              "rrf_score": 0.012195,
+              "rerank_rank": 24,
+              "rerank_score": 0.0158
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 11,
+              "rrf_score": 0.014085,
+              "rerank_rank": 25,
+              "rerank_score": 0.0156
+            }
+          ],
+          "rank_api_ms": 224,
+          "attempts": 1,
+          "records_truncated": 3,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 4 Argon",
+        "status": "completed",
+        "started_at": "2026-11-04T20:12:17.143Z",
+        "duration_ms": 15232,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-argon",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 2284,
+          "output_tokens": 233,
+          "thinking_tokens": 805,
+          "stop_reason": "STOP",
+          "response_id": "oZHraruvDJGow8cPo528qAc",
+          "attempts": 1,
+          "answer": "Based on `02_Zero_Trust_Architecture_Specs.pdf` in Solicitation 03, the Policy Engine (PE), Policy Administrator (PA), and Policy Enforcement Point (PEP) interact through the following flow before granting access to the Protected Enterprise Enclave:\n\n1. **Policy Engine (PE) Evaluation:** Operating in the Control Plane, the PE evaluates the untrusted subject and device by checking continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds.\n2. **Policy Administrator (PA) Token Generation:** Following its evaluation, the PE signals the PA to mint short-lived mTLS / OIDC session tokens.\n3. **Policy Enforcement Point (PEP) Verification & Access:** Operating in the Data Plane, the PEP (composed of BeyondCorp Identity-Aware Proxy [IAP] and Envoy Service Mesh / mTLS Mesh ingress gateways) terminates all untrusted traffic. It permits per-request access to the protected enterprise enclave resources **only upon verification by the PA**. \n\nAdditionally, every allow or deny decision made by the PEP is continuously streamed to the Google SecOps SIEM.",
+          "thinking_level": "HIGH",
+          "context_source": "AlloyDB for PostgreSQL (ScaNN + GIN FTS RRF)",
+          "context_chunks": 5
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 2284,
+      "output_tokens": 233,
+      "embedding_tokens": 77,
+      "thinking_tokens": 805,
+      "model": "gemini-4-argon",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "alloydb_scann"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.97,
+      "qa_relevance": 0.96,
+      "context_precision": 0.35
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 4577,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3647,
+    "output_tokens": 378,
+    "judge_cost_usd": 0.022148,
+    "rationale": "Every claim in the answer, including the PE evaluation inputs, PA token minting, PEP composition, PA-verified per-request access and SIEM telemetry streaming, is supported by the ZTA-NIST-800-207 exhibit, and the answer adds nothing unsupported. It addresses the PE\u2192PA\u2192PEP interaction completely and agrees with the reference answer. Only the first chunk is directly relevant and the RFP scope chunk is marginal, while the Ferroglobe outsourcing agreement and both Solicitation 02 chunks are off-topic noise.",
+    "judge_response_id": "msg_vrtx_011CgiVrBB4dWzrQwvPNdRj9"
+  }
+}

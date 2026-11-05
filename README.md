@@ -1,10 +1,10 @@
 # The RAG Arena — Progressive Enterprise RAG on Google Cloud
 
-**Six RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
+**Eight RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.3.0](https://img.shields.io/badge/release-v1.3.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 431 passed](https://img.shields.io/badge/backend%20tests-431%20passed-brightgreen.svg) ![Frontend tests: 190 passed](https://img.shields.io/badge/frontend%20tests-190%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.4.0](https://img.shields.io/badge/release-v1.4.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 447 passed](https://img.shields.io/badge/backend%20tests-447%20passed-brightgreen.svg) ![Frontend tests: 194 passed](https://img.shields.io/badge/frontend%20tests-194%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.3.0 (2026-11-03, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all six levels, Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), private PDF uploads, Leaderboard and Cloud Run live.
+**Release:** v1.4.0 (2026-11-04, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), private PDF uploads, Leaderboard and Cloud Run live.
 
 ## The problem
 
@@ -19,10 +19,10 @@ Teams choosing a RAG architecture on Google Cloud rarely see measured quality, l
 
 ## How The RAG Arena solves it
 
-- **Six progressively richer architectures** (naive vector → hybrid + rerank → layout multimodal → agentic ADK → managed Vertex AI Search → managed Vertex AI RAG Engine) tested on a **45-PDF benchmark corpus** (8 golden questions) **or your own uploaded PDFs** (v1.1+).
+- **Eight progressively richer & specialized architectures** (naive vector → hybrid + rerank → layout multimodal → agentic ADK → managed Vertex AI Search → managed Vertex AI RAG Engine → AlloyDB + ScaNN → Vertex AI Vector Search 2.0 ScaNN + Sparse RRF) tested on a **45-PDF benchmark corpus** (8 golden questions) **or your own uploaded PDFs** (v1.1+).
 - **Every stage measured and streamed live** over SSE: the real SQL or API request, what came back, backend-measured duration, tokens and cost, drawn on a live architecture diagram.
 - **An LLM judge that differs from the synthesis model** (enforced server-side) scores groundedness, QA relevance and context precision — with reference-free judging on uploaded or custom questions; **Compare** and **Leaderboard** highlight the winner by your chosen metric.
-- **Zero-credential replay** of 103 recorded real runs, and **one-command Cloud Run deployment** to your own project.
+- **Zero-credential replay** of 135 recorded real runs, and **one-command Cloud Run deployment** to your own project.
 
 Design guarantees (full principles table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#0-design-principles-v3)):
 
@@ -42,8 +42,10 @@ Design guarantees (full principles table: [docs/ARCHITECTURE.md](docs/ARCHITECTU
 | 4 | `level4_agentic` | Google ADK `LlmAgent` + `InMemoryRunner` (Gemini, ≤ 8 turns) with search, amendment, pricing-calculator and citation-check tools | Multi-hop supersession, exact cross-document math (QA 1.00), self-verification |
 | 5 | `managed_vertex` | Vertex AI Search (Enterprise + LLM add-on) over the corpus or isolated uploads store: extractive segments, answered by the managed summary or a selectable model | Build vs. buy baseline (strong segment retrieval; conservative managed summary) |
 | 6 | `rag_engine` | Vertex AI RAG Engine (`RagCorpus` + `RagManagedDb`, `text-embedding-005` 512/100 chunks): `:retrieveContexts` + selectable model or `VertexRagStore` Gemini grounding | Managed corpus-centric RAG vs. DIY BigQuery & Vertex AI Search |
+| 7 | `alloydb_scann` | Ephemeral AlloyDB `alloydb_scann` cosine ANN + PostgreSQL GIN `tsvector` FTS → in-DB RRF (k=60) + selectable model (local AlloyDB Omni Docker supported) | Sub-400 ms operational SQL + ScaNN hybrid retrieval, torn down to $0/mo idle |
+| 8 | `vertex_vector_v2` | Ephemeral Vertex AI Vector Search 2.0 `Collection` (`denseScann` + CRC32 `sparse_embedding` via `dataObjects:batchSearch` native RRF) + selectable model | Managed dedicated-replica ScaNN + sparse RRF at scale, torn down to $0/mo idle |
 
-`ENABLED_LEVELS` defaults to all six (Level 5 needs `VAIS_*` keys live; Level 6 needs `RAG_ENGINE_CORPUS_ID` live). Each level page draws its diagram live from `GET /api/v1/levels` + SSE. Vector Search 2.0 / AlloyDB ScaNN engines stay parked (`engines/parked/`, zero GCP resources).
+`DEFAULT_ENABLED_LEVELS` enables all eight levels in `replay` and Levels 1–6 in `live` (`$0/mo` standing idle; Levels 7–8 unlock live via `ENABLED_LEVELS` during ephemeral runs or local AlloyDB Omni). Each level page draws its diagram live from `GET /api/v1/levels` + SSE.
 
 **Cross-cutting Google Cloud products** (all levels and the deployment):
 
@@ -220,6 +222,12 @@ flowchart LR
 
 The pseudo model `vertex-rag-engine-grounded` is Level-6-only (HTTP 400 elsewhere).
 
+## Levels 7 & 8 architectures (ephemeral ScaNN)
+
+- **Level 7 (`alloydb_scann`, `backend/app/engines/alloydb_scann.py`)**: `query_prep → embed_query → retrieve` (parameterized CTE fusing `alloydb_scann` `<=>` cosine ANN + PostgreSQL `to_tsvector` GIN FTS via in-DB RRF `k=60` over `psycopg` / `alloydb-auth-proxy`, or local AlloyDB Omni Docker) `→ synthesize → evaluate`.
+- **Level 8 (`vertex_vector_v2`, `backend/app/engines/vertex_vector_v2.py`)**: `query_prep → embed_query → retrieve` (`vectorsearch.googleapis.com/v1beta` `dataObjects:batchSearch` combining `denseScann` + deterministic CRC32 `sparse_embedding` `knnHint` via server-side `rrf`) `→ synthesize → evaluate`.
+- **Google Cloud products**: **AlloyDB for PostgreSQL** (`alloydb_scann` + Auth Proxy), **Vertex AI Vector Search 2.0** (`Collection`, `Index`, `dataObjects:batchSearch`), **Vertex AI `gemini-embedding-2`**, **Gemini / Claude on Vertex AI**. Spin-up → bulk-load from BigQuery → ScaNN centroid training → `DEMO_MODE=record` → teardown (`scripts/ephemeral_{alloydb,vvs2}.sh`) keeps standing idle cost at `$0/mo` ([docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)).
+
 ## Bring your own PDFs (v1.1+)
 
 In `live` / `record` mode, open **`/ingest`** to create a private upload workspace (`upl_<12hex>`) alongside the pre-loaded 45-PDF benchmark corpus:
@@ -242,7 +250,7 @@ Catalog in `backend/app/core/models_catalog.py`, prices in `backend/app/core/pri
 
 Defaults: synthesis `gemini-4-argon`, judge `claude-opus-5-5`; **judge ≠ synthesis is enforced server-side** (HTTP 400), no fallback model. Other billable services (`gemini-embedding-2`, ranking API, Vertex AI Search, Document AI): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#4-model-selection-and-evaluation).
 
-## Results (Levels 1–6)
+## Results (Levels 1–8)
 
 Each level ran the 8 golden questions live (`DEMO_MODE=record`) with two (synthesis, judge) pairs: **Argon** = `gemini-4-argon` + `claude-opus-5-5`, **Flash** = `gemini-3.8-flash` + `claude-opus-5-5` (Level 4 Flash has 7/8: `q_sla_credit_calculation` timed out at 120 s across 6 live attempts and returns `ReplayUnavailableError` in replay; Level 5 & Level 6 also record their managed pseudo-models against `claude-opus-5-5`). Judge-scored **G / QA / CP** = groundedness / QA relevance / context precision (0–1); latency = engine without judge; run cost = engine + judge, mean per question (total in brackets).
 
@@ -256,8 +264,10 @@ Each level ran the 8 golden questions live (`DEMO_MODE=record`) with two (synthe
 | 5 · Vertex AI Search managed summary | 0.531 / 0.312 / 0.706 | 3.5 s | $0.0326 ($0.261) | — | — | — |
 | 6 · Vertex AI RAG Engine (`:retrieveContexts`) | 1.000 / 0.975 / 0.456 | 29.8 s | $0.0664 ($0.531) | 0.990 / 0.961 / 0.463 | 15.0 s | $0.0476 ($0.380) |
 | 6 · Vertex AI RAG Engine (`VertexRagStore` grounded) | 0.979 / 0.966 / 0.500 | 52.3 s | $0.0656 ($0.525) | — | — | — |
+| 7 · AlloyDB + ScaNN (ephemeral) | 0.978 / 0.845 / 0.619 | 22.4 s | $0.0458 ($0.366) | 0.984 / 0.821 / 0.634 | 11.1 s | $0.0324 ($0.259) |
+| 8 · Vector Search 2.0 ScaNN + Sparse RRF (ephemeral) | 0.994 / 0.848 / 0.665 | 26.8 s | $0.0447 ($0.358) | 0.988 / 0.843 / 0.625 | 19.6 s | $0.0327 ($0.262) |
 
-Level 2 lifts QA relevance on superseding amendments; Level 3 adds layout-parsed Markdown tables, vision-transcribed diagrams, and amendment authority ordering; Level 4 closes cross-document arithmetic (`q_cross_solicitation_total_cost` QA 0.35 → 1.00, exact `$2,765,500.00` via `calculate_contract_pricing`) at ~1.7× latency and ~2.8× Argon cost. Level 5's extractive segments retrieve well (QA 0.905 with Argon), while its managed summary often declines to answer (QA 0.312); Level 6's `RagCorpus` top-10 `512`-token chunks trade lower context precision (`0.456–0.500` without reranking) for strong recall and grounding across both `:retrieveContexts` (QA `0.975` Argon / `0.961` Flash, Battle Score `87.6` Flash) and `VertexRagStore` Gemini grounding (QA `0.966`). Recordings live in [`data/recordings/`](data/recordings/).
+Level 2 lifts QA relevance on superseding amendments; Level 3 adds layout-parsed Markdown tables, vision-transcribed diagrams, and amendment authority ordering; Level 4 closes cross-document arithmetic (`q_cross_solicitation_total_cost` QA 0.35 → 1.00, exact `$2,765,500.00` via `calculate_contract_pricing`) at ~1.7× latency and ~2.8× Argon cost. Level 5's extractive segments retrieve well (QA 0.905 with Argon), while its managed summary often declines to answer (QA 0.312); Level 6's `RagCorpus` top-10 `512`-token chunks trade lower context precision (`0.456–0.500` without reranking) for strong recall and grounding across both `:retrieveContexts` (QA `0.975` Argon / `0.961` Flash, Battle Score `87.6` Flash) and `VertexRagStore` Gemini grounding (QA `0.966`). Levels 7 and 8 match Level 2's hybrid QA accuracy (`0.845–0.848` Argon) without neural reranking: AlloyDB executes in-DB ScaNN + GIN RRF in `319–380 ms` (`11.1 s` total with Flash), while Vector Search 2.0 reaches `0.994` Argon / `0.988` Flash groundedness (`~235–306 ms` warm `batchSearch`) before tearing down to `$0/mo` idle. Recordings live in [`data/recordings/`](data/recordings/).
 
 ## Quickstart
 
@@ -292,8 +302,8 @@ Set the printed `DOCAI_PROCESSOR_ID` (plus `VAIS_*` from `scripts/provision_vert
 
 ## Workbench, Compare & Leaderboard
 
-- **`/workbench`** builds custom RAG recipes (`PipelineSpec` = `IndexProfile` + 7 `QuerySlots`) from 1-click Level 1–6 presets or mix-and-match controls (e.g. `rag_engine` + Discovery Engine reranker + amendment-first context order, or ADK tool-subset ablations) over existing indexed stores at \$0/mo new cloud cost, updating the live architecture diagram in 0 ms.
-- **`/compare`** switches between the **Preset Ladder** (Levels 1–6) and the **Controlled Ablation Lab** (2–4 custom recipes, starter templates, live `varying: …` axis badge, per-slot synthesis override) with a **Retrieval Diff Inspector** tracking rank shifts (`promoted`, `demoted`, `added`, `dropped`) by `chunk_id` or cross-store `doc_name + page`.
+- **`/workbench`** builds custom RAG recipes (`PipelineSpec` = `IndexProfile` + 7 `QuerySlots`) from 1-click Level 1–8 presets or mix-and-match controls (e.g. `rag_engine` + Discovery Engine reranker + amendment-first context order, ADK tool-subset ablations, or ephemeral `alloydb_scann` / `vertex_vector_v2` profiles) over indexed stores at $0/mo standing cloud cost, updating the live architecture diagram in 0 ms.
+- **`/compare`** switches between the **Preset Ladder** (Levels 1–8) and the **Controlled Ablation Lab** (2–4 custom recipes, starter templates, live `varying: …` axis badge, per-slot synthesis override) with a **Retrieval Diff Inspector** tracking rank shifts (`promoted`, `demoted`, `added`, `dropped`) by `chunk_id` or cross-store `doc_name + page`.
 - **`/leaderboard`** aggregates live runs from BigQuery `query_runs` (`Scope: Golden set | Uploads`, recording `pipeline_id` + `pipeline_spec`) or committed recordings, one table per (synthesis, judge) pair with provenance per row; scores are never averaged across pairs or scopes.
 - **Winner highlighting ("Highlight best by")**: highlights the winning row (and all ties) per table by Battle Score, QA relevance, groundedness, context precision (highest wins), latency, or run cost (lowest wins), persisted across Leaderboard and Compare.
 - **Battle Score** (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20).
@@ -317,7 +327,7 @@ Choices: `REGION` (default `us-central1`); `ACCESS_MODE=iap` (only `IAP_MEMBERS`
 | Method & path | Purpose |
 | :-- | :-- |
 | `GET /api/v1/health` · `GET /api/v1/levels` · `GET /api/v1/models` | Mode, version and `.env` identity; level descriptors; verified catalog + `recorded_pairs` |
-| `GET /api/v1/pipelines/presets` · `POST /api/v1/pipelines/validate` | Level 1–6 `PipelineSpec` presets (`pipe_<12hex>`); cross-slot validation + dynamic diagram descriptor |
+| `GET /api/v1/pipelines/presets` · `POST /api/v1/pipelines/validate` | Level 1–8 `PipelineSpec` presets (`pipe_<12hex>`); cross-slot validation + dynamic diagram descriptor |
 | `GET /api/v1/benchmarks` · `GET /api/v1/leaderboard?scope=golden\|uploads` | Golden benchmark (8 questions); aggregates per (engine, synthesis, judge) with provenance |
 | `POST /api/v1/battle/stream` | Run: `{query, question_id?, engines?, pipelines?, solicitation_filter?, synthesis_model?, judge_model?}` → SSE |
 | `POST /api/v1/ingest/jobs` · `GET …/jobs/{id}` · `GET …/jobs/{id}/stream` · `GET /api/v1/ingest/status` | Benchmark ingestion jobs, live counts, index states, and owner-scoped `active_jobs` |
@@ -329,23 +339,24 @@ Run streams are `data: {json}\n\n` frames bounded by `MAX_SSE_FRAMES` (600). Eve
 
 ## Quality & tests
 
-All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine and ADK). Measured 2026-11-03:
+All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0 and ADK). Measured 2026-11-04:
 
 | Suite | Checks | What it guards |
 | :-- | --: | :-- |
-| **Backend total** (`pytest`, 40 files) | **431 passed** | engines, composable workbench, scoped uploads, ingestion, API/SSE, evaluation, recording, deployment |
+| **Backend total** (`pytest`, 43 files) | **447 passed** | engines (L1–L8), composable workbench, scoped uploads, ingestion, API/SSE, evaluation, recording, deployment |
 | `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 2 · 3 | no API-layer stage pacing; AST scan of `engines/**` against swallowed errors/fallbacks |
-| `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${RAG_ENGINE_CORPUS_ID}` and project numbers; replay fidelity |
+| `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${RAG_ENGINE_CORPUS_ID}`, `${ALLOYDB_DSN}` and project numbers; replay fidelity |
 | `test_model_selection.py` · `test_judges.py` | 20 · 17 | judge ≠ synthesis, role/level gates (`vertex-rag-engine-grounded`); golden and reference-free judge parsing |
 | `test_uploads.py` · `test_upload_security.py` | 15 · 9 | bucket privacy, resumable sessions, IDOR/replay `404` matrices, unscoped SQL isolation, L4 `upload_scope` pinning, `O(1)` streaming |
 | `test_rag_engine.py` · `test_rag_engine_client.py` · `test_rag_engine_ingest.py` | 7 · 6 · 6 | `:retrieveContexts` + `VertexRagStore` grounding, safe `ragEngineConfig` reuse, isolated `upl_*` `RagCorpus` lifecycle |
-| `test_pipeline_spec.py` · `test_composable_engine.py` | 9 · 7 | `PipelineSpec` cross-slot validation, `pipe_<12hex>` IDs, custom `rag_engine` rerank, lexical SQL, `query_runs` provenance |
+| `test_alloydb_scann_engine.py` · `test_vvs2_engine.py` · `test_ephemeral_scripts.py` | 3 · 4 · 6 | AlloyDB ScaNN + GIN RRF SQL & DSN redaction, VVS2 `batchSearch` + dedicated ScaNN schema, ephemeral centroid-after-load order |
+| `test_pipeline_spec.py` · `test_composable_engine.py` | 10 · 8 | `PipelineSpec` cross-slot validation (incl. `SCANN_INDEX_PROFILES`), `pipe_<12hex>` IDs, custom `rag_engine` rerank, `query_runs` provenance |
 | `test_publish_manifest.py` · `test_cloudrun_deploy.py` | 5 · 23 | tracked-repo + `frontend/dist` leak scan; SPA/API routing, deploy plan, public-registry lockfiles |
-| **Frontend total** (`npm test`, 20 suites) | **190 passed** | stream reducer, per-level views (L1–L6), composable workbench, ablation & retrieval diff, uploads, winner highlight, safe mode |
+| **Frontend total** (`npm test`, 21 suites) | **194 passed** | stream reducer, per-level views (L1–L8), composable workbench, ablation & retrieval diff, ephemeral ScaNN UI, uploads, winner highlight, safe mode |
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 431 passed
-cd frontend && npm test                                 # 190 pass across 20 suites
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 447 passed
+cd frontend && npm test                                 # 194 pass across 21 suites
 cd frontend && npm run build                            # tsc + vite build
 ```
 
@@ -356,12 +367,12 @@ rag-arena/
 ├── backend/
 │   ├── app/
 │   │   ├── api/             REST routes, uploads API, SSE forwarder, documents, query_runs, SPA serving
-│   │   ├── core/            config, telemetry, GCP client lock, model catalog, pricing, ranking, architectures, pipeline_spec
-│   │   ├── engines/         Levels 1–6, composable engine, ADK runtime + scoped tools, replay; parked/
+│   │   ├── core/            config, telemetry, GCP client lock, model catalog, pricing, ranking, architectures, pipeline_spec, vvs2_client
+│   │   ├── engines/         Levels 1–8 (incl. alloydb_scann, vertex_vector_v2), composable engine, ADK runtime + scoped tools, replay
 │   │   ├── evaluation/      LLM judges (golden + reference-free), evaluator, Battle Score, leaderboard
 │   │   ├── ingestion/       job runner, upload bucket/store, PyMuPDF / Document AI / vision, BQ + VAIS + RAG Engine loaders
 │   │   └── recording/       recorder, store, redaction
-│   └── tests/               431 offline tests + fakes (40 files)
+│   └── tests/               447 offline tests + fakes (43 files)
 ├── frontend/
 │   ├── src/
 │   │   ├── app/             router, shell, bootstrap retry, sessions, persistent ingest session, safe mode
@@ -370,10 +381,10 @@ rag-arena/
 │   │   ├── lib/             API client, bounded SSE reader, winner highlight, safe-mode masking
 │   │   ├── pages/           overview, leaderboard
 │   │   └── theme/ styles/ types/   themes, design tokens, SSE + API types
-│   └── tests/               20 offline test suites (190 checks)
-├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (103 runs)
+│   └── tests/               21 offline test suites (194 checks)
+├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (135 runs)
 ├── deploy/                  Cloud Run env template (real file git-ignored)
-├── scripts/                 bootstrap, provisioning, model check, corpus build, deploy/teardown
+├── scripts/                 bootstrap, provisioning, ephemeral ScaNN benchmarks, model check, corpus build, deploy/teardown
 ├── infra/                   Terraform (main.tf)
 ├── docs/                    ARCHITECTURE, SETUP_GUIDE, audits, screenshots
 ├── Dockerfile · docker-compose.yml · .env.example · LICENSE (MIT)
@@ -381,7 +392,7 @@ rag-arena/
 
 ## Security & leak hygiene
 
-- **Identity only from git-ignored `.env` / `deploy/cloudrun.env`**; code defaults are empty, recorder redacts project IDs, project numbers, corpus/upload buckets, and `RAG_ENGINE_CORPUS_ID` to `${…}` placeholders, and **Safe mode** (`?safe=1` or header toggle) masks them in the UI.
+- **Identity only from git-ignored `.env` / `deploy/cloudrun.env`**; code defaults are empty, recorder redacts project IDs, project numbers, corpus/upload buckets, `RAG_ENGINE_CORPUS_ID`, `ALLOYDB_DSN` (`postgresql://…`), and `VVS2_COLLECTION` to `${…}` placeholders, and **Safe mode** (`?safe=1` or header toggle) masks them in the UI.
 - **Private uploads**: IAP owner isolation (SHA-256), Origin-bound resumable GCS sessions, server-side PDF active-content rejection, PNG-only page rendering, parameterized SQL, closure-pinned L4 tool scopes, isolated L5/L6 upload stores/corpora, and zero upload routes on the public replay service.
 - **Cloud Run**: least-privilege service account, no key files, Cloud Build upload leak scan before every build, and explicit bounds/timeouts on every loop, retry, poll and request.
 
@@ -394,6 +405,7 @@ rag-arena/
 | `v1.1.1` | Upload ingestion `build_indexes` fast-path (`~58 s` → `<3 s` via table index snapshot) | ✅ live |
 | `v1.2.0` | Level 6 Managed Vertex AI RAG Engine (`rag_engine`: `:retrieveContexts` + `VertexRagStore` grounding, isolated `upl_*` `RagCorpus`, minimum-cost provisioning) | ✅ live |
 | `v1.3.0` | Composable RAG Workbench (`/workbench`), Controlled 2–4 Recipe Ablation Lab (`/compare`), and Retrieval Diff Inspector | ✅ live |
+| `v1.4.0` | Ephemeral ScaNN Benchmarks (Level 7 AlloyDB + ScaNN, Level 8 Vertex AI Vector Search 2.0 ScaNN + Sparse RRF, $0/mo standing idle) | ✅ live |
 
 ## License
 
@@ -405,4 +417,4 @@ The code is released under the [MIT License](LICENSE). Data notices:
 
 ## Acknowledgements
 
-Built on Google Cloud (Vertex AI, Vertex AI RAG Engine, BigQuery, Cloud Storage, Vertex AI Search, Document AI, Agent Development Kit, Cloud Run), Anthropic Claude models on Vertex AI, PyMuPDF, Starlette, React, Vite and Tailwind CSS. Contract data from The Atticus Project's CUAD.
+Built on Google Cloud (Vertex AI, Vertex AI RAG Engine, Vertex AI Vector Search 2.0, AlloyDB for PostgreSQL, BigQuery, Cloud Storage, Vertex AI Search, Document AI, Agent Development Kit, Cloud Run), Anthropic Claude models on Vertex AI, PyMuPDF, Starlette, React, Vite and Tailwind CSS. Contract data from The Atticus Project's CUAD.

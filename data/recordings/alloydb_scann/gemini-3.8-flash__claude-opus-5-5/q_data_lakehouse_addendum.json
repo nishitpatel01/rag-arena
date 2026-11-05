@@ -1,0 +1,1644 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-04T20:16:34.229Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-3.8-flash",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-3.8-flash",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "d9535d6c05f92d4ea819f20503f20dc341a87ee1",
+    "app_version": "1.4.0",
+    "engine": "alloydb_scann",
+    "question_id": "q_data_lakehouse_addendum",
+    "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+    "run_id": "run_796169a81a69"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "query_prep",
+      "label": "Query preparation (acronym expansion)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:16:18.172Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "prepared_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:16:18.173Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "embed_query",
+      "label": "Query embedding",
+      "service": "Vertex AI \u00b7 gemini-embedding-2",
+      "request": {
+        "model": "gemini-embedding-2",
+        "contents": "task: question answering | query: In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+        "task_type": "RETRIEVAL_QUERY",
+        "method": "models.embed_content"
+      },
+      "ts": "2026-11-04T20:16:18.173Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "embed_query",
+      "duration_ms": 315,
+      "payload": {
+        "model": "gemini-embedding-2",
+        "dimensions": 3072,
+        "token_count": 104,
+        "task_type": "RETRIEVAL_QUERY"
+      },
+      "ts": "2026-11-04T20:16:18.488Z",
+      "t_rel_ms": 316
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "retrieve",
+      "label": "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
+      "service": "AlloyDB for PostgreSQL \u00b7 ScaNN ANN + GIN FTS (RRF)",
+      "request": {
+        "dsn": "postgresql://${ALLOYDB_DSN}",
+        "table": "document_chunks",
+        "sql": "WITH vec_leg AS (\n    SELECT\n        chunk_id,\n        (embedding <=> %(query_vector)s::vector) AS vec_distance,\n        ROW_NUMBER() OVER (ORDER BY embedding <=> %(query_vector)s::vector ASC, chunk_id ASC) AS vec_rank\n    FROM \"document_chunks\"\n    WHERE tier_profile = 'hybrid'\n    ORDER BY embedding <=> %(query_vector)s::vector ASC\n    LIMIT %(candidate_k)s\n),\nlex_leg AS (\n    SELECT\n        chunk_id,\n        ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', %(query_text)s)) AS lex_score,\n        ROW_NUMBER() OVER (\n            ORDER BY ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', %(query_text)s)) DESC,\n            chunk_id ASC\n        ) AS lex_rank\n    FROM \"document_chunks\"\n    WHERE tier_profile = 'hybrid'\n      AND to_tsvector('english', content) @@ websearch_to_tsquery('english', %(query_text)s)\n    LIMIT %(candidate_k)s\n),\nfused AS (\n    SELECT\n        COALESCE(v.chunk_id, l.chunk_id) AS chunk_id,\n        v.vec_distance,\n        v.vec_rank,\n        l.lex_score,\n        l.lex_rank,\n        (COALESCE(1.0 / (%(rrf_k)s + v.vec_rank), 0.0) + COALESCE(1.0 / (%(rrf_k)s + l.lex_rank), 0.0)) AS rrf_score\n    FROM vec_leg v\n    FULL OUTER JOIN lex_leg l ON v.chunk_id = l.chunk_id\n)\nSELECT\n    c.chunk_id,\n    c.doc_name,\n    c.solicitation_id,\n    c.page_number,\n    c.section_id,\n    c.content,\n    c.element_type,\n    c.amendment_number,\n    f.vec_distance,\n    f.vec_rank,\n    f.lex_score,\n    f.lex_rank,\n    f.rrf_score\nFROM fused f\nJOIN \"document_chunks\" c ON c.chunk_id = f.chunk_id\nORDER BY f.rrf_score DESC, COALESCE(f.vec_rank, 9999) ASC, c.chunk_id ASC\nLIMIT %(candidate_k)s;",
+        "parameters": {
+          "query_vector": {
+            "dimensions": 3072,
+            "preview": [
+              0.00928347,
+              0.02841784,
+              -0.010125446,
+              -0.0014003445
+            ]
+          },
+          "query_text": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+          "candidate_k": 25,
+          "rrf_k": 60,
+          "scann.num_leaves_to_search": 8
+        }
+      },
+      "ts": "2026-11-04T20:16:18.489Z",
+      "t_rel_ms": 317
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "retrieve",
+      "duration_ms": 291,
+      "payload": {
+        "table": "document_chunks",
+        "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
+        "fusion": "RRF(k=60)",
+        "candidate_k": 25,
+        "rows_returned": 25,
+        "db_exec_ms": 290,
+        "candidates": [
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "section_id": "DATA-AMD-0001",
+            "vector_rank": 1,
+            "lexical_rank": null,
+            "vector_distance": 0.199175,
+            "rrf_score": 0.016393
+          },
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-MEDALLION-02",
+            "vector_rank": 2,
+            "lexical_rank": null,
+            "vector_distance": 0.224512,
+            "rrf_score": 0.016129
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "section_id": "DATA-SLA-3.1",
+            "vector_rank": 3,
+            "lexical_rank": null,
+            "vector_distance": 0.244866,
+            "rrf_score": 0.015873
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-1001",
+            "vector_rank": 4,
+            "lexical_rank": null,
+            "vector_distance": 0.280204,
+            "rrf_score": 0.015625
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0001",
+            "vector_rank": 5,
+            "lexical_rank": null,
+            "vector_distance": 0.311297,
+            "rrf_score": 0.015385
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "section_id": "PROP-EXEC-01",
+            "vector_rank": 6,
+            "lexical_rank": null,
+            "vector_distance": 0.337917,
+            "rrf_score": 0.015152
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "section_id": "SEC-4.2.1",
+            "vector_rank": 7,
+            "lexical_rank": null,
+            "vector_distance": 0.344424,
+            "rrf_score": 0.014925
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "section_id": "SEC-5.1",
+            "vector_rank": 8,
+            "lexical_rank": null,
+            "vector_distance": 0.345956,
+            "rrf_score": 0.014706
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "section_id": "SOW-2.1",
+            "vector_rank": 9,
+            "lexical_rank": null,
+            "vector_distance": 0.349837,
+            "rrf_score": 0.014493
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "section_id": "MSA-AMD-0001",
+            "vector_rank": 10,
+            "lexical_rank": null,
+            "vector_distance": 0.350734,
+            "rrf_score": 0.014286
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "section_id": "ARCH-TOPOLOGY-01",
+            "vector_rank": 11,
+            "lexical_rank": null,
+            "vector_distance": 0.350924,
+            "rrf_score": 0.014085
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "section_id": "SEC-OPS-1.1",
+            "vector_rank": 12,
+            "lexical_rank": null,
+            "vector_distance": 0.355631,
+            "rrf_score": 0.013889
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "section_id": "AMD-0002-QA",
+            "vector_rank": 13,
+            "lexical_rank": null,
+            "vector_distance": 0.363686,
+            "rrf_score": 0.013699
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-2001",
+            "vector_rank": 14,
+            "lexical_rank": null,
+            "vector_distance": 0.363861,
+            "rrf_score": 0.013514
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "section_id": "CTRL-SOC2-MATRIX",
+            "vector_rank": 15,
+            "lexical_rank": null,
+            "vector_distance": 0.367863,
+            "rrf_score": 0.013333
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "section_id": "CLIN-0004-AB",
+            "vector_rank": 16,
+            "lexical_rank": null,
+            "vector_distance": 0.368284,
+            "rrf_score": 0.013158
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "section_id": "SLA-SEC-3.1",
+            "vector_rank": 17,
+            "lexical_rank": null,
+            "vector_distance": 0.375693,
+            "rrf_score": 0.012987
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "section_id": "SLA-4.2",
+            "vector_rank": 18,
+            "lexical_rank": null,
+            "vector_distance": 0.384527,
+            "rrf_score": 0.012821
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "section_id": "ZTA-NIST-800-207",
+            "vector_rank": 19,
+            "lexical_rank": null,
+            "vector_distance": 0.391293,
+            "rrf_score": 0.012658
+          },
+          {
+            "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p11_hybrid",
+            "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+            "page_number": 11,
+            "section_id": null,
+            "vector_rank": 20,
+            "lexical_rank": null,
+            "vector_distance": 0.427016,
+            "rrf_score": 0.0125
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 21,
+            "lexical_rank": null,
+            "vector_distance": 0.430804,
+            "rrf_score": 0.012346
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 15,
+            "section_id": null,
+            "vector_rank": 22,
+            "lexical_rank": null,
+            "vector_distance": 0.43377,
+            "rrf_score": 0.012195
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 5,
+            "section_id": null,
+            "vector_rank": 23,
+            "lexical_rank": null,
+            "vector_distance": 0.43752,
+            "rrf_score": 0.012048
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 2,
+            "section_id": null,
+            "vector_rank": 24,
+            "lexical_rank": null,
+            "vector_distance": 0.439777,
+            "rrf_score": 0.011905
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 6,
+            "section_id": null,
+            "vector_rank": 25,
+            "lexical_rank": null,
+            "vector_distance": 0.440084,
+            "rrf_score": 0.011765
+          }
+        ]
+      },
+      "ts": "2026-11-04T20:16:18.781Z",
+      "t_rel_ms": 608
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "rerank",
+      "label": "Cross-encoder reranking",
+      "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+      "request": {
+        "endpoint": "https://discoveryengine.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/global/rankingConfigs/default_ranking_config:rank",
+        "model": "semantic-ranker-default@latest",
+        "top_n": 5,
+        "records_sent": 25,
+        "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?"
+      },
+      "ts": "2026-11-04T20:16:18.781Z",
+      "t_rel_ms": 609
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "rerank",
+      "duration_ms": 272,
+      "payload": {
+        "model": "semantic-ranker-default@latest",
+        "candidates_in": 25,
+        "candidates_out": 5,
+        "results": [
+          {
+            "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+            "doc_name": "02_Architecture_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 2,
+            "rrf_score": 0.016129,
+            "rerank_rank": 1,
+            "rerank_score": 0.6162
+          },
+          {
+            "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+            "doc_name": "05_Amendments_and_Addenda.pdf",
+            "page_number": 1,
+            "rrf_rank": 1,
+            "rrf_score": 0.016393,
+            "rerank_rank": 2,
+            "rerank_score": 0.5324
+          },
+          {
+            "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+            "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+            "page_number": 1,
+            "rrf_rank": 4,
+            "rrf_score": 0.015625,
+            "rerank_rank": 3,
+            "rerank_score": 0.3171
+          },
+          {
+            "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+            "doc_name": "01_RFP_Data_Platform.pdf",
+            "page_number": 1,
+            "rrf_rank": 3,
+            "rrf_score": 0.015873,
+            "rerank_rank": 4,
+            "rerank_score": 0.2472
+          },
+          {
+            "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+            "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+            "page_number": 1,
+            "rrf_rank": 13,
+            "rrf_score": 0.013699,
+            "rerank_rank": 5,
+            "rerank_score": 0.1253
+          },
+          {
+            "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+            "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+            "page_number": 1,
+            "rrf_rank": 5,
+            "rrf_score": 0.015385,
+            "rerank_rank": 6,
+            "rerank_score": 0.089
+          },
+          {
+            "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+            "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+            "page_number": 1,
+            "rrf_rank": 19,
+            "rrf_score": 0.012658,
+            "rerank_rank": 7,
+            "rerank_score": 0.0883
+          },
+          {
+            "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+            "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+            "page_number": 1,
+            "rrf_rank": 10,
+            "rrf_score": 0.014286,
+            "rerank_rank": 8,
+            "rerank_score": 0.0834
+          },
+          {
+            "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+            "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+            "page_number": 1,
+            "rrf_rank": 11,
+            "rrf_score": 0.014085,
+            "rerank_rank": 9,
+            "rerank_score": 0.058
+          },
+          {
+            "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+            "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+            "page_number": 1,
+            "rrf_rank": 18,
+            "rrf_score": 0.012821,
+            "rerank_rank": 10,
+            "rerank_score": 0.0551
+          },
+          {
+            "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+            "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+            "page_number": 1,
+            "rrf_rank": 6,
+            "rrf_score": 0.015152,
+            "rerank_rank": 11,
+            "rerank_score": 0.0546
+          },
+          {
+            "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+            "doc_name": "03_Incident_Response_SLAs.pdf",
+            "page_number": 1,
+            "rrf_rank": 17,
+            "rrf_score": 0.012987,
+            "rerank_rank": 12,
+            "rerank_score": 0.0461
+          },
+          {
+            "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+            "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+            "page_number": 5,
+            "rrf_rank": 23,
+            "rrf_score": 0.012048,
+            "rerank_rank": 13,
+            "rerank_score": 0.0456
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 2,
+            "rrf_rank": 8,
+            "rrf_score": 0.014706,
+            "rerank_rank": 14,
+            "rerank_score": 0.0448
+          },
+          {
+            "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+            "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+            "page_number": 1,
+            "rrf_rank": 15,
+            "rrf_score": 0.013333,
+            "rerank_rank": 15,
+            "rerank_score": 0.0442
+          },
+          {
+            "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+            "doc_name": "02_Statement_of_Work_SOW.pdf",
+            "page_number": 1,
+            "rrf_rank": 9,
+            "rrf_score": 0.014493,
+            "rerank_rank": 16,
+            "rerank_score": 0.0432
+          },
+          {
+            "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+            "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+            "page_number": 15,
+            "rrf_rank": 22,
+            "rrf_score": 0.012195,
+            "rerank_rank": 17,
+            "rerank_score": 0.0425
+          },
+          {
+            "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+            "doc_name": "04_Pricing_Labor_Categories.pdf",
+            "page_number": 1,
+            "rrf_rank": 14,
+            "rrf_score": 0.013514,
+            "rerank_rank": 18,
+            "rerank_score": 0.0422
+          },
+          {
+            "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p11_hybrid",
+            "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+            "page_number": 11,
+            "rrf_rank": 20,
+            "rrf_score": 0.0125,
+            "rerank_rank": 19,
+            "rerank_score": 0.0411
+          },
+          {
+            "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+            "doc_name": "01_RFP_Base_Solicitation.pdf",
+            "page_number": 1,
+            "rrf_rank": 7,
+            "rrf_score": 0.014925,
+            "rerank_rank": 20,
+            "rerank_score": 0.0408
+          },
+          {
+            "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+            "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+            "page_number": 1,
+            "rrf_rank": 16,
+            "rrf_score": 0.013158,
+            "rerank_rank": 21,
+            "rerank_score": 0.0405
+          },
+          {
+            "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+            "doc_name": "01_RFP_Security_Operations.pdf",
+            "page_number": 1,
+            "rrf_rank": 12,
+            "rrf_score": 0.013889,
+            "rerank_rank": 22,
+            "rerank_score": 0.0382
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 2,
+            "rrf_rank": 21,
+            "rrf_score": 0.012346,
+            "rerank_rank": 23,
+            "rerank_score": 0.0361
+          },
+          {
+            "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+            "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+            "page_number": 2,
+            "rrf_rank": 24,
+            "rrf_score": 0.011905,
+            "rerank_rank": 24,
+            "rerank_score": 0.0339
+          },
+          {
+            "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+            "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+            "page_number": 6,
+            "rrf_rank": 25,
+            "rrf_score": 0.011765,
+            "rerank_rank": 25,
+            "rerank_score": 0.0227
+          }
+        ],
+        "rank_api_ms": 271,
+        "attempts": 1,
+        "records_truncated": 0,
+        "billed_counts": 1,
+        "cost_usd": 0.001
+      },
+      "ts": "2026-11-04T20:16:19.054Z",
+      "t_rel_ms": 881
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "synthesize",
+      "label": "Answer synthesis",
+      "service": "Vertex AI \u00b7 Gemini 3.8 Flash",
+      "request": {
+        "model": "gemini-3.8-flash",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "HIGH",
+        "prompt": "Answer the procurement question using ONLY the retrieved context chunks below.\n\nContext:\n[02_Architecture_Requirements.pdf | Sec: ARCH-MEDALLION-02 | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02]\nSOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nCloud Pub/Sub Ingest\nDataflow + Cloud DLP\nBigQuery Bronze (Raw)\nBigQuery Silver (Curated)\nBigQuery Gold (Governed)\nVertex AI Feature Store\n\n[05_Amendments_and_Addenda.pdf | Sec: DATA-AMD-0001 | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=05_Amendments_and_Addenda.pdf | DocType=AMENDMENT | Section=DATA-AMD-0001]\nSOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\nTo support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\nis amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\nstreaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\nBigQuery Storage Write API committed streams.\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\nFor Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\na 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\n($1,224,000 annual total for 6,000 TB instead of $1,440,000).\n\n[03_Pricing_and_Volume_Tiers.pdf | Sec: CLIN-1001 | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=03_Pricing_and_Volume_Tiers.pdf | DocType=PRICING_CLIN | Section=CLIN-1001]\nSOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |\n\n[01_RFP_Data_Platform.pdf | Sec: DATA-SLA-3.1 | p.1]: [Contextual Lineage: Solicitation=solicitation_02 | Document=01_RFP_Data_Platform.pdf | DocType=BASE_RFP | Section=DATA-SLA-3.1]\nSOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\nCatalog governance, column-level policy tags, and fine-grained row-level security.\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).\n\n[07_Amendment_0002_Vendor_QA.pdf | Sec: AMD-0002-QA | p.1]: [Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA]\nSOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.\n\nQuestion: In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "context_chunks": 5,
+        "method": "models.generate_content"
+      },
+      "ts": "2026-11-04T20:16:19.054Z",
+      "t_rel_ms": 882
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "synthesize",
+      "duration_ms": 10970,
+      "payload": {
+        "model": "gemini-3.8-flash",
+        "provider": "vertex_gemini",
+        "prompt_tokens": 1953,
+        "output_tokens": 352,
+        "thinking_tokens": 1098,
+        "stop_reason": "STOP",
+        "response_id": "k5LraorQB__AptQPjdSBgQQ",
+        "attempts": 1,
+        "answer": "Based on the provided context for Solicitation SOL-2026-DATA-02, here are the details:\n\n1. **Modification to Streaming Ingestion Latency SLA (DATA-SLA-3.1):**\n   * Addendum 0001 reduces the maximum end-to-end streaming latency (Cloud Pub/Sub $\\rightarrow$ Dataflow $\\rightarrow$ BigQuery Silver) from **30 seconds down to 5 seconds** ($p99 \\le 5.0\\text{ seconds}$) using BigQuery Storage Write API committed streams.\n\n2. **Modification to Annual Cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004):**\n   * Addendum 0001 applies a 15% volume discount for storage exceeding 5 Petabytes (5,000 TB), reducing the effective rate from $\\$20.00/\\text{TB/mo}$ to $\\$17.00/\\text{TB/mo}$. \n   * This reduces the annual total cost for 6,000 TB from **$\\$1,440,000$ down to $\\$1,224,000$**.\n\n3. **Three Medallion Storage Layers:**\n   * **Bronze Layer:** Raw append-only change-data-capture (CDC) tables (*BigQuery Bronze (Raw)*).\n   * **Silver Layer:** Deduplicated, schema-enforced enterprise entity tables (*BigQuery Silver (Curated)*).\n   * **Gold Layer:** Governed semantic marts & Vertex AI Feature Store embeddings (*BigQuery Gold (Governed)*).",
+        "thinking_level": "HIGH",
+        "context_source": "AlloyDB for PostgreSQL (ScaNN + GIN FTS RRF)",
+        "context_chunks": 5
+      },
+      "ts": "2026-11-04T20:16:30.024Z",
+      "t_rel_ms": 11852
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "max_tokens": 1024,
+        "reference_answer_used": true
+      },
+      "ts": "2026-11-04T20:16:30.026Z",
+      "t_rel_ms": 11853
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_796169a81a69",
+      "engine": "alloydb_scann",
+      "stage": "evaluate",
+      "duration_ms": 4204,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 1.0,
+        "qa_relevance": 0.97,
+        "context_precision": 0.8,
+        "reference_answer_used": true,
+        "input_tokens": 3842,
+        "output_tokens": 362,
+        "judge_cost_usd": 0.022608,
+        "rationale": "Every claim in the answer (the 30s-to-5s p99 SLA change, the 15% discount from $20 to $17/TB/mo with the annual total falling from $1,440,000 to $1,224,000, and the Bronze/Silver/Gold layers) is directly supported by the retrieved chunks. The answer covers all three parts of the query and matches the reference, omitting only the explicit $216,000 savings figure, which is trivially implied. Four of five chunks are relevant to SOL-2026-DATA-02, but the final chunk comes from a different solicitation (SOL-2026-CLOUD-01) and is noise.",
+        "judge_response_id": "msg_vrtx_011CgiW9hoGoXwM8SZ3vLRLW"
+      },
+      "ts": "2026-11-04T20:16:34.229Z",
+      "t_rel_ms": 16057
+    }
+  ],
+  "result": {
+    "engine_id": "alloydb_scann",
+    "engine_label": "Level 7: AlloyDB PostgreSQL + ScaNN Hybrid",
+    "answer": "Based on the provided context for Solicitation SOL-2026-DATA-02, here are the details:\n\n1. **Modification to Streaming Ingestion Latency SLA (DATA-SLA-3.1):**\n   * Addendum 0001 reduces the maximum end-to-end streaming latency (Cloud Pub/Sub $\\rightarrow$ Dataflow $\\rightarrow$ BigQuery Silver) from **30 seconds down to 5 seconds** ($p99 \\le 5.0\\text{ seconds}$) using BigQuery Storage Write API committed streams.\n\n2. **Modification to Annual Cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004):**\n   * Addendum 0001 applies a 15% volume discount for storage exceeding 5 Petabytes (5,000 TB), reducing the effective rate from $\\$20.00/\\text{TB/mo}$ to $\\$17.00/\\text{TB/mo}$. \n   * This reduces the annual total cost for 6,000 TB from **$\\$1,440,000$ down to $\\$1,224,000$**.\n\n3. **Three Medallion Storage Layers:**\n   * **Bronze Layer:** Raw append-only change-data-capture (CDC) tables (*BigQuery Bronze (Raw)*).\n   * **Silver Layer:** Deduplicated, schema-enforced enterprise entity tables (*BigQuery Silver (Curated)*).\n   * **Gold Layer:** Governed semantic marts & Vertex AI Feature Store embeddings (*BigQuery Gold (Governed)*).",
+    "citations": [
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "ARCH-MEDALLION-02",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02] SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf EXHIBIT A: STREAMING PUB/SUB -> DATAF",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "DATA-AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=05_Amendments_and_Addenda.pdf | DocType=AMENDMENT | Section=DATA-AMD-0001] SOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf ADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORA",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CLIN-1001",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=03_Pricing_and_Volume_Tiers.pdf | DocType=PRICING_CLIN | Section=CLIN-1001] SOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "DATA-SLA-3.1",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_02 | Document=01_RFP_Data_Platform.pdf | DocType=BASE_RFP | Section=DATA-SLA-3.1] SOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf SOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATF",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0002-QA",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "[Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA] SOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf AMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTA",
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=02_Architecture_Requirements.pdf | DocType=TECHNICAL_EXHIBIT | Section=ARCH-MEDALLION-02]\nSOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\nEXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\nArchitecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n1. Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n2. Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing,\nPII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n3. Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables.\n- Silver Layer: Deduplicated, schema-enforced enterprise entity tables.\n- Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.\nVECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nCloud Pub/Sub Ingest\nDataflow + Cloud DLP\nBigQuery Bronze (Raw)\nBigQuery Silver (Curated)\nBigQuery Gold (Governed)\nVertex AI Feature Store",
+        "score": 0.6162,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "DATA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=05_Amendments_and_Addenda.pdf | DocType=AMENDMENT | Section=DATA-AMD-0001]\nSOL-2026-DATA-02 | 05_Amendments_and_Addenda.pdf\nADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT\n[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n1. STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1):\nTo support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf\nis amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver\nstreaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using\nBigQuery Storage Write API committed streams.\n2. STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004):\nFor Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives\na 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo\n($1,224,000 annual total for 6,000 TB instead of $1,440,000).",
+        "score": 0.5324,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "table",
+        "section_id": "CLIN-1001",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=03_Pricing_and_Volume_Tiers.pdf | DocType=PRICING_CLIN | Section=CLIN-1001]\nSOL-2026-DATA-02 | 03_Pricing_and_Volume_Tiers.pdf\nSCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |",
+        "score": 0.3171,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "DATA-SLA-3.1",
+        "amendment_number": 0,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_02 | Document=01_RFP_Data_Platform.pdf | DocType=BASE_RFP | Section=DATA-SLA-3.1]\nSOL-2026-DATA-02 | 01_RFP_Data_Platform.pdf\nSOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM\nSolicitation ID: SOL-2026-DATA-02 | Base Effective Date: 2026-02-01\nClause DATA-GOV-1.1: Enterprise BigQuery Lakehouse must enforce Dataplex Universal\nCatalog governance, column-level policy tags, and fine-grained row-level security.\nClause DATA-SLA-3.1 (Base Streaming Ingestion Latency):\nIn the base RFP, end-to-end streaming ingestion latency from Cloud Pub/Sub through\nApache Beam / Dataflow into BigQuery Silver tables shall not exceed 30 seconds (p99).\n(Note: See 05_Amendments_and_Addenda.pdf Addendum 0001 for updated 5-second SLA).",
+        "score": 0.2472,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+        "tier_profile": "alloydb_scann",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "SOLICITATION",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": null,
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "[Contextual Lineage: Solicitation=solicitation_01 | Document=07_Amendment_0002_Vendor_QA.pdf | DocType=AMENDMENT | Section=AMD-0002-QA]\nSOL-2026-CLOUD-01 | 07_Amendment_0002_Vendor_QA.pdf\nAMENDMENT 0002: OFFICIAL VENDOR Q&A AND KMS KEY ROTATION CLARIFICATION\n[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02\nQ12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation\nperiod for BigQuery and Cloud SQL volumes under FedRAMP High?\nA12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule\n(or 30-day rotation for Tier-0 identity signing keys).\nQ19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB?\nA19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the\n5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.1253,
+        "layout_source": "alloydb_scann",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [],
+    "latency_ms": 11852,
+    "cost_usd": 0.00792305,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronym expansion)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-04T20:16:18.172Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+          "prepared_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "SLA",
+              "expansion": "Service Level Agreement"
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "embed_query",
+        "label": "Query embedding",
+        "service": "Vertex AI \u00b7 gemini-embedding-2",
+        "status": "completed",
+        "started_at": "2026-11-04T20:16:18.173Z",
+        "duration_ms": 315,
+        "request": {},
+        "payload": {
+          "model": "gemini-embedding-2",
+          "dimensions": 3072,
+          "token_count": 104,
+          "task_type": "RETRIEVAL_QUERY"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "retrieve",
+        "label": "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
+        "service": "AlloyDB for PostgreSQL \u00b7 ScaNN ANN + GIN FTS (RRF)",
+        "status": "completed",
+        "started_at": "2026-11-04T20:16:18.489Z",
+        "duration_ms": 291,
+        "request": {},
+        "payload": {
+          "table": "document_chunks",
+          "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
+          "fusion": "RRF(k=60)",
+          "candidate_k": 25,
+          "rows_returned": 25,
+          "db_exec_ms": 290,
+          "candidates": [
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "section_id": "DATA-AMD-0001",
+              "vector_rank": 1,
+              "lexical_rank": null,
+              "vector_distance": 0.199175,
+              "rrf_score": 0.016393
+            },
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-MEDALLION-02",
+              "vector_rank": 2,
+              "lexical_rank": null,
+              "vector_distance": 0.224512,
+              "rrf_score": 0.016129
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "section_id": "DATA-SLA-3.1",
+              "vector_rank": 3,
+              "lexical_rank": null,
+              "vector_distance": 0.244866,
+              "rrf_score": 0.015873
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-1001",
+              "vector_rank": 4,
+              "lexical_rank": null,
+              "vector_distance": 0.280204,
+              "rrf_score": 0.015625
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0001",
+              "vector_rank": 5,
+              "lexical_rank": null,
+              "vector_distance": 0.311297,
+              "rrf_score": 0.015385
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "section_id": "PROP-EXEC-01",
+              "vector_rank": 6,
+              "lexical_rank": null,
+              "vector_distance": 0.337917,
+              "rrf_score": 0.015152
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "section_id": "SEC-4.2.1",
+              "vector_rank": 7,
+              "lexical_rank": null,
+              "vector_distance": 0.344424,
+              "rrf_score": 0.014925
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "section_id": "SEC-5.1",
+              "vector_rank": 8,
+              "lexical_rank": null,
+              "vector_distance": 0.345956,
+              "rrf_score": 0.014706
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "section_id": "SOW-2.1",
+              "vector_rank": 9,
+              "lexical_rank": null,
+              "vector_distance": 0.349837,
+              "rrf_score": 0.014493
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "section_id": "MSA-AMD-0001",
+              "vector_rank": 10,
+              "lexical_rank": null,
+              "vector_distance": 0.350734,
+              "rrf_score": 0.014286
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "section_id": "ARCH-TOPOLOGY-01",
+              "vector_rank": 11,
+              "lexical_rank": null,
+              "vector_distance": 0.350924,
+              "rrf_score": 0.014085
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "section_id": "SEC-OPS-1.1",
+              "vector_rank": 12,
+              "lexical_rank": null,
+              "vector_distance": 0.355631,
+              "rrf_score": 0.013889
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "section_id": "AMD-0002-QA",
+              "vector_rank": 13,
+              "lexical_rank": null,
+              "vector_distance": 0.363686,
+              "rrf_score": 0.013699
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-2001",
+              "vector_rank": 14,
+              "lexical_rank": null,
+              "vector_distance": 0.363861,
+              "rrf_score": 0.013514
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "section_id": "CTRL-SOC2-MATRIX",
+              "vector_rank": 15,
+              "lexical_rank": null,
+              "vector_distance": 0.367863,
+              "rrf_score": 0.013333
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "section_id": "CLIN-0004-AB",
+              "vector_rank": 16,
+              "lexical_rank": null,
+              "vector_distance": 0.368284,
+              "rrf_score": 0.013158
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "section_id": "SLA-SEC-3.1",
+              "vector_rank": 17,
+              "lexical_rank": null,
+              "vector_distance": 0.375693,
+              "rrf_score": 0.012987
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "section_id": "SLA-4.2",
+              "vector_rank": 18,
+              "lexical_rank": null,
+              "vector_distance": 0.384527,
+              "rrf_score": 0.012821
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "section_id": "ZTA-NIST-800-207",
+              "vector_rank": 19,
+              "lexical_rank": null,
+              "vector_distance": 0.391293,
+              "rrf_score": 0.012658
+            },
+            {
+              "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p11_hybrid",
+              "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+              "page_number": 11,
+              "section_id": null,
+              "vector_rank": 20,
+              "lexical_rank": null,
+              "vector_distance": 0.427016,
+              "rrf_score": 0.0125
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 21,
+              "lexical_rank": null,
+              "vector_distance": 0.430804,
+              "rrf_score": 0.012346
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 15,
+              "section_id": null,
+              "vector_rank": 22,
+              "lexical_rank": null,
+              "vector_distance": 0.43377,
+              "rrf_score": 0.012195
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 5,
+              "section_id": null,
+              "vector_rank": 23,
+              "lexical_rank": null,
+              "vector_distance": 0.43752,
+              "rrf_score": 0.012048
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 2,
+              "section_id": null,
+              "vector_rank": 24,
+              "lexical_rank": null,
+              "vector_distance": 0.439777,
+              "rrf_score": 0.011905
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 6,
+              "section_id": null,
+              "vector_rank": 25,
+              "lexical_rank": null,
+              "vector_distance": 0.440084,
+              "rrf_score": 0.011765
+            }
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "rerank",
+        "label": "Cross-encoder reranking",
+        "service": "Discovery Engine Ranking API \u00b7 semantic-ranker-default@latest",
+        "status": "completed",
+        "started_at": "2026-11-04T20:16:18.781Z",
+        "duration_ms": 272,
+        "request": {},
+        "payload": {
+          "model": "semantic-ranker-default@latest",
+          "candidates_in": 25,
+          "candidates_out": 5,
+          "results": [
+            {
+              "chunk_id": "solicitation_02_02_architecture_requirements_p1_hybrid",
+              "doc_name": "02_Architecture_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 2,
+              "rrf_score": 0.016129,
+              "rerank_rank": 1,
+              "rerank_score": 0.6162
+            },
+            {
+              "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_hybrid",
+              "doc_name": "05_Amendments_and_Addenda.pdf",
+              "page_number": 1,
+              "rrf_rank": 1,
+              "rrf_score": 0.016393,
+              "rerank_rank": 2,
+              "rerank_score": 0.5324
+            },
+            {
+              "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_hybrid",
+              "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+              "page_number": 1,
+              "rrf_rank": 4,
+              "rrf_score": 0.015625,
+              "rerank_rank": 3,
+              "rerank_score": 0.3171
+            },
+            {
+              "chunk_id": "solicitation_02_01_rfp_data_platform_p1_hybrid",
+              "doc_name": "01_RFP_Data_Platform.pdf",
+              "page_number": 1,
+              "rrf_rank": 3,
+              "rrf_score": 0.015873,
+              "rerank_rank": 4,
+              "rerank_score": 0.2472
+            },
+            {
+              "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_hybrid",
+              "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+              "page_number": 1,
+              "rrf_rank": 13,
+              "rrf_score": 0.013699,
+              "rerank_rank": 5,
+              "rerank_score": 0.1253
+            },
+            {
+              "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_hybrid",
+              "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+              "page_number": 1,
+              "rrf_rank": 5,
+              "rrf_score": 0.015385,
+              "rerank_rank": 6,
+              "rerank_score": 0.089
+            },
+            {
+              "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_hybrid",
+              "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+              "page_number": 1,
+              "rrf_rank": 19,
+              "rrf_score": 0.012658,
+              "rerank_rank": 7,
+              "rerank_score": 0.0883
+            },
+            {
+              "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_hybrid",
+              "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+              "page_number": 1,
+              "rrf_rank": 10,
+              "rrf_score": 0.014286,
+              "rerank_rank": 8,
+              "rerank_score": 0.0834
+            },
+            {
+              "chunk_id": "solicitation_01_03_technical_exhibit_architecture_p1_hybrid",
+              "doc_name": "03_Technical_Exhibit_Architecture.pdf",
+              "page_number": 1,
+              "rrf_rank": 11,
+              "rrf_score": 0.014085,
+              "rerank_rank": 9,
+              "rerank_score": 0.058
+            },
+            {
+              "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_hybrid",
+              "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+              "page_number": 1,
+              "rrf_rank": 18,
+              "rrf_score": 0.012821,
+              "rerank_rank": 10,
+              "rerank_score": 0.0551
+            },
+            {
+              "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_hybrid",
+              "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+              "page_number": 1,
+              "rrf_rank": 6,
+              "rrf_score": 0.015152,
+              "rerank_rank": 11,
+              "rerank_score": 0.0546
+            },
+            {
+              "chunk_id": "solicitation_03_03_incident_response_slas_p1_hybrid",
+              "doc_name": "03_Incident_Response_SLAs.pdf",
+              "page_number": 1,
+              "rrf_rank": 17,
+              "rrf_score": 0.012987,
+              "rerank_rank": 12,
+              "rerank_score": 0.0461
+            },
+            {
+              "chunk_id": "solicitation_01_atninternationalinc_20191108_10-q_ex-10.1_11878541_ex-10.1_maintenance agreement_p5_hybrid",
+              "doc_name": "AtnInternationalInc_20191108_10-Q_EX-10.1_11878541_EX-10.1_Maintenance Agreement.pdf",
+              "page_number": 5,
+              "rrf_rank": 23,
+              "rrf_score": 0.012048,
+              "rerank_rank": 13,
+              "rerank_score": 0.0456
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p2_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 2,
+              "rrf_rank": 8,
+              "rrf_score": 0.014706,
+              "rerank_rank": 14,
+              "rerank_score": 0.0448
+            },
+            {
+              "chunk_id": "solicitation_02_04_compliance_and_soc2_matrix_p1_hybrid",
+              "doc_name": "04_Compliance_and_SOC2_Matrix.pdf",
+              "page_number": 1,
+              "rrf_rank": 15,
+              "rrf_score": 0.013333,
+              "rerank_rank": 15,
+              "rerank_score": 0.0442
+            },
+            {
+              "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_hybrid",
+              "doc_name": "02_Statement_of_Work_SOW.pdf",
+              "page_number": 1,
+              "rrf_rank": 9,
+              "rrf_score": 0.014493,
+              "rerank_rank": 16,
+              "rerank_score": 0.0432
+            },
+            {
+              "chunk_id": "solicitation_03_artaratherapeuticsinc_20200110_8-k_ex-10.5_11943350_ex-10.5_license agreement_p15_hybrid",
+              "doc_name": "ArtaraTherapeuticsInc_20200110_8-K_EX-10.5_11943350_EX-10.5_License Agreement.pdf",
+              "page_number": 15,
+              "rrf_rank": 22,
+              "rrf_score": 0.012195,
+              "rerank_rank": 17,
+              "rerank_score": 0.0425
+            },
+            {
+              "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_hybrid",
+              "doc_name": "04_Pricing_Labor_Categories.pdf",
+              "page_number": 1,
+              "rrf_rank": 14,
+              "rrf_score": 0.013514,
+              "rerank_rank": 18,
+              "rerank_score": 0.0422
+            },
+            {
+              "chunk_id": "solicitation_02_clickstreamcorp_20200330_1-a_ex1a-6 mat ctrct_12089935_ex1a-6 mat ctrct_development agreement_p11_hybrid",
+              "doc_name": "ClickstreamCorp_20200330_1-A_EX1A-6 MAT CTRCT_12089935_EX1A-6 MAT CTRCT_Development Agreement.pdf",
+              "page_number": 11,
+              "rrf_rank": 20,
+              "rrf_score": 0.0125,
+              "rerank_rank": 19,
+              "rerank_score": 0.0411
+            },
+            {
+              "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_hybrid",
+              "doc_name": "01_RFP_Base_Solicitation.pdf",
+              "page_number": 1,
+              "rrf_rank": 7,
+              "rrf_score": 0.014925,
+              "rerank_rank": 20,
+              "rerank_score": 0.0408
+            },
+            {
+              "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_hybrid",
+              "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+              "page_number": 1,
+              "rrf_rank": 16,
+              "rrf_score": 0.013158,
+              "rerank_rank": 21,
+              "rerank_score": 0.0405
+            },
+            {
+              "chunk_id": "solicitation_03_01_rfp_security_operations_p1_hybrid",
+              "doc_name": "01_RFP_Security_Operations.pdf",
+              "page_number": 1,
+              "rrf_rank": 12,
+              "rrf_score": 0.013889,
+              "rerank_rank": 22,
+              "rerank_score": 0.0382
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p2_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 2,
+              "rrf_rank": 21,
+              "rrf_score": 0.012346,
+              "rerank_rank": 23,
+              "rerank_score": 0.0361
+            },
+            {
+              "chunk_id": "solicitation_01_azulsa_20170303_f-1a_ex-10.3_9943903_ex-10.3_maintenance agreement2_p2_hybrid",
+              "doc_name": "AzulSa_20170303_F-1A_EX-10.3_9943903_EX-10.3_Maintenance Agreement2.pdf",
+              "page_number": 2,
+              "rrf_rank": 24,
+              "rrf_score": 0.011905,
+              "rerank_rank": 24,
+              "rerank_score": 0.0339
+            },
+            {
+              "chunk_id": "solicitation_01_cardlyticsinc_20180112_s-1_ex-10.16_11002987_ex-10.16_maintenance agreement1_p6_hybrid",
+              "doc_name": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement1.pdf",
+              "page_number": 6,
+              "rrf_rank": 25,
+              "rrf_score": 0.011765,
+              "rerank_rank": 25,
+              "rerank_score": 0.0227
+            }
+          ],
+          "rank_api_ms": 271,
+          "attempts": 1,
+          "records_truncated": 0,
+          "billed_counts": 1,
+          "cost_usd": 0.001
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Answer synthesis",
+        "service": "Vertex AI \u00b7 Gemini 3.8 Flash",
+        "status": "completed",
+        "started_at": "2026-11-04T20:16:19.054Z",
+        "duration_ms": 10970,
+        "request": {},
+        "payload": {
+          "model": "gemini-3.8-flash",
+          "provider": "vertex_gemini",
+          "prompt_tokens": 1953,
+          "output_tokens": 352,
+          "thinking_tokens": 1098,
+          "stop_reason": "STOP",
+          "response_id": "k5LraorQB__AptQPjdSBgQQ",
+          "attempts": 1,
+          "answer": "Based on the provided context for Solicitation SOL-2026-DATA-02, here are the details:\n\n1. **Modification to Streaming Ingestion Latency SLA (DATA-SLA-3.1):**\n   * Addendum 0001 reduces the maximum end-to-end streaming latency (Cloud Pub/Sub $\\rightarrow$ Dataflow $\\rightarrow$ BigQuery Silver) from **30 seconds down to 5 seconds** ($p99 \\le 5.0\\text{ seconds}$) using BigQuery Storage Write API committed streams.\n\n2. **Modification to Annual Cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004):**\n   * Addendum 0001 applies a 15% volume discount for storage exceeding 5 Petabytes (5,000 TB), reducing the effective rate from $\\$20.00/\\text{TB/mo}$ to $\\$17.00/\\text{TB/mo}$. \n   * This reduces the annual total cost for 6,000 TB from **$\\$1,440,000$ down to $\\$1,224,000$**.\n\n3. **Three Medallion Storage Layers:**\n   * **Bronze Layer:** Raw append-only change-data-capture (CDC) tables (*BigQuery Bronze (Raw)*).\n   * **Silver Layer:** Deduplicated, schema-enforced enterprise entity tables (*BigQuery Silver (Curated)*).\n   * **Gold Layer:** Governed semantic marts & Vertex AI Feature Store embeddings (*BigQuery Gold (Governed)*).",
+          "thinking_level": "HIGH",
+          "context_source": "AlloyDB for PostgreSQL (ScaNN + GIN FTS RRF)",
+          "context_chunks": 5
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1953,
+      "output_tokens": 352,
+      "embedding_tokens": 104,
+      "thinking_tokens": 1098,
+      "model": "gemini-3.8-flash",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": false,
+      "layout_source": "alloydb_scann"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 1.0,
+      "qa_relevance": 0.97,
+      "context_precision": 0.8
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 4202,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3842,
+    "output_tokens": 362,
+    "judge_cost_usd": 0.022608,
+    "rationale": "Every claim in the answer (the 30s-to-5s p99 SLA change, the 15% discount from $20 to $17/TB/mo with the annual total falling from $1,440,000 to $1,224,000, and the Bronze/Silver/Gold layers) is directly supported by the retrieved chunks. The answer covers all three parts of the query and matches the reference, omitting only the explicit $216,000 savings figure, which is trivially implied. Four of five chunks are relevant to SOL-2026-DATA-02, but the final chunk comes from a different solicitation (SOL-2026-CLOUD-01) and is noise.",
+    "judge_response_id": "msg_vrtx_011CgiW9hoGoXwM8SZ3vLRLW"
+  }
+}

@@ -2,17 +2,21 @@
 
 Two ways to run it:
 
-1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–6
-   runs. No Google Cloud account, no credentials, no network calls to GCP.
+1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–8
+   runs (`135` recordings across 6 standing architectures + 2 ephemeral ScaNN benchmarks). No Google Cloud account, no
+   credentials, no network calls to GCP.
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI (including Vertex AI RAG Engine),
    BigQuery, Document AI, Cloud Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI,
    and (in `record`) new golden-set recordings.
 
-**All six levels**, the **Composable RAG Workbench** (`/workbench`), private user PDF uploads (`v1.1`–`v1.2`), `/compare`
-(6-level Preset Ladder + 2–4 recipe Controlled Ablation Lab with Retrieval Diff Inspector), `/leaderboard` (with winner
-highlighting), and the configurable Cloud Run deployment are live and enabled by default
-(`ENABLED_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine`; override in
-`.env` or the environment). Level 5 needs the `VAIS_*` keys and Level 6 needs `RAG_ENGINE_CORPUS_ID` in live mode.
+**All eight levels** are enabled by default in `DEMO_MODE=replay` (`DEFAULT_ENABLED_LEVELS`), while `DEMO_MODE=live` /
+`record` defaults to the **six standing \$0/mo-idle levels** (`DEFAULT_LIVE_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine`)
+so standing deployments never require an active AlloyDB cluster or Vector Search 2.0 collection. Override
+`ENABLED_LEVELS` in `.env` or use the one-command ephemeral scripts (§3.7) to benchmark Levels 7–8 live. The
+**Composable RAG Workbench** (`/workbench`), private user PDF uploads (`v1.1`–`v1.2`), `/compare` (Preset Ladder + 2–4
+recipe Controlled Ablation Lab with Retrieval Diff Inspector), `/leaderboard` (with winner highlighting), and the
+configurable Cloud Run deployment are all live. Level 5 needs `VAIS_*` keys and Level 6 needs `RAG_ENGINE_CORPUS_ID` in
+live mode.
 
 ---
 
@@ -96,6 +100,8 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `VAIS_UPLOADS_DATA_STORE_ID` / `VAIS_UPLOADS_ENGINE_ID` | `rag-arena-uploads` / `rag-arena-uploads-search` | Level 5 private uploads data store + search app short ids (must differ from corpus ids) |
 | `RAG_ENGINE_LOCATION` / `RAG_ENGINE_CORPUS_ID` | `us-central1` / short corpus id | Level 6 regional Vertex AI RAG Engine location (never `global`) + corpus id printed by `scripts/provision_rag_engine.py` |
 | `RAG_ENGINE_EMBEDDING_MODEL` / `RAG_ENGINE_TOP_K` / `RAG_ENGINE_CHUNK_SIZE` / `RAG_ENGINE_CHUNK_OVERLAP` / `RAG_ENGINE_TIMEOUT_SECONDS` | `text-embedding-005` / `10` / `512` / `100` / `30` | Level 6 `RagCorpus` publisher embedding model, `:retrieveContexts` top-k, chunking spec, and HTTP bound |
+| `ALLOYDB_DSN` / `ALLOYDB_TABLE` / `ALLOYDB_CANDIDATE_K` / `ALLOYDB_TIMEOUT_SECONDS` | empty / `procurement_chunks_scann` / `25` / `30` | Level 7 ephemeral AlloyDB for PostgreSQL + ScaNN connection URI (loopback `127.0.0.1` via `alloydb-auth-proxy` or `--omni`), table identifier, candidate top-k, and timeout |
+| `VVS2_LOCATION` / `VVS2_COLLECTION` / `VVS2_INDEX_ID` / `VVS2_TOP_K` / `VVS2_TIMEOUT_SECONDS` | `us-central1` / empty / `dense-scann` / `25` / `30` | Level 8 ephemeral Vertex AI Vector Search 2.0 (`vectorsearch.googleapis.com/v1beta`) region, short RFC1035 collection id, `denseScann` index id, candidate top-k, and HTTP bound |
 
 ### 3.2 Authenticate
 
@@ -204,13 +210,33 @@ cd frontend && npm run dev
    Vertex AI Search documents, isolated Vertex AI RAG Engine `RagCorpus`, and Cloud Storage objects while leaving the
    45-PDF benchmark corpus and any neighbor `RagCorpus` resources untouched.
 
+### 3.7 Ephemeral ScaNN benchmarks (Levels 7 & 8 — \$0/mo standing idle)
+
+Levels 7 (`alloydb_scann`) and 8 (`vertex_vector_v2`) play out of the box in `DEMO_MODE=replay` from committed golden
+recordings. To re-run or re-record them live without leaving standing database or dedicated ANN replica charges:
+
+```bash
+# Level 7a — Cloud AlloyDB ZONAL 2-vCPU + loopback alloydb-auth-proxy → export 526 BQ hybrid vectors → ScaNN + GIN → 16 runs → teardown
+./scripts/ephemeral_alloydb.sh --full --write-query-runs --yes
+
+# Level 7b — Local AlloyDB Omni Docker (127.0.0.1 loopback, $0 cloud DB compute) → ScaNN + GIN → 16 runs → container rm
+./scripts/ephemeral_alloydb.sh --omni --full --yes
+
+# Level 8 — Vertex AI Vector Search 2.0 Collection + dense-scann index → 526 DataObjects → 16 runs → index & collection delete
+./scripts/ephemeral_vvs2.sh --full --write-query-runs --yes
+```
+
+Both scripts export the existing `3072-d` BigQuery `hybrid` chunks (`0` re-embedding API calls), build ScaNN centroids
+strictly *after* bulk-loading all vectors, write redacted recordings via `scripts/record_scann_benchmarks.py`, and
+install a bash `trap ... EXIT INT TERM` that tears down all `rag-arena-ephem-*` resources and verifies `0` remain.
+
 ---
 
 ## 4. Tests
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 415 passed (offline; no GCP calls)
-cd frontend && npm test && npm run build                # 182 passed across 18 suites + tsc/vite build
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 447 passed (offline; no GCP calls)
+cd frontend && npm test && npm run build                # 194 passed across 21 suites + tsc/vite build
 ```
 
 `backend/tests/test_publish_manifest.py` scans `README.md`, `docs/ARCHITECTURE.md`, `docs/SETUP_GUIDE.md`,
@@ -232,6 +258,7 @@ concrete Cloud Run URLs.
 | Vector index `ACTIVE (coverage 0%)` or `mm_vec_idx` `NOT CREATED` | BigQuery builds IVF above 5,000 rows and allows one vector index per table; `VECTOR_SEARCH` falls back to exact brute-force scan automatically. |
 | Search index `TEMPORARILY DISABLED` or `UNUSED` | BigQuery disables search indexes below 10 GB and reports `UNUSED` when combined with `VECTOR_SEARCH` in one query; `SEARCH()` still executes accurately. |
 | Level 6 error `rag_engine needs RAG_ENGINE_CORPUS_ID` or `RAG_ENGINE_LOCATION` rejected | Run `scripts/provision_rag_engine.py`, copy `RAG_ENGINE_CORPUS_ID` into `.env`, and use a regional location such as `us-central1` (`global` is not supported by Vertex AI RAG Engine). |
+| Levels 7–8 locked in `live` mode or fail with `ALLOYDB_DSN` / `VVS2_COLLECTION` unset | `DEMO_MODE=live` defaults to `DEFAULT_LIVE_LEVELS` (Levels 1–6) at \$0/mo idle; use `DEMO_MODE=replay` for recorded runs, or bring up an ephemeral store (`scripts/ephemeral_alloydb.sh --up` / `scripts/ephemeral_vvs2.sh --up`) and append `alloydb_scann` / `vertex_vector_v2` to `ENABLED_LEVELS`. |
 
 ---
 

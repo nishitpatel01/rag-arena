@@ -204,6 +204,7 @@ export type DemoMode = "live" | "record" | "replay";
 
 export interface HealthResponse {
   readonly status: string;
+  readonly app_version?: string;
   readonly demo_mode: DemoMode | string;
   readonly project_id?: string | null;
   readonly gcs_bucket?: string | null;
@@ -879,4 +880,53 @@ export interface EngineTimeline {
     readonly message: string;
     readonly failedStage: string | null;
   } | null;
+}
+
+export interface RouteDeepLink {
+  readonly path: string;
+  readonly label: string;
+}
+
+export interface ReleaseSection {
+  readonly heading: string;
+  readonly items: readonly string[];
+}
+
+export interface ReleaseEntry {
+  readonly version: string;
+  readonly date: string;
+  readonly compare_url: string;
+  readonly summary: string;
+  readonly sections: readonly ReleaseSection[];
+  readonly route_links: readonly RouteDeepLink[];
+}
+
+export interface DocTocItem {
+  readonly id: string;
+  readonly level: number;
+  readonly title: string;
+}
+
+export interface ReleaseDocument {
+  readonly id: "architecture" | "setup_guide";
+  readonly title: string;
+  readonly source_path: string;
+  readonly toc: readonly DocTocItem[];
+  readonly markdown: string;
+}
+
+export interface ReleasesStats {
+  readonly architecture_count: number;
+  readonly enabled_levels_count: number;
+  readonly total_recordings: number;
+  readonly recordings_by_engine: Readonly<Record<string, number>>;
+  readonly release_count: number;
+}
+
+export interface ReleasesResponse {
+  readonly app_version: string;
+  readonly demo_mode: string;
+  readonly stats: ReleasesStats;
+  readonly releases: readonly ReleaseEntry[];
+  readonly documents: readonly ReleaseDocument[];
 }

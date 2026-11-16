@@ -4,6 +4,7 @@ import { LevelPage } from "../features/levels/LevelPage";
 import { OverviewPage } from "../pages/OverviewPage";
 import { ComparePage } from "../features/compare/ComparePage";
 import { WorkbenchPage } from "../features/workbench/WorkbenchPage";
+import { ReleasesPage } from "../features/releases/ReleasesPage";
 import { LeaderboardPage } from "../pages/LeaderboardPage";
 import { EmptyState } from "../components/ui/EmptyState";
 
@@ -14,5 +15,6 @@ export const routes: RouteObject[] = [
   { path: "/levels/:levelId", element: <LevelPage /> },
   { path: "/compare", element: <ComparePage /> },
   { path: "/leaderboard", element: <LeaderboardPage /> },
+  { path: "/releases", element: <ReleasesPage /> },
   { path: "*", element: <EmptyState title="Not found" description="No page matches this URL." /> },
 ];

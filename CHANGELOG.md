@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] — 2026-11-16
+
+In-app Releases & Documentation tab (`/releases`) and deterministic `release-please` GitHub Actions automation.
+
+### Added
+- **In-App Releases & Documentation Tab (`/releases`, `frontend/src/features/releases/`, `Shell.tsx`)**:
+  - Top-bar `Releases` navigation tab and clickable `v1.5.0` build badge in `Shell.tsx` opening a unified 3-subview documentation hub (`Release Timeline`, `System Architecture`, `Setup Guide`) synced with `?tab=timeline|architecture|setup_guide`.
+  - **Release Timeline**: parses `CHANGELOG.md` (supporting both Keep-a-Changelog and `release-please` headings) with live repository telemetry chips (`8` architectures, `135` committed recordings), instant search, `running build` badge matching `/api/v1/health`, and mode-aware 1-click route deep-link pills (`/workbench`, `/compare`, `/leaderboard`, `/ingest`, `/levels/*`).
+  - **Dependency-free AST Markdown Reader (`releasesModel.ts`, `DocMarkdown.tsx`)**: renders `docs/ARCHITECTURE.md` and `docs/SETUP_GUIDE.md` with sticky section Table of Contents, deduplicated GitHub-compatible heading anchors, GFM alignment tables, `CodeBlock` copyable snippets, safe link allowlisting (`#`, `/`, `http(s)://`, mapping repo doc links directly to in-app `/releases` tabs), and full `SafeMode` (`?safe=1`) identity masking using pure React JSX nodes.
+- **Single-Source Manifest Endpoint & 5-Way Drift Gate (`backend/app/core/releases_docs.py`, `GET /api/v1/releases`, `scripts/build_docs_manifest.py`)**:
+  - `GET /api/v1/releases` (`Cache-Control: no-store`) compiles `CHANGELOG.md`, `docs/ARCHITECTURE.md`, `docs/SETUP_GUIDE.md`, and `RecordingStore` counts dynamically with `mtime_ns` caching and strict repository path-boundary checks; `Dockerfile` + `.dockerignore`/`.gcloudignore` bundle only the 3 Markdown sources (`~75 KB`) while keeping screenshots excluded.
+  - `scripts/build_docs_manifest.py --check` enforces 5-way version alignment across `CHANGELOG.md`, `backend/app/core/config.py`, `frontend/package.json`, `frontend/package-lock.json`, and `dev_q01.json`, plus zero-leak scanning against `publish.json` and `.env`.
+- **Automated Release PR & CI Pipeline (`.github/workflows/release-docs.yml`, `release-please-config.json`, `.release-please-manifest.json`)**:
+  - Every PR and push to `main` runs `build_docs_manifest.py --check`, the offline `pytest` suite, `npm test`, and `npm run build` (`contents: read`).
+  - Pushes to `main` run `googleapis/release-please-action` (SHA-pinned, zero external secrets) to maintain an atomic Release PR updating `CHANGELOG.md` and all 4 versioned files, automatically creating the `v1.x.y` GitHub Release and tag on merge.
+  - Offline test suites expanded to **454 backend tests** (`44` files) and **198 frontend tests** (`22` suites).
+
 ## [1.4.0] — 2026-11-04
 
 Ephemeral Operational & High-QPS ScaNN Benchmarks: Level 7 (`alloydb_scann`) and Level 8 (`vertex_vector_v2`) recorded live and torn down to `$0/mo` standing idle cost.

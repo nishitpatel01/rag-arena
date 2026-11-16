@@ -69,6 +69,7 @@ DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
 DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
+DEFAULT_APP_VERSION: str = "1.5.0"  # x-release-please-version
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
 DEFAULT_HYBRID_CANDIDATE_K: int = 50
 DEFAULT_RERANK_TOP_N: int = 5
@@ -206,7 +207,7 @@ class ArenaSettings:
     ingest_job_timeout_seconds: int = DEFAULT_INGEST_JOB_TIMEOUT_SECONDS
     allow_dev_fixtures: bool = False
     recordings_dir: str = ""
-    app_version: str = "1.4.0"
+    app_version: str = DEFAULT_APP_VERSION
     static_dir: str = ""  # built SPA served with history fallback (container: /app/frontend/dist); empty = frontend/dist if built
     judge_provider: str = DEFAULT_JUDGE_PROVIDER
     judge_model: str = DEFAULT_JUDGE_MODEL
@@ -639,7 +640,7 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         ),
         allow_dev_fixtures=_parse_bool(source.get("ALLOW_DEV_FIXTURES", "0")),
         recordings_dir=source.get("RECORDINGS_DIR", "").strip(),
-        app_version=source.get("APP_VERSION", "1.4.0").strip() or "1.4.0",
+        app_version=source.get("APP_VERSION", DEFAULT_APP_VERSION).strip() or DEFAULT_APP_VERSION,
         static_dir=source.get("STATIC_DIR", "").strip(),
         hybrid_candidate_k=_parse_int(source.get("HYBRID_CANDIDATE_K", str(DEFAULT_HYBRID_CANDIDATE_K)), "HYBRID_CANDIDATE_K"),
         rerank_top_n=_parse_int(source.get("RERANK_TOP_N", str(DEFAULT_RERANK_TOP_N)), "RERANK_TOP_N"),

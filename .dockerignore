@@ -43,7 +43,9 @@ dist
 *.sse.txt
 backend/tests
 frontend/tests
-docs
+docs/*
+!docs/ARCHITECTURE.md
+!docs/SETUP_GUIDE.md
 infra
 scripts
 deploy

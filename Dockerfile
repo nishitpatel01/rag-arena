@@ -35,6 +35,9 @@ COPY data/golden_benchmarks data/golden_benchmarks
 COPY data/recordings data/recordings
 COPY data/model_verification.json data/model_verification.json
 COPY data/sample_docs data/sample_docs
+COPY CHANGELOG.md CHANGELOG.md
+COPY docs/ARCHITECTURE.md docs/ARCHITECTURE.md
+COPY docs/SETUP_GUIDE.md docs/SETUP_GUIDE.md
 COPY backend/app backend/app
 COPY backend/pyproject.toml backend/pyproject.toml
 COPY --from=spa /src/frontend/dist frontend/dist

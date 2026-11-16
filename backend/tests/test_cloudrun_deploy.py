@@ -58,7 +58,7 @@ def test_unknown_api_path_is_404_json_not_index_html() -> None:
 def test_client_route_deep_links_return_index_html() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         client = _spa_client(_static_dir(Path(tmp)))
-        for path in ("/", "/levels/level4_agentic", "/compare", "/leaderboard?engine=x", "/ingest/level1_naive"):
+        for path in ("/", "/levels/level4_agentic", "/compare", "/leaderboard?engine=x", "/ingest/level1_naive", "/releases", "/releases?tab=architecture"):
             res = client.get(path)
             assert res.status_code == 200, path
             assert res.headers["content-type"].startswith("text/html"), path

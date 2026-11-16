@@ -289,3 +289,16 @@ initialization runs off the Uvicorn event loop and the UI bootstrap retries for 
 `/api/v1/levels` recover cleanly after scale-to-zero (`min-instances=0`). `scripts/teardown_cloudrun.sh --yes` removes
 the Cloud Run services, service accounts, and bucket IAM bindings created by deploy while keeping your buckets and
 BigQuery dataset intact.
+
+---
+
+## 7. Release History & Automated Documentation (`v1.5+`)
+
+- **In-app `/releases` tab**: open `/releases` (or click the `v1.5.0` badge in the top bar) to browse the parsed
+  `CHANGELOG.md` timeline, `docs/ARCHITECTURE.md`, and `docs/SETUP_GUIDE.md` directly inside the app (`GET /api/v1/releases`).
+- **Pre-build & CI check**: run `PYTHONPATH=backend .venv/bin/python scripts/build_docs_manifest.py --check` to verify
+  5-way version alignment (`CHANGELOG.md`, `backend/app/core/config.py`, `frontend/package.json`,
+  `frontend/package-lock.json`, and `dev_q01.json`) and zero-leak hygiene.
+- **GitHub Actions (`release-please`)**: `.github/workflows/release-docs.yml` runs the offline suites and manifest check
+  on every PR/push to `main` and maintains an automated Release PR (`release-please-config.json`, zero external secrets)
+  from Conventional Commits (`feat:`, `fix:`, `perf:`, `docs:`), creating the `v1.x.y` tag and GitHub Release on merge.

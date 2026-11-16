@@ -1,10 +1,11 @@
 # The RAG Arena — System Architecture
 
-This document describes the architecture **as implemented** in `v1.4.0` with Levels 1–8 (`DEFAULT_ENABLED_LEVELS` in
+This document describes the architecture **as implemented** in `v1.5.0` with Levels 1–8 (`DEFAULT_ENABLED_LEVELS` in
 `replay`; Levels 1–6 standing in `live`/`record` via `DEFAULT_LIVE_LEVELS` plus ephemeral Levels 7–8 ScaNN benchmarks),
-the Composable RAG Workbench (`/workbench`), Controlled Ablation + Retrieval Diff Inspector (`/compare`), and private
-user PDF uploads live. The product rule behind every decision: **nothing is shown that was not measured** (principles
-P1–P6 in [§0](#0-design-principles-v3)).
+the Composable RAG Workbench (`/workbench`), Controlled Ablation + Retrieval Diff Inspector (`/compare`), private
+user PDF uploads, and the in-app Releases & Documentation hub (`/releases`, kept updated on push via `release-please`)
+live. The product rule behind every decision: **nothing is shown that was not measured** (principles P1–P6 in
+[§0](#0-design-principles-v3)).
 
 ---
 
@@ -522,10 +523,13 @@ follows the active node unless pinned.
 
 ## 9. Frontend (`frontend/src/`)
 
-- `app/` — router (`/`, `/ingest`, `/workbench`, `/levels/:levelId`, `/compare`, `/leaderboard`), `AppDataProvider`
-  (bounded 30 s bootstrap retry + single-flight `/ingest/status` via `lib/bootstrap.ts`), `IngestSessionProvider`
-  (app-wide live ingestion SSE streams surviving navigation and reloads via owner-scoped `active_jobs`), per-page run
-  `sessions`, and safe-mode provider.
+- `app/` — router (`/`, `/ingest`, `/workbench`, `/levels/:levelId`, `/compare`, `/leaderboard`, `/releases`),
+  `AppDataProvider` (bounded 30 s bootstrap retry + single-flight `/ingest/status` via `lib/bootstrap.ts`),
+  `IngestSessionProvider` (app-wide live ingestion SSE streams surviving navigation and reloads via owner-scoped
+  `active_jobs`), per-page run `sessions`, and safe-mode provider.
+- `features/releases/` — `releasesModel.ts` (pure AST Markdown parser, `sanitizeDocHref` URL allowlist + cross-doc tab
+  routing, release search & mode-aware route deep links), `DocMarkdown.tsx` (zero-`innerHTML` React renderer), and
+  `ReleasesPage.tsx` (`Release Timeline`, `System Architecture`, and `Setup Guide` backed by `GET /api/v1/releases`).
 - `features/levels/` — `useBattleStream`, `StageRail`, `StageDetail`, `ArchitectureDiagram`, `LevelIngestBanner`,
   `ModelPicker` + `modelSelection` (`buildPickerDetails` deduplicated `"Pricing & availability"` disclosure; judge ≠
   synthesis; replay limited to recorded pairs), `AnswerPanels` (answer, citations, `no reference answer` badge, judge
@@ -553,6 +557,7 @@ Levels 1–8 (`135` committed replay recordings across 6 standing \$0/mo-idle ar
 benchmarks: AlloyDB for PostgreSQL + ScaNN and Vertex AI Vector Search 2.0), Composable RAG Workbench (`/workbench`),
 Controlled Ablation Lab & Retrieval Diff Inspector (`/compare`), private user PDF uploads (`v1.1`–`v1.2`), Leaderboard
 (`query_runs` Golden set + Uploads scopes with `pipeline_id` / `pipeline_spec` provenance and winner highlighting),
+Releases & Documentation (`/releases` + deterministic `release-please` & `scripts/build_docs_manifest.py --check` CI),
 `docker-compose.yml`, and the configurable Cloud Run deployment (single multi-stage container, least-privilege service
-account, IAP-protected live service, optional public replay service) are live (`v1.4.0`). Standing `live` deployments
+account, IAP-protected live service, optional public replay service) are live (`v1.5.0`). Standing `live` deployments
 default to `DEFAULT_LIVE_LEVELS` (Levels 1–6) at \$0/mo idle with zero standing AlloyDB or Vector Search 2.0 resources.

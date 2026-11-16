@@ -90,6 +90,18 @@ const HealthPills: React.FC = () => {
   const mode = String(health.demo_mode);
   return (
     <>
+      {health.app_version && (
+        <NavLink
+          to="/releases"
+          title="View release history & system documentation"
+          aria-label={`Open release history (v${health.app_version})`}
+          className="cursor-pointer transition-opacity hover:opacity-80"
+        >
+          <Pill tone="neutral" mono>
+            v{health.app_version}
+          </Pill>
+        </NavLink>
+      )}
       <Pill tone={mode === "live" || mode === "record" ? "ok" : "info"} mono title="DEMO_MODE">
         {mode}
       </Pill>
@@ -145,6 +157,7 @@ export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => {
             <NavLink to="/workbench" className={navClass}>Workbench</NavLink>
             <NavLink to="/compare" className={navClass}>Compare</NavLink>
             <NavLink to="/leaderboard" className={navClass}>Leaderboard</NavLink>
+            <NavLink to="/releases" className={navClass}>Releases</NavLink>
           </nav>
           <div className="hidden h-5 w-px bg-line md:block" aria-hidden />
           <LevelLadderNav />

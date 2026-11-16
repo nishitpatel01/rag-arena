@@ -15,6 +15,7 @@ import type {
   PipelineSpec,
   PipelineValidateResponse,
   PipelinesPresetsResponse,
+  ReleasesResponse,
 } from "../types/arena";
 import { createSingleFlight } from "./bootstrap";
 
@@ -111,6 +112,7 @@ const fetchIngestStatusSingleFlight = createSingleFlight(() =>
 
 export const api = {
   health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health", {}, BOOTSTRAP_TIMEOUT_MS),
+  releases: (): Promise<ReleasesResponse> => requestJson<ReleasesResponse>("/releases", {}, BOOTSTRAP_TIMEOUT_MS),
   levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels", {}, BOOTSTRAP_TIMEOUT_MS),
   pipelinesPresets: (): Promise<PipelinesPresetsResponse> =>
     requestJson<PipelinesPresetsResponse>("/pipelines/presets", {}, BOOTSTRAP_TIMEOUT_MS),

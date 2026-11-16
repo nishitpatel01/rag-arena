@@ -2,9 +2,9 @@
 
 **Eight RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.4.0](https://img.shields.io/badge/release-v1.4.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 447 passed](https://img.shields.io/badge/backend%20tests-447%20passed-brightgreen.svg) ![Frontend tests: 194 passed](https://img.shields.io/badge/frontend%20tests-194%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.5.0](https://img.shields.io/badge/release-v1.5.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 454 passed](https://img.shields.io/badge/backend%20tests-454%20passed-brightgreen.svg) ![Frontend tests: 198 passed](https://img.shields.io/badge/frontend%20tests-198%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.4.0 (2026-11-04, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), private PDF uploads, Leaderboard and Cloud Run live.
+**Release:** v1.5.0 (2026-11-16, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), Releases & Docs (`/releases`), private PDF uploads, Leaderboard and Cloud Run live.
 
 ## The problem
 
@@ -326,7 +326,7 @@ Choices: `REGION` (default `us-central1`); `ACCESS_MODE=iap` (only `IAP_MEMBERS`
 
 | Method & path | Purpose |
 | :-- | :-- |
-| `GET /api/v1/health` · `GET /api/v1/levels` · `GET /api/v1/models` | Mode, version and `.env` identity; level descriptors; verified catalog + `recorded_pairs` |
+| `GET /api/v1/health` · `GET /api/v1/releases` · `GET /api/v1/levels` · `GET /api/v1/models` | Mode, version & `.env` identity; compiled changelog + system docs; level descriptors; verified catalog + `recorded_pairs` |
 | `GET /api/v1/pipelines/presets` · `POST /api/v1/pipelines/validate` | Level 1–8 `PipelineSpec` presets (`pipe_<12hex>`); cross-slot validation + dynamic diagram descriptor |
 | `GET /api/v1/benchmarks` · `GET /api/v1/leaderboard?scope=golden\|uploads` | Golden benchmark (8 questions); aggregates per (engine, synthesis, judge) with provenance |
 | `POST /api/v1/battle/stream` | Run: `{query, question_id?, engines?, pipelines?, solicitation_filter?, synthesis_model?, judge_model?}` → SSE |
@@ -339,25 +339,25 @@ Run streams are `data: {json}\n\n` frames bounded by `MAX_SSE_FRAMES` (600). Eve
 
 ## Quality & tests
 
-All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0 and ADK). Measured 2026-11-04:
+All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0 and ADK). Measured 2026-11-16:
 
 | Suite | Checks | What it guards |
 | :-- | --: | :-- |
-| **Backend total** (`pytest`, 43 files) | **447 passed** | engines (L1–L8), composable workbench, scoped uploads, ingestion, API/SSE, evaluation, recording, deployment |
+| **Backend total** (`pytest`, 44 files) | **454 passed** | engines (L1–L8), composable workbench, `/releases` & CI drift gate, scoped uploads, ingestion, API/SSE, evaluation, recording, deployment |
 | `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 2 · 3 | no API-layer stage pacing; AST scan of `engines/**` against swallowed errors/fallbacks |
 | `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${RAG_ENGINE_CORPUS_ID}`, `${ALLOYDB_DSN}` and project numbers; replay fidelity |
 | `test_model_selection.py` · `test_judges.py` | 20 · 17 | judge ≠ synthesis, role/level gates (`vertex-rag-engine-grounded`); golden and reference-free judge parsing |
 | `test_uploads.py` · `test_upload_security.py` | 15 · 9 | bucket privacy, resumable sessions, IDOR/replay `404` matrices, unscoped SQL isolation, L4 `upload_scope` pinning, `O(1)` streaming |
 | `test_rag_engine.py` · `test_rag_engine_client.py` · `test_rag_engine_ingest.py` | 7 · 6 · 6 | `:retrieveContexts` + `VertexRagStore` grounding, safe `ragEngineConfig` reuse, isolated `upl_*` `RagCorpus` lifecycle |
 | `test_alloydb_scann_engine.py` · `test_vvs2_engine.py` · `test_ephemeral_scripts.py` | 3 · 4 · 6 | AlloyDB ScaNN + GIN RRF SQL & DSN redaction, VVS2 `batchSearch` + dedicated ScaNN schema, ephemeral centroid-after-load order |
-| `test_pipeline_spec.py` · `test_composable_engine.py` | 10 · 8 | `PipelineSpec` cross-slot validation (incl. `SCANN_INDEX_PROFILES`), `pipe_<12hex>` IDs, custom `rag_engine` rerank, `query_runs` provenance |
+| `test_pipeline_spec.py` · `test_composable_engine.py` · `test_releases_docs.py` | 10 · 8 · 6 | `PipelineSpec` cross-slot validation, `pipe_<12hex>` IDs, `/api/v1/releases` manifest, 5-way version sync, `release-please` config |
 | `test_publish_manifest.py` · `test_cloudrun_deploy.py` | 5 · 23 | tracked-repo + `frontend/dist` leak scan; SPA/API routing, deploy plan, public-registry lockfiles |
-| **Frontend total** (`npm test`, 21 suites) | **194 passed** | stream reducer, per-level views (L1–L8), composable workbench, ablation & retrieval diff, ephemeral ScaNN UI, uploads, winner highlight, safe mode |
+| **Frontend total** (`npm test`, 22 suites) | **198 passed** | stream reducer, per-level views (L1–L8), `/workbench`, `/compare` ablation & diff, `/releases` AST parser & link safety, uploads, safe mode |
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 447 passed
-cd frontend && npm test                                 # 194 pass across 21 suites
-cd frontend && npm run build                            # tsc + vite build
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 454 passed
+PYTHONPATH=backend .venv/bin/python scripts/build_docs_manifest.py --check
+cd frontend && npm test && npm run build                        # 198 pass across 22 suites + tsc/vite
 ```
 
 ## Repository layout
@@ -367,27 +367,28 @@ rag-arena/
 ├── backend/
 │   ├── app/
 │   │   ├── api/             REST routes, uploads API, SSE forwarder, documents, query_runs, SPA serving
-│   │   ├── core/            config, telemetry, GCP client lock, model catalog, pricing, ranking, architectures, pipeline_spec, vvs2_client
+│   │   ├── core/            config, telemetry, GCP client lock, model catalog, pricing, ranking, architectures, pipeline_spec, releases_docs, vvs2_client
 │   │   ├── engines/         Levels 1–8 (incl. alloydb_scann, vertex_vector_v2), composable engine, ADK runtime + scoped tools, replay
 │   │   ├── evaluation/      LLM judges (golden + reference-free), evaluator, Battle Score, leaderboard
 │   │   ├── ingestion/       job runner, upload bucket/store, PyMuPDF / Document AI / vision, BQ + VAIS + RAG Engine loaders
 │   │   └── recording/       recorder, store, redaction
-│   └── tests/               447 offline tests + fakes (43 files)
+│   └── tests/               454 offline tests + fakes (44 files)
 ├── frontend/
 │   ├── src/
 │   │   ├── app/             router, shell, bootstrap retry, sessions, persistent ingest session, safe mode
-│   │   ├── features/        levels/ · workbench/ · compare/ · ingest/ · uploads/
+│   │   ├── features/        levels/ · workbench/ · compare/ · releases/ · ingest/ · uploads/
 │   │   ├── components/      UI primitives, document drawer and viewer
 │   │   ├── lib/             API client, bounded SSE reader, winner highlight, safe-mode masking
 │   │   ├── pages/           overview, leaderboard
 │   │   └── theme/ styles/ types/   themes, design tokens, SSE + API types
-│   └── tests/               21 offline test suites (194 checks)
+│   └── tests/               22 offline test suites (198 checks)
 ├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (135 runs)
 ├── deploy/                  Cloud Run env template (real file git-ignored)
-├── scripts/                 bootstrap, provisioning, ephemeral ScaNN benchmarks, model check, corpus build, deploy/teardown
+├── scripts/                 bootstrap, provisioning, ephemeral ScaNN benchmarks, docs manifest check, model check, deploy/teardown
+├── .github/workflows/       release-docs.yml (CI test/leak gate + automated release-please PRs)
 ├── infra/                   Terraform (main.tf)
 ├── docs/                    ARCHITECTURE, SETUP_GUIDE, audits, screenshots
-├── Dockerfile · docker-compose.yml · .env.example · LICENSE (MIT)
+├── Dockerfile · docker-compose.yml · release-please-config.json · .env.example · LICENSE (MIT)
 ```
 
 ## Security & leak hygiene
@@ -406,14 +407,11 @@ rag-arena/
 | `v1.2.0` | Level 6 Managed Vertex AI RAG Engine (`rag_engine`: `:retrieveContexts` + `VertexRagStore` grounding, isolated `upl_*` `RagCorpus`, minimum-cost provisioning) | ✅ live |
 | `v1.3.0` | Composable RAG Workbench (`/workbench`), Controlled 2–4 Recipe Ablation Lab (`/compare`), and Retrieval Diff Inspector | ✅ live |
 | `v1.4.0` | Ephemeral ScaNN Benchmarks (Level 7 AlloyDB + ScaNN, Level 8 Vertex AI Vector Search 2.0 ScaNN + Sparse RRF, $0/mo standing idle) | ✅ live |
+| `v1.5.0` | In-App Releases & Documentation Tab (`/releases`) + deterministic `release-please` & CI drift/leak automation | ✅ live |
 
 ## License
 
-The code is released under the [MIT License](LICENSE). Data notices:
-
-- **Generated procurement corpus**: 18 interconnected solicitation PDFs across 3 solicitations (`scripts/build_procurement_corpus.py`); fictional, for benchmarking only.
-- **CUAD**: 27 commercial agreements from the [Contract Understanding Atticus Dataset (CUAD) v1](https://zenodo.org/records/4595826) by The Atticus Project, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (fetched by `scripts/download_procurement_corpus.sh`, not relicensed under MIT).
-- **Golden benchmark**: `data/golden_benchmarks/procurement_benchmark.json`.
+The code is released under the [MIT License](LICENSE). Data notices: 18 fictional solicitation PDFs (`scripts/build_procurement_corpus.py`), 27 commercial agreements from [CUAD v1](https://zenodo.org/records/4595826) by The Atticus Project under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`scripts/download_procurement_corpus.sh`, not relicensed under MIT), and `data/golden_benchmarks/procurement_benchmark.json`.
 
 ## Acknowledgements
 

@@ -61,6 +61,7 @@ from app.core.pipeline_spec import (
     validate_slot_id,
 )
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
+from app.core.releases_docs import DocsManifestError, build_releases_manifest
 from app.engines import BaseRAGEngine, engine_labels, get_engine_registry, list_levels
 from app.engines.composable import build_composable_engine
 from app.engines.replay_engine import ReplayUnavailableError, recording_store_for
@@ -398,6 +399,16 @@ async def health_endpoint(request: Request) -> JSONResponse:
             "judge_location": settings.judge_location,
         }
     )
+
+
+async def releases_endpoint(request: Request) -> JSONResponse:
+    """GET /api/v1/releases: compiled CHANGELOG.md timeline, recording stats, and system docs."""
+    settings = _settings_of(request)
+    try:
+        payload = build_releases_manifest(settings)
+    except DocsManifestError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
 
 
 async def benchmarks_endpoint(request: Request) -> JSONResponse:
@@ -749,6 +760,7 @@ def get_api_routes() -> list[Route]:
     """Return the Starlette Route table for The RAG Arena v1 API."""
     routes = [
         Route("/api/v1/health", endpoint=health_endpoint, methods=["GET"]),
+        Route("/api/v1/releases", endpoint=releases_endpoint, methods=["GET"]),
         Route("/api/v1/benchmarks", endpoint=benchmarks_endpoint, methods=["GET"]),
         Route("/api/v1/levels", endpoint=levels_endpoint, methods=["GET"]),
         Route("/api/v1/pipelines/presets", endpoint=pipelines_presets_endpoint, methods=["GET"]),

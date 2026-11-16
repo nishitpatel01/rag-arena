@@ -287,12 +287,19 @@ def test_seed_bigquery_live_mode_with_mock_clients():
             inserted_batches.append(rows)
             return []
 
-    summary = run_seed(
-        dry_run=False,
-        corpus_dir=CORPUS_DIR,
-        genai_client=_FakeGenAIClient(),
-        bq_client=_FakeBQClient(),
-    )
+    import os
+    import unittest.mock
+
+    with unittest.mock.patch.dict(
+        os.environ,
+        {"GCP_PROJECT_ID": "test-project-id", "GCS_CORPUS_BUCKET": "test-corpus-bucket"},
+    ):
+        summary = run_seed(
+            dry_run=False,
+            corpus_dir=CORPUS_DIR,
+            genai_client=_FakeGenAIClient(),
+            bq_client=_FakeBQClient(),
+        )
     from app.ingestion.pipeline import collect_corpus_chunks
 
     expected = len(collect_corpus_chunks(CORPUS_DIR))  # measured from the active parser, never a hand-typed count

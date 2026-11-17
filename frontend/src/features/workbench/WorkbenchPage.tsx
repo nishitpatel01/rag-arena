@@ -29,6 +29,7 @@ import { LevelIngestBanner } from "../levels/LevelIngestBanner";
 import { activeStageId } from "../levels/model";
 import { modelLabel, type ModelSelection } from "../levels/modelSelection";
 import { QuestionPicker } from "../levels/QuestionPicker";
+import { replaySpeedWireValue } from "../levels/ReplaySpeedSelect";
 import { RunPills, runStateAttr } from "../levels/RunPills";
 import { StageDetail, type AnswerSource } from "../levels/StageDetail";
 import { StageRail } from "../levels/StageRail";
@@ -264,6 +265,7 @@ export const WorkbenchPage: React.FC = () => {
       solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
+      replaySpeed: replaySpeedWireValue(health?.demo_mode ?? null) ?? null,
     });
   };
 

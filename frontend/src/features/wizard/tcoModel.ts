@@ -800,10 +800,16 @@ function scoreWorkloadFit(
   }
 
   if (lid === "rag_engine" && tradeoffs.length === 0) {
-    tradeoffs.push("Default top-10 retrieval without Ranking API lowers context precision (~0.46); add rerank in Workbench.");
+    tradeoffs.push("Default top-10 retrieval without Ranking API lowers context precision; add rerank in Workbench.");
   }
   if (lid === "managed_vertex" && tradeoffs.length === 0) {
-    tradeoffs.push("Use selectable Gemini over extractive segments (QA 0.905); built-in VAIS summary over-abstains (QA 0.312).");
+    tradeoffs.push("Prefer selectable Gemini over extractive segments; built-in VAIS summary is more conservative and abstains more often.");
+  }
+  if (lid === "level3_multimodal" && tradeoffs.length === 0) {
+    tradeoffs.push("Adds one-time Document AI Layout Parser + Gemini Vision ingestion cost and higher query latency than warm ScaNN.");
+  }
+  if (lid === "level4_agentic" && tradeoffs.length === 0) {
+    tradeoffs.push("Multi-turn ADK tool execution adds token cost and higher end-to-end latency than single-pass pipelines.");
   }
   if (lid === "level2_hybrid" && tradeoffs.length === 0) {
     tradeoffs.push("Text-only chunking lacks Document AI table reconstruction and multi-hop calculator tools.");

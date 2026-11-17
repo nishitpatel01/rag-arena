@@ -665,9 +665,13 @@ def _score_workload_fit(
             )
 
     if lid == "rag_engine" and not tradeoffs:
-        tradeoffs.append("Default top-10 retrieval without Ranking API lowers context precision (~0.46); add rerank in Workbench.")
+        tradeoffs.append("Default top-10 retrieval without Ranking API lowers context precision; add rerank in Workbench.")
     if lid == "managed_vertex" and not tradeoffs:
-        tradeoffs.append("Use selectable Gemini over extractive segments (QA 0.905); built-in VAIS summary over-abstains (QA 0.312).")
+        tradeoffs.append("Prefer selectable Gemini over extractive segments; built-in VAIS summary is more conservative and abstains more often.")
+    if lid == "level3_multimodal" and not tradeoffs:
+        tradeoffs.append("Adds one-time Document AI Layout Parser + Gemini Vision ingestion cost and higher query latency than warm ScaNN.")
+    if lid == "level4_agentic" and not tradeoffs:
+        tradeoffs.append("Multi-turn ADK tool execution adds token cost and higher end-to-end latency than single-pass pipelines.")
     if lid == "level2_hybrid" and not tradeoffs:
         tradeoffs.append("Text-only chunking lacks Document AI table reconstruction and multi-hop calculator tools.")
     if lid == "vertex_vector_v2" and not tradeoffs:

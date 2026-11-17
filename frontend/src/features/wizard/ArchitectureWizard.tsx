@@ -404,7 +404,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                     </Pill>
                   </div>
                   <h3 className="text-base font-semibold text-ink-1" data-testid="wizard-primary-title">
-                    Level {primary.order} · {primary.label}
+                    {/^level\s*\d/i.test(primary.label) ? primary.label : `Level ${primary.order} · ${primary.label}`}
                   </h3>
                 </div>
                 <div className="text-right">
@@ -431,7 +431,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
 
               <CohortBadges row={primary} loading={leaderboardLoading} />
 
-              <div className="grid gap-2 border-t border-line pt-2.5 sm:grid-cols-2">
+              <div className={`grid gap-2 border-t border-line pt-2.5 ${primary.tradeoffs.length > 0 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                 <div>
                   <p className="text-xs font-semibold text-ink-1">Why this GCP architecture fits</p>
                   <ul className="mt-1 flex list-disc flex-col gap-1 pl-4 text-xs text-ink-2">
@@ -440,14 +440,16 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                     ))}
                   </ul>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-ink-1">Architectural watch-outs</p>
-                  <ul className="mt-1 flex list-disc flex-col gap-1 pl-4 text-xs text-ink-2">
-                    {primary.tradeoffs.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ul>
-                </div>
+                {primary.tradeoffs.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-ink-1">Architectural watch-outs</p>
+                    <ul className="mt-1 flex list-disc flex-col gap-1 pl-4 text-xs text-ink-2">
+                      {primary.tradeoffs.map((t) => (
+                        <li key={t}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
@@ -497,7 +499,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                     </Pill>
                   </div>
                   <h4 className="text-sm font-semibold text-ink-1">
-                    Level {runnerUp.order} · {runnerUp.label}
+                    {/^level\s*\d/i.test(runnerUp.label) ? runnerUp.label : `Level ${runnerUp.order} · ${runnerUp.label}`}
                   </h4>
                 </div>
                 <div className="text-right">

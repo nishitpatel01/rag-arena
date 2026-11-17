@@ -1,8 +1,8 @@
-"""RAG Triad evaluation (spec §6.5): the LLM judge is the ONLY source of metrics.
+"""RAG Triad evaluation (spec §6.5): the LLM / managed evaluation judge is the ONLY source of metrics.
 
 * ``live``/``record``: the run's selected judge model (catalog ``RunModels.judge``; default ``JUDGE_MODEL``, Claude
-  Opus 5.5 on Vertex AI) scores the answer; it always differs from the run's synthesis model. Provider-agnostic:
-  a Gemini judge may grade a Claude answer and vice versa. See ``app.evaluation.judges``.
+  Opus 5.5 on Vertex AI, or ``vertex-genai-eval`` via Vertex AI GenAI Evaluation Service ``:evaluateInstances``)
+  scores the answer; it always differs from the run's synthesis model.
 * ``replay``: the recorded judge outcome of the selected (synthesis, judge) pair is replayed
   (``replay_evaluation``); nothing is re-scored locally.
 
@@ -28,12 +28,14 @@ from app.engines.replay_engine import recording_store_for, replay_evaluation, re
 from app.evaluation.judges import (
     MAX_RATIONALE_CHARS,
     PROVIDER_ANTHROPIC_VERTEX,
+    PROVIDER_VERTEX_GENAI_EVAL,
     Judge,
     JudgeResponseError,
     build_judge,
     judge_service_label,
     judge_service_label_for,
 )
+from app.evaluation.vertex_eval import EVAL_METRIC_NAMES
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_BENCHMARK_PATH = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
@@ -75,6 +77,16 @@ _JUDGE_TAG_BREAKOUT_RE = re.compile(
 )
 
 
+def _sanitized_eval_inputs(result: EngineResult) -> tuple[str, str]:
+    """Return delimiter-safe ``(safe_context, safe_answer)`` bounded to configured chunk/step caps."""
+    chunk_texts = [c.content[:_MAX_CHUNK_CHARS] for c in result.retrieved_chunks[:_MAX_CONTEXT_CHUNKS]]
+    agent_texts = [f"[ADK Tool {s.tool_name}]: {s.result_summary}" for s in result.agent_steps[:8]]
+    raw_context = "\n---\n".join([*chunk_texts, *agent_texts])
+    safe_context = _JUDGE_TAG_BREAKOUT_RE.sub("[escaped_eval_tag]", raw_context)
+    safe_answer = _JUDGE_TAG_BREAKOUT_RE.sub("[escaped_eval_tag]", result.answer)
+    return safe_context, safe_answer
+
+
 def build_judge_system_prompt(has_reference: bool) -> str:
     """The judge rubric (system prompt): three metrics in [0, 1] and a strict single-JSON-object reply."""
     return (
@@ -93,11 +105,7 @@ def build_judge_system_prompt(has_reference: bool) -> str:
 
 def build_judge_user_prompt(query: str, result: EngineResult, reference_answer: str | None) -> str:
     """The case under evaluation (user message): query, reference, delimiter-wrapped context and candidate answer."""
-    chunk_texts = [c.content[:_MAX_CHUNK_CHARS] for c in result.retrieved_chunks[:_MAX_CONTEXT_CHUNKS]]
-    agent_texts = [f"[ADK Tool {s.tool_name}]: {s.result_summary}" for s in result.agent_steps[:8]]
-    raw_context = "\n---\n".join([*chunk_texts, *agent_texts])
-    safe_context = _JUDGE_TAG_BREAKOUT_RE.sub("[escaped_eval_tag]", raw_context)
-    safe_answer = _JUDGE_TAG_BREAKOUT_RE.sub("[escaped_eval_tag]", result.answer)
+    safe_context, safe_answer = _sanitized_eval_inputs(result)
     return (
         f"Query: {query}\n"
         f"Reference Answer: {reference_answer or 'N/A'}\n"
@@ -133,9 +141,26 @@ def evaluate_engine_result(
         raise RuntimeError("evaluate_engine_result judges live runs only; replay uses the recorded evaluation")
     active = build_judge(resolved) if judge is None else judge
     has_reference = bool(reference_answer and reference_answer.strip())
+    clean_ref = reference_answer.strip() if has_reference and reference_answer else None
     t0 = time.perf_counter()
-    verdict = active.score(
-        build_judge_system_prompt(has_reference), build_judge_user_prompt(query.strip(), result, reference_answer)
+    score_case_fn = getattr(active, "score_case", None)
+    if callable(score_case_fn):
+        safe_context, safe_answer = _sanitized_eval_inputs(result)
+        verdict = score_case_fn(
+            query=query.strip(),
+            context=safe_context,
+            candidate_answer=safe_answer,
+            reference_answer=clean_ref,
+        )
+    else:
+        verdict = active.score(
+            build_judge_system_prompt(has_reference),
+            build_judge_user_prompt(query.strip(), result, clean_ref),
+        )
+    cost = (
+        round(float(verdict.cost_usd), 8)
+        if verdict.cost_usd is not None
+        else judge_cost_usd(active.model, input_tokens=verdict.input_tokens, output_tokens=verdict.output_tokens)
     )
     return EvalOutcome(
         metrics=verdict.metrics,
@@ -146,25 +171,28 @@ def evaluate_engine_result(
         judge_location=active.location,
         input_tokens=verdict.input_tokens,
         output_tokens=verdict.output_tokens,
-        judge_cost_usd=judge_cost_usd(active.model, input_tokens=verdict.input_tokens, output_tokens=verdict.output_tokens),
+        judge_cost_usd=cost,
         rationale=verdict.rationale[:MAX_RATIONALE_CHARS],
         judge_response_id=verdict.response_id,
     )
 
 
 def _evaluate_request(judge: Judge, settings: ArenaSettings, has_reference: bool) -> dict[str, object]:
-    """The judge request summary exactly as sent (Claude: no temperature; Gemini: temperature 0, thinking LOW)."""
-    is_claude = judge.provider == PROVIDER_ANTHROPIC_VERTEX
+    """The judge request summary exactly as sent (Claude: no temperature; Gemini: temperature 0; Vertex Eval: rubrics)."""
     request: dict[str, object] = {
         "model": judge.model,
         "provider": judge.provider,
         "judge_provider": judge.provider,
         "judge_model": judge.model,
         "judge_location": judge.location,
-        "max_tokens": settings.judge_max_tokens,
         "reference_answer_used": has_reference,
     }
-    if not is_claude:
+    if judge.provider == PROVIDER_VERTEX_GENAI_EVAL:
+        request["metrics"] = list(EVAL_METRIC_NAMES)
+        request["api_method"] = "evaluateInstances"
+        return request
+    request["max_tokens"] = settings.judge_max_tokens
+    if judge.provider != PROVIDER_ANTHROPIC_VERTEX:
         request.update({"temperature": 0.0, "thinking_level": "LOW"})
     return request
 

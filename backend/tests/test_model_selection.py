@@ -105,8 +105,10 @@ def _battle(settings: ArenaSettings, body: dict[str, Any], writer: Any = None) -
 
 def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() -> None:
     catalog = _catalog()
-    llms = [m for m in catalog.models if not m.allowed_levels]
+    llms = [m for m in catalog.models if not m.allowed_levels and m.roles == ("synthesis", "judge")]
+    judge_only = [m.id for m in catalog.models if m.roles == ("judge",)]
     pseudo_ids = [m.id for m in catalog.models if m.allowed_levels]
+    assert judge_only == ["vertex-genai-eval"]
     assert pseudo_ids == ["vertex-ai-search-summary", "vertex-rag-engine-grounded"]
     assert [m.id for m in llms] == [
         "gemini-4-argon",
@@ -204,7 +206,7 @@ def test_models_endpoint_shape_defaults_and_recorded_pairs() -> None:
     body = TestClient(create_app(settings=settings)).get("/api/v1/models").json()
     assert set(body) == {"models", "defaults", "demo_mode", "recorded_pairs"}
     assert body["defaults"] == {"synthesis_model": "gemini-4-argon", "judge_model": "claude-opus-5-5"}
-    assert body["demo_mode"] == "replay" and len(body["models"]) == 7
+    assert body["demo_mode"] == "replay" and len(body["models"]) == 8
     keys = {"id", "label", "provider", "location", "roles", "input_usd_per_1m", "output_usd_per_1m", "price_source",
             "price_as_of", "available", "unavailable_reason", "verified_at", "allowed_levels", "usd_per_1k_requests"}
     assert all(set(m) == keys for m in body["models"])

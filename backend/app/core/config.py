@@ -148,6 +148,12 @@ _SCANN_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
 _SCANN_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
 _VVS2_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,62}")
 _PG_IDENT_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}")
+# Google Cloud Model Armor Guardrails (REST v1; $0/mo standing template storage).
+DEFAULT_MODEL_ARMOR_LOCATION: str = "us-central1"
+_MODEL_ARMOR_LOCATION_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
+_MODEL_ARMOR_TEMPLATE_RE = re.compile(
+    r"(?:[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}|projects/[A-Za-z0-9._-]+/locations/[a-z][a-z0-9-]{1,30}/templates/[a-zA-Z0-9][a-zA-Z0-9_-]{0,62})"
+)
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -272,6 +278,8 @@ class ArenaSettings:
     rag_engine_chunk_size: int = DEFAULT_RAG_ENGINE_CHUNK_SIZE
     rag_engine_chunk_overlap: int = DEFAULT_RAG_ENGINE_CHUNK_OVERLAP
     rag_engine_timeout_seconds: int = DEFAULT_RAG_ENGINE_TIMEOUT_SECONDS
+    model_armor_location: str = DEFAULT_MODEL_ARMOR_LOCATION
+    model_armor_template_id: str = ""
 
     @property
     def model_verification_path(self) -> Path:
@@ -328,8 +336,25 @@ class ArenaSettings:
         self._validate_vais()
         self._validate_rag_engine()
         self._validate_scann()
+        self._validate_model_armor()
         self._validate_upload_bucket()
         self._validate_auth_and_upload_bounds()
+
+    def _validate_model_armor(self) -> None:
+        """Google Cloud Model Armor regional location and optional template identifier."""
+        if not isinstance(self.model_armor_location, str) or not _MODEL_ARMOR_LOCATION_RE.fullmatch(
+            self.model_armor_location
+        ):
+            raise ValueError(
+                f"MODEL_ARMOR_LOCATION must be a valid location (e.g. 'us-central1'), got {self.model_armor_location!r}"
+            )
+        if not isinstance(self.model_armor_template_id, str) or (
+            self.model_armor_template_id and not _MODEL_ARMOR_TEMPLATE_RE.fullmatch(self.model_armor_template_id)
+        ):
+            raise ValueError(
+                f"MODEL_ARMOR_TEMPLATE_ID must be a valid short template id or resource path, "
+                f"got {self.model_armor_template_id!r}"
+            )
 
     def _validate_scann(self) -> None:
         """Levels 7 & 8 (AlloyDB ScaNN + Vector Search 2.0) regional/identifier allow-lists and numeric bounds."""
@@ -721,6 +746,8 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         **_level3_kwargs(source),
         **_vais_kwargs(source),
         **_rag_engine_kwargs(source),
+        model_armor_location=source.get("MODEL_ARMOR_LOCATION", DEFAULT_MODEL_ARMOR_LOCATION).strip(),
+        model_armor_template_id=source.get("MODEL_ARMOR_TEMPLATE_ID", "").strip(),
         agent_max_turns=_parse_int(source.get("AGENT_MAX_TURNS", str(DEFAULT_AGENT_MAX_TURNS)), "AGENT_MAX_TURNS"),
         agent_max_tool_calls_per_turn=_parse_int(
             source.get("AGENT_MAX_TOOL_CALLS_PER_TURN", str(DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN)), "AGENT_MAX_TOOL_CALLS_PER_TURN"

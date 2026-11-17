@@ -212,10 +212,13 @@ def test_upload_workspace_document_page_and_highlights_enforce_ownership_ready_s
     doc.new_page().insert_text((72, 72), "Page two failover topology us-east4")
     pdf_bytes = doc.tobytes()
 
+    from test_uploads_api import _TEST_AUDIENCE, _TEST_CERTS
+
     store = FakeStore()
     services = FakeServices(FakeManager(), store)
-    app = create_app(settings=live_settings())
+    app = create_app(settings=live_settings(access_mode="iap", iap_jwt_audience=_TEST_AUDIENCE))
     app.state.upload_services = services
+    app.state.iap_certs_override = _TEST_CERTS
     with TestClient(app) as client:
         ws = _workspace(client)
         _upload(client, store, ws, pdf_bytes, name="Pricing.pdf")

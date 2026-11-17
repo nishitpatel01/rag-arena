@@ -76,13 +76,13 @@ def parser_backend_name() -> str:
     return "pymupdf" if pymupdf_available() else "pdf_stream_regex"
 
 
-def _extract_pages_with_pymupdf(raw_bytes: bytes) -> list[list[str]]:
+def _extract_pages_with_pymupdf(raw_bytes: bytes, *, max_pages: int = _MAX_PARSE_PAGES) -> list[list[str]]:
     pymupdf = _import_pymupdf()
     if pymupdf is None:
         raise RuntimeError("PyMuPDF is not installed")
     pages: list[list[str]] = []
     with pymupdf.open(stream=raw_bytes, filetype="pdf") as doc:
-        for idx in range(min(len(doc), _MAX_PARSE_PAGES)):
+        for idx in range(min(len(doc), max_pages)):
             # INFINITE_RECT: the corpus generator writes metadata banners past the right page edge (x1≈631 > 612);
             # PyMuPDF's default mediabox clip silently drops their tail (e.g. "AMENDS=NONE" → "AMENDS=").
             text = doc[idx].get_text("text", clip=pymupdf.INFINITE_RECT())
@@ -92,22 +92,23 @@ def _extract_pages_with_pymupdf(raw_bytes: bytes) -> list[list[str]]:
     return pages
 
 
-def is_genuinely_blank_pdf(pdf_path: Path) -> bool:
+def is_genuinely_blank_pdf(pdf_path: Path, *, max_pages: int = _MAX_PARSE_PAGES) -> bool:
     """True only when every page has no text, no images and no vector drawings (needs PyMuPDF; bounded pages)."""
     pymupdf = _import_pymupdf()
     if pymupdf is None:
         raise RuntimeError("PyMuPDF is required to decide whether a PDF is genuinely blank")
     with pymupdf.open(pdf_path) as doc:
-        for idx in range(min(len(doc), _MAX_PARSE_PAGES)):
+        for idx in range(min(len(doc), max_pages)):
             page = doc[idx]
             if page.get_text("text").strip() or page.get_images() or page.get_drawings():
                 return False
     return True
 
 
-def _extract_pages_with_stream_regex(raw_bytes: bytes) -> list[list[str]]:
+def _extract_pages_with_stream_regex(raw_bytes: bytes, *, max_pages: int = _MAX_PARSE_PAGES) -> list[list[str]]:
     pages_fallback: list[list[str]] = []
-    for match in list(_STREAM_PATTERN.finditer(raw_bytes))[:_MAX_STREAM_MATCHES]:
+    stream_limit = max(_MAX_STREAM_MATCHES, max_pages * 2)
+    for match in list(_STREAM_PATTERN.finditer(raw_bytes))[:stream_limit]:
         stream_str = match.group(1).decode("latin-1", errors="replace")
         if "BT" not in stream_str:
             continue
@@ -115,28 +116,30 @@ def _extract_pages_with_stream_regex(raw_bytes: bytes) -> list[list[str]]:
         clean_lines = [ln for ln in lines if ln]
         if clean_lines:
             pages_fallback.append(clean_lines)
-        if len(pages_fallback) >= _MAX_PARSE_PAGES:
+        if len(pages_fallback) >= max_pages:
             break
     return pages_fallback
 
 
-def _extract_pages_lines(raw_bytes: bytes) -> list[list[str]]:
+def _extract_pages_lines(raw_bytes: bytes, *, max_pages: int = _MAX_PARSE_PAGES) -> list[list[str]]:
     """Extract text lines per page with the explicitly selected backend (see ``parser_backend_name``)."""
     if pymupdf_available():
-        return _extract_pages_with_pymupdf(raw_bytes)
-    return _extract_pages_with_stream_regex(raw_bytes)
+        return _extract_pages_with_pymupdf(raw_bytes, max_pages=max_pages)
+    return _extract_pages_with_stream_regex(raw_bytes, max_pages=max_pages)
 
 
-def extract_pdf_pages(pdf_path: Path) -> list[list[str]]:
+def extract_pdf_pages(pdf_path: Path, *, max_pages: int = _MAX_PARSE_PAGES) -> list[list[str]]:
     """Public parse step for ingestion jobs: validated PDF → per-page text lines (bounded pages)."""
     if not isinstance(pdf_path, Path):
         raise TypeError("pdf_path must be a pathlib.Path instance")
     if not pdf_path.is_file():
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+    if not isinstance(max_pages, int) or max_pages < 1:
+        raise ValueError("max_pages must be a positive integer")
     raw_bytes = pdf_path.read_bytes()
     if not raw_bytes.startswith(b"%PDF-"):
         raise ValueError(f"File {pdf_path.name} does not start with %PDF- magic header")
-    return _extract_pages_lines(raw_bytes)
+    return _extract_pages_lines(raw_bytes, max_pages=max_pages)
 
 
 def chunk_pages(
@@ -145,6 +148,7 @@ def chunk_pages(
     pdf_name: str,
     solicitation_id: str,
     tier_profile: str,
+    max_pages: int = _MAX_PARSE_PAGES,
 ) -> list[DocumentChunk]:
     """Public chunk step for ingestion jobs: per-page lines → tier-specific DocumentChunks."""
     if not isinstance(pages_lines, list):
@@ -155,8 +159,10 @@ def chunk_pages(
         raise ValueError("solicitation_id must be a non-empty string")
     if tier_profile not in _VALID_TIERS:
         raise ValueError(f"tier_profile must be one of {_VALID_TIERS}, got '{tier_profile}'")
+    if not isinstance(max_pages, int) or max_pages < 1:
+        raise ValueError("max_pages must be a positive integer")
     chunks: list[DocumentChunk] = []
-    for page_idx, lines in enumerate(pages_lines[:_MAX_PARSE_PAGES], start=1):
+    for page_idx, lines in enumerate(pages_lines[:max_pages], start=1):
         chunks.extend(
             _build_chunks_from_page_lines(
                 lines=lines,

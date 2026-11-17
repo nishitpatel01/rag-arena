@@ -197,12 +197,21 @@ class IngestJob:
     extra_manifest: dict[str, Any] = field(default_factory=dict)  # per-level metadata persisted into workspace manifest
     events: list[dict[str, Any]] = field(default_factory=list)
     notify: asyncio.Event = field(default_factory=asyncio.Event)
+    subscribers: set[asyncio.Queue[int]] = field(default_factory=set)
+
+    def wake_subscribers(self) -> None:
+        """Pulse every active subscriber's bounded queue without racing shared clear() calls."""
+        self.notify.set()
+        seq = len(self.events)
+        for sub_q in tuple(self.subscribers):
+            if not sub_q.full():
+                sub_q.put_nowait(seq)
 
     def append_event(self, event: dict[str, Any]) -> None:
         """Append to the bounded buffer (single source of truth for subscribers) and wake streamers."""
         if len(self.events) < _MAX_JOB_EVENTS:
             self.events.append(event)
-        self.notify.set()
+        self.wake_subscribers()
 
     @property
     def done(self) -> bool:
@@ -349,7 +358,12 @@ class IngestJobRunner:
     async def _run_bounded(self, job: IngestJob) -> None:
         try:
             await asyncio.wait_for(self._run(job), timeout=float(self.settings.ingest_job_timeout_seconds))
-        except BaseException as exc:  # boundary: every failure becomes a visible job_failed event
+        except asyncio.CancelledError:
+            job.status = "failed"
+            job.error = "CancelledError: ingestion job cancelled"
+            job.finished_at = utc_now_iso()
+            raise
+        except Exception as exc:  # noqa: BLE001 - boundary: every failure becomes a visible job_failed event
             job.status = "failed"
             job.error = f"{type(exc).__name__}: {exc}"
             job.finished_at = utc_now_iso()
@@ -362,7 +376,7 @@ class IngestJobRunner:
                 await self._after_upload_job(job)
             finally:
                 job.settled = True
-                job.notify.set()
+                job.wake_subscribers()
 
     async def _after_upload_job(self, job: IngestJob) -> None:
         """Remove the job's download dir and let the workspace record the outcome (failures become events)."""
@@ -483,14 +497,15 @@ class IngestJobRunner:
     async def _parse(self, job: IngestJob, emitter: "_JobEmitter", tracker: "_StageTracker", docs: list[_DiscoveredDoc]) -> dict[str, list[list[str]]]:
         pages_by_doc: dict[str, list[list[str]]] = {}
         backend = parser_backend_name()
-        async with tracker.scope(emitter, "parse", "Parse PDF pages", backend, {"docs": len(docs), "parser": backend}) as sc:
+        max_pages = self.settings.max_upload_pdf_pages if job.scope is not None else 30
+        async with tracker.scope(emitter, "parse", "Parse PDF pages", backend, {"docs": len(docs), "parser": backend, "max_pages_per_doc": max_pages}) as sc:
             if self.settings.is_live and backend != "pymupdf":
                 raise ParserUnavailableError(
                     f"{job.level} ingestion requires PyMuPDF (pymupdf) in DEMO_MODE={self.settings.demo_mode}; "
                     f"active parser is '{backend}'. Install the declared dependency 'pymupdf>=1.24.0'."
                 )
             for doc in docs:
-                pages = await asyncio.to_thread(extract_pdf_pages, doc.path)
+                pages = await asyncio.to_thread(lambda p=doc.path: extract_pdf_pages(p, max_pages=max_pages))
                 pages_by_doc[doc.path.name] = pages
                 await self._put(job, {"event": "doc_progress", "stage": "parse", "doc_name": doc.path.name, "pages": len(pages), "chunks": 0})
             empty_docs, blank_docs = await asyncio.to_thread(_classify_empty_docs, docs, pages_by_doc, backend)
@@ -504,11 +519,12 @@ class IngestJobRunner:
 
     async def _chunk(self, job: IngestJob, emitter: "_JobEmitter", tracker: "_StageTracker", docs: list[_DiscoveredDoc], pages_by_doc: dict[str, list[list[str]]]) -> list[Any]:
         chunks: list[Any] = []
+        max_pages = self.settings.max_upload_pdf_pages if job.scope is not None else 30
         async with tracker.scope(emitter, "chunk", f"Chunk ({job.tier_profile} profile)", "Ingestion job", {"tier_profile": job.tier_profile}) as sc:
             for doc in docs:
                 doc_chunks = await asyncio.to_thread(
                     chunk_pages, pages_by_doc[doc.path.name], pdf_name=doc.path.name,
-                    solicitation_id=doc.solicitation_id, tier_profile=job.tier_profile,
+                    solicitation_id=doc.solicitation_id, tier_profile=job.tier_profile, max_pages=max_pages,
                 )
                 chunks.extend(doc_chunks)
                 await self._put(job, {"event": "doc_progress", "stage": "chunk", "doc_name": doc.path.name, "pages": len(pages_by_doc[doc.path.name]), "chunks": len(doc_chunks)})
@@ -554,24 +570,32 @@ class IngestJobRunner:
             sc.payload = {"loaded": loaded, "table": backends.loader.table_fqn}
 
     async def stream(self, job_id: str) -> AsyncIterator[dict[str, Any]]:
-        """Yield buffered events, then live events until the terminal sentinel (bounded by frames + timeout)."""
+        """Yield buffered events, then live events via an isolated per-subscriber bounded queue."""
         job = self.get(job_id)
         max_frames = self.settings.max_sse_frames
         deadline = time.monotonic() + float(self.settings.ingest_job_timeout_seconds) + 5.0
+        sub_q: asyncio.Queue[int] = asyncio.Queue(maxsize=256)
+        job.subscribers.add(sub_q)
         idx = 0
-        while idx < max_frames and time.monotonic() < deadline:
-            if idx < len(job.events):
-                yield job.events[idx]
-                idx += 1
-                continue
-            if job.done:
-                return
-            job.notify.clear()
-            waiter = asyncio.ensure_future(job.notify.wait())
-            done, _ = await asyncio.wait({waiter}, timeout=_STREAM_POLL_SECONDS)
-            if not done:
-                waiter.cancel()
-        yield {"event": "stream_warning", "run_id": job.job_id, "job_id": job.job_id, "engine": job.level, "message": f"Ingest stream bound reached ({max_frames} frames or timeout)", "ts": utc_now_iso()}
+        try:
+            while idx < max_frames and time.monotonic() < deadline:
+                if idx < len(job.events):
+                    yield job.events[idx]
+                    idx += 1
+                    continue
+                if job.done:
+                    return
+                waiter = asyncio.create_task(sub_q.get())
+                done_set, pending = await asyncio.wait({waiter}, timeout=_STREAM_POLL_SECONDS)
+                for p_task in pending:
+                    p_task.cancel()
+                if pending:
+                    await asyncio.gather(*pending, return_exceptions=True)
+                while not sub_q.empty():
+                    sub_q.get_nowait()
+            yield {"event": "stream_warning", "run_id": job.job_id, "job_id": job.job_id, "engine": job.level, "message": f"Ingest stream bound reached ({max_frames} frames or timeout)", "ts": utc_now_iso()}
+        finally:
+            job.subscribers.discard(sub_q)
 
     def active_jobs(self, *, viewer_owner: str | None = None) -> list[dict[str, Any]]:
         """In-flight jobs visible to ``viewer_owner`` (bounded by ``_MAX_JOBS``) so reloaded tabs can re-attach."""

@@ -2,9 +2,9 @@
 
 **Eight RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.5.0](https://img.shields.io/badge/release-v1.5.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 454 passed](https://img.shields.io/badge/backend%20tests-454%20passed-brightgreen.svg) ![Frontend tests: 198 passed](https://img.shields.io/badge/frontend%20tests-198%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.6.0](https://img.shields.io/badge/release-v1.6.0-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 475 passed](https://img.shields.io/badge/backend%20tests-475%20passed-brightgreen.svg) ![Frontend tests: 198 passed](https://img.shields.io/badge/frontend%20tests-198%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Document%20AI%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.5.0 (2026-11-16, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), Releases & Docs (`/releases`), private PDF uploads, Leaderboard and Cloud Run live.
+**Release:** v1.6.0 (2026-11-16, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Composable Workbench (`/workbench`), Controlled Ablation Lab (`/compare`), Releases & Docs (`/releases`), private PDF uploads, Leaderboard and Cloud Run live.
 
 ## The problem
 
@@ -408,6 +408,7 @@ rag-arena/
 | `v1.3.0` | Composable RAG Workbench (`/workbench`), Controlled 2–4 Recipe Ablation Lab (`/compare`), and Retrieval Diff Inspector | ✅ live |
 | `v1.4.0` | Ephemeral ScaNN Benchmarks (Level 7 AlloyDB + ScaNN, Level 8 Vertex AI Vector Search 2.0 ScaNN + Sparse RRF, $0/mo standing idle) | ✅ live |
 | `v1.5.0` | In-App Releases & Documentation Tab (`/releases`) + deterministic `release-please` & CI drift/leak automation | ✅ live |
+| `v1.6.0` | P0 Security, Data Correctness & Terraform Parity (ES256 IAP JWT verification, CSP/headers, >30p upload lift, L7/L8 SQL honesty, bounded SSE, v3 Terraform parity) | ✅ ready |
 
 ## License
 

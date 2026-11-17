@@ -44,6 +44,7 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
         (eff_upload_bucket, "${UPLOAD_BUCKET}"),
         (settings.rag_engine_corpus_id, "${RAG_ENGINE_CORPUS_ID}"),
         (settings.alloydb_dsn, "${ALLOYDB_DSN}"),
+        (settings.iap_jwt_audience, "${IAP_JWT_AUDIENCE}"),
         (settings.cloudsdk_config, "${CLOUDSDK_CONFIG}"),
         (settings.google_application_credentials, "${GOOGLE_APPLICATION_CREDENTIALS}"),
         (home_dir, "${HOME}"),

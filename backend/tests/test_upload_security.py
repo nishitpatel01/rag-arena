@@ -32,9 +32,9 @@ from app.recording.recorder import build_recording
 from app.recording.redaction import assert_redacted, redaction_tokens
 from fakes import FakeBigQueryClient, FakeGenaiClient, fake_clients, live_settings, run
 from test_level4_agentic import StubLlm, _call, _ranking, _RoutedBQ
-from test_uploads_api import _ALICE, _BOB, _ingest_client, _pdf, _upload, _workspace
+from test_uploads_api import _ALICE, _BOB, _ingest_client, _pdf, _sign_test_iap, _upload, _workspace
 
-_MALLORY = {"X-Goog-Authenticated-User-Email": "accounts.google.com:mallory@example.com"}
+_MALLORY = {"X-Goog-IAP-JWT-Assertion": _sign_test_iap("accounts.google.com:mallory@example.com")}
 _WS = "upl_0123456789ab"
 _OTHER_WS = "upl_ffffffffffff"
 
@@ -94,16 +94,22 @@ def test_origin_binding_blocks_cross_origin_and_blocks_localhost_on_cloud_run() 
         with patch.dict(os.environ, {"K_SERVICE": "rag-arena"}):
             on_cloudrun = client.post(
                 f"/api/v1/uploads/{ws}/files",
-                headers={**_ALICE, "Host": "arena.example.com", "Origin": "http://localhost:5173"},
+                headers={**_ALICE, "Host": "rag-arena-xxxx-uc.a.run.app", "Origin": "http://localhost:5173"},
                 json={"filename": "prod_local.pdf", "size_bytes": 10},
             )
             assert on_cloudrun.status_code == 400 and "origin" in on_cloudrun.json()["error"].lower()
-            same_host = client.post(
+            host_spoof = client.post(
                 f"/api/v1/uploads/{ws}/files",
                 headers={**_ALICE, "Host": "arena.example.com", "Origin": "https://arena.example.com"},
+                json={"filename": "prod_spoof.pdf", "size_bytes": 10},
+            )
+            assert host_spoof.status_code == 400
+            same_host = client.post(
+                f"/api/v1/uploads/{ws}/files",
+                headers={**_ALICE, "Host": "rag-arena-xxxx-uc.a.run.app", "Origin": "https://rag-arena-xxxx-uc.a.run.app"},
                 json={"filename": "prod_ok.pdf", "size_bytes": 10},
             )
-            assert same_host.status_code == 201 and store.sessions[-1][3] == "https://arena.example.com"
+            assert same_host.status_code == 201 and store.sessions[-1][3] == "https://rag-arena-xxxx-uc.a.run.app"
 
 
 def test_cross_owner_idor_matrix_returns_404_across_every_surface() -> None:
@@ -133,9 +139,9 @@ def test_cross_owner_idor_matrix_returns_404_across_every_surface() -> None:
             resp = client.request(method, path, headers=_MALLORY, json=body)
             assert resp.status_code == 404, (method, path, resp.status_code, resp.text)
 
-        # Anonymous caller (missing IAP header) also cannot touch Alice's IAP-owned workspace
-        assert client.get(f"/api/v1/uploads/{ws}").status_code == 404
-        assert client.delete(f"/api/v1/uploads/{ws}").status_code == 404
+        # Anonymous caller (missing IAP JWT) fails closed with 401 before touching Alice's workspace
+        assert client.get(f"/api/v1/uploads/{ws}").status_code == 401
+        assert client.delete(f"/api/v1/uploads/{ws}").status_code == 401
         assert client.get(f"/api/v1/uploads/{ws}", headers=_ALICE).status_code == 200
 
 

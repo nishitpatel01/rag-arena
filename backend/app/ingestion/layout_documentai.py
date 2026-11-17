@@ -245,18 +245,18 @@ class LayoutParser:
         self.processor_version = processor_version
         client.process_url(processor_id, processor_version)  # validates identifiers up front
 
-    def request_summary(self) -> dict[str, Any]:
+    def request_summary(self, *, max_pages_per_doc: int = MAX_PAGES_PER_DOC) -> dict[str, Any]:
         """Redacted request description for stage payloads (no project id/number, short processor id only)."""
         return {
             "method": "processors.process" if not self.processor_version else "processorVersions.process",
             "location": self.client.location, "processor_id": self.processor_id,
             "processor_version": self.processor_version or "(processor default)",
-            "process_options": PROCESS_OPTIONS, "online_page_limit": ONLINE_PAGE_LIMIT, "max_pages_per_doc": MAX_PAGES_PER_DOC,
+            "process_options": PROCESS_OPTIONS, "online_page_limit": ONLINE_PAGE_LIMIT, "max_pages_per_doc": max_pages_per_doc,
         }
 
-    def parse(self, doc_name: str, pdf_bytes: bytes) -> DocLayout:
+    def parse(self, doc_name: str, pdf_bytes: bytes, *, max_pages: int = MAX_PAGES_PER_DOC) -> DocLayout:
         """Process every page range online; any API error propagates (no PyMuPDF fallback)."""
-        pages, ranges = split_pdf_ranges(pdf_bytes)
+        pages, ranges = split_pdf_ranges(pdf_bytes, max_pages=max_pages)
         elements: list[LayoutElement] = []
         skipped_total: dict[str, int] = {}
         attempts = 0

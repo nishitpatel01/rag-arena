@@ -23,6 +23,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+from app.core.auth import AuthError, IAP_JWT_HEADER, resolve_caller_identity, validate_upload_origin
 from app.core.config import ArenaSettings
 from app.core.telemetry import utc_now_iso
 from app.ingestion.upload_bucket import BucketState, BucketStatus, UploadBucketManager
@@ -156,19 +157,12 @@ def _unavailable() -> JSONResponse:
 
 
 def _identity(request: Request) -> str:
-    return request.headers.get(IAP_EMAIL_HEADER, "").strip() or ANONYMOUS
+    return resolve_caller_identity(request, request.app.state.settings)
 
 
 def _origin_for_session(request: Request) -> str | None:
-    """The browser Origin bound into the resumable session; must be this app (or localhost dev off Cloud Run)."""
-    origin = request.headers.get("origin", "").strip()
-    if not origin:
-        return None
-    if urlsplit(origin).netloc == request.headers.get("host", ""):
-        return origin
-    if not os.environ.get("K_SERVICE") and _LOCAL_ORIGIN_RE.match(origin):
-        return origin
-    raise ValueError("request origin does not match this app")
+    """The browser Origin bound into the resumable session; validated against allowlist / Cloud Run / localhost."""
+    return validate_upload_origin(request, request.app.state.settings)
 
 
 def _bucket_response(status: BucketStatus) -> JSONResponse:
@@ -195,11 +189,15 @@ def _public_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
 
 async def _owned_manifest(request: Request, store: Any, workspace_id: str) -> tuple[dict[str, Any], int] | JSONResponse:
     try:
+        caller = _identity(request)
+    except AuthError as exc:
+        return _error(str(exc), exc.status_code)
+    try:
         check_workspace_id(workspace_id)
     except ValueError:
         return _error("workspace not found", 404)
     found = await run_in_threadpool(store.read_manifest, workspace_id)
-    if found is None or found[0].get("owner") != owner_key(_identity(request)):
+    if found is None or found[0].get("owner") != owner_key(caller):
         return _error("workspace not found", 404)
     return found
 
@@ -220,6 +218,7 @@ async def bucket_status_endpoint(request: Request) -> JSONResponse:
     services = _services(request)
     if services is None:
         return _unavailable()
+    _identity(request)
     status = await run_in_threadpool(services.bucket_manager().check)
     return JSONResponse(status.to_dict(safe=False))  # a status report: always 200, the state field is the outcome
 
@@ -228,6 +227,7 @@ async def bucket_create_endpoint(request: Request) -> JSONResponse:
     services = _services(request)
     if services is None:
         return _unavailable()
+    _identity(request)
     return _bucket_response(await run_in_threadpool(services.bucket_manager().ensure))
 
 
@@ -365,13 +365,13 @@ async def file_session_endpoint(request: Request) -> JSONResponse:
                         status_code=201)
 
 
-def _validate_object(store: Any, name: str) -> tuple[dict[str, Any] | None, str]:
+def _validate_object(store: Any, name: str, *, max_pages: int | None = None) -> tuple[dict[str, Any] | None, str]:
     """(PDF facts, '') when safe; (None, reason) when rejected. Raises UploadStoreError(404) if not uploaded."""
     with tempfile.TemporaryDirectory(prefix="rag_arena_upload_") as tmp:
         local = Path(tmp) / "upload.pdf"
         store.download_to(name, local)
         try:
-            info = validate_pdf_file(local)
+            info = validate_pdf_file(local, max_pages=max_pages)
         except PdfRejected as exc:
             return None, str(exc)
     return {"status": "ready", "pages": info.pages, "size_bytes": info.size_bytes, "sha256": info.sha256}, ""
@@ -381,6 +381,7 @@ async def file_finalize_endpoint(request: Request) -> JSONResponse:
     services = _services(request)
     if services is None:
         return _unavailable()
+    settings: ArenaSettings = request.app.state.settings
     store, ws = services.store(), request.path_params["workspace_id"]
     found = await _owned_manifest(request, store, ws)
     if isinstance(found, JSONResponse):
@@ -393,10 +394,24 @@ async def file_finalize_endpoint(request: Request) -> JSONResponse:
     entry = next((f for f in manifest.get("files", []) if f.get("id") == file_id), None)
     if entry is None:
         return _error("file not found", 404)
-    if await run_in_threadpool(store.object_meta, entry["object"]) is None:
+    meta = await run_in_threadpool(store.object_meta, entry["object"])
+    if meta is None:
         return _error("uploaded object not found: finish the upload to the session URI first", 409)
+    actual_bytes = int(meta.get("size") or 0)
+    if actual_bytes > settings.max_upload_file_bytes:
+        reason = f"uploaded file ({actual_bytes} bytes) exceeds MAX_UPLOAD_FILE_BYTES ({settings.max_upload_file_bytes} bytes)"
+        await run_in_threadpool(store.delete_object, entry["object"])
+        updated = {**entry, "status": "rejected", "error": reason, "finalized_at": utc_now_iso()}
+        manifest = {**manifest, "files": [updated if f.get("id") == file_id else f for f in manifest["files"]]}
+        try:
+            await run_in_threadpool(lambda: store.write_manifest(ws, manifest, if_generation=generation))
+        except RuntimeError as exc:
+            return _error(str(exc), 409)
+        return _error(f"file rejected: {reason}", 413, file=_public_file(updated))
     try:
-        facts, reason = await run_in_threadpool(_validate_object, store, entry["object"])
+        facts, reason = await run_in_threadpool(
+            lambda: _validate_object(store, entry["object"], max_pages=settings.max_upload_pdf_pages)
+        )
     except UploadStoreError as exc:
         return _error(f"could not read the uploaded file: {exc}", 502)
     if facts is None:
@@ -458,7 +473,9 @@ def _level_recorder(store: Any, ws: str, level: str, file_ids: list[str]) -> Any
     return record
 
 
-def estimate_cost(level: str, pages: int, vision_model: str) -> dict[str, Any]:
+def estimate_cost(
+    level: str, pages: int, vision_model: str, *, max_vision_pages: int | None = None
+) -> dict[str, Any]:
     """Pre-ingest cost estimate for an upload workspace; Level 3 must be confirmed against ``max_usd``."""
     from app.core.pricing import PRICE_TABLE
     from app.ingestion.multimodal_job import DOCAI_USD_PER_PAGE
@@ -477,12 +494,13 @@ def estimate_cost(level: str, pages: int, vision_model: str) -> dict[str, Any]:
         raise ValueError(f"no list price for vision model {vision_model}; cannot estimate Level 3 cost")
     per_page = (VISION_TOKENS_IN_PER_PAGE * price.input_usd_per_1m + VISION_TOKENS_OUT_PER_PAGE * price.output_usd_per_1m) / 1e6
     docai = round(pages * DOCAI_USD_PER_PAGE, 4)
-    vision_max = round(pages * per_page, 4)
+    capped_vision_pages = min(pages, max_vision_pages) if max_vision_pages is not None else pages
+    vision_max = round(capped_vision_pages * per_page, 4)
     return {
         "level": level, "pages": pages, "requires_confirmation": True, "vision_model": vision_model,
         "documentai_usd": docai, "vision_max_usd": vision_max, "max_usd": round(docai + vision_max, 4),
         "basis": (f"Document AI Layout Parser ${DOCAI_USD_PER_PAGE * 1000:.0f}/1,000 pages (exact) + Gemini vision on "
-                  "diagram pages only; the maximum assumes every page is a diagram"),
+                  f"diagram pages only (bounded at <= {capped_vision_pages} diagram pages)"),
     }
 
 
@@ -498,8 +516,11 @@ async def workspace_estimate_endpoint(request: Request) -> JSONResponse:
     if isinstance(found, JSONResponse):
         return found
     level = request.query_params.get("level", "").strip()
+    settings: ArenaSettings = request.app.state.settings
     try:
-        estimate = estimate_cost(level, _ready_pages(found[0]), request.app.state.settings.vision_model)
+        estimate = estimate_cost(
+            level, _ready_pages(found[0]), settings.vision_model, max_vision_pages=settings.max_upload_vision_pages
+        )
     except ValueError as exc:
         return _error(str(exc), 400)
     return JSONResponse({"estimate": estimate})
@@ -530,8 +551,11 @@ async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
     if (manifest.get("levels", {}).get(level) or {}).get("status") in ("starting", "running"):
         return _error(f"{level} is already being ingested for this workspace", 409)
     if level in CONFIRM_LEVELS:
+        settings: ArenaSettings = request.app.state.settings
         try:
-            estimate = estimate_cost(level, _ready_pages(manifest), request.app.state.settings.vision_model)
+            estimate = estimate_cost(
+                level, _ready_pages(manifest), settings.vision_model, max_vision_pages=settings.max_upload_vision_pages
+            )
         except ValueError as exc:
             return _error(str(exc), 400)
         if confirmed + 1e-9 < estimate["max_usd"]:
@@ -556,10 +580,12 @@ async def workspace_ingest_endpoint(request: Request) -> JSONResponse:
 
 
 def _store_errors_as_json(endpoint: Any) -> Any:
-    """Cloud Storage failures (incl. missing credentials) become a 502 JSON error naming the cause, never a bare 500."""
+    """Auth and Cloud Storage failures become typed 401/502 JSON errors naming the cause, never a bare 500."""
     async def wrapped(request: Request) -> JSONResponse:
         try:
             return await endpoint(request)
+        except AuthError as exc:
+            return _error(str(exc), exc.status_code)
         except UploadStoreError as exc:
             return _error(str(exc), 502)
     wrapped.__name__ = endpoint.__name__

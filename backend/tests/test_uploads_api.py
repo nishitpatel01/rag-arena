@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import json as _jwt_json
 from pathlib import Path
+import time as _jwt_time
 from typing import Any
 
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, utils
 import pymupdf
 from starlette.testclient import TestClient
 
@@ -13,8 +18,30 @@ from app.ingestion.uploads import UPLOAD_PREFIX
 from app.main import create_app
 from fakes import live_settings
 
-_ALICE = {"X-Goog-Authenticated-User-Email": "accounts.google.com:alice@example.com"}
-_BOB = {"X-Goog-Authenticated-User-Email": "accounts.google.com:bob@example.com"}
+_TEST_AUDIENCE = "/projects/76543/locations/us-central1/services/rag-arena"
+_TEST_PRIV = ec.generate_private_key(ec.SECP256R1())
+_TEST_CERTS = {
+    "test-iap-k1": _TEST_PRIV.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode("ascii")
+}
+
+
+def _sign_test_iap(email: str) -> str:
+    b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode("ascii")  # noqa: E731
+    now = int(_jwt_time.time())
+    hdr = b64(_jwt_json.dumps({"alg": "ES256", "typ": "JWT", "kid": "test-iap-k1"}).encode())
+    pay = b64(_jwt_json.dumps({
+        "iss": "https://cloud.google.com/iap", "aud": _TEST_AUDIENCE,
+        "sub": f"sub:{email}", "email": email, "iat": now - 10, "exp": now + 3600,
+    }).encode())
+    sig_in = f"{hdr}.{pay}".encode("ascii")
+    r, s = utils.decode_dss_signature(_TEST_PRIV.sign(sig_in, ec.ECDSA(hashes.SHA256())))
+    return f"{hdr}.{pay}.{b64(r.to_bytes(32, 'big') + s.to_bytes(32, 'big'))}"
+
+
+_ALICE = {"X-Goog-IAP-JWT-Assertion": _sign_test_iap("accounts.google.com:alice@example.com")}
+_BOB = {"X-Goog-IAP-JWT-Assertion": _sign_test_iap("accounts.google.com:bob@example.com")}
 
 
 def _pdf(pages: int = 2, js: bool = False) -> bytes:
@@ -135,10 +162,15 @@ def _client(state: BucketState = BucketState.OK) -> tuple[TestClient, FakeManage
     from app.ingestion.jobs import IngestBackends
 
     loader = _RowsLoader()
-    app = create_app(settings=live_settings(), query_run_writer=object(),
+    settings = live_settings(
+        access_mode="iap",
+        iap_jwt_audience=_TEST_AUDIENCE,
+    )
+    app = create_app(settings=settings, query_run_writer=object(),
                      ingest_backend_factory=lambda s: IngestBackends(None, loader))  # type: ignore[arg-type]
     manager, store = FakeManager(state), FakeStore()
     app.state.upload_services = FakeServices(manager, store)
+    app.state.iap_certs_override = _TEST_CERTS
     return TestClient(app), manager, store
 
 
@@ -173,7 +205,7 @@ def test_uploads_do_not_exist_on_the_replay_copy() -> None:
 
 def test_bucket_status_is_read_only_and_always_200() -> None:
     client, manager, _ = _client(BucketState.NOT_FOUND)
-    resp = client.get("/api/v1/uploads/bucket")
+    resp = client.get("/api/v1/uploads/bucket", headers=_ALICE)
     assert resp.status_code == 200  # a status report; the state field carries the outcome
     body = resp.json()
     assert body["state"] == "not_found" and body["usable"] is False
@@ -182,14 +214,14 @@ def test_bucket_status_is_read_only_and_always_200() -> None:
 
 def test_bucket_create_attempts_creation_by_default() -> None:
     client, manager, _ = _client(BucketState.NOT_FOUND)
-    resp = client.post("/api/v1/uploads/bucket", json={})
+    resp = client.post("/api/v1/uploads/bucket", headers=_ALICE, json={})
     assert resp.status_code == 200 and resp.json()["state"] == "created"
     assert manager.ensure_calls == 1
 
 
 def test_bucket_create_permission_denied_is_returned_with_remedy() -> None:
     client, _, _ = _client(BucketState.PERMISSION_DENIED)
-    resp = client.post("/api/v1/uploads/bucket", json={})
+    resp = client.post("/api/v1/uploads/bucket", headers=_ALICE, json={})
     assert resp.status_code == 403
     body = resp.json()
     assert body["state"] == "permission_denied" and body["remedy"] and body["usable"] is False
@@ -230,13 +262,13 @@ def test_file_session_sanitises_name_and_binds_origin() -> None:
     client, _, store = _client()
     ws = _workspace(client)
     resp = client.post(f"/api/v1/uploads/{ws}/files", json={"filename": "../../Scope v2.pdf", "size_bytes": 10},
-                       headers={**_ALICE, "Origin": "http://testserver"})
+                       headers={**_ALICE, "Origin": "http://localhost:5173"})
     assert resp.status_code == 201, resp.text
     body = resp.json()
     assert body["session_uri"].startswith("https://storage.googleapis.com/upload/session/")
     assert body["file"]["name"] == "Scope_v2.pdf" and body["file"]["status"] == "uploading"
     assert body["object"].startswith(f"{UPLOAD_PREFIX}{ws}/{body['file']['id']}-")
-    assert store.sessions[-1][3] == "http://testserver"
+    assert store.sessions[-1][3] == "http://localhost:5173"
 
 
 def test_file_session_rejects_cross_origin_and_non_pdf() -> None:
@@ -334,12 +366,18 @@ def _ingest_client() -> tuple[TestClient, FakeStore, Any]:
     loader = ScopedLoader()
     loader.deleted_scopes = []  # type: ignore[attr-defined]
     loader.delete_scope = lambda scope: loader.deleted_scopes.append(scope) or 0  # type: ignore[attr-defined]
-    settings = live_settings(ingest_job_timeout_seconds=120, enabled_levels=("level1_naive", "level2_hybrid"))
+    settings = live_settings(
+        ingest_job_timeout_seconds=120,
+        enabled_levels=("level1_naive", "level2_hybrid"),
+        access_mode="iap",
+        iap_jwt_audience=_TEST_AUDIENCE,
+    )
     factory = lambda s: IngestBackends(FakeEmbedder(), loader)  # noqa: E731
     app = create_app(settings=settings, query_run_writer=object(), ingest_backend_factory=factory)
     app.state.ingest_runner = IngestJobRunner(settings, backend_factory=factory)
     store = FakeStore()
     app.state.upload_services = FakeServices(FakeManager(), store)
+    app.state.iap_certs_override = _TEST_CERTS
     return TestClient(app), store, loader
 
 
@@ -510,6 +548,8 @@ def test_managed_vertex_upload_ingest_and_delete_cleans_vais_docs_or_keeps_works
         enabled_levels=("level1_naive", "managed_vertex"),
         vais_uploads_data_store_id="rag-arena-uploads",
         vais_uploads_engine_id="rag-arena-uploads-search",
+        access_mode="iap",
+        iap_jwt_audience=_TEST_AUDIENCE,
     )
     factory = lambda s: IngestBackends(FakeEmbedder(), loader)  # noqa: E731
     app = create_app(
@@ -520,6 +560,7 @@ def test_managed_vertex_upload_ingest_and_delete_cleans_vais_docs_or_keeps_works
         settings, backend_factory=factory, upload_managed_factory=lambda s: upload_managed,
     )
     app.state.upload_services = services
+    app.state.iap_certs_override = _TEST_CERTS
     client = TestClient(app)
     with client:
         ws = _workspace(client)

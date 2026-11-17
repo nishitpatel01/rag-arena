@@ -29,6 +29,36 @@ variable "bq_dataset_id" {
   default     = "rag_arena"
 }
 
+variable "bq_table_id" {
+  description = "BigQuery v3 document chunks table ID (BQ_TABLE in .env)"
+  type        = string
+  default     = "document_chunks_v3"
+}
+
+variable "upload_bucket_name" {
+  description = "Private GCS bucket for v1.1 user PDF uploads (empty = <project_id>-rag-arena-uploads)"
+  type        = string
+  default     = ""
+}
+
+variable "upload_bucket_kms_key" {
+  description = "Optional Cloud KMS key resource name (projects/P/locations/L/keyRings/R/cryptoKeys/K) for the upload bucket"
+  type        = string
+  default     = ""
+}
+
+variable "cloud_run_ingress" {
+  description = "Cloud Run ingress setting (INGRESS_TRAFFIC_ALL or INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER for restricted VPC-SC orgs)"
+  type        = string
+  default     = "INGRESS_TRAFFIC_ALL"
+}
+
+variable "replay_enabled_levels" {
+  description = "Comma-separated levels enabled on the zero-credential replay Cloud Run service"
+  type        = string
+  default     = "level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine,alloydb_scann,vertex_vector_v2"
+}
+
 variable "docai_location" {
   description = "Document AI multi-region for the Level 3 Layout Parser processor (us or eu)"
   type        = string
@@ -82,6 +112,7 @@ provider "google-beta" {
 }
 
 locals {
+  effective_upload_bucket = var.upload_bucket_name != "" ? var.upload_bucket_name : "${var.project_id}-rag-arena-uploads"
   required_apis = toset([
     "aiplatform.googleapis.com",
     "bigquery.googleapis.com",
@@ -89,6 +120,7 @@ locals {
     "documentai.googleapis.com",
     "storage.googleapis.com",
     "alloydb.googleapis.com",
+    "vectorsearch.googleapis.com",
   ])
 }
 
@@ -114,6 +146,28 @@ resource "google_storage_bucket" "corpus_bucket" {
   depends_on = [google_project_service.rag_arena_apis]
 }
 
+resource "google_storage_bucket" "upload_bucket" {
+  name                        = local.effective_upload_bucket
+  location                    = var.region
+  storage_class               = "STANDARD"
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  force_destroy               = false
+
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
+
+  dynamic "encryption" {
+    for_each = var.upload_bucket_kms_key != "" ? [var.upload_bucket_kms_key] : []
+    content {
+      default_kms_key_name = encryption.value
+    }
+  }
+
+  depends_on = [google_project_service.rag_arena_apis]
+}
+
 resource "google_bigquery_dataset" "rag_arena" {
   dataset_id                 = var.bq_dataset_id
   friendly_name              = "The RAG Arena Enterprise Procurement Dataset"
@@ -125,13 +179,14 @@ resource "google_bigquery_dataset" "rag_arena" {
 
 resource "google_bigquery_table" "document_chunks" {
   dataset_id          = google_bigquery_dataset.rag_arena.dataset_id
-  table_id            = "document_chunks"
+  table_id            = var.bq_table_id
   deletion_protection = false
   clustering          = ["tier_profile", "solicitation_id"]
 
   schema = jsonencode([
     { name = "chunk_id", type = "STRING", mode = "REQUIRED" },
     { name = "tier_profile", type = "STRING", mode = "REQUIRED" },
+    { name = "ingest_run_id", type = "STRING", mode = "REQUIRED" },
     { name = "solicitation_id", type = "STRING", mode = "REQUIRED" },
     { name = "doc_name", type = "STRING", mode = "REQUIRED" },
     { name = "doc_type", type = "STRING", mode = "REQUIRED" },
@@ -140,7 +195,7 @@ resource "google_bigquery_table" "document_chunks" {
     { name = "amendment_number", type = "INT64", mode = "NULLABLE" },
     { name = "effective_date", type = "DATE", mode = "NULLABLE" },
     { name = "amends_section", type = "STRING", mode = "NULLABLE" },
-    { name = "page_number", type = "INT64", mode = "NULLABLE" },
+    { name = "page_number", type = "INT64", mode = "REQUIRED" },
     {
       name = "bbox"
       type = "RECORD"
@@ -153,10 +208,65 @@ resource "google_bigquery_table" "document_chunks" {
         { name = "y1", type = "FLOAT64", mode = "NULLABLE" }
       ]
     },
-    { name = "content", type = "STRING", mode = "NULLABLE" },
+    { name = "content", type = "STRING", mode = "REQUIRED" },
+    { name = "layout_source", type = "STRING", mode = "NULLABLE" },
     { name = "embedding", type = "FLOAT64", mode = "REPEATED" },
     { name = "embedding_multimodal", type = "FLOAT64", mode = "REPEATED" },
     { name = "bbox_source", type = "STRING", mode = "NULLABLE" }
+  ])
+}
+
+resource "google_bigquery_table" "ingest_runs" {
+  dataset_id          = google_bigquery_dataset.rag_arena.dataset_id
+  table_id            = "ingest_runs"
+  deletion_protection = false
+
+  schema = jsonencode([
+    { name = "run_id", type = "STRING", mode = "REQUIRED" },
+    { name = "level", type = "STRING", mode = "REQUIRED" },
+    { name = "tier_profile", type = "STRING", mode = "REQUIRED" },
+    { name = "started_at", type = "TIMESTAMP", mode = "NULLABLE" },
+    { name = "finished_at", type = "TIMESTAMP", mode = "NULLABLE" },
+    { name = "status", type = "STRING", mode = "NULLABLE" },
+    { name = "docs", type = "INT64", mode = "NULLABLE" },
+    { name = "pages", type = "INT64", mode = "NULLABLE" },
+    { name = "chunks", type = "INT64", mode = "NULLABLE" },
+    { name = "embedded", type = "INT64", mode = "NULLABLE" },
+    { name = "loaded", type = "INT64", mode = "NULLABLE" },
+    { name = "embedding_model", type = "STRING", mode = "NULLABLE" },
+    { name = "layout_source", type = "STRING", mode = "NULLABLE" },
+    { name = "git_sha", type = "STRING", mode = "NULLABLE" },
+    { name = "stage_log", type = "JSON", mode = "NULLABLE" }
+  ])
+}
+
+resource "google_bigquery_table" "query_runs" {
+  dataset_id          = google_bigquery_dataset.rag_arena.dataset_id
+  table_id            = "query_runs"
+  deletion_protection = false
+
+  schema = jsonencode([
+    { name = "run_id", type = "STRING", mode = "REQUIRED" },
+    { name = "engine", type = "STRING", mode = "REQUIRED" },
+    { name = "question_id", type = "STRING", mode = "NULLABLE" },
+    { name = "query", type = "STRING", mode = "NULLABLE" },
+    { name = "started_at", type = "TIMESTAMP", mode = "NULLABLE" },
+    { name = "latency_ms", type = "INT64", mode = "NULLABLE" },
+    { name = "cost_usd", type = "FLOAT64", mode = "NULLABLE" },
+    { name = "groundedness", type = "FLOAT64", mode = "NULLABLE" },
+    { name = "qa_relevance", type = "FLOAT64", mode = "NULLABLE" },
+    { name = "context_precision", type = "FLOAT64", mode = "NULLABLE" },
+    { name = "stage_log", type = "JSON", mode = "NULLABLE" },
+    { name = "answer", type = "STRING", mode = "NULLABLE" },
+    { name = "citations", type = "JSON", mode = "NULLABLE" },
+    { name = "demo_mode", type = "STRING", mode = "NULLABLE" },
+    { name = "git_sha", type = "STRING", mode = "NULLABLE" },
+    { name = "synthesis_model", type = "STRING", mode = "NULLABLE" },
+    { name = "judge_model", type = "STRING", mode = "NULLABLE" },
+    { name = "solicitation_id", type = "STRING", mode = "NULLABLE" },
+    { name = "scope", type = "STRING", mode = "NULLABLE" },
+    { name = "pipeline_id", type = "STRING", mode = "NULLABLE" },
+    { name = "pipeline_spec", type = "JSON", mode = "NULLABLE" }
   ])
 }
 
@@ -342,11 +452,25 @@ locals {
     ["roles/aiplatform.user", "roles/bigquery.jobUser", "roles/documentai.apiUser"],
     [var.live_ingest ? "roles/discoveryengine.editor" : "roles/discoveryengine.viewer"],
   ))
-  live_env = merge(var.live_env, {
-    DEMO_MODE          = "live"
-    GCP_PROJECT_ID     = var.project_id
-    ALLOW_DEV_FIXTURES = "0"
-  })
+  iap_audience_map = var.access_mode == "iap" ? {
+    IAP_JWT_AUDIENCE = "/projects/${data.google_project.current.number}/locations/${var.region}/services/${var.service_name}"
+  } : {}
+  live_env = merge(
+    {
+      BQ_DATASET     = var.bq_dataset_id
+      BQ_TABLE       = var.bq_table_id
+      UPLOAD_BUCKET  = local.effective_upload_bucket
+    },
+    local.iap_audience_map,
+    var.live_env,
+    {
+      DEMO_MODE          = "live"
+      GCP_PROJECT_ID     = var.project_id
+      ACCESS_MODE        = var.access_mode
+      LIVE_INGEST        = var.live_ingest ? "true" : "false"
+      ALLOW_DEV_FIXTURES = "0"
+    },
+  )
 }
 
 data "google_project" "current" {
@@ -396,11 +520,40 @@ resource "google_storage_bucket_iam_member" "live_corpus" {
   member = "serviceAccount:${google_service_account.live[0].email}"
 }
 
+resource "google_storage_bucket_iam_member" "live_upload_object" {
+  count  = local.deploy_cloud_run ? 1 : 0
+  bucket = google_storage_bucket.upload_bucket.name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${google_service_account.live[0].email}"
+}
+
+resource "google_storage_bucket_iam_member" "live_upload_bucket_reader" {
+  count  = local.deploy_cloud_run ? 1 : 0
+  bucket = google_storage_bucket.upload_bucket.name
+  role   = "roles/storage.legacyBucketReader"
+  member = "serviceAccount:${google_service_account.live[0].email}"
+}
+
+resource "google_project_service_identity" "discoveryengine_agent" {
+  provider = google-beta
+  count    = local.deploy_cloud_run ? 1 : 0
+  project  = var.project_id
+  service  = "discoveryengine.googleapis.com"
+}
+
+resource "google_storage_bucket_iam_member" "vais_upload_reader" {
+  count      = local.deploy_cloud_run ? 1 : 0
+  bucket     = google_storage_bucket.upload_bucket.name
+  role       = "roles/storage.objectViewer"
+  member     = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-discoveryengine.iam.gserviceaccount.com"
+  depends_on = [google_project_service_identity.discoveryengine_agent]
+}
+
 resource "google_cloud_run_v2_service" "live" {
   count               = local.deploy_cloud_run ? 1 : 0
   name                = var.service_name
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  ingress             = var.cloud_run_ingress
   deletion_protection = false
   iap_enabled         = var.access_mode == "iap"
 
@@ -474,7 +627,7 @@ resource "google_cloud_run_v2_service" "replay" {
   count               = local.deploy_cloud_run && var.deploy_replay ? 1 : 0
   name                = "${var.service_name}-replay"
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  ingress             = var.cloud_run_ingress
   deletion_protection = false
 
   template {
@@ -500,6 +653,10 @@ resource "google_cloud_run_v2_service" "replay" {
       env {
         name  = "ALLOW_DEV_FIXTURES"
         value = "0"
+      }
+      env {
+        name  = "ENABLED_LEVELS"
+        value = var.replay_enabled_levels
       }
     }
   }

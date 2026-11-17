@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
+from urllib.parse import urlsplit
 
 DEFAULT_GEMINI_FAST_MODEL: str = "gemini-4-argon"
 DEFAULT_GEMINI_PRO_MODEL: str = "gemini-4-argon"
@@ -54,6 +55,16 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
     "vertex_vector_v2",
 )
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
+VALID_ACCESS_MODES: tuple[str, ...] = ("iap", "public")
+DEFAULT_MAX_UPLOAD_FILE_BYTES: int = 512 * 1024 * 1024  # 512 MiB (protects 2 GiB Cloud Run /tmp tmpfs)
+DEFAULT_MAX_UPLOAD_PDF_PAGES: int = 500
+DEFAULT_MAX_UPLOAD_VISION_PAGES: int = 100
+_UPLOAD_FILE_BYTES_RANGE: tuple[int, int] = (1024, 5 * 1024 * 1024 * 1024)
+_UPLOAD_PDF_PAGES_RANGE: tuple[int, int] = (1, 5000)
+_UPLOAD_VISION_PAGES_RANGE: tuple[int, int] = (1, 1000)
+_IAP_AUDIENCE_RE = re.compile(
+    r"^/projects/[A-Za-z0-9_-]+/(?:locations/[a-z0-9-]+/services/[a-z0-9-]+|global/backendServices/[0-9]+|apps/[A-Za-z0-9._-]+)$"
+)
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
 # Standing $0/mo levels enabled by default in live/record mode; ephemeral ScaNN levels opt in via ENABLED_LEVELS.
@@ -69,7 +80,7 @@ DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
 DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
-DEFAULT_APP_VERSION: str = "1.5.0"  # x-release-please-version
+DEFAULT_APP_VERSION: str = "1.6.0"  # x-release-please-version
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
 DEFAULT_HYBRID_CANDIDATE_K: int = 50
 DEFAULT_RERANK_TOP_N: int = 5
@@ -181,6 +192,13 @@ class ArenaSettings:
     upload_bucket: str = ""  # v1.1 private bucket for user documents (default <project>-rag-arena-uploads)
     upload_bucket_mode: str = "auto"  # auto = create if missing (fails loud on permission/org policy); existing = never create
     upload_bucket_kms_key: str = ""  # optional CMEK for a bucket the app creates
+    access_mode: str = "public"  # iap (Cloud Run live default) | public (local dev)
+    iap_jwt_audience: str = ""  # required when is_live and access_mode == 'iap'
+    live_ingest: bool = True  # false disables POST /api/v1/ingest/jobs on query-only / replay deployments
+    allowed_upload_origins: tuple[str, ...] = ()  # explicit canonical Origin allowlist for resumable upload sessions
+    max_upload_file_bytes: int = DEFAULT_MAX_UPLOAD_FILE_BYTES
+    max_upload_pdf_pages: int = DEFAULT_MAX_UPLOAD_PDF_PAGES
+    max_upload_vision_pages: int = DEFAULT_MAX_UPLOAD_VISION_PAGES
     cloudsdk_config: str = ""
     google_application_credentials: str = ""
     bq_dataset: str = "rag_arena"
@@ -311,6 +329,7 @@ class ArenaSettings:
         self._validate_rag_engine()
         self._validate_scann()
         self._validate_upload_bucket()
+        self._validate_auth_and_upload_bounds()
 
     def _validate_scann(self) -> None:
         """Levels 7 & 8 (AlloyDB ScaNN + Vector Search 2.0) regional/identifier allow-lists and numeric bounds."""
@@ -532,6 +551,37 @@ class ArenaSettings:
         if self.upload_bucket_kms_key and not _KMS_KEY_RE.match(self.upload_bucket_kms_key):
             raise ValueError("UPLOAD_BUCKET_KMS_KEY must look like projects/P/locations/L/keyRings/R/cryptoKeys/K")
 
+    def _validate_auth_and_upload_bounds(self) -> None:
+        if self.access_mode not in VALID_ACCESS_MODES:
+            raise ValueError(f"ACCESS_MODE must be one of {VALID_ACCESS_MODES}, got {self.access_mode!r}")
+        if not isinstance(self.live_ingest, bool):
+            raise TypeError("live_ingest must be a boolean")
+        if not isinstance(self.iap_jwt_audience, str):
+            raise TypeError("IAP_JWT_AUDIENCE must be a string")
+        if self.is_live and self.access_mode == "iap":
+            if not self.iap_jwt_audience.strip() or not _IAP_AUDIENCE_RE.fullmatch(self.iap_jwt_audience.strip()):
+                raise ValueError(
+                    "IAP_JWT_AUDIENCE is required when ACCESS_MODE=iap in live/record mode and must match "
+                    "'/projects/<PROJECT_NUMBER>/locations/<REGION>/services/<SERVICE>' (or global/backendServices/<ID>)"
+                )
+        elif self.iap_jwt_audience.strip() and not _IAP_AUDIENCE_RE.fullmatch(self.iap_jwt_audience.strip()):
+            raise ValueError(f"IAP_JWT_AUDIENCE is malformed: {self.iap_jwt_audience!r}")
+        if not isinstance(self.allowed_upload_origins, tuple):
+            raise TypeError("allowed_upload_origins must be a tuple of origin URLs")
+        for origin in self.allowed_upload_origins:
+            if not isinstance(origin, str):
+                raise TypeError("allowed_upload_origins entries must be strings")
+            parts = urlsplit(origin)
+            if parts.scheme not in ("http", "https") or not parts.netloc or f"{parts.scheme}://{parts.netloc}" != origin:
+                raise ValueError(f"ALLOWED_UPLOAD_ORIGINS entry must be scheme://host[:port], got {origin!r}")
+        for name, value, (low, high) in (
+            ("MAX_UPLOAD_FILE_BYTES", self.max_upload_file_bytes, _UPLOAD_FILE_BYTES_RANGE),
+            ("MAX_UPLOAD_PDF_PAGES", self.max_upload_pdf_pages, _UPLOAD_PDF_PAGES_RANGE),
+            ("MAX_UPLOAD_VISION_PAGES", self.max_upload_vision_pages, _UPLOAD_VISION_PAGES_RANGE),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or not (low <= value <= high):
+                raise ValueError(f"{name} must be an integer between {low} and {high}, got {value!r}")
+
 
 _KMS_KEY_RE = re.compile(r"^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$")
 
@@ -589,6 +639,12 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
     upload_bucket = source.get("UPLOAD_BUCKET", "").strip()
     if not upload_bucket and project_id:
         upload_bucket = f"{project_id}-rag-arena-uploads"  # same derivation as upload_bucket.default_bucket_name
+    raw_access = source.get("ACCESS_MODE", "").strip().lower()
+    if not raw_access:
+        raw_access = "iap" if (source.get("K_SERVICE", "").strip() and mode in ("live", "record")) else "public"
+    raw_origins = tuple(
+        part.strip() for part in source.get("ALLOWED_UPLOAD_ORIGINS", "").split(",") if part.strip()
+    )
 
     return ArenaSettings(
         demo_mode=mode,
@@ -599,6 +655,19 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         upload_bucket=upload_bucket,
         upload_bucket_mode=source.get("UPLOAD_BUCKET_MODE", "auto").strip().lower(),
         upload_bucket_kms_key=source.get("UPLOAD_BUCKET_KMS_KEY", "").strip(),
+        access_mode=raw_access,
+        iap_jwt_audience=source.get("IAP_JWT_AUDIENCE", "").strip(),
+        live_ingest=_parse_bool(source.get("LIVE_INGEST", "true")),
+        allowed_upload_origins=raw_origins,
+        max_upload_file_bytes=_parse_int(
+            source.get("MAX_UPLOAD_FILE_BYTES", str(DEFAULT_MAX_UPLOAD_FILE_BYTES)), "MAX_UPLOAD_FILE_BYTES"
+        ),
+        max_upload_pdf_pages=_parse_int(
+            source.get("MAX_UPLOAD_PDF_PAGES", str(DEFAULT_MAX_UPLOAD_PDF_PAGES)), "MAX_UPLOAD_PDF_PAGES"
+        ),
+        max_upload_vision_pages=_parse_int(
+            source.get("MAX_UPLOAD_VISION_PAGES", str(DEFAULT_MAX_UPLOAD_VISION_PAGES)), "MAX_UPLOAD_VISION_PAGES"
+        ),
         cloudsdk_config=source.get("CLOUDSDK_CONFIG", "").strip(),
         google_application_credentials=source.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip(),
         bq_dataset=source.get("BQ_DATASET", "rag_arena").strip(),

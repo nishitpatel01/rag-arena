@@ -44,21 +44,23 @@ _EMBEDDING_PREVIEW_DIMS = 4
 _MAX_CONTEXT_CHUNK_CHARS = 2400
 
 
-def _parse_bbox(raw_bbox_json: Any, page_num: int) -> BoundingBox:
+def _parse_bbox(raw_bbox_json: Any, page_num: int) -> tuple[BoundingBox, str]:
     if isinstance(raw_bbox_json, str) and raw_bbox_json.strip():
         try:
             parsed = json.loads(raw_bbox_json)
         except json.JSONDecodeError as exc:
             raise ValueError(f"Malformed bbox_json in Vector Search 2.0 DataObject: {exc}") from exc
         if isinstance(parsed, dict):
-            return BoundingBox(
+            box = BoundingBox(
                 page=int(parsed.get("page", page_num)),
                 x0=float(parsed.get("x0", 0.0)),
                 y0=float(parsed.get("y0", 0.0)),
                 x1=float(parsed.get("x1", 1.0)),
                 y1=float(parsed.get("y1", 1.0)),
             )
-    return BoundingBox(page=page_num, x0=0.0, y0=0.0, x1=1.0, y1=1.0)
+            subpage = not (box.x0 <= 0.0 and box.y0 <= 0.0 and box.x1 >= 1.0 and box.y1 >= 1.0)
+            return box, ("pdf_text_layer" if subpage else "page")
+    return BoundingBox(page=page_num, x0=0.0, y0=0.0, x1=1.0, y1=1.0), "page"
 
 
 def parse_batch_search_candidates(doc: dict[str, Any], *, tier_profile: str = LAYOUT_SOURCE) -> list[HybridCandidate]:
@@ -116,6 +118,7 @@ def parse_batch_search_candidates(doc: dict[str, Any], *, tier_profile: str = LA
         effective = str(data.get("effective_date") or "").strip() or None
         amends = str(data.get("amends_section") or "").strip() or None
         section_id = str(data.get("section_id") or "").strip() or None
+        bbox, bbox_src = _parse_bbox(data.get("bbox_json"), page_num)
         chunk = DocumentChunk(
             chunk_id=chunk_id,
             tier_profile=tier_profile,
@@ -128,11 +131,11 @@ def parse_batch_search_candidates(doc: dict[str, Any], *, tier_profile: str = LA
             effective_date=effective,
             amends_section=amends,
             page_number=page_num,
-            bbox=_parse_bbox(data.get("bbox_json"), page_num),
+            bbox=bbox,
             content=content,
             score=score_val,
             layout_source=LAYOUT_SOURCE,
-            bbox_source="pdf_text_layer",
+            bbox_source=bbox_src,
         )
         candidates.append(
             HybridCandidate(

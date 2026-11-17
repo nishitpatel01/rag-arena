@@ -6,7 +6,7 @@ PROJECT_ID="${GCP_PROJECT_ID:-}"
 LOCATION="${GCP_LOCATION:-us-central1}"
 GCS_CORPUS_BUCKET="${GCS_CORPUS_BUCKET:-${PROJECT_ID}-rag-arena-corpus}"
 BQ_DATASET="${BQ_DATASET:-rag_arena}"
-BQ_TABLE="${BQ_TABLE:-document_chunks}"
+BQ_TABLE="${BQ_TABLE:-document_chunks_v3}"
 CORPUS_DIR="${CORPUS_DIR:-data/sample_docs}"
 
 if [[ -z "${PROJECT_ID}" ]]; then
@@ -33,6 +33,7 @@ REQUIRED_APIS=(
   "documentai.googleapis.com"
   "storage.googleapis.com"
   "alloydb.googleapis.com"
+  "vectorsearch.googleapis.com"
 )
 
 echo "==> Enabling required Google Cloud APIs..."
@@ -64,26 +65,71 @@ if ! bq show --dataset "${PROJECT_ID}:${BQ_DATASET}" >/dev/null 2>&1; then
   bq --location="${LOCATION}" mk --dataset --label datacloud:ai-agent "${PROJECT_ID}:${BQ_DATASET}"
 fi
 
-echo "==> Creating BigQuery table ${PROJECT_ID}:${BQ_DATASET}.${BQ_TABLE}..."
+echo "==> Creating BigQuery v3 tables (${PROJECT_ID}:${BQ_DATASET}.${BQ_TABLE}, ingest_runs, query_runs)..."
 bq query --use_legacy_sql=false --label datacloud:ai-agent --project_id="${PROJECT_ID}" "
 CREATE TABLE IF NOT EXISTS \`${PROJECT_ID}.${BQ_DATASET}.${BQ_TABLE}\` (
   chunk_id STRING NOT NULL,
   tier_profile STRING NOT NULL,
+  ingest_run_id STRING NOT NULL,
   solicitation_id STRING NOT NULL,
   doc_name STRING NOT NULL,
   doc_type STRING NOT NULL,
   element_type STRING NOT NULL,
   section_id STRING,
-  amendment_number INT64,
+  amendment_number INT64 DEFAULT 0,
   effective_date DATE,
   amends_section STRING,
-  page_number INT64,
+  page_number INT64 NOT NULL,
   bbox STRUCT<page INT64, x0 FLOAT64, y0 FLOAT64, x1 FLOAT64, y1 FLOAT64>,
-  content STRING,
+  content STRING NOT NULL,
+  layout_source STRING,
   embedding ARRAY<FLOAT64>,
-  embedding_multimodal ARRAY<FLOAT64>
+  embedding_multimodal ARRAY<FLOAT64>,
+  bbox_source STRING
 )
 CLUSTER BY tier_profile, solicitation_id;
+
+CREATE TABLE IF NOT EXISTS \`${PROJECT_ID}.${BQ_DATASET}.ingest_runs\` (
+  run_id STRING NOT NULL,
+  level STRING NOT NULL,
+  tier_profile STRING NOT NULL,
+  started_at TIMESTAMP,
+  finished_at TIMESTAMP,
+  status STRING,
+  docs INT64,
+  pages INT64,
+  chunks INT64,
+  embedded INT64,
+  loaded INT64,
+  embedding_model STRING,
+  layout_source STRING,
+  git_sha STRING,
+  stage_log JSON
+);
+
+CREATE TABLE IF NOT EXISTS \`${PROJECT_ID}.${BQ_DATASET}.query_runs\` (
+  run_id STRING NOT NULL,
+  engine STRING NOT NULL,
+  question_id STRING,
+  query STRING,
+  started_at TIMESTAMP,
+  latency_ms INT64,
+  cost_usd FLOAT64,
+  groundedness FLOAT64,
+  qa_relevance FLOAT64,
+  context_precision FLOAT64,
+  stage_log JSON,
+  answer STRING,
+  citations JSON,
+  demo_mode STRING,
+  git_sha STRING,
+  synthesis_model STRING,
+  judge_model STRING,
+  solicitation_id STRING,
+  scope STRING,
+  pipeline_id STRING,
+  pipeline_spec JSON
+);
 "
 
 echo "==> Creating BigQuery Full-Text SEARCH Index for Level 2 Hybrid RRF..."

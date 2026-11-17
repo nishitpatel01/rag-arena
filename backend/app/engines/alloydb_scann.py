@@ -170,11 +170,15 @@ SELECT
     c.chunk_id,
     c.doc_name,
     c.solicitation_id,
+    c.doc_type,
     c.page_number,
     c.section_id,
     c.content,
     c.element_type,
     c.amendment_number,
+    c.effective_date,
+    c.amends_section,
+    c.bbox_json,
     f.vec_distance,
     f.vec_rank,
     f.lex_score,
@@ -215,6 +219,9 @@ def _rows_to_candidates(rows: list[dict[str, Any]], *, tier_profile: str = LAYOU
             if isinstance(raw_bbox, dict)
             else BoundingBox(page=page_num, x0=0.0, y0=0.0, x1=1.0, y1=1.0)
         )
+        is_subpage = isinstance(raw_bbox, dict) and not (
+            bbox.x0 <= 0.0 and bbox.y0 <= 0.0 and bbox.x1 >= 1.0 and bbox.y1 >= 1.0
+        )
         chunk = DocumentChunk(
             chunk_id=str(row["chunk_id"]),
             tier_profile=tier_profile,
@@ -231,7 +238,7 @@ def _rows_to_candidates(rows: list[dict[str, Any]], *, tier_profile: str = LAYOU
             content=str(row["content"]),
             score=rrf_score,
             layout_source=LAYOUT_SOURCE,
-            bbox_source="pdf_text_layer",
+            bbox_source="pdf_text_layer" if is_subpage else "page",
         )
         vec_rank = int(row["vec_rank"]) if row.get("vec_rank") is not None else None
         lex_rank = int(row["lex_rank"]) if row.get("lex_rank") is not None else None

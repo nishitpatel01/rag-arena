@@ -14,6 +14,15 @@ from typing import Any
 
 from app.core import gcp_clients
 from app.core.config import ArenaSettings
+from app.core.model_armor import (
+    MAX_SANITIZE_TEXT_CHARS,
+    MODEL_ARMOR_SERVICE_LABEL,
+    ModelArmorClient,
+    build_model_armor_client,
+    ensure_model_armor_configured,
+    model_armor_cost_usd,
+    model_armor_pricing_summary,
+)
 from app.core.models import AgentStep, Citation, DocumentChunk, EngineFlags, EngineResult, TokenUsage
 from app.core.models_catalog import (
     PROVIDER_VERTEX_AI_SEARCH,
@@ -96,6 +105,17 @@ from app.ingestion.uploads import check_workspace_id
 _MAX_CONTEXT_CHUNK_CHARS = 2400
 _MAX_CANDIDATES_IN_PAYLOAD = 20
 _EMBEDDING_PREVIEW_DIMS = 4
+
+
+class _AdkChunkBlockedError(RuntimeError):
+    """Internal control signal raised when Model Armor blocks a tool-retrieved chunk inside an ADK run."""
+
+    def __init__(self, chunk: DocumentChunk, matched_filters: tuple[str, ...], tokens: int, latency_ms: int) -> None:
+        super().__init__(f"Model Armor blocked tool chunk {chunk.chunk_id}")
+        self.chunk = chunk
+        self.matched_filters = matched_filters
+        self.tokens = tokens
+        self.latency_ms = latency_ms
 
 
 def run_lexical_query_job(
@@ -217,6 +237,7 @@ class ComposableRAGEngine(BaseRAGEngine):
         rag_client: VertexRagClient | None = None,
         alloydb_conn_factory: Any | None = None,
         vvs2_client: Any | None = None,
+        model_armor_client: ModelArmorClient | None = None,
     ) -> None:
         if not isinstance(spec, PipelineSpec):
             raise TypeError("spec must be a PipelineSpec instance")
@@ -242,6 +263,220 @@ class ComposableRAGEngine(BaseRAGEngine):
         self._rag_client = rag_client
         self._alloydb_conn_factory = alloydb_conn_factory
         self._vvs2_client = vvs2_client
+        self._model_armor_client = model_armor_client
+        self._adk_screen_chunks = False
+        self._adk_screened_tokens = 0
+
+    def _resolve_model_armor_client(self) -> ModelArmorClient:
+        return self._model_armor_client or build_model_armor_client(self.settings)
+
+    async def _ensure_guardrail_ready(self, emitter: StageEmitter) -> None:
+        """Fail loud immediately before any paid GCP call when live Model Armor lacks a template ID."""
+        if self.spec.guardrail != "model_armor" or self._model_armor_client is not None:
+            return
+        if not self.settings.model_armor_template_id.strip():
+            async with self.stage(
+                emitter,
+                "guardrail_in",
+                label="Model Armor input & context guardrail",
+                service=MODEL_ARMOR_SERVICE_LABEL,
+                request={"location": self.settings.model_armor_location, "configured": False},
+            ):
+                ensure_model_armor_configured(self.settings)
+
+    async def _screen_input_and_chunks(
+        self,
+        cleaned_prompt: str,
+        chunks: list[DocumentChunk],
+        emitter: StageEmitter,
+    ) -> tuple[bool, str, float]:
+        """Screen user prompt + untrusted retrieved chunks via ``:sanitizeUserPrompt`` before synthesis."""
+        if self.spec.guardrail != "model_armor":
+            return False, "", 0.0
+        client = self._resolve_model_armor_client()
+        req = {
+            "service": MODEL_ARMOR_SERVICE_LABEL,
+            "endpoint": f"modelarmor.{client.location}.rep.googleapis.com",
+            "method": "sanitizeUserPrompt",
+            "location": client.location,
+            "chunks_to_screen": len(chunks),
+        }
+        async with self.stage(
+            emitter,
+            "guardrail_in",
+            label="Model Armor input & context guardrail",
+            service=MODEL_ARMOR_SERVICE_LABEL,
+            request=req,
+        ) as ctx:
+            prompt_verdict = await self.blocking(client.sanitize_user_prompt, cleaned_prompt)
+            tokens = prompt_verdict.tokens_screened
+            latency_ms = prompt_verdict.duration_ms
+            calls = 1
+            if prompt_verdict.matched:
+                filters = list(prompt_verdict.matched_filters)
+                ctx.payload = {
+                    **model_armor_pricing_summary(tokens),
+                    "service_used": MODEL_ARMOR_SERVICE_LABEL,
+                    "match_state": "MATCH_FOUND",
+                    "blocked": True,
+                    "blocked_target": "user_prompt",
+                    "matched_filters": filters,
+                    "prompt_verdict": prompt_verdict.summary_dict(),
+                    "chunks_screened": 0,
+                    "calls": calls,
+                    "latency_ms": max(0, latency_ms),
+                }
+                answer = (
+                    "Synthesis halted by Google Cloud Model Armor before LLM invocation "
+                    f"(filterMatchState=MATCH_FOUND; target=user_prompt; matched_filters={', '.join(filters)})."
+                )
+                return True, answer, model_armor_cost_usd(tokens)
+
+            for chunk in chunks:
+                chunk_verdict = await self.blocking(
+                    client.sanitize_user_prompt, chunk.content[:MAX_SANITIZE_TEXT_CHARS]
+                )
+                tokens += chunk_verdict.tokens_screened
+                latency_ms += chunk_verdict.duration_ms
+                calls += 1
+                if chunk_verdict.matched:
+                    filters = list(chunk_verdict.matched_filters)
+                    ctx.payload = {
+                        **model_armor_pricing_summary(tokens),
+                        "service_used": MODEL_ARMOR_SERVICE_LABEL,
+                        "match_state": "MATCH_FOUND",
+                        "blocked": True,
+                        "blocked_target": "retrieved_chunk",
+                        "blocked_chunk_id": chunk.chunk_id,
+                        "blocked_doc_name": chunk.doc_name,
+                        "matched_filters": filters,
+                        "prompt_verdict": prompt_verdict.summary_dict(),
+                        "chunk_verdict": chunk_verdict.summary_dict(),
+                        "chunks_screened": calls - 1,
+                        "calls": calls,
+                        "latency_ms": max(0, latency_ms),
+                    }
+                    answer = (
+                        "Synthesis halted by Google Cloud Model Armor before LLM invocation "
+                        f"(filterMatchState=MATCH_FOUND; target=retrieved_chunk; chunk_id={chunk.chunk_id}; "
+                        f"doc={chunk.doc_name}; matched_filters={', '.join(filters)})."
+                    )
+                    return True, answer, model_armor_cost_usd(tokens)
+
+            ctx.payload = {
+                **model_armor_pricing_summary(tokens),
+                "service_used": MODEL_ARMOR_SERVICE_LABEL,
+                "match_state": "NO_MATCH_FOUND",
+                "blocked": False,
+                "matched_filters": [],
+                "prompt_verdict": prompt_verdict.summary_dict(),
+                "chunks_screened": len(chunks),
+                "calls": calls,
+                "latency_ms": max(0, latency_ms),
+            }
+            return False, "", model_armor_cost_usd(tokens)
+
+    async def _screen_model_output(
+        self,
+        answer: str,
+        cleaned_prompt: str,
+        emitter: StageEmitter,
+    ) -> tuple[bool, str, float]:
+        """Screen synthesized LLM response via ``:sanitizeModelResponse`` before returning it."""
+        if self.spec.guardrail != "model_armor":
+            return False, answer, 0.0
+        client = self._resolve_model_armor_client()
+        req = {
+            "service": MODEL_ARMOR_SERVICE_LABEL,
+            "endpoint": f"modelarmor.{client.location}.rep.googleapis.com",
+            "method": "sanitizeModelResponse",
+            "location": client.location,
+        }
+        async with self.stage(
+            emitter,
+            "guardrail_out",
+            label="Model Armor output guardrail",
+            service=MODEL_ARMOR_SERVICE_LABEL,
+            request=req,
+        ) as ctx:
+            verdict = await self.blocking(client.sanitize_model_response, answer, user_prompt=cleaned_prompt)
+            filters = list(verdict.matched_filters)
+            ctx.payload = {
+                **model_armor_pricing_summary(verdict.tokens_screened),
+                "service_used": MODEL_ARMOR_SERVICE_LABEL,
+                "match_state": verdict.match_state,
+                "blocked": verdict.matched,
+                "blocked_target": "model_response" if verdict.matched else None,
+                "matched_filters": filters,
+                "response_verdict": verdict.summary_dict(),
+                "calls": 1,
+                "latency_ms": max(0, verdict.duration_ms),
+            }
+            if verdict.matched:
+                safe_answer = (
+                    "Model response withheld by Google Cloud Model Armor post-synthesis guardrail "
+                    f"(filterMatchState=MATCH_FOUND; target=model_response; matched_filters={', '.join(filters)})."
+                )
+                return True, safe_answer, model_armor_cost_usd(verdict.tokens_screened)
+            return False, answer, model_armor_cost_usd(verdict.tokens_screened)
+
+    async def _finish_single_pass_with_guardrail(
+        self,
+        *,
+        cleaned: str,
+        top: list[DocumentChunk],
+        emb_tokens: int,
+        base_cost: float,
+        rank_cost: float,
+        reranked_flag: bool,
+        layout: str,
+        start: float,
+        emitter: StageEmitter,
+    ) -> EngineResult:
+        blocked_in, blocked_answer, in_cost = await self._screen_input_and_chunks(cleaned, top, emitter)
+        if blocked_in:
+            await emitter.skipped("synthesize", reason="Halted by Google Cloud Model Armor (MATCH_FOUND before synthesis)")
+            await emitter.skipped("guardrail_out", reason="Synthesis skipped due to pre-synthesis guardrail block")
+            usage = TokenUsage(
+                prompt_tokens=0,
+                output_tokens=0,
+                embedding_tokens=emb_tokens,
+                model=self.synthesis_model.id,
+                embedding_model=self._embed_model if emb_tokens > 0 else "",
+            )
+            return EngineResult(
+                engine_id=self.engine_id,
+                engine_label=self.engine_label,
+                answer=blocked_answer,
+                citations=[],
+                retrieved_chunks=[],
+                agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(cost_from_usage(usage, self.synthesis_model.id) + base_cost + rank_cost + in_cost, 8),
+                stage_log=self.stage_log_of(emitter),
+                usage=usage,
+                flags=EngineFlags(reranker_used=reranked_flag, adk_runner_used=False, layout_source=layout),
+            )
+
+        answer, usage = await self._synthesize_chunks(cleaned, top, emitter, emb_tokens)
+        blocked_out, final_answer, out_cost = await self._screen_model_output(answer, cleaned, emitter)
+        cites = [] if blocked_out else self.chunks_to_citations(top, max_citations=len(top))
+        kept_chunks = [] if blocked_out else top
+        return EngineResult(
+            engine_id=self.engine_id,
+            engine_label=self.engine_label,
+            answer=final_answer,
+            citations=cites,
+            retrieved_chunks=kept_chunks,
+            agent_steps=[],
+            latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+            cost_usd=round(
+                cost_from_usage(usage, self.synthesis_model.id) + base_cost + rank_cost + in_cost + out_cost, 8
+            ),
+            stage_log=self.stage_log_of(emitter),
+            usage=usage,
+            flags=EngineFlags(reranker_used=reranked_flag, adk_runner_used=False, layout_source=layout),
+        )
 
     @property
     def _embed_model(self) -> str:
@@ -451,19 +686,16 @@ class ComposableRAGEngine(BaseRAGEngine):
             reranked_flag = True
         else:
             top = [c.chunk for c in cands[: slots.top_k]]
-        answer, usage = await self._synthesize_chunks(cleaned, top, emitter, emb_tokens)
-        return EngineResult(
-            engine_id=self.engine_id,
-            engine_label=self.engine_label,
-            answer=answer,
-            citations=self.chunks_to_citations(top, max_citations=len(top)),
-            retrieved_chunks=top,
-            agent_steps=[],
-            latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
-            cost_usd=round(cost_from_usage(usage, self.synthesis_model.id) + rank_cost, 8),
-            stage_log=self.stage_log_of(emitter),
-            usage=usage,
-            flags=EngineFlags(reranker_used=reranked_flag, adk_runner_used=False, layout_source=layout),
+        return await self._finish_single_pass_with_guardrail(
+            cleaned=cleaned,
+            top=top,
+            emb_tokens=emb_tokens,
+            base_cost=0.0,
+            rank_cost=rank_cost,
+            reranked_flag=reranked_flag,
+            layout=layout,
+            start=start,
+            emitter=emitter,
         )
 
     async def _run_managed_single_pass(
@@ -518,14 +750,16 @@ class ComposableRAGEngine(BaseRAGEngine):
             reranked_flag = True
         else:
             top = raw_chunks[: slots.top_k] if self.spec.index_profile == "rag_engine" else raw_chunks
-        answer, usage = await self._synthesize_chunks(cleaned, top, emitter, 0)
-        total_cost = round(base_cost + rank_cost + cost_from_usage(usage, self.synthesis_model.id), 8)
-        return EngineResult(
-            engine_id=self.engine_id, engine_label=self.engine_label, answer=answer,
-            citations=self.chunks_to_citations(top, max_citations=len(top)), retrieved_chunks=top, agent_steps=[],
-            latency_ms=max(1, int((time.perf_counter() - start) * 1000)), cost_usd=total_cost,
-            stage_log=self.stage_log_of(emitter), usage=usage,
-            flags=EngineFlags(reranker_used=reranked_flag, adk_runner_used=False, layout_source=layout),
+        return await self._finish_single_pass_with_guardrail(
+            cleaned=cleaned,
+            top=top,
+            emb_tokens=0,
+            base_cost=base_cost,
+            rank_cost=rank_cost,
+            reranked_flag=reranked_flag,
+            layout=layout,
+            start=start,
+            emitter=emitter,
         )
 
     async def search_multimodal(
@@ -549,6 +783,17 @@ class ComposableRAGEngine(BaseRAGEngine):
         else:
             top = tuple(c.chunk for c in kept[: self.spec.slots.top_k])
             billed = 0
+        if self._adk_screen_chunks and top:
+            armor_client = self._resolve_model_armor_client()
+            for chunk in top:
+                verdict = await self.blocking(
+                    armor_client.sanitize_user_prompt, chunk.content[:MAX_SANITIZE_TEXT_CHARS]
+                )
+                self._adk_screened_tokens += verdict.tokens_screened
+                if verdict.matched:
+                    raise _AdkChunkBlockedError(
+                        chunk, verdict.matched_filters, self._adk_screened_tokens, verdict.duration_ms
+                    )
         return MultimodalSearch(
             chunks=top, candidates=len(cands), filtered_candidates=len(kept),
             embedding_tokens=emb_tokens, rank_billed_counts=billed, stage_records=self.stage_log_of(emitter),
@@ -563,23 +808,45 @@ class ComposableRAGEngine(BaseRAGEngine):
                 raise ValueError("ADK agent chooses corpus solicitation filters itself; solicitation_filter is only for upl_* workspaces")
             upload_scope = check_workspace_id(sol_filter)
         deadline = time.monotonic() + self.settings.query_timeout_seconds - DEADLINE_MARGIN_SECONDS
+        _, _, l3 = await self._run_query_prep(cleaned, emitter, upload_scope=upload_scope)
+        blocked_in, blocked_answer, in_cost = await self._screen_input_and_chunks(cleaned, [], emitter)
+        if blocked_in:
+            await emitter.skipped("agent_turn", reason="Halted by Google Cloud Model Armor (MATCH_FOUND on user prompt)")
+            await emitter.skipped("synthesize", reason="Halted by Google Cloud Model Armor (MATCH_FOUND before agent loop)")
+            await emitter.skipped("guardrail_out", reason="Agent loop skipped due to pre-synthesis guardrail block")
+            return EngineResult(
+                engine_id=self.engine_id,
+                engine_label=self.engine_label,
+                answer=blocked_answer,
+                citations=[],
+                retrieved_chunks=[],
+                agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(in_cost, 8),
+                stage_log=self.stage_log_of(emitter),
+                usage=TokenUsage(model=self.synthesis_model.id),
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source="pymupdf"),
+            )
+
         ledger = AgentLedger(run_id=emitter.run_id)
         retriever_spec = replace(
             self.spec,
             slots=replace(self.spec.slots, reasoning_mode="single_pass", agent_tools=()),
+            guardrail="none",
         )
         retriever = ComposableRAGEngine(
             retriever_spec,
             settings=self.settings,
             synthesis_model=self.synthesis_model,
             ranking_client=self._ranking_client,
+            model_armor_client=self._model_armor_client,
         )
+        retriever._adk_screen_chunks = self.spec.guardrail == "model_armor"
         deps = ToolDeps(
             settings=self.settings, retriever=retriever, genai_client=gcp_clients.get_genai_client(self.settings),
             bq_client=gcp_clients.get_bigquery_client(self.settings), ledger=ledger, upload_scope=upload_scope,
             tier_profile=self.spec.index_profile,
         )
-        _, _, l3 = await self._run_query_prep(cleaned, emitter, upload_scope=upload_scope)
         message = user_message(l3, upload_scope=upload_scope)
         limits = AgentLimits(
             max_turns=self.settings.agent_max_turns,
@@ -594,23 +861,76 @@ class ComposableRAGEngine(BaseRAGEngine):
             "max_turns": limits.max_turns, "max_tool_calls_per_turn": limits.max_tool_calls_per_turn,
             "model_call_attempts": MODEL_CALL_ATTEMPTS,
         }
+        chunk_blocked: _AdkChunkBlockedError | None = None
         async with self.stage(
             emitter, "agent_turn", label="ADK agent loop (tools)",
             service=f"Google ADK · Vertex AI · {self.synthesis_model.label}", request=req,
         ) as ctx:
             tools = build_tools(deps, enabled_tools=enabled_tools)
             agent = build_agent(self.synthesis_model, self.settings, tools, enabled_tools=enabled_tools)
-            outcome: AgentOutcome = await run_agent(agent, message, limits=limits, ledger=ledger, emitter=emitter)
-            cites: ResolvedCitations = resolve_citations(outcome.final_text, ledger)
-            ctx.payload = {
-                "turns": len(outcome.turns), "agent_turn_events": outcome.agent_turn_events,
-                "tool_calls": len(ledger.tool_records), "tool_calls_by_name": _tool_calls_by_name(ledger),
-                **verification_summary(ledger),
-                "final_answer_check": final_answer_check(cites.answer, cites.chunks, ledger),
-                "final_answer_source": FINAL_ANSWER_SOURCE, "final_turn_index": outcome.final_turn_index,
-                "tokens": outcome.tokens().to_dict(), "citations": [c.chunk_id for c in cites.chunks],
-                "tool_chunks_returned": len(ledger.chunks),
-            }
+            try:
+                outcome: AgentOutcome = await run_agent(agent, message, limits=limits, ledger=ledger, emitter=emitter)
+            except _AdkChunkBlockedError as blocked_exc:
+                chunk_blocked = blocked_exc
+                ctx.payload = {
+                    "match_state": "MATCH_FOUND",
+                    "blocked": True,
+                    "blocked_target": "retrieved_chunk",
+                    "blocked_chunk_id": blocked_exc.chunk.chunk_id,
+                    "blocked_doc_name": blocked_exc.chunk.doc_name,
+                    "matched_filters": list(blocked_exc.matched_filters),
+                    "latency_ms": max(0, blocked_exc.latency_ms),
+                    "tokens_screened": blocked_exc.tokens,
+                }
+            else:
+                cites: ResolvedCitations = resolve_citations(outcome.final_text, ledger)
+                ctx.payload = {
+                    "turns": len(outcome.turns), "agent_turn_events": outcome.agent_turn_events,
+                    "tool_calls": len(ledger.tool_records), "tool_calls_by_name": _tool_calls_by_name(ledger),
+                    **verification_summary(ledger),
+                    "final_answer_check": final_answer_check(cites.answer, cites.chunks, ledger),
+                    "final_answer_source": FINAL_ANSWER_SOURCE, "final_turn_index": outcome.final_turn_index,
+                    "tokens": outcome.tokens().to_dict(), "citations": [c.chunk_id for c in cites.chunks],
+                    "tool_chunks_returned": len(ledger.chunks),
+                }
+        tool_armor_cost = model_armor_cost_usd(retriever._adk_screened_tokens)
+        if chunk_blocked is not None:
+            await emitter.skipped("synthesize", reason="Halted by Google Cloud Model Armor (MATCH_FOUND on ADK retrieved chunk)")
+            await emitter.skipped("guardrail_out", reason="Synthesis skipped due to retrieved-chunk guardrail block")
+            filters = ", ".join(chunk_blocked.matched_filters)
+            blocked_msg = (
+                "Synthesis halted by Google Cloud Model Armor before ADK synthesis "
+                f"(filterMatchState=MATCH_FOUND; target=retrieved_chunk; chunk_id={chunk_blocked.chunk.chunk_id}; "
+                f"doc={chunk_blocked.chunk.doc_name}; matched_filters={filters})."
+            )
+            usage = TokenUsage(
+                embedding_tokens=ledger.usage.embedding_tokens,
+                model=self.synthesis_model.id,
+                embedding_model=self._embed_model if ledger.usage.embedding_tokens > 0 else "",
+            )
+            return EngineResult(
+                engine_id=self.engine_id,
+                engine_label=self.engine_label,
+                answer=blocked_msg,
+                citations=[],
+                retrieved_chunks=[],
+                agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(
+                    cost_from_usage(usage, self.synthesis_model.id)
+                    + rank_cost_usd(ledger.usage.rank_billed_counts)
+                    + in_cost
+                    + tool_armor_cost,
+                    8,
+                ),
+                stage_log=self.stage_log_of(emitter),
+                usage=usage,
+                flags=EngineFlags(
+                    reranker_used=ledger.usage.rank_billed_counts > 0,
+                    adk_runner_used=True,
+                    layout_source="pymupdf",
+                ),
+            )
         tokens = outcome.tokens()
         final = next(t for t in outcome.turns if t.turn_index == outcome.final_turn_index)
         async with self.stage(
@@ -623,6 +943,7 @@ class ComposableRAGEngine(BaseRAGEngine):
                 "prompt_tokens": tokens.prompt, "output_tokens": tokens.output, "thinking_tokens": tokens.thinking,
                 "turns": len(outcome.turns), "answer": cites.answer,
             }
+        blocked_out, final_answer, out_cost = await self._screen_model_output(cites.answer, cleaned, emitter)
         usage = TokenUsage(
             prompt_tokens=tokens.prompt, output_tokens=tokens.output, thinking_tokens=tokens.thinking,
             embedding_tokens=ledger.usage.embedding_tokens, model=self.synthesis_model.id,
@@ -632,12 +953,20 @@ class ComposableRAGEngine(BaseRAGEngine):
             AgentStep(step_number=i, tool_name=r.tool_name, tool_args=r.args, result_summary=r.summary, latency_ms=r.duration_ms)
             for i, r in enumerate(ledger.tool_records, start=1)
         ]
-        citations: list[Citation] = self.chunks_to_citations(list(cites.chunks), max_citations=len(cites.chunks))
+        citations: list[Citation] = [] if blocked_out else self.chunks_to_citations(list(cites.chunks), max_citations=len(cites.chunks))
+        kept_chunks = [] if blocked_out else list(ledger.chunks[:MAX_JUDGE_CHUNKS])
         return EngineResult(
-            engine_id=self.engine_id, engine_label=self.engine_label, answer=cites.answer, citations=citations,
-            retrieved_chunks=list(ledger.chunks[:MAX_JUDGE_CHUNKS]), agent_steps=steps,
+            engine_id=self.engine_id, engine_label=self.engine_label, answer=final_answer, citations=citations,
+            retrieved_chunks=kept_chunks, agent_steps=steps,
             latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
-            cost_usd=round(cost_from_usage(usage, self.synthesis_model.id) + rank_cost_usd(ledger.usage.rank_billed_counts), 8),
+            cost_usd=round(
+                cost_from_usage(usage, self.synthesis_model.id)
+                + rank_cost_usd(ledger.usage.rank_billed_counts)
+                + in_cost
+                + tool_armor_cost
+                + out_cost,
+                8,
+            ),
             stage_log=self.stage_log_of(emitter), usage=usage,
             flags=EngineFlags(
                 reranker_used=ledger.usage.rank_billed_counts > 0,
@@ -653,6 +982,7 @@ class ComposableRAGEngine(BaseRAGEngine):
         cleaned = self.validate_query_inputs(query, solicitation_filter)
         if not self.settings.is_live:
             raise RuntimeError("ComposableRAGEngine requires DEMO_MODE=live|record; use build_composable_engine for replay")
+        await self._ensure_guardrail_ready(emitter)
         if self.spec.slots.reasoning_mode == "adk_agent":
             if not isinstance(emitter, BaseStageEmitter):
                 raise TypeError("ADK agent mode requires a BaseStageEmitter")
@@ -677,15 +1007,17 @@ class ComposableRAGEngine(BaseRAGEngine):
             reranked_flag = True
         else:
             top = [c.chunk for c in cands[: self.spec.slots.top_k]]
-        answer, usage = await self._synthesize_chunks(cleaned, top, emitter, emb_tokens)
         sources = "+".join(sorted({c.layout_source for c in top if c.layout_source})) or "pymupdf"
-        return EngineResult(
-            engine_id=self.engine_id, engine_label=self.engine_label, answer=answer,
-            citations=self.chunks_to_citations(top, max_citations=len(top)), retrieved_chunks=top, agent_steps=[],
-            latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
-            cost_usd=round(cost_from_usage(usage, self.synthesis_model.id) + rank_cost, 8),
-            stage_log=self.stage_log_of(emitter), usage=usage,
-            flags=EngineFlags(reranker_used=reranked_flag, adk_runner_used=False, layout_source=sources),
+        return await self._finish_single_pass_with_guardrail(
+            cleaned=cleaned,
+            top=top,
+            emb_tokens=emb_tokens,
+            base_cost=0.0,
+            rank_cost=rank_cost,
+            reranked_flag=reranked_flag,
+            layout=sources,
+            start=start,
+            emitter=emitter,
         )
 
 

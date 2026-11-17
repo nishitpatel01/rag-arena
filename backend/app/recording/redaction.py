@@ -43,6 +43,7 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
         (settings.gcs_corpus_bucket, "${GCS_CORPUS_BUCKET}"),
         (eff_upload_bucket, "${UPLOAD_BUCKET}"),
         (settings.rag_engine_corpus_id, "${RAG_ENGINE_CORPUS_ID}"),
+        (settings.model_armor_template_id, "${MODEL_ARMOR_TEMPLATE_ID}"),
         (settings.alloydb_dsn, "${ALLOYDB_DSN}"),
         (settings.iap_jwt_audience, "${IAP_JWT_AUDIENCE}"),
         (settings.cloudsdk_config, "${CLOUDSDK_CONFIG}"),

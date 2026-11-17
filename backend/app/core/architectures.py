@@ -18,11 +18,13 @@ from typing import Any
 
 CANONICAL_QUERY_STAGES: tuple[str, ...] = (
     "query_prep",
+    "guardrail_in",
     "embed_query",
     "retrieve",
     "rerank",
     "agent_turn",
     "synthesize",
+    "guardrail_out",
     "evaluate",
 )
 CANONICAL_INGEST_STAGES: tuple[str, ...] = (
@@ -164,6 +166,7 @@ class ArchitectureDescriptor:
         rag_engine_location: str = "",
         rag_engine_embedding_model: str = "",
         vvs2_location: str = "",
+        model_armor_location: str = "",
     ) -> "ArchitectureDescriptor":
         """Resolve region + model placeholders from settings (regions/models are never hardcoded)."""
         if not gcp_location or not vertex_genai_location:
@@ -179,6 +182,8 @@ class ArchitectureDescriptor:
             mapping[RAG_ENGINE_LOCATION_PLACEHOLDER] = rag_engine_location
         if vvs2_location:
             mapping[VVS2_LOCATION_PLACEHOLDER] = vvs2_location
+        if model_armor_location:
+            mapping[MODEL_ARMOR_LOCATION_PLACEHOLDER] = model_armor_location
         services = {JUDGE_SERVICE_PLACEHOLDER: f"Vertex AI · {judge_model}"} if judge_model else {}
         if vision_model:
             services[VISION_SERVICE_PLACEHOLDER] = f"Vertex AI · {vision_model} (vision)"
@@ -211,6 +216,7 @@ class ArchitectureDescriptor:
             rag_engine_location=getattr(settings, "rag_engine_location", ""),
             rag_engine_embedding_model=getattr(settings, "rag_engine_embedding_model", ""),
             vvs2_location=getattr(settings, "vvs2_location", ""),
+            model_armor_location=getattr(settings, "model_armor_location", "us-central1"),
         )
 
 
@@ -223,6 +229,7 @@ VAIS_LOCATION_PLACEHOLDER = "{VAIS_LOCATION}"
 RAG_ENGINE_LOCATION_PLACEHOLDER = "{RAG_ENGINE_LOCATION}"
 RAG_ENGINE_STORE_SERVICE_PLACEHOLDER = "RagCorpus · RagManagedDb KNN + {RAG_ENGINE_EMBEDDING_MODEL}"
 VVS2_LOCATION_PLACEHOLDER = "{VVS2_LOCATION}"
+MODEL_ARMOR_LOCATION_PLACEHOLDER = "{MODEL_ARMOR_LOCATION}"
 VISION_SERVICE_PLACEHOLDER = "Vertex AI · {VISION_MODEL} (vision)"
 MM_EMBED_SERVICE_PLACEHOLDER = "Vertex AI · {MULTIMODAL_EMBEDDING_MODEL} (multimodal)"
 _GENAI_REGION = GENAI_LOCATION_PLACEHOLDER
@@ -714,6 +721,7 @@ __all__ = [
     "ingest_stages_for",
     "JUDGE_LOCATION_PLACEHOLDER",
     "JUDGE_SERVICE_PLACEHOLDER",
+    "MODEL_ARMOR_LOCATION_PLACEHOLDER",
     "VVS2_LOCATION_PLACEHOLDER",
     "get_architecture_descriptor",
     "list_architecture_descriptors",

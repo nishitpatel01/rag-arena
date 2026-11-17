@@ -5,6 +5,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { HighlightMetricSelect, useHighlightMetric } from "../components/ui/HighlightMetricSelect";
 import { Pill } from "../components/ui/Pill";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
+import { ExportBriefMenu } from "../features/export/ExportBriefMenu";
 import { api } from "../lib/api";
 import { formatBytes, formatTimestamp } from "../lib/format";
 import type { BenchmarkQuestion, LeaderboardResponse, LeaderboardScope, LeaderboardSource } from "../types/arena";
@@ -77,7 +78,23 @@ export const LeaderboardPage: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="text-lg font-semibold text-ink-1">Leaderboard</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-lg font-semibold text-ink-1">Leaderboard</h1>
+          <Pill tone="info" title="Selectable in live/record mode via Vertex AI GenAI Evaluation Service (:evaluateInstances)">
+            Vertex AI GenAI Eval supported
+          </Pill>
+        </div>
+        <ExportBriefMenu
+          leaderboard={{
+            groups,
+            source: source ?? "recordings",
+            scope,
+            questionId,
+            generatedAt: data?.generated_at,
+          }}
+        />
+      </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-ink-2">Source</span>
@@ -142,7 +159,7 @@ export const LeaderboardPage: React.FC = () => {
         <EmptyState title="No measured runs match" description="No runs were found for this source and these filters. Hand-typed metrics are never shown." />
       )}
       {groups.map((g, i) => <LeaderboardTable key={g.key} group={g} index={i} highlightMetric={highlightMetric} />)}
-      <p className="border-t border-line pt-2 text-[11px] text-ink-3">{BATTLE_SCORE_FOOTNOTE}</p>
+      <p className="border-t border-line pt-2 text-xs text-ink-3">{BATTLE_SCORE_FOOTNOTE}</p>
     </div>
   );
 };

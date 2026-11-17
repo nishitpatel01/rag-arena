@@ -17,6 +17,8 @@ export interface BattleRunParams {
   /** Catalog ids; omitted from the request when null (server defaults apply). */
   readonly synthesisModel?: string | null;
   readonly judgeModel?: string | null;
+  /** Optional replay pacing multiplier (`1.0`..`100.0`); omitted when `null` (server honors only in `DEMO_MODE=replay`). */
+  readonly replaySpeed?: number | null;
 }
 
 /** Transport callbacks; the frame is an already-parsed SSE `data:` JSON object. */

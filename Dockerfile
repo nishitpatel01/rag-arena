@@ -11,8 +11,9 @@ WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund && test -x node_modules/.bin/tsc && test -x node_modules/.bin/vite
 COPY frontend/index.html frontend/tsconfig.json frontend/vite.config.ts frontend/tailwind.config.js frontend/postcss.config.js ./
+COPY frontend/public ./public
 COPY frontend/src ./src
-RUN npm run build
+RUN npm run build && test -f dist/theme-init.js
 
 # ---- Stage 2: Python runtime --------------------------------------------------------------------------------------
 FROM python:3.12-slim AS runtime

@@ -90,13 +90,19 @@ def test_replay_battle_stream_forwards_recorded_stage_events_in_v3_envelope() ->
     assert evaluated["judge_model"] == "claude-opus-5-5" and evaluated["reference_answer_used"] is False
     assert isinstance(evaluated["duration_ms"], int)
     # Battle Score is computed at emit time with scoring.battle_score from the replayed metrics, the engine's
-    # latency and the run cost (engine + judge) — the same inputs the leaderboard uses; never stored in recordings.
+    # latency and operational Engine Cost (judge cost reported separately); never stored in recordings.
     expected = battle_score(
-        EvalMetrics(**evaluated["metrics"]), answer["latency_ms"], answer["cost_usd"] + evaluated["judge_cost_usd"]
+        EvalMetrics(**evaluated["metrics"]),
+        answer["latency_ms"],
+        answer["cost_usd"],
+        judge_cost_usd=evaluated["judge_cost_usd"],
     ).to_dict()
     assert evaluated["battle_score"] == expected["battle_score"]
     assert evaluated["score_breakdown"] == expected
-    assert evaluated["score_breakdown"]["cost_usd"] == evaluated["run_cost_usd"]
+    assert evaluated["engine_cost_usd"] == round(float(answer["cost_usd"]), 8)
+    assert evaluated["score_breakdown"]["cost_usd"] == evaluated["engine_cost_usd"]
+    assert evaluated["cost_usd"] == evaluated["run_cost_usd"] == evaluated["total_cost_usd"]
+    assert evaluated["cost_usd"] == round(evaluated["engine_cost_usd"] + evaluated["judge_cost_usd"], 8)
     assert kinds.index("answer_complete") < kinds.index("eval_complete") < kinds.index("battle_complete")
     assert events[-1] == {"event": "battle_complete", "run_id": run_id, "engines_completed": ["level1_naive"], "engines_failed": [], "ts": events[-1]["ts"]}
     assert "pipeline_stage" not in kinds and "battlefield_summary" not in kinds
@@ -174,5 +180,63 @@ def test_leaderboard_endpoint_aggregates_recordings_with_provenance() -> None:
     assert body["source"] == "recordings" and body["filters"] == {"question_id": None, "engine": None, "scope": "golden"}
     l1 = next(row for g in body["groups"] for row in g["rows"] if row["engine"] == "level1_naive")
     assert l1["runs"] >= 1 and l1["provenance"]["kind"] == "recording" and l1["level_label"]
+
+
+def test_battle_stream_replay_speed_override_bounded_and_ignored_in_live() -> None:
+    from unittest.mock import patch
+    from fakes import live_settings
+
+    client = _client()
+    for bad in (0, 0.5, -1, 100.1, "fast", True):
+        resp = client.post(
+            "/api/v1/battle/stream",
+            json={"query": "q", "question_id": "dev_q01", "engines": ["level1_naive"], "replay_speed": bad},
+        )
+        assert resp.status_code == 400, f"expected 400 for replay_speed={bad!r}"
+
+    # Valid override in replay mode reaches get_engine_registry with replay_speed=100.0
+    seen_speeds: list[float] = []
+    real_registry = get_engine_registry
+
+    def _spy_registry(settings: ArenaSettings, **kwargs: Any):  # noqa: ANN202
+        seen_speeds.append(settings.replay_speed)
+        return real_registry(settings, **kwargs)
+
+    with patch("app.api.routes.get_engine_registry", side_effect=_spy_registry):
+        ok = client.post(
+            "/api/v1/battle/stream",
+            json={"query": "q", "question_id": "dev_q01", "engines": ["level1_naive"], "replay_speed": 100.0},
+        )
+        assert ok.status_code == 200
+    assert seen_speeds == [100.0]
+
+    # In live mode, replay_speed override MUST NOT mutate settings.replay_speed (live telemetry untouched)
+    live_seen: list[float] = []
+
+    def _spy_live_registry(settings: ArenaSettings, **kwargs: Any):  # noqa: ANN202
+        live_seen.append(settings.replay_speed)
+        raise ValueError("stop-before-network")
+
+    live_client = _client(live_settings(enabled_levels=("level1_naive",), replay_speed=1.0))
+    with patch("app.api.routes.get_engine_registry", side_effect=_spy_live_registry):
+        live_resp = live_client.post(
+            "/api/v1/battle/stream",
+            json={"query": "q", "engines": ["level1_naive"], "replay_speed": 100.0},
+        )
+        assert live_resp.status_code == 400 and "stop-before-network" in live_resp.json()["error"]
+    assert live_seen == [1.0]
+
+
+def test_tco_routes_mounted_on_main_app() -> None:
+    client = _client()
+    defaults = client.get("/api/v1/tco/defaults")
+    assert defaults.status_code == 200
+    assert "estimate" in defaults.json()
+    est = client.post("/api/v1/tco/estimate", json={"monthly_queries": 100000, "corpus_pages": 10000})
+    assert est.status_code == 200
+    assert est.json()["recommended_level_id"]
+    bad = client.post("/api/v1/tco/estimate", json={"monthly_queries": -5})
+    assert bad.status_code == 400
+
 
 

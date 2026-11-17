@@ -10,6 +10,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from app.api.documents import get_document_routes
 from app.api.spa import resolve_static_dir, spa_routes
+from app.api.tco_api import get_tco_routes
 from app.api.uploads_api import UploadServices, get_upload_routes
 from app.api.routes import get_api_routes
 from app.core.config import ArenaSettings, get_settings
@@ -114,6 +115,7 @@ def create_app(
         raise RuntimeError("API route table must not be empty")
     routes.extend(get_document_routes())
     routes.extend(get_upload_routes())
+    routes.extend(get_tco_routes())
 
     static_dir = resolve_static_dir(resolved.static_dir, _FRONTEND_DIST)
     if static_dir is not None:

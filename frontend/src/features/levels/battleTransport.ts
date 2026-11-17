@@ -1,5 +1,6 @@
 import { api } from "../../lib/api";
 import { openSseStream, type SseFrame } from "../../lib/sse";
+import { readReplaySpeedMultiplier } from "./ReplaySpeedSelect";
 import type { OpenTransport, TransportHandle } from "./battleSession";
 
 export function isMockRequested(): boolean {
@@ -9,6 +10,8 @@ export function isMockRequested(): boolean {
 /** Real transport: one `POST /battle/stream` SSE request (`pipelines` OR `engines`, mutually exclusive). */
 export const sseTransport: OpenTransport = (params, cb) => {
   const usePipelines = Array.isArray(params.pipelines) && params.pipelines.length > 0;
+  const replaySpeed =
+    params.replaySpeed === null ? undefined : (params.replaySpeed ?? readReplaySpeedMultiplier());
   return openSseStream({
     url: api.battleStreamUrl(),
     method: "POST",
@@ -19,6 +22,7 @@ export const sseTransport: OpenTransport = (params, cb) => {
       solicitation_filter: params.solicitationFilter ?? null,
       ...(params.synthesisModel ? { synthesis_model: params.synthesisModel } : {}),
       ...(params.judgeModel ? { judge_model: params.judgeModel } : {}),
+      ...(replaySpeed !== undefined ? { replay_speed: replaySpeed } : {}),
     },
     onFrame: (frame: SseFrame) => cb.onFrame(frame),
     onError: cb.onError,

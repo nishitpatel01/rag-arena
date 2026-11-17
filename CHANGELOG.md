@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] - 2026-11-17
+
+Enterprise Showcase & GCP Architecture Advisor: Interactive Use-Case Wizard & Monthly TCO Calculator, Google Cloud Model Armor Guardrails, Vertex AI GenAI Evaluation Service + Split Engine/Judge Cost, Industry Packs, Executive Brief Export, and Replay Speed Control (`$0/mo` standing idle).
+
+### Added
+- **Interactive Use-Case Architecture Wizard & Monthly GCP TCO Calculator (`backend/app/core/tco.py`, `backend/app/api/tco_api.py`, `frontend/src/features/wizard/`, `OverviewPage.tsx`)**:
+  - Deterministic FCIS TCO and workload-fit advisor across Levels 1–8 (`GET /api/v1/tco/defaults`, `POST /api/v1/tco/estimate` with strict bounded validation) joining transparent published GCP pricing (`$0/mo` serverless idle vs dedicated AlloyDB / Vector Search 2.0 crossover) with real recorded cohort scores (zero hardcoded metrics).
+  - 5 curated enterprise scenario presets, interactive query-volume and corpus-size log sliders, primary + runner-up recommendations, sortable 8-level TCO matrix, and 1-click deep links into `/levels/*`, `/compare`, and `/workbench`.
+- **Google Cloud Model Armor Guardrails (`backend/app/core/model_armor.py`, `scripts/provision_model_armor.py`, `pipeline_spec.py`, `composable.py`, `WorkbenchPage.tsx`)**:
+  - Real REST v1 client (`:sanitizeUserPrompt`, `:sanitizeModelResponse`) with bounded retries, PI/Jailbreak/RAI/SDP/Malicious URI screening, `$0/mo` idempotent template provisioning (`--dry-run` default), and `${MODEL_ARMOR_TEMPLATE_ID}` redaction.
+  - Added `8. Safety Guardrail (Model Armor)` slot in Composable Workbench (`/workbench`), `guardrail_in` / `guardrail_out` stage nodes, 1-click prompt-injection test helper, and fail-loud `ModelArmorConfigurationError` when unconfigured in `live`/`record` mode.
+- **Vertex AI GenAI Evaluation Service & Split Engine vs. Judge Economics (`backend/app/evaluation/vertex_eval.py`, `judges.py`, `scoring.py`, `leaderboard.py`, `routes.py`, `Scoreboard.tsx`, `LeaderboardTable.tsx`, `RunPills.tsx`)**:
+  - Added judge-only `vertex-genai-eval` catalog entry calling Vertex AI `:evaluateInstances` (`GROUNDEDNESS`, `QUESTION_ANSWERING_QUALITY`, `FULFILLMENT`).
+  - Split operational **Engine $** (scored in Battle Score efficiency) from external **Judge $** (unscored autorater overhead) and **Total $** across SSE `eval_complete`, `/leaderboard`, `/compare`, and level stage rails.
+- **Industry Benchmark Packs, Executive Brief Export & Replay Speed Toggle (`frontend/src/features/packs/`, `frontend/src/features/export/`, `ReplaySpeedSelect.tsx`, `ComparePage.tsx`, `LeaderboardPage.tsx`, `LevelPage.tsx`)**:
+  - 5 industry packs (`All`, `Federal Procurement`, `SLA & Financial`, `Security & SOC`, `Legal / CUAD`) distinguishing `Recorded (Replay + Live)` questions from `Live Template` prompts.
+  - One-click Executive Decision Brief export (`.md`, formula-injection-safe `.csv`, `@media print` PDF) with full `SafeMode` (`?safe=1`) redaction on `/leaderboard` and `/compare`.
+  - Per-request `replay_speed` (`1×` / `4×` / `Instant`, validated `1.0`..`100.0`, strictly honored ONLY when `DEMO_MODE=replay`) wired through `routes.py`, `battleTransport.ts`, `/compare`, and `/levels/*`.
+
+### Fixed
+- **Dockerfile Externalized Theme Script Parity (`Dockerfile`, `backend/tests/test_auth_and_headers.py`)**:
+  - Stage 1 (`AS spa`) now copies `frontend/public ./public` and verifies `dist/theme-init.js` after `npm run build` so CSP-compliant `script-src 'self'` theme initialization is guaranteed inside container builds (**500 backend tests** across `52` files; **222 frontend tests** across `26` suites).
+
 ## [1.6.0] — 2026-11-16
 
 P0 Security, Data Correctness, Concurrency Bounds & Terraform Parity (`$0/mo` standing idle).

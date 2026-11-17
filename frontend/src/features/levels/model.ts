@@ -162,6 +162,9 @@ export function breakdownOrNull(raw: unknown): ScoreBreakdown | null {
     context_precision: r.context_precision as number,
     latency_ms: r.latency_ms as number,
     cost_usd: r.cost_usd as number,
+    ...(isFiniteNum(r.engine_cost_usd) ? { engine_cost_usd: r.engine_cost_usd } : {}),
+    ...(isFiniteNum(r.judge_cost_usd) ? { judge_cost_usd: r.judge_cost_usd } : {}),
+    ...(isFiniteNum(r.total_cost_usd) ? { total_cost_usd: r.total_cost_usd } : {}),
   };
 }
 
@@ -260,8 +263,10 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
           judgeLocation: ev.judge_location ?? null,
           inputTokens: ev.input_tokens ?? null,
           outputTokens: ev.output_tokens ?? null,
+          engineCostUsd: ev.engine_cost_usd ?? null,
           judgeCostUsd: ev.judge_cost_usd ?? null,
           runCostUsd: ev.run_cost_usd ?? null,
+          totalCostUsd: ev.total_cost_usd ?? ev.run_cost_usd ?? null,
           rationale: ev.rationale ?? null,
           battleScore: scoreOrNull(ev.battle_score),
           scoreBreakdown: breakdownOrNull(ev.score_breakdown),

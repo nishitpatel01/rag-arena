@@ -233,7 +233,7 @@ def test_origin_validation_blocks_host_header_spoofing_and_honors_allowlist() ->
     )
     assert spoof_local.status_code == 400
 
-    # On Cloud Run without ALLOWED_UPLOAD_ORIGINS: strict https://*.run.app matching Host is allowed; custom Host spoof fails
+    # On Cloud Run without ALLOWED_UPLOAD_ORIGINS: strict https://rag-arena-xxxx-uc.a.run.app matching Host is allowed; custom Host spoof fails
     with patch.dict(os.environ, {"K_SERVICE": "rag-arena"}):
         spoof_cr = client.post(
             f"/api/v1/uploads/{ws}/files",

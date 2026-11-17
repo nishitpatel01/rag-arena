@@ -167,7 +167,7 @@ def test_tracked_repo_and_built_dist_contain_no_identity_or_deployed_service_url
     allowed_run_app = "rag-arena-xxxx-uc.a" + run_app_suffix
     forbidden = [*publish_data.get("forbidden_patterns", []), *_identity_tokens()]
 
-    tracked_out = subprocess.check_output(["git", "ls-files", "-z"], cwd=PROJECT_ROOT)
+    tracked_out = subprocess.check_output(["git", "ls-files", "-z", "-co", "--exclude-standard"], cwd=PROJECT_ROOT)
     paths = [PROJECT_ROOT / p for p in tracked_out.decode("utf-8").split("\x00") if p and p != "publish.json"]
     dist_dir = PROJECT_ROOT / "frontend" / "dist"
     if dist_dir.is_dir():

@@ -18,6 +18,7 @@ _SEARCH_CLIENTS: dict[str, Any] = {}
 _VVS2_CLIENTS: dict[tuple[str, str], Any] = {}
 _ALLOYDB_POOLS: dict[str, Any] = {}
 _ADC_CREDENTIALS: dict[str, Any] = {}
+_CRED_REFRESH_LOCKS: dict[str, threading.Lock] = {}
 _CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
 
 
@@ -58,6 +59,7 @@ def clear_client_cache() -> None:
         _VVS2_CLIENTS.clear()
         _ALLOYDB_POOLS.clear()
         _ADC_CREDENTIALS.clear()
+        _CRED_REFRESH_LOCKS.clear()
 
 
 def get_access_token(settings: ArenaSettings) -> str:
@@ -72,10 +74,20 @@ def get_access_token(settings: ArenaSettings) -> str:
     key = settings.gcp_project_id.strip()
     with _CLIENT_LOCK:
         credentials = _ADC_CREDENTIALS.get(key)
-        if credentials is None:
-            _evict_if_full(_ADC_CREDENTIALS)
-            credentials, _ = google.auth.default(scopes=[_CLOUD_PLATFORM_SCOPE])
-            _ADC_CREDENTIALS[key] = credentials
+        refresh_lock = _CRED_REFRESH_LOCKS.get(key)
+        if refresh_lock is None:
+            _evict_if_full(_CRED_REFRESH_LOCKS)
+            refresh_lock = threading.Lock()
+            _CRED_REFRESH_LOCKS[key] = refresh_lock
+    if credentials is None:
+        fresh_creds, _ = google.auth.default(scopes=[_CLOUD_PLATFORM_SCOPE])
+        with _CLIENT_LOCK:
+            credentials = _ADC_CREDENTIALS.get(key)
+            if credentials is None:
+                _evict_if_full(_ADC_CREDENTIALS)
+                _ADC_CREDENTIALS[key] = fresh_creds
+                credentials = fresh_creds
+    with refresh_lock:
         if not credentials.valid:
             credentials.refresh(AuthRequest())
         token = str(getattr(credentials, "token", "") or "")
@@ -177,22 +189,23 @@ def get_vector_search_v2_client(settings: ArenaSettings) -> Any:
     """Return a cached Vertex AI Vector Search 2.0 SearchDataObjects / MatchService client."""
     _ensure_live_settings(settings)
     key = (settings.gcp_project_id.strip(), settings.gcp_location.strip())
-    if key in _VVS2_CLIENTS:
-        return _VVS2_CLIENTS[key]
+    with _CLIENT_LOCK:
+        if key in _VVS2_CLIENTS:
+            return _VVS2_CLIENTS[key]
 
-    try:
-        from google.cloud import aiplatform_v1
-    except ImportError as exc:
-        raise RuntimeError(
-            "google-cloud-aiplatform SDK is not installed in the current environment"
-        ) from exc
+        try:
+            from google.cloud import aiplatform_v1
+        except ImportError as exc:
+            raise RuntimeError(
+                "google-cloud-aiplatform SDK is not installed in the current environment"
+            ) from exc
 
-    _evict_if_full(_VVS2_CLIENTS)
-    client = aiplatform_v1.MatchServiceClient(
-        client_options={"api_endpoint": f"{key[1]}-aiplatform.googleapis.com"}
-    )
-    _VVS2_CLIENTS[key] = client
-    return client
+        _evict_if_full(_VVS2_CLIENTS)
+        client = aiplatform_v1.MatchServiceClient(
+            client_options={"api_endpoint": f"{key[1]}-aiplatform.googleapis.com"}
+        )
+        _VVS2_CLIENTS[key] = client
+        return client
 
 
 def get_alloydb_client(settings: ArenaSettings) -> Any:

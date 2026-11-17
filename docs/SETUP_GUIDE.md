@@ -85,6 +85,8 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `UPLOAD_BUCKET_MODE` | `auto` | `auto` creates/verifies the private upload bucket; `existing` never creates |
 | `UPLOAD_BUCKET` | `your-gcp-project-id-rag-arena-uploads` | defaults to `<project>-rag-arena-uploads`; must differ from `GCS_CORPUS_BUCKET` |
 | `UPLOAD_BUCKET_KMS_KEY` | empty | optional CMEK resource name when creating `UPLOAD_BUCKET` |
+| `ACCESS_MODE` / `IAP_JWT_AUDIENCE` / `LIVE_INGEST` | `public` locally (`iap` on Cloud Run) / `/projects/<NUM>/locations/<REGION>/services/<SERVICE>` / `true` | ES256 `X-Goog-IAP-JWT-Assertion` verification in `iap` mode; `HttpOnly` session cookie in `public` mode |
+| `ALLOWED_UPLOAD_ORIGINS` / `MAX_UPLOAD_FILE_BYTES` / `MAX_UPLOAD_PDF_PAGES` / `MAX_UPLOAD_VISION_PAGES` | empty / `536870912` (`512 MiB`) / `500` / `100` | canonical upload `Origin` allowlist and configurable Cloud Run `/tmp` / PDF / Vision safety bounds |
 | `BQ_DATASET` | `rag_arena` | |
 | `BQ_TABLE` | `document_chunks_v3` | live ingestion refuses `document_chunks` (the frozen v2 table) |
 | `GEMINI_FAST_MODEL` / `GEMINI_THINKING_LEVEL` | `gemini-4-argon` / `high` | default synthesis model and Gemini thinking level |

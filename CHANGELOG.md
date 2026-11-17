@@ -3,6 +3,26 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] — 2026-11-16
+
+P0 Security, Data Correctness, Concurrency Bounds & Terraform Parity (`$0/mo` standing idle).
+
+### Added
+- **Cryptographic IAP JWT Verification & Public Session Cookie Isolation (`backend/app/core/auth.py`, `config.py`, `main.py`, `uploads_api.py`, `routes.py`)**:
+  - `ACCESS_MODE=iap` (fail-closed Cloud Run default when `K_SERVICE` is set in `live`/`record`) verifies `X-Goog-IAP-JWT-Assertion` ES256 signatures, `exp`/`iat`, `iss`, and `aud == IAP_JWT_AUDIENCE` via `google-auth`, ignoring unverified `X-Goog-Authenticated-User-Email` headers and redacting `${IAP_JWT_AUDIENCE}`.
+  - `ACCESS_MODE=public` (local dev) isolates callers via an `HttpOnly; SameSite=Lax` session cookie (`__Host-rag_arena_sid` over HTTPS / `rag_arena_sid` over HTTP) instead of a shared `"anonymous"` owner.
+  - Pure-ASGI security headers middleware (`Content-Security-Policy` with externalized `/theme-init.js` and `script-src 'self'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`) plus `/api/v1/ingest/jobs` authentication, `LIVE_INGEST` gate, and `MAX_CONCURRENT_INGEST_JOBS = 2` cap.
+- **Canonical Origin Allowlist, PDF Active-Content Hardening & >30-Page Customer Uploads (`uploads.py`, `uploads_api.py`, `parsers.py`, `layout_documentai.py`, `multimodal_job.py`)**:
+  - Eliminates `Host:`-header Origin spoofing via `ALLOWED_UPLOAD_ORIGINS` (plus strict Cloud Run HTTPS hostname / localhost validation).
+  - Expands PDF safety checks to reject `/SubmitForm`, `/ImportData`, `/GoToR`, `/GoToE`, `/RichMedia`, `/Movie`, `/Sound`, `/XFA`, `/AA`, non-destination `/OpenAction`, and `xref > 200,000` bombs while preserving standard `/URI` web hyperlinks; enforces pre-download `MAX_UPLOAD_FILE_BYTES` (`512 MiB`) to protect Cloud Run `/tmp` tmpfs.
+  - Lifts silent `30`-page truncation on customer uploads (`upl_*`) up to `MAX_UPLOAD_PDF_PAGES` (`500` default) and aligns Level 3 `estimate_cost()` with `MAX_UPLOAD_VISION_PAGES` (`100` default).
+
+### Fixed
+- **Level 7/8 SQL Completeness, Honest `bbox_source` & Untrusted Prompt Delimiters (`alloydb_scann.py`, `vertex_vector_v2.py`, `synthesis.py`, `evaluator.py`)**:
+  - Adds `doc_type`, `effective_date`, `amends_section`, and `bbox_json` to Level 7 AlloyDB hybrid `SELECT`, attributes full-page fallback boxes honestly as `"page"` across Levels 7 and 8, and wraps retrieved chunks / candidate answers in `<untrusted_retrieved_context>` / `<untrusted_candidate_answer>` breakout-escaped tags.
+- **Bounded SSE Queues, Per-Subscriber Ingest Streams & Terraform Parity (`routes.py`, `jobs.py`, `gcp_clients.py`, `infra/main.tf`, `scripts/bootstrap_gcp.sh`, `scripts/deploy_cloudrun.sh`)**:
+  - Bounds battle SSE queues (`maxsize=256`) with `finally` worker cancellation on client disconnect, isolates concurrent ingest SSE subscribers, locks `_VVS2_CLIENTS` while refreshing ADC tokens outside `_CLIENT_LOCK`, and brings `infra/main.tf` + `bootstrap_gcp.sh` to full `document_chunks_v3` / `ingest_runs` / `query_runs` / `upload_bucket` / `IAP_JWT_AUDIENCE` / 8-level replay parity (**475 backend tests** across `48` files; **198 frontend tests** across `22` suites).
+
 ## [1.5.0] — 2026-11-16
 
 In-app Releases & Documentation tab (`/releases`) and deterministic `release-please` GitHub Actions automation.

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+import inspect
 import time
 from typing import Any
 
@@ -75,13 +76,19 @@ def _version_note(version: str) -> str:
     return "release candidate (preview)" if version in RELEASE_CANDIDATE_VERSIONS else "stable"
 
 
-async def _layout_all(runner: IngestJobRunner, job: IngestJob, docs: list[_DiscoveredDoc], parser: Any) -> list[DocLayout]:
+async def _layout_all(
+    runner: IngestJobRunner, job: IngestJob, docs: list[_DiscoveredDoc], parser: Any, *, max_pages: int
+) -> list[DocLayout]:
     sem = asyncio.Semaphore(DOCAI_CONCURRENCY)
+    accepts_max = "max_pages" in inspect.signature(parser.parse).parameters
 
     async def one(doc: _DiscoveredDoc) -> DocLayout:
         async with sem:
             data = await asyncio.to_thread(doc.path.read_bytes)
-            layout = await asyncio.to_thread(parser.parse, doc.path.name, data)
+            if accepts_max:
+                layout = await asyncio.to_thread(lambda: parser.parse(doc.path.name, data, max_pages=max_pages))
+            else:
+                layout = await asyncio.to_thread(parser.parse, doc.path.name, data)
         await runner._put(job, {
             "event": "doc_progress", "stage": "parse", "step": "documentai", "doc_name": doc.path.name,
             "pages": layout.pages, "chunks": 0, "blocks": len(layout.elements),
@@ -141,22 +148,34 @@ def _page_text(pdf_path: Any, page: int) -> str:
 
 
 async def _parse(runner: IngestJobRunner, job: IngestJob, emitter: Any, tracker: Any, docs: list[_DiscoveredDoc]) -> tuple[Any, list[ParsedDoc], dict[str, Any]]:
+    from app.ingestion.layout_documentai import MAX_PAGES_PER_DOC
+
     backends = await asyncio.to_thread(runner.backend_factory, runner.settings)
     parser, vision = getattr(backends, "layout_parser", None), getattr(backends, "vision", None)
-    request: dict[str, Any] = {"docs": len(docs), "diagram_heuristic": DIAGRAM_HEURISTIC, "max_vision_pages": MAX_VISION_PAGES}
+    max_pages = runner.settings.max_upload_pdf_pages if job.scope is not None else MAX_PAGES_PER_DOC
+    vision_limit = runner.settings.max_upload_vision_pages if job.scope is not None else MAX_VISION_PAGES
+    request: dict[str, Any] = {"docs": len(docs), "diagram_heuristic": DIAGRAM_HEURISTIC, "max_vision_pages": vision_limit}
     if parser is not None and vision is not None:
-        request.update(layout_parser=parser.request_summary(), vision=vision.request_summary())
+        summary = (
+            parser.request_summary(max_pages_per_doc=max_pages)
+            if "max_pages_per_doc" in inspect.signature(parser.request_summary).parameters
+            else parser.request_summary()
+        )
+        request.update(layout_parser=summary, vision=vision.request_summary())
     service = f"Document AI Layout Parser · Vertex AI {getattr(vision, 'model', runner.settings.vision_model)}"
     async with tracker.scope(emitter, "parse", "Layout Parser + Gemini vision", service, request) as sc:
         _require_backends(backends, runner.settings.demo_mode)  # inside the stage → stage_failed + job_failed
         t0 = time.perf_counter()
-        layouts = await _layout_all(runner, job, docs, parser)
+        layouts = await _layout_all(runner, job, docs, parser, max_pages=max_pages)
         docai_wall_ms = int((time.perf_counter() - t0) * 1000)
         diagram_pages = [await asyncio.to_thread(detect_diagram_pages, d.path, list(range(1, lay.pages + 1)), lay.figure_pages) for d, lay in zip(docs, layouts)]
         targets = [(d, p, r) for d, pages in zip(docs, diagram_pages) for p, r in sorted(pages.items())]
-        # Corpus bound only: uploads have no page limits (owner decision 2026-10-26); the job timeout still bounds them.
-        if job.scope is None and len(targets) > MAX_VISION_PAGES:
-            raise RuntimeError(f"{len(targets)} diagram pages exceed MAX_VISION_PAGES={MAX_VISION_PAGES}: {[(d.path.name, p) for d, p, _ in targets[:10]]}…")
+        if len(targets) > vision_limit:
+            cap_name = "MAX_UPLOAD_VISION_PAGES" if job.scope is not None else "MAX_VISION_PAGES"
+            raise RuntimeError(
+                f"{len(targets)} diagram pages exceed {cap_name}={vision_limit}: "
+                f"{[(d.path.name, p) for d, p, _ in targets[:10]]}…"
+            )
         t1 = time.perf_counter()
         results, failures = await _vision_all(runner, job, targets, vision)
         vision_wall_ms = int((time.perf_counter() - t1) * 1000)

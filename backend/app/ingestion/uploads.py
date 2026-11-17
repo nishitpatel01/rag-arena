@@ -44,6 +44,9 @@ _UNSAFE_CHARS = re.compile(r"[^A-Za-z0-9._-]+")
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 _JS_RE = re.compile(r"/(JavaScript|JS)\b")
 _LAUNCH_RE = re.compile(r"/Launch\b")
+_DANGEROUS_ACTION_RE = re.compile(r"/(SubmitForm|ImportData|GoToR|GoToE|RichMedia|Movie|Sound|XFA|AA)\b")
+_OPEN_ACTION_NON_ARRAY_RE = re.compile(r"/OpenAction\s*(?!\[)")
+MAX_XREF_OBJECTS = 200_000
 _MAX_ERROR_CHARS = 400
 
 
@@ -153,10 +156,19 @@ def _sha256_file(path: Path) -> str:
 
 
 def _active_content(doc: Any) -> str:
-    """'' when clean, else the reason (JavaScript / launch actions / embedded files)."""
+    """'' when clean, else the reason (xref bomb / JavaScript / launch / active actions / embedded files).
+
+    Standard ``/URI`` hyperlinks are intentionally allowed so legitimate enterprise contracts/RFPs are not rejected;
+    DocumentDrawer renders pages to server-side PNGs rather than live PDF links.
+    TODO(security): Integrate Vertex AI Model Armor / sandboxed CDR malware scanning on uploaded PDFs in v1.7.0.
+    """
+    xref_total = int(doc.xref_length())
+    if xref_total > MAX_XREF_OBJECTS:
+        return f"PDF xref table ({xref_total}) exceeds maximum safe bound ({MAX_XREF_OBJECTS})"
     if doc.embfile_count() > 0:
         return "PDF contains embedded files"
-    for xref in range(1, doc.xref_length()):
+    has_non_dest_open_action = False
+    for xref in range(1, xref_total):
         try:
             obj = doc.xref_object(xref, compressed=True)
         except Exception:  # noqa: BLE001 - a broken object is skipped; parsing problems surface via page_count
@@ -165,11 +177,16 @@ def _active_content(doc: Any) -> str:
             return "PDF contains JavaScript"
         if _LAUNCH_RE.search(obj):
             return "PDF contains launch actions"
-    return ""
+        m_act = _DANGEROUS_ACTION_RE.search(obj)
+        if m_act:
+            return f"PDF contains active action ({m_act.group(0)})"
+        if _OPEN_ACTION_NON_ARRAY_RE.search(obj):
+            has_non_dest_open_action = True
+    return "PDF contains non-destination /OpenAction" if has_non_dest_open_action else ""
 
 
-def validate_pdf_file(path: Path) -> PdfInfo:
-    """Safety checks only (owner decision: no size or page limits). Raises ``PdfRejected`` naming the reason."""
+def validate_pdf_file(path: Path, *, max_pages: int | None = None) -> PdfInfo:
+    """Safety + configurable page-bound check. Raises ``PdfRejected`` naming the reason."""
     import pymupdf  # type: ignore[import-not-found]
 
     path = Path(path)
@@ -189,6 +206,8 @@ def validate_pdf_file(path: Path) -> PdfInfo:
         pages = int(doc.page_count)
         if pages < 1:
             raise PdfRejected("unreadable PDF (no pages)")
+        if max_pages is not None and pages > max_pages:
+            raise PdfRejected(f"PDF has {pages} pages, exceeding MAX_UPLOAD_PDF_PAGES ({max_pages})")
         reason = _active_content(doc)
         if reason:
             raise PdfRejected(reason)
@@ -425,6 +444,7 @@ class UploadStore:
 
 __all__ = [
     "MANIFEST_NAME",
+    "MAX_XREF_OBJECTS",
     "PdfInfo",
     "PdfRejected",
     "UPLOAD_PREFIX",

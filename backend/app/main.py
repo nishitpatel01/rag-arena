@@ -34,6 +34,57 @@ _ALLOWED_ORIGINS: list[str] = [
     "http://127.0.0.1:3000",
 ]
 
+_CSP_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "connect-src 'self' https://storage.googleapis.com; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'"
+)
+_STATIC_SECURITY_HEADERS: tuple[tuple[bytes, bytes], ...] = (
+    (b"content-security-policy", _CSP_POLICY.encode("ascii")),
+    (b"x-content-type-options", b"nosniff"),
+    (b"x-frame-options", b"DENY"),
+    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+)
+_SESSION_MAX_AGE_SECONDS = 30 * 24 * 3600
+
+
+class _SecurityHeadersAndSessionMiddleware:
+    """Pure-ASGI middleware adding CSP/hardening headers and public-mode HttpOnly session cookies without buffering SSE."""
+
+    def __init__(self, app: object) -> None:
+        self._app = app
+
+    async def __call__(self, scope: dict, receive: object, send: object) -> None:
+        if scope.get("type") != "http":
+            await self._app(scope, receive, send)  # type: ignore[operator]
+            return
+        scope.setdefault("state", {})
+
+        async def _send(message: dict) -> None:
+            if message.get("type") == "http.response.start":
+                raw_headers = list(message.get("headers") or [])
+                existing = {k.lower() for k, _ in raw_headers}
+                for key, val in _STATIC_SECURITY_HEADERS:
+                    if key not in existing:
+                        raw_headers.append((key, val))
+                cookie_info = scope.get("state", {}).get("new_session_cookie")
+                if isinstance(cookie_info, tuple) and len(cookie_info) == 3:
+                    name, sid, is_https = cookie_info
+                    flags = "; Secure" if is_https else ""
+                    cookie_val = f"{name}={sid}; Path=/; Max-Age={_SESSION_MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax{flags}"
+                    raw_headers.append((b"set-cookie", cookie_val.encode("ascii")))
+                message = {**message, "headers": raw_headers}
+            await send(message)  # type: ignore[operator]
+
+        await self._app(scope, receive, _send)  # type: ignore[operator]
+
 
 def create_app(
     allowed_origins: list[str] | None = None,
@@ -69,6 +120,7 @@ def create_app(
         routes.extend(spa_routes(static_dir))  # after every API route: /api/** misses → 404 JSON, client routes → index.html
 
     middleware = [
+        Middleware(_SecurityHeadersAndSessionMiddleware),
         Middleware(
             CORSMiddleware,
             allow_origins=origins,
@@ -78,7 +130,7 @@ def create_app(
             allow_credentials=True,
             allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
             allow_headers=["*"],
-        )
+        ),
     ]
     application = Starlette(debug=False, routes=routes, middleware=middleware)
     factory = ingest_backend_factory or (live_backends if resolved.is_live else unavailable_backends)

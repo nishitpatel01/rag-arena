@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
 from typing import Any, AsyncIterator
 import uuid
@@ -24,7 +25,8 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
 from app.api.query_runs_reader import QueryRunsReadError, leaderboard_from_query_runs
-from app.api.uploads_api import ANONYMOUS, IAP_EMAIL_HEADER, upload_scope_error
+from app.api.uploads_api import upload_scope_error
+from app.core.auth import AuthError, resolve_caller_identity
 from app.ingestion.uploads import owner_key
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
@@ -303,6 +305,9 @@ async def _run_single_engine_worker(
     return True
 
 
+BATTLE_SSE_QUEUE_MAXSIZE = 256
+
+
 async def _stream_battle_events(
     query: str,
     question_id: str | None,
@@ -320,7 +325,7 @@ async def _stream_battle_events(
     if not query.strip() or not selected_engines:
         raise ValueError("query and selected_engines must be non-empty")
     run_id = f"run_{uuid.uuid4().hex[:12]}"
-    queue: asyncio.Queue = asyncio.Queue()
+    queue: asyncio.Queue = asyncio.Queue(maxsize=BATTLE_SSE_QUEUE_MAXSIZE)
     synthesis_id, judge_id = models.pair if models is not None else default_selection_ids(settings)
     yield _format_sse_event(
         {
@@ -357,23 +362,34 @@ async def _stream_battle_events(
     frames = 0
     reached_sentinel = False
     idle_timeout = 2.0 * float(settings.query_timeout_seconds) + _QUEUE_IDLE_GRACE_SECONDS
-    while frames < frame_budget:
-        item = await asyncio.wait_for(queue.get(), timeout=idle_timeout)
-        if item is None:
-            reached_sentinel = True
-            break
-        yield _format_sse_event(item)
-        frames += 1
-    if not reached_sentinel:
+    try:
+        while frames < frame_budget:
+            item = await asyncio.wait_for(queue.get(), timeout=idle_timeout)
+            if item is None:
+                reached_sentinel = True
+                break
+            yield _format_sse_event(item)
+            frames += 1
+        if not reached_sentinel:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            while not queue.empty():
+                queue.get_nowait()
+            yield _format_sse_event(
+                {"event": "stream_warning", "run_id": run_id, "message": f"MAX_SSE_FRAMES ({settings.max_sse_frames}) reached; remaining events truncated.", "ts": utc_now_iso()}
+            )
+        successes = await join_task
+        completed = [eng for eng, ok in zip(selected_engines, successes) if ok]
+        failed = [eng for eng, ok in zip(selected_engines, successes) if not ok]
         yield _format_sse_event(
-            {"event": "stream_warning", "run_id": run_id, "message": f"MAX_SSE_FRAMES ({settings.max_sse_frames}) reached; remaining events truncated.", "ts": utc_now_iso()}
+            {"event": "battle_complete", "run_id": run_id, "engines_completed": completed, "engines_failed": failed, "ts": utc_now_iso()}
         )
-    successes = await join_task
-    completed = [eng for eng, ok in zip(selected_engines, successes) if ok]
-    failed = [eng for eng, ok in zip(selected_engines, successes) if not ok]
-    yield _format_sse_event(
-        {"event": "battle_complete", "run_id": run_id, "engines_completed": completed, "engines_failed": failed, "ts": utc_now_iso()}
-    )
+    finally:
+        for task in (*tasks, join_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, join_task, return_exceptions=True)
 
 
 async def health_endpoint(request: Request) -> JSONResponse:
@@ -659,6 +675,11 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
         return JSONResponse({"error": f"Invalid JSON request body: {exc}"}, status_code=400)
 
     settings = _settings_of(request)
+    if settings.is_live and settings.access_mode == "iap":
+        try:
+            resolve_caller_identity(request, settings)
+        except AuthError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=exc.status_code)
     models_by_key: dict[str, RunModels] | None = None
     specs_by_key: dict[str, PipelineSpec] | None = None
     try:
@@ -703,33 +724,60 @@ def _ingest_runner(request: Request) -> IngestJobRunner:
     return runner
 
 
+MAX_CONCURRENT_INGEST_JOBS = 2
+
+
 async def ingest_jobs_create_endpoint(request: Request) -> JSONResponse:
     """POST /api/v1/ingest/jobs {level} → {job_id}."""
+    settings = _settings_of(request)
+    if not settings.is_live and os.environ.get("K_SERVICE"):
+        return JSONResponse({"error": "ingestion jobs are available only on the live service"}, status_code=404)
+    if not settings.live_ingest:
+        return JSONResponse({"error": "LIVE_INGEST is disabled on this service"}, status_code=403)
+    if settings.is_live:
+        try:
+            resolve_caller_identity(request, settings)
+        except AuthError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=exc.status_code)
+    runner = _ingest_runner(request)
+    active = sum(1 for j in runner.list_jobs() if not j.done)
+    if active >= MAX_CONCURRENT_INGEST_JOBS:
+        return JSONResponse(
+            {"error": f"Too many concurrent ingestion jobs ({active}/{MAX_CONCURRENT_INGEST_JOBS}); wait for active jobs to finish"},
+            status_code=429,
+        )
     try:
         body = await request.json()
     except ValueError as exc:
         return JSONResponse({"error": f"Invalid JSON request body: {exc}"}, status_code=400)
     level = str(body.get("level", "")).strip() if isinstance(body, dict) else ""
     try:
-        job = _ingest_runner(request).start(level)
+        job = runner.start(level)
     except (ValueError, RuntimeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     return JSONResponse({"job_id": job.job_id, "level": job.level, "tier_profile": job.tier_profile, "status": job.status}, status_code=202)
 
 
 def _viewer_owner(request: Request) -> str:
-    return owner_key(request.headers.get(IAP_EMAIL_HEADER, "").strip() or ANONYMOUS)
+    settings = _settings_of(request)
+    if not settings.is_live:
+        return owner_key("replay")
+    return owner_key(resolve_caller_identity(request, settings))
 
 
 async def ingest_job_stream_endpoint(request: Request) -> JSONResponse | StreamingResponse:
     """GET /api/v1/ingest/jobs/{job_id}/stream: SSE of job_started, stage_*, doc_progress, embed_progress, job_complete."""
+    try:
+        viewer = _viewer_owner(request)
+    except AuthError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=exc.status_code)
     runner = _ingest_runner(request)
     job_id = str(request.path_params.get("job_id", ""))
     try:
         job = runner.get(job_id)
     except KeyError as exc:
         return JSONResponse({"error": str(exc)}, status_code=404)
-    if not job.visible_to(_viewer_owner(request)):
+    if not job.visible_to(viewer):
         return JSONResponse({"error": f"Unknown ingestion job '{job_id}'"}, status_code=404)
 
     async def _frames() -> AsyncIterator[str]:
@@ -741,19 +789,27 @@ async def ingest_job_stream_endpoint(request: Request) -> JSONResponse | Streami
 
 async def ingest_job_get_endpoint(request: Request) -> JSONResponse:
     """GET /api/v1/ingest/jobs/{job_id}: job status snapshot."""
+    try:
+        viewer = _viewer_owner(request)
+    except AuthError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=exc.status_code)
     job_id = str(request.path_params.get("job_id", ""))
     try:
         job = _ingest_runner(request).get(job_id)
     except KeyError as exc:
         return JSONResponse({"error": str(exc)}, status_code=404)
-    if not job.visible_to(_viewer_owner(request)):
+    if not job.visible_to(viewer):
         return JSONResponse({"error": f"Unknown ingestion job '{job_id}'"}, status_code=404)
     return JSONResponse(job.to_dict())
 
 
 async def ingest_status_endpoint(request: Request) -> JSONResponse:
     """GET /api/v1/ingest/status: counts by tier + index states + active_jobs (or an explicit unavailability reason)."""
-    return JSONResponse(await _ingest_runner(request).status(viewer_owner=_viewer_owner(request)))
+    try:
+        viewer = _viewer_owner(request)
+    except AuthError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=exc.status_code)
+    return JSONResponse(await _ingest_runner(request).status(viewer_owner=viewer))
 
 
 def get_api_routes() -> list[Route]:

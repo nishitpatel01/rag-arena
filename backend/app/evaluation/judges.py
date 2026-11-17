@@ -7,14 +7,14 @@ The judge must be a different model than the one that synthesized the answer (ow
   Retries are bounded (≤ 3 attempts, exponential backoff) and happen ONLY on 429/500/503/timeouts, inside the
   run's query budget. Any other failure raises — there is no fallback to another judge.
 * ``GeminiJudge``: a structured-output Gemini judge (must still differ from every synthesis model).
+* ``VertexGenAIEvalJudge``: managed rubric-based Vertex AI GenAI Evaluation Service (``:evaluateInstances``)
+  scoring ``GROUNDEDNESS``, ``QUESTION_ANSWERING_QUALITY``, and ``FULFILLMENT`` (`judge_only`).
 
-Both return a ``JudgeVerdict`` parsed strictly from a single JSON object
-``{groundedness, qa_relevance, context_precision, rationale}`` with metrics in [0, 1].
+All providers return a ``JudgeVerdict`` carrying ``EvalMetrics`` in [0, 1], rationale, and measured usage.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import re
 import time
@@ -28,7 +28,6 @@ from app.core.anthropic_vertex import (
     MAX_ATTEMPTS,
     RETRYABLE_STATUS,
     AnthropicVertexClient,
-    RawPredictHTTPError,
     message_text,
     message_usage,
     redact_project,
@@ -36,10 +35,19 @@ from app.core.anthropic_vertex import (
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_access_token, get_genai_client
 from app.core.models import EvalMetrics
+from app.core.models_catalog import VERTEX_GENAI_EVAL_LABEL, VERTEX_GENAI_EVAL_MODEL_ID
+from app.evaluation.vertex_eval import (
+    JudgeHTTPError,
+    JudgeResponseError,
+    JudgeResult,
+    JudgeVerdict,
+    MAX_RATIONALE_CHARS,
+    PROVIDER_VERTEX_GENAI_EVAL,
+    VertexGenAIEvalJudge,
+)
 
 METRIC_KEYS: tuple[str, ...] = ("groundedness", "qa_relevance", "context_precision")
 JUDGE_KEYS: tuple[str, ...] = (*METRIC_KEYS, "rationale")
-MAX_RATIONALE_CHARS = 600
 _MAX_RESPONSE_TEXT_CHARS = 20_000
 _MAX_JSON_CANDIDATES = 50
 _CLAUDE_ID_RE = re.compile(r"claude-([a-z]+)-(\d+)(?:-(\d+))?")
@@ -51,26 +59,6 @@ _GEMINI_SCHEMA: dict[str, Any] = {
 # Catalog provider ids (app.core.models_catalog); the legacy JUDGE_PROVIDER value "gemini" maps to "vertex_gemini".
 PROVIDER_ANTHROPIC_VERTEX = "anthropic_vertex"
 PROVIDER_VERTEX_GEMINI = "vertex_gemini"
-
-
-class JudgeResponseError(ValueError):
-    """Raised when the judge returns something that is not a single valid metric object."""
-
-
-class JudgeHTTPError(RawPredictHTTPError):
-    """Raised when the judge endpoint answers with a non-2xx status (after bounded retries if retryable)."""
-
-
-@dataclass(frozen=True)
-class JudgeVerdict:
-    """One judge call: strict metrics + rationale + measured usage and provenance."""
-
-    metrics: EvalMetrics
-    rationale: str
-    input_tokens: int
-    output_tokens: int
-    response_id: str
-    attempts: int
 
 
 class Judge(Protocol):
@@ -132,10 +120,13 @@ def parse_judge_json(text: str) -> tuple[EvalMetrics, str]:
 
 
 def judge_display_name(model: str) -> str:
-    """Human label for a judge model id, e.g. ``claude-opus-5-5`` → ``Claude Opus 5.5`` (other ids unchanged)."""
-    match = _CLAUDE_ID_RE.fullmatch(model.strip())
+    """Human label for a judge model id, e.g. ``claude-opus-5-5`` → ``Claude Opus 5.5``."""
+    cleaned = model.strip()
+    if cleaned == VERTEX_GENAI_EVAL_MODEL_ID:
+        return VERTEX_GENAI_EVAL_LABEL
+    match = _CLAUDE_ID_RE.fullmatch(cleaned)
     if not match:
-        return model.strip()
+        return cleaned
     family, major, minor = match.groups()
     version = f"{major}.{minor}" if minor else major
     return f"Claude {family.capitalize()} {version}"
@@ -282,7 +273,8 @@ class GeminiJudge:
 def build_judge(settings: ArenaSettings, spec: Any | None = None) -> Judge:
     """Return the judge for the selected catalog ``spec`` (a ``ModelSpec``), else the ``JUDGE_*`` settings judge.
 
-    Provider-agnostic both ways: a Gemini judge may grade a Claude answer and vice versa. No fallback judge.
+    Provider-agnostic both ways: a Gemini judge may grade a Claude answer, Claude may grade Gemini, and
+    ``VertexGenAIEvalJudge`` grades any engine output via ``:evaluateInstances``. No fallback judge.
     """
     if not isinstance(settings, ArenaSettings):
         raise TypeError("settings must be an ArenaSettings instance")
@@ -292,7 +284,11 @@ def build_judge(settings: ArenaSettings, spec: Any | None = None) -> Judge:
             return AnthropicVertexJudge(settings, model=model, location=location)
         if provider == PROVIDER_VERTEX_GEMINI:
             return GeminiJudge(settings, model=model, location=location)
+        if provider == PROVIDER_VERTEX_GENAI_EVAL or model == VERTEX_GENAI_EVAL_MODEL_ID:
+            return VertexGenAIEvalJudge(settings, model=model or VERTEX_GENAI_EVAL_MODEL_ID, location=location or None)
         raise ValueError(f"Unsupported judge provider {provider!r} for model {model!r}")
+    if settings.judge_model == VERTEX_GENAI_EVAL_MODEL_ID or settings.judge_provider == PROVIDER_VERTEX_GENAI_EVAL:
+        return VertexGenAIEvalJudge(settings)
     if settings.judge_provider == AnthropicVertexJudge.provider:
         return AnthropicVertexJudge(settings)
     if settings.judge_provider == "gemini":
@@ -308,11 +304,15 @@ __all__ = [
     "Judge",
     "JudgeHTTPError",
     "JudgeResponseError",
+    "JudgeResult",
     "JudgeVerdict",
     "MAX_ATTEMPTS",
+    "MAX_RATIONALE_CHARS",
     "PROVIDER_ANTHROPIC_VERTEX",
     "PROVIDER_VERTEX_GEMINI",
+    "PROVIDER_VERTEX_GENAI_EVAL",
     "RETRYABLE_STATUS",
+    "VertexGenAIEvalJudge",
     "build_judge",
     "judge_display_name",
     "judge_service_label",

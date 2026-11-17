@@ -346,6 +346,7 @@ export type ModelProvider =
   | "anthropic_vertex"
   | "vertex_ai_search"
   | "vertex_rag_engine"
+  | "vertex_genai_eval"
   | (string & {});
 
 export interface ModelCatalogEntry {
@@ -412,7 +413,11 @@ export interface LeaderboardRow {
   readonly avg_qa_relevance?: number | null;
   readonly avg_context_precision?: number | null;
   readonly avg_latency_ms?: number | null;
+  readonly avg_engine_cost_usd?: number | null;
+  readonly avg_judge_cost_usd?: number | null;
   readonly avg_cost_usd?: number | null;
+  readonly engine_cost_usd?: number | null;
+  readonly judge_cost_usd?: number | null;
   readonly questions_covered?: number;
   readonly failures?: number;
   readonly first_run_at?: string | null;
@@ -638,15 +643,17 @@ export interface EvalCompleteEvent extends BaseEvent {
   readonly judge_location?: string;
   readonly input_tokens?: number;
   readonly output_tokens?: number;
+  readonly engine_cost_usd?: number;
   readonly judge_cost_usd?: number;
   readonly run_cost_usd?: number;
+  readonly total_cost_usd?: number;
   readonly rationale?: string;
   /** Battle Score 0–100 computed by the server (scoring.battle_score) at emit time; absent on older servers. */
   readonly battle_score?: number;
   readonly score_breakdown?: ScoreBreakdown;
 }
 
-/** `scoring.ScoreBreakdown.to_dict()` — the measured inputs of the Battle Score (cost = engine + judge). */
+/** `scoring.ScoreBreakdown.to_dict()` — the measured inputs of the Battle Score (`cost_usd` = operational engine cost). */
 export interface ScoreBreakdown {
   readonly battle_score: number;
   readonly efficiency: number;
@@ -655,6 +662,9 @@ export interface ScoreBreakdown {
   readonly context_precision: number;
   readonly latency_ms: number;
   readonly cost_usd: number;
+  readonly engine_cost_usd?: number;
+  readonly judge_cost_usd?: number;
+  readonly total_cost_usd?: number;
 }
 
 export interface EngineErrorEvent extends BaseEvent {
@@ -859,8 +869,10 @@ export interface EngineEvaluation {
   readonly judgeLocation?: string | null;
   readonly inputTokens?: number | null;
   readonly outputTokens?: number | null;
+  readonly engineCostUsd?: number | null;
   readonly judgeCostUsd?: number | null;
   readonly runCostUsd?: number | null;
+  readonly totalCostUsd?: number | null;
   readonly rationale?: string | null;
   /** Server-emitted Battle Score (null when the server did not send a valid one — never computed client-side). */
   readonly battleScore?: number | null;

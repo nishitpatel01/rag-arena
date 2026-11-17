@@ -3,8 +3,10 @@
 Both sources reduce to ``RunSample`` values and go through ONE aggregator, so the response shape is identical:
 ``{source, generated_at, filters, notes, stats, groups: [{synthesis_model, judge_model, pair_known, note, rows}]}``.
 Rows are per engine inside a (synthesis, judge) pair and never averaged across pairs or judges. Each run's
-Battle Score comes from ``scoring.battle_score`` (the single formula), then is averaged per row. Runs without a
-known pair go to an ``unknown`` group with a note — never merged into a real pair.
+Battle Score comes from ``scoring.battle_score`` using operational **Engine Cost** (``engine_cost_usd``, falling
+back to ``cost_usd - judge_cost_usd`` on recordings without explicit ``engine_cost_usd``) so expensive external
+judges never distort engine efficiency, while ``avg_engine_cost_usd``, ``avg_judge_cost_usd``, and ``avg_cost_usd``
+are all reported transparently per row.
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ from typing import Any, Iterable, Mapping
 
 from app.core.models import EvalMetrics
 from app.core.telemetry import utc_now_iso
-from app.evaluation.scoring import battle_score
+from app.evaluation.scoring import battle_score, resolve_engine_cost_usd
 from app.recording.codec import eval_outcome_from_dict
 from app.recording.store import RecordingInvalid, RecordingStore
 
@@ -77,10 +79,40 @@ class RunSample:
     latency_ms: int | None
     cost_usd: float | None
     metrics: EvalMetrics | None
+    engine_cost_usd: float | None = None
+    judge_cost_usd: float | None = None
+
+    @property
+    def resolved_engine_cost_usd(self) -> float | None:
+        return resolve_engine_cost_usd(
+            self.cost_usd,
+            engine_cost_usd=self.engine_cost_usd,
+            judge_cost_usd=self.judge_cost_usd,
+        )
+
+    @property
+    def resolved_judge_cost_usd(self) -> float | None:
+        if self.judge_cost_usd is not None:
+            return round(float(self.judge_cost_usd), 8)
+        if self.cost_usd is not None and self.engine_cost_usd is not None:
+            return round(max(0.0, float(self.cost_usd) - float(self.engine_cost_usd)), 8)
+        return None
+
+    @property
+    def resolved_total_cost_usd(self) -> float | None:
+        if self.cost_usd is not None:
+            return round(float(self.cost_usd), 8)
+        if self.engine_cost_usd is not None:
+            return round(float(self.engine_cost_usd) + float(self.judge_cost_usd or 0.0), 8)
+        return None
 
     @property
     def scored(self) -> bool:
-        return self.metrics is not None and self.latency_ms is not None and self.cost_usd is not None
+        return (
+            self.metrics is not None
+            and self.latency_ms is not None
+            and self.resolved_engine_cost_usd is not None
+        )
 
 
 def _pair_of(sample: RunSample) -> tuple[str, str, bool]:
@@ -109,7 +141,18 @@ def _avg(values: list[float], digits: int) -> float | None:
 
 def _aggregate_row(engine: str, samples: list[RunSample], *, source: str, label: str, table: str | None) -> dict[str, Any]:
     scored = [s for s in samples if s.scored]
-    scores = [battle_score(s.metrics, int(s.latency_ms), float(s.cost_usd)) for s in scored]  # type: ignore[arg-type]
+    scores = [
+        battle_score(
+            s.metrics,  # type: ignore[arg-type]
+            int(s.latency_ms),  # type: ignore[arg-type]
+            float(s.resolved_engine_cost_usd),  # type: ignore[arg-type]
+            judge_cost_usd=s.resolved_judge_cost_usd,
+        )
+        for s in scored
+    ]
+    engine_costs = [float(s.resolved_engine_cost_usd) for s in scored if s.resolved_engine_cost_usd is not None]
+    judge_costs = [float(s.resolved_judge_cost_usd) for s in scored if s.resolved_judge_cost_usd is not None]
+    total_costs = [float(s.resolved_total_cost_usd) for s in scored if s.resolved_total_cost_usd is not None]
     stamps = sorted(s.run_at for s in samples if s.run_at)
     return {
         "engine": engine,
@@ -121,7 +164,9 @@ def _aggregate_row(engine: str, samples: list[RunSample], *, source: str, label:
         "avg_qa_relevance": _avg([b.qa_relevance for b in scores], 3),
         "avg_context_precision": _avg([b.context_precision for b in scores], 3),
         "avg_latency_ms": _avg([float(b.latency_ms) for b in scores], 1),
-        "avg_cost_usd": _avg([b.cost_usd for b in scores], 6),
+        "avg_engine_cost_usd": _avg(engine_costs, 6),
+        "avg_judge_cost_usd": _avg(judge_costs, 6),
+        "avg_cost_usd": _avg(total_costs, 6),
         "questions_covered": len({s.question_id for s in scored if s.question_id}),
         "failures": len(samples) - len(scored),
         "first_run_at": stamps[0] if stamps else None,
@@ -177,16 +222,29 @@ def _recording_sample(rec: Any) -> RunSample:
         synthesis, judge = rec.pair
     except RecordingInvalid:
         synthesis, judge = None, None
-    metrics, latency, cost = None, None, None
+    metrics, latency, total_cost, engine_cost, judge_cost = None, None, None, None, None
     if rec.evaluation is not None:
         outcome = eval_outcome_from_dict(rec.evaluation)
         metrics = outcome.metrics
         latency = int(rec.result.get("latency_ms", 0))
-        cost = float(rec.result.get("cost_usd", 0.0)) + outcome.judge_cost_usd  # run cost includes the judge
+        raw_engine_cost = rec.result.get("cost_usd")
+        judge_cost = round(float(outcome.judge_cost_usd), 8)
+        if raw_engine_cost is not None:
+            engine_cost = round(float(raw_engine_cost), 8)
+            total_cost = round(engine_cost + judge_cost, 8)
     return RunSample(
-        engine=rec.engine, synthesis_model=synthesis, judge_model=judge, question_id=rec.question_id,
-        run_at=rec.header.get("recorded_at"), git_sha=rec.header.get("git_sha"), demo_mode=rec.header.get("demo_mode"),
-        latency_ms=latency, cost_usd=cost, metrics=metrics,
+        engine=rec.engine,
+        synthesis_model=synthesis,
+        judge_model=judge,
+        question_id=rec.question_id,
+        run_at=rec.header.get("recorded_at"),
+        git_sha=rec.header.get("git_sha"),
+        demo_mode=rec.header.get("demo_mode"),
+        latency_ms=latency,
+        cost_usd=total_cost,
+        metrics=metrics,
+        engine_cost_usd=engine_cost,
+        judge_cost_usd=judge_cost,
     )
 
 

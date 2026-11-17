@@ -9,6 +9,7 @@ import {
   highlightBadgeText,
   type HighlightMetric,
 } from "../../lib/winnerHighlight";
+import { isManagedEvalService, resolveScoreboardCosts } from "../../pages/leaderboardModel";
 import type { ScoreRow } from "./compareModel";
 
 const score2 = (v: number | null): string => (v === null ? "—" : v.toFixed(2));
@@ -64,8 +65,51 @@ function columns(
     { key: "cp", header: "context precision", render: (r) => score2(r.contextPrecision), align: "right", mono: true },
     { key: "eff", header: "efficiency", render: (r) => score2(r.breakdown?.efficiency ?? null), align: "right", mono: true },
     { key: "lat", header: "latency", render: (r) => formatMs(r.latencyMs), align: "right", mono: true },
-    { key: "cost", header: "run cost", render: (r) => formatUsd(r.costUsd), align: "right", mono: true },
-    { key: "judge", header: "judge", render: (r) => (r.judgeModel ? labelFor(r.judgeModel) ?? r.judgeModel : "—"), mono: true },
+    {
+      key: "engine_cost",
+      header: "Engine $",
+      render: (r) => {
+        const costs = resolveScoreboardCosts(r);
+        return (
+          <span className="font-medium text-ink-1" title="Scored operational engine cost (retrieval + rerank + synthesis)">
+            {formatUsd(costs.engineCostUsd)}
+          </span>
+        );
+      },
+      align: "right",
+      mono: true,
+    },
+    {
+      key: "judge_cost",
+      header: "Judge $",
+      render: (r) => {
+        const costs = resolveScoreboardCosts(r);
+        const title =
+          costs.totalCostUsd !== null
+            ? `External judge cost (excluded from Battle Score) · Total run cost: ${formatUsd(costs.totalCostUsd)}`
+            : "External judge cost (excluded from Battle Score)";
+        return <span className="text-ink-3" title={title}>{formatUsd(costs.judgeCostUsd)}</span>;
+      },
+      align: "right",
+      mono: true,
+    },
+    {
+      key: "judge",
+      header: "judge",
+      render: (r) => {
+        if (!r.judgeModel) return "—";
+        const label = labelFor(r.judgeModel) ?? r.judgeModel;
+        return isManagedEvalService(r.judgeModel) ? (
+          <span className="inline-flex items-center gap-1">
+            <span>{label}</span>
+            <Pill tone="info">GenAI Eval</Pill>
+          </span>
+        ) : (
+          label
+        );
+      },
+      mono: true,
+    },
     { key: "status", header: "status", render: (r) => <StatusCell row={r} /> },
   ];
 }
@@ -95,8 +139,8 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
         emptyText="No levels in this run."
       />
       <p className="text-xs text-ink-3">
-        Battle Score (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, run cost vs $0.20),
-        computed by the server from this run's judge metrics, latency and run cost (engine + judge). Failed levels are never scored or ranked.
+        Battle Score (0–100) = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency (latency vs 60 s, engine cost vs $0.20),
+        computed by the server from operational Engine $ only (Judge $ is reported separately and never penalizes the RAG architecture). Failed levels are never scored or ranked.
       </p>
     </div>
   );

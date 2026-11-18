@@ -443,7 +443,7 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         if solicitation_filter and (solicitation_filter.startswith("upl_") or solicitation_filter.startswith("upload_")):
             raise ValueError(
                 "Upload workspaces (upl_*) are not indexed in ephemeral AlloyDB ScaNN benchmark instances; "
-                "select the procurement benchmark corpus or run Levels 1–6 on uploads"
+                "select the procurement benchmark corpus or run Levels 1–4 & 7–8 on uploads"
             )
         if not self.settings.alloydb_dsn.strip():
             raise RuntimeError(

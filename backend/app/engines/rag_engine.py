@@ -254,7 +254,7 @@ def _resolve_target_corpus(
                 )
         raise RuntimeError(
             f"upload workspace {solicitation_filter} has no Vertex AI RAG Engine corpus '{display_name}'; "
-            "run Level 6 upload ingestion first"
+            "run Level 2 upload ingestion first"
         )
 
     if _CORPUS_SOL_RE.match(solicitation_filter):

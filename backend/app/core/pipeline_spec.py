@@ -39,13 +39,13 @@ from app.core.models_catalog import (
 )
 
 INDEX_PROFILES: tuple[str, ...] = (
-    "naive",
-    "hybrid",
-    "multimodal",
     "vertex_ai_search",
     "rag_engine",
+    "naive",
+    "hybrid",
     "alloydb_scann",
     "vertex_vector_v2",
+    "multimodal",
 )
 BQ_INDEX_PROFILES: tuple[str, ...] = ("naive", "hybrid", "multimodal")
 MANAGED_INDEX_PROFILES: tuple[str, ...] = ("vertex_ai_search", "rag_engine")

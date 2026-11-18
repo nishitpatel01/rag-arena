@@ -391,13 +391,13 @@ def test_http_presets_validate_and_ablation_battle_stream_collision_free_with_qu
         presets_body = presets_resp.json()
         assert len(presets_body["presets"]) == 8
         assert presets_body["schema"]["index_profiles"] == [
-            "naive",
-            "hybrid",
-            "multimodal",
             "vertex_ai_search",
             "rag_engine",
+            "naive",
+            "hybrid",
             "alloydb_scann",
             "vertex_vector_v2",
+            "multimodal",
         ]
 
         # 2. POST /api/v1/pipelines/validate (valid + invalid)

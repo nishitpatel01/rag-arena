@@ -491,7 +491,7 @@ def estimate_cost(
                 "basis": "embeddings only (gemini-embedding-2): fractions of a cent for typical documents"}
     price = PRICE_TABLE.get(vision_model)
     if price is None:
-        raise ValueError(f"no list price for vision model {vision_model}; cannot estimate Level 3 cost")
+        raise ValueError(f"no list price for vision model {vision_model}; cannot estimate Level 7 cost")
     per_page = (VISION_TOKENS_IN_PER_PAGE * price.input_usd_per_1m + VISION_TOKENS_OUT_PER_PAGE * price.output_usd_per_1m) / 1e6
     docai = round(pages * DOCAI_USD_PER_PAGE, 4)
     capped_vision_pages = min(pages, max_vision_pages) if max_vision_pages is not None else pages

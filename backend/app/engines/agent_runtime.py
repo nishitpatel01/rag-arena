@@ -158,10 +158,10 @@ class AgentOutcome:
 
 
 def ensure_agent_model(spec: ModelSpec) -> None:
-    """Level 4 agent models must be Gemini (ADK's Claude adapter needs the undeclared ``anthropic`` package)."""
+    """Level 8 agent models must be Gemini (ADK's Claude adapter needs the undeclared ``anthropic`` package)."""
     if spec.provider != PROVIDER_VERTEX_GEMINI:
         raise AgentModelNotSupportedError(
-            f"Level 4 agent model must be a Gemini model in this release (got {spec.id}, provider {spec.provider})"
+            f"Level 8 agent model must be a Gemini model in this release (got {spec.id}, provider {spec.provider})"
         )
 
 

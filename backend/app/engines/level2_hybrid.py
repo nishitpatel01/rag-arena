@@ -347,7 +347,7 @@ class Level2HybridEngine(BaseRAGEngine):
             )
             candidates = [row_to_candidate(r, idx) for idx, r in enumerate(rows[:candidate_k], start=1)]
             if not candidates:
-                raise RuntimeError("hybrid retrieval returned 0 rows for tier 'hybrid' — run the Level 2 ingestion job")
+                raise RuntimeError("hybrid retrieval returned 0 rows for tier 'hybrid' — run the Level 4 ingestion job")
             ctx.payload = {
                 "rows_returned": len(rows),
                 "candidate_k": candidate_k,

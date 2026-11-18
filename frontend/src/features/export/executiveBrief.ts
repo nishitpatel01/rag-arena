@@ -481,10 +481,10 @@ export function buildExecutiveMarkdown(model: ExecutiveBriefModel, opts: SafeRed
   lines.push("## Enterprise TCO Notes: `$0/mo` Serverless vs. Dedicated ScaNN");
   lines.push("");
   lines.push(
-    "- **Serverless `$0/mo` Standing Idle (`Levels 1–6`)**: BigQuery `VECTOR_SEARCH` + `SEARCH`, Managed Vertex AI Search, Vertex AI RAG Engine (`RagManagedDb` KNN), Cloud Run (`min-instances=0`), Vertex AI Gemini, and Discovery Engine Ranking API scale to `$0/mo` at idle. You pay strictly per query, scanned bytes, and tokens—optimal for bursty enterprise assistants, departmental compliance portals, and PoCs up to ~100k–500k queries/month.",
+    "- **Serverless `$0/mo` Standing Idle (`Levels 1–4, 7–8`)**: Managed Vertex AI Search, Vertex AI RAG Engine (`RagManagedDb` KNN), BigQuery `VECTOR_SEARCH` + `SEARCH`, Cloud Run (`min-instances=0`), Vertex AI Gemini, and Discovery Engine Ranking API scale to `$0/mo` at idle. You pay strictly per query, scanned bytes, and tokens—optimal for bursty enterprise assistants, departmental compliance portals, and PoCs up to ~100k–500k queries/month.",
   );
   lines.push(
-    "- **Dedicated Sub-Second ScaNN (`Levels 7–8`)**: AlloyDB for PostgreSQL (`alloydb_scann`) and Vertex AI Vector Search 2.0 maintain warm memory-resident ScaNN indexes (hourly primary vCPU/RAM or `minReplicaCount >= 1` index endpoint floor). Provision dedicated ScaNN tiers when sustained multi-million-query monthly volume or strict sub-second p99 ANN + transactional OLTP filtering amortizes continuous cluster compute; in RAG Arena, both tiers can be spun up ephemerally for benchmarking and torn down to `$0/mo`.",
+    "- **Dedicated Sub-Second ScaNN (`Levels 5–6`)**: AlloyDB for PostgreSQL (`alloydb_scann`) and Vertex AI Vector Search 2.0 maintain warm memory-resident ScaNN indexes (hourly primary vCPU/RAM or `minReplicaCount >= 1` index endpoint floor). Provision dedicated ScaNN tiers when sustained multi-million-query monthly volume or strict sub-second p99 ANN + transactional OLTP filtering amortizes continuous cluster compute; in RAG Arena, both tiers can be spun up ephemerally for benchmarking and torn down to `$0/mo`.",
   );
   lines.push(
     "- **Operational Engine Cost vs. Judge Cost**: Production RAG TCO is driven by **Engine Cost** (embedding, retrieval, reranking, and answer synthesis). **Judge Cost** reflects offline/CI rubric evaluation (LLM-as-a-Judge or Vertex AI GenAI Evaluation Service) and is separated above so expensive frontier judges never distort runtime unit economics.",

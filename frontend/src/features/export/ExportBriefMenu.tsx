@@ -273,8 +273,9 @@ export const ExportBriefMenu: React.FC<ExportBriefMenuProps> = ({
         </div>
         <p className="mt-1.5 leading-relaxed text-ink-1">{printRecommendation}</p>
         <p className="mt-1 text-xs text-ink-2">
-          TCO Posture: Levels 1–6 run at $0/mo serverless idle (BigQuery / Vertex AI Search / RagManagedDb); Levels 7–8
-          (AlloyDB ScaNN &amp; Vector Search 2.0) provide dedicated sub-second ANN clusters for high-volume workloads.
+          TCO Posture: Levels 1–4 &amp; 7–8 run at $0/mo serverless idle (Vertex AI Search / RagManagedDb / BigQuery);
+          Levels 5–6 (AlloyDB ScaNN &amp; Vector Search 2.0) provide dedicated sub-second ANN clusters for high-volume
+          workloads.
         </p>
       </section>
     </>

@@ -273,7 +273,7 @@ export function dataLevelFor(levelId: string): string {
 }
 
 const EPHEMERAL_UPLOAD_NOTE =
-  "Upload workspaces run on Standing Levels 1–6; switch to Procurement corpus for Ephemeral ScaNN Levels 7–8.";
+  "Upload workspaces run on Standing Levels 1–4 & 7–8; switch to Procurement corpus for Ephemeral ScaNN Levels 5–6.";
 
 function isEphemeralBenchmarkLevel(levelId: string): boolean {
   return levelId === "alloydb_scann" || levelId === "vertex_vector_v2";

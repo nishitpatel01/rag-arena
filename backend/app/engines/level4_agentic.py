@@ -249,10 +249,10 @@ class Level4AgenticEngine(BaseRAGEngine):
         upload_scope: str | None = None
         if solicitation_filter:
             if not solicitation_filter.startswith("upl_"):
-                raise ValueError("Level 4 chooses solicitation filters itself (tool arguments); solicitation_filter is not supported")
+                raise ValueError("Level 8 chooses solicitation filters itself (tool arguments); solicitation_filter is not supported")
             upload_scope = check_workspace_id(solicitation_filter)
         if not isinstance(emitter, BaseStageEmitter):
-            raise TypeError("Level 4 needs a BaseStageEmitter (agent_turn events)")
+            raise TypeError("Level 8 needs a BaseStageEmitter (agent_turn events)")
         start, deadline = time.perf_counter(), time.monotonic() + self.settings.query_timeout_seconds - DEADLINE_MARGIN_SECONDS
         ledger = AgentLedger(run_id=emitter.run_id)
         deps = ToolDeps(settings=self.settings, retriever=self._retriever, genai_client=get_genai_client(self.settings),

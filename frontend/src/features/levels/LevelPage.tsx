@@ -300,7 +300,7 @@ const IngestStatusPill: React.FC<{
     const label = activeUpload
       ? gate.blocked
         ? ephemeral
-          ? `${activeUpload.id} · Levels 1–6 only`
+          ? `${activeUpload.id} · Levels 1–4, 7–8 only`
           : `${activeUpload.id} · not ingested`
         : `${activeUpload.id} · ${gate.count ?? 0} ${levelId === "managed_vertex" ? "docs" : levelId === "rag_engine" ? "files" : "chunks"}`
       : "upload workspace";

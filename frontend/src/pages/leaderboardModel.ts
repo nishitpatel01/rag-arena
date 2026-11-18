@@ -1,16 +1,18 @@
 /**
- * Pure leaderboard shaping (no React). The server returns one shape for both sources
- * (`groups[{synthesis_model, judge_model, rows}]`); rows are shown exactly as aggregated — never averaged
- * across pairs or judges. Also: source toggle rules, rank numbering, provenance text, Battle Score footnote.
+ * Pure leaderboard shaping + split Engine vs. Judge economics helpers (no React).
+ * The server returns one shape for both sources (`groups[{synthesis_model, judge_model, rows}]`);
+ * rows are shown exactly as aggregated — never averaged across pairs or judges.
  */
 
 import type {
+  EngineTimeline,
   LeaderboardGroupResponse,
   LeaderboardProvenance,
   LeaderboardResponse,
   LeaderboardRow,
   LeaderboardScope,
   LeaderboardSource,
+  ScoreBreakdown,
 } from "../types/arena";
 
 export interface LeaderboardGroup {
@@ -42,19 +44,111 @@ export interface ScopeOption {
   readonly reason: string | null;
 }
 
+export interface SplitCostBreakdown {
+  readonly engineCostUsd: number | null;
+  readonly judgeCostUsd: number | null;
+  readonly totalCostUsd: number | null;
+}
+
+export const VERTEX_GENAI_EVAL_MODEL_ID = "vertex-genai-eval";
+
 const MAX_GROUPS = 50;
 const MAX_ROWS_PER_GROUP = 50;
 export const LIVE_SOURCE_DISABLED_REASON =
   "Live runs come from BigQuery query_runs, which replay mode never reads (DEMO_MODE=replay). Recordings are shown instead.";
 export const BATTLE_SCORE_FOOTNOTE =
   "Battle Score = 40% QA relevance + 35% groundedness + 15% context precision + 10% efficiency, computed per run " +
-  "on the server and averaged per row. Efficiency = 1 − (latency ÷ 60 s) × 0.5 − min(0.5, run cost ÷ $0.20 × 0.5), " +
-  "clamped to 0–1. Run cost includes the LLM judge. Scores are only comparable within one (synthesis, judge) pair.";
+  "on the server and averaged per row. Efficiency = 1 − (latency ÷ 60 s) × 0.5 − min(0.5, engine cost ÷ $0.20 × 0.5), " +
+  "clamped to 0–1. Efficiency scores operational Engine Cost only (Judge Cost is reported separately so expensive autoraters " +
+  "never penalize fast architectures). Scores are only comparable within one (synthesis, judge) pair.";
 
 const isNonEmpty = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const isRow = (r: unknown): r is LeaderboardRow =>
   typeof r === "object" && r !== null && isNonEmpty((r as { engine?: unknown }).engine);
+const roundCost = (v: number): number => Number(Math.max(0, v).toFixed(8));
+
+/** True when `judgeModel` is the managed Vertex AI GenAI Evaluation Service (`:evaluateInstances`). */
+export function isManagedEvalService(judgeModel: string | null | undefined): boolean {
+  return typeof judgeModel === "string" && judgeModel.trim() === VERTEX_GENAI_EVAL_MODEL_ID;
+}
+
+/** Resolve operational Engine Cost, external Judge Cost, and Total Run Cost for a LeaderboardRow. */
+export function resolveLeaderboardRowCosts(row: LeaderboardRow): SplitCostBreakdown {
+  const totalCostUsd = isNum(row.avg_cost_usd) ? row.avg_cost_usd : null;
+  const judgeCostUsd = isNum(row.avg_judge_cost_usd)
+    ? row.avg_judge_cost_usd
+    : isNum(row.judge_cost_usd)
+      ? row.judge_cost_usd
+      : null;
+  const explicitEngine = isNum(row.avg_engine_cost_usd)
+    ? row.avg_engine_cost_usd
+    : isNum(row.engine_cost_usd)
+      ? row.engine_cost_usd
+      : null;
+
+  if (explicitEngine !== null) {
+    const resolvedTotal =
+      totalCostUsd !== null ? totalCostUsd : judgeCostUsd !== null ? roundCost(explicitEngine + judgeCostUsd) : explicitEngine;
+    return { engineCostUsd: explicitEngine, judgeCostUsd, totalCostUsd: resolvedTotal };
+  }
+  if (totalCostUsd === null) {
+    return { engineCostUsd: null, judgeCostUsd, totalCostUsd: null };
+  }
+  if (judgeCostUsd !== null) {
+    return { engineCostUsd: roundCost(totalCostUsd - judgeCostUsd), judgeCostUsd, totalCostUsd };
+  }
+  return { engineCostUsd: totalCostUsd, judgeCostUsd: null, totalCostUsd };
+}
+
+/** Resolve operational Engine Cost, external Judge Cost, and Total Run Cost for a Compare ScoreRow. */
+export function resolveScoreboardCosts(row: {
+  readonly costUsd: number | null;
+  readonly breakdown?: ScoreBreakdown | null;
+}): SplitCostBreakdown {
+  const b = row.breakdown ?? null;
+  if (b !== null) {
+    const engineCostUsd = isNum(b.engine_cost_usd) ? b.engine_cost_usd : isNum(b.cost_usd) ? b.cost_usd : null;
+    if (engineCostUsd !== null) {
+      const judgeCostUsd = isNum(b.judge_cost_usd)
+        ? b.judge_cost_usd
+        : isNum(row.costUsd)
+          ? roundCost(row.costUsd - engineCostUsd)
+          : null;
+      const totalCostUsd = isNum(row.costUsd)
+        ? row.costUsd
+        : judgeCostUsd !== null
+          ? roundCost(engineCostUsd + judgeCostUsd)
+          : engineCostUsd;
+      return { engineCostUsd, judgeCostUsd, totalCostUsd };
+    }
+  }
+  if (isNum(row.costUsd)) {
+    return { engineCostUsd: row.costUsd, judgeCostUsd: null, totalCostUsd: row.costUsd };
+  }
+  return { engineCostUsd: null, judgeCostUsd: null, totalCostUsd: null };
+}
+
+/** Resolve operational Engine Cost, external Judge Cost, and Total Run Cost from a live/replayed EngineTimeline. */
+export function resolveTimelineCosts(timeline: EngineTimeline | undefined): SplitCostBreakdown {
+  if (!timeline) return { engineCostUsd: null, judgeCostUsd: null, totalCostUsd: null };
+  const engineCostUsd = isNum(timeline.answer?.costUsd)
+    ? timeline.answer.costUsd
+    : isNum(timeline.evaluation?.engineCostUsd)
+      ? timeline.evaluation.engineCostUsd
+      : isNum(timeline.evaluation?.scoreBreakdown?.cost_usd)
+        ? timeline.evaluation.scoreBreakdown.cost_usd
+        : null;
+  const judgeCostUsd = isNum(timeline.evaluation?.judgeCostUsd) ? timeline.evaluation.judgeCostUsd : null;
+  const totalCostUsd = isNum(timeline.evaluation?.runCostUsd)
+    ? timeline.evaluation.runCostUsd
+    : isNum(timeline.evaluation?.totalCostUsd)
+      ? timeline.evaluation.totalCostUsd
+      : engineCostUsd !== null && judgeCostUsd !== null
+        ? roundCost(engineCostUsd + judgeCostUsd)
+        : engineCostUsd;
+  return { engineCostUsd, judgeCostUsd, totalCostUsd };
+}
 
 function validGroups(res: LeaderboardResponse | null | undefined): LeaderboardGroupResponse[] {
   if (!res || typeof res !== "object" || !Array.isArray(res.groups)) return [];

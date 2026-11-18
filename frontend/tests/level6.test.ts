@@ -85,9 +85,9 @@ const RAG_RETRIEVE = {
   ],
 };
 
-test("LEVEL_IDS and layoutSource include Level 6 rag_engine", () => {
+test("LEVEL_IDS and layoutSource include Level 2 rag_engine in canonical Order A", () => {
   assert.equal(LEVEL_IDS.length, 8);
-  assert.equal(LEVEL_IDS[5], "rag_engine");
+  assert.equal(LEVEL_IDS[1], "rag_engine");
   assert.equal(isLayoutSource("vertex_ai_rag_engine"), true);
   assert.equal(layoutSourceLabel("vertex_ai_rag_engine"), "Vertex AI RAG Engine");
 });
@@ -195,26 +195,26 @@ const CATALOG_6: ModelsResponse = {
   recorded_pairs: [],
 };
 
-test("model picker & Compare rules: vertex-rag-engine-grounded is Level 6 only, and all 6 levels fit in Compare", () => {
+test("model picker & Compare rules: vertex-rag-engine-grounded is Level 2 only, and all 8 levels fit in Compare", () => {
   assert.equal(providerLabel("vertex_rag_engine"), "Vertex AI RAG Engine (grounded)");
   const grounded = CATALOG_6.models[3];
   const vais = CATALOG_6.models[2];
   assert.deepEqual(allowedLevels(grounded), [RAG_ENGINE_LEVEL]);
-  assert.equal(restrictedOptionSuffix(grounded), " — Level 6 only");
-  assert.equal(restrictedOptionSuffix(vais), " — Level 5 only");
+  assert.equal(restrictedOptionSuffix(grounded), " — Level 2 only");
+  assert.equal(restrictedOptionSuffix(vais), " — Level 1 only");
   assert.equal(levelRestriction(grounded, "rag_engine"), null);
-  assert.match(levelRestriction(grounded, "level1_naive") ?? "", /Level 6/);
+  assert.match(levelRestriction(grounded, "level1_naive") ?? "", /Level 2/);
 
-  const onL6 = optionStates(CATALOG_6, "synthesis", "claude-opus-5-5", "rag_engine").find((o) => o.entry.id === RAG_ENGINE_GROUNDED_MODEL);
-  assert.equal(onL6?.disabled, false);
-  const onL5 = optionStates(CATALOG_6, "synthesis", "claude-opus-5-5", "managed_vertex").find((o) => o.entry.id === RAG_ENGINE_GROUNDED_MODEL);
-  assert.equal(onL5?.disabled, true);
-  assert.equal(onL5?.restricted, true);
+  const onL2 = optionStates(CATALOG_6, "synthesis", "claude-opus-5-5", "rag_engine").find((o) => o.entry.id === RAG_ENGINE_GROUNDED_MODEL);
+  assert.equal(onL2?.disabled, false);
+  const onL1 = optionStates(CATALOG_6, "synthesis", "claude-opus-5-5", "managed_vertex").find((o) => o.entry.id === RAG_ENGINE_GROUNDED_MODEL);
+  assert.equal(onL1?.disabled, true);
+  assert.equal(onL1?.restricted, true);
 
   assert.equal(validateSelection(CATALOG_6, { synthesis: RAG_ENGINE_GROUNDED_MODEL, judge: "claude-opus-5-5" }, "rag_engine"), null);
-  assert.match(validateSelection(CATALOG_6, { synthesis: RAG_ENGINE_GROUNDED_MODEL, judge: "claude-opus-5-5" }, "managed_vertex") ?? "", /Level 6/);
+  assert.match(validateSelection(CATALOG_6, { synthesis: RAG_ENGINE_GROUNDED_MODEL, judge: "claude-opus-5-5" }, "managed_vertex") ?? "", /Level 2/);
 
-  // CompareTeaser baseline substitution works for Level 6 grounded model and lists Levels 1–5
+  // CompareTeaser baseline substitution works for Level 2 grounded model and lists Level 1
   assert.deepEqual(baselinePair(CATALOG_6, RAG_ENGINE_GROUNDED_MODEL, "claude-opus-5-5"), {
     synthesisModel: "gemini-4-argon",
     judgeModel: "claude-opus-5-5",
@@ -228,15 +228,15 @@ test("model picker & Compare rules: vertex-rag-engine-grounded is Level 6 only, 
     stages: [],
     architecture: { level_id: id, nodes: [], edges: [], ingest_nodes: [], ingest_edges: [] },
   }));
-  const lower = lowerEnabledLevels(allLevels, allLevels[5]);
-  assert.equal(lower.length, 5);
-  assert.equal(teaserTitle(lower), "Same question on Levels 1–5");
+  const lower = lowerEnabledLevels(allLevels, allLevels[1]);
+  assert.equal(lower.length, 1);
+  assert.equal(teaserTitle(lower), "Same question on Level 1");
 
-  // Compare page offers all 8 levels (including Level 6 rag_engine and Levels 7–8 ScaNN)
+  // Compare page offers all 8 levels in Order A (Level 2 is rag_engine)
   const choices = levelChoices(allLevels, CATALOG_6, { synthesis: "gemini-4-argon", judge: "claude-opus-5-5" }, "q1");
   assert.equal(choices.length, 8);
-  assert.equal(choices[5].levelId, "rag_engine");
-  assert.equal(choices[5].disabledReason, null);
+  assert.equal(choices[1].levelId, "rag_engine");
+  assert.equal(choices[1].disabledReason, null);
 });
 
 const mkStatus = (patch: Partial<IngestStatusResponse>): IngestStatusResponse => ({

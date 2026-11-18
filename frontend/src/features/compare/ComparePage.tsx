@@ -11,6 +11,8 @@ import type { HighlightMetric } from "../../lib/winnerHighlight";
 import { summaryTextForMetric } from "../../lib/winnerHighlight";
 import type { Citation, LeaderboardResponse, LevelDescriptor, PipelinePresetEntry } from "../../types/arena";
 import { useIngestStatus } from "../ingest/ingestStatus";
+import { ExportBriefMenu } from "../export/ExportBriefMenu";
+import { ReplaySpeedSelect, replaySpeedWireValue } from "../levels/ReplaySpeedSelect";
 import { modelLabel, type ModelSelection } from "../levels/modelSelection";
 import { useBattleStream } from "../levels/useBattleStream";
 import { useModelCatalog, type ModelCatalogState } from "../levels/useModelCatalog";
@@ -130,6 +132,7 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
       solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
       synthesisModel: sel?.synthesis ?? null,
       judgeModel: sel?.judge ?? null,
+      replaySpeed: replaySpeedWireValue(demoMode) ?? null,
     });
   };
   const openCitation = useCallback((engine: string, citation: Citation) => setSelected({ engine, citation }), []);
@@ -194,6 +197,17 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
             actions={
               <div className="flex flex-wrap items-end gap-3">
                 <HighlightMetricSelect value={highlightMetric} onChange={setHighlightMetric} id="compare-highlight-metric" />
+                <ExportBriefMenu
+                  compare={{
+                    rows,
+                    timelines: stream.state.timelines,
+                    runId: stream.state.runId,
+                    questionId: effectiveQid || null,
+                    query: question.query,
+                    synthesisModel: stream.state.synthesisModel ?? models.selection?.synthesis ?? null,
+                    judgeModel: stream.state.judgeModel ?? models.selection?.judge ?? null,
+                  }}
+                />
                 {!stream.state.complete && <RunStatusPills state={stream.state} isStreaming={stream.isStreaming} labelFor={labelFor} />}
               </div>
             }
@@ -317,6 +331,7 @@ const AblationLabView: React.FC<SharedCompareProps & { readonly presets: readonl
       solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
       synthesisModel: sel?.synthesis ?? null,
       judgeModel: sel?.judge ?? null,
+      replaySpeed: replaySpeedWireValue(demoMode) ?? null,
     });
   };
   const openCitation = useCallback((engine: string, citation: Citation) => setSelected({ engine, citation }), []);
@@ -382,6 +397,17 @@ const AblationLabView: React.FC<SharedCompareProps & { readonly presets: readonl
             actions={
               <div className="flex flex-wrap items-end gap-3">
                 <HighlightMetricSelect value={highlightMetric} onChange={setHighlightMetric} id="ablation-highlight-metric" />
+                <ExportBriefMenu
+                  compare={{
+                    rows,
+                    timelines: stream.state.timelines,
+                    runId: stream.state.runId,
+                    questionId: uploadScope.isUploadActive ? null : question.questionId || null,
+                    query: question.query,
+                    synthesisModel: stream.state.synthesisModel ?? models.selection?.synthesis ?? null,
+                    judgeModel: stream.state.judgeModel ?? models.selection?.judge ?? null,
+                  }}
+                />
                 {!stream.state.complete && <RunStatusPills state={stream.state} isStreaming={stream.isStreaming} labelFor={labelFor} />}
               </div>
             }
@@ -473,12 +499,14 @@ export const ComparePage: React.FC = () => {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-semibold text-ink-1">Compare</h1>
-        <div
-          className="inline-flex rounded-lg border border-line bg-surface-1 p-0.5"
-          role="group"
-          aria-label="Comparison mode"
-          data-testid="compare-mode-toggle"
-        >
+        <div className="flex flex-wrap items-center gap-3">
+          <ReplaySpeedSelect demoMode={health?.demo_mode ?? null} />
+          <div
+            className="inline-flex rounded-lg border border-line bg-surface-1 p-0.5"
+            role="group"
+            aria-label="Comparison mode"
+            data-testid="compare-mode-toggle"
+          >
           <button
             type="button"
             aria-pressed={mode === "ladder"}
@@ -488,7 +516,7 @@ export const ComparePage: React.FC = () => {
               mode === "ladder" ? "bg-moss text-surface-0" : "text-ink-2 hover:text-ink-1"
             }`}
           >
-            Preset Ladder (Levels 1–6)
+            Preset Ladder (Levels 1–8)
           </button>
           <button
             type="button"
@@ -501,6 +529,7 @@ export const ComparePage: React.FC = () => {
           >
             Ablation Lab (2–4 Recipes)
           </button>
+        </div>
         </div>
       </div>
 

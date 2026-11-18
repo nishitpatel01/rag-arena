@@ -15,11 +15,11 @@ export const RESUMABLE_GRANULARITY_BYTES = 256 * 1024;
 export const RESUMABLE_CHUNK_BYTES = 8 * 1024 * 1024;
 export const MAX_CHUNK_RETRIES = 3;
 export const UPLOAD_INGEST_LEVELS = [
+  "managed_vertex",
+  "rag_engine",
   "level1_naive",
   "level2_hybrid",
   "level3_multimodal",
-  "managed_vertex",
-  "rag_engine",
 ] as const;
 export type UploadIngestLevel = (typeof UPLOAD_INGEST_LEVELS)[number];
 
@@ -273,7 +273,7 @@ export function dataLevelFor(levelId: string): string {
 }
 
 const EPHEMERAL_UPLOAD_NOTE =
-  "Upload workspaces run on Standing Levels 1–6; switch to Procurement corpus for Ephemeral ScaNN Levels 7–8.";
+  "Upload workspaces run on Standing Levels 1–4 & 7–8; switch to Procurement corpus for Ephemeral ScaNN Levels 5–6.";
 
 function isEphemeralBenchmarkLevel(levelId: string): boolean {
   return levelId === "alloydb_scann" || levelId === "vertex_vector_v2";

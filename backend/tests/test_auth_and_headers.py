@@ -287,3 +287,6 @@ def test_security_headers_and_externalized_theme_init_script() -> None:
     assert '<script src="/theme-init.js"></script>' in index_html
     assert "localStorage" not in index_html
     assert (repo_root / "frontend" / "public" / "theme-init.js").is_file()
+    dockerfile = (repo_root / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY frontend/public ./public" in dockerfile
+    assert "test -f dist/theme-init.js" in dockerfile

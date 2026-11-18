@@ -254,7 +254,7 @@ def _resolve_target_corpus(
                 )
         raise RuntimeError(
             f"upload workspace {solicitation_filter} has no Vertex AI RAG Engine corpus '{display_name}'; "
-            "run Level 6 upload ingestion first"
+            "run Level 2 upload ingestion first"
         )
 
     if _CORPUS_SOL_RE.match(solicitation_filter):
@@ -283,7 +283,7 @@ class RagEngine(BaseRAGEngine):
     """Level 6: Managed Vertex AI RAG Engine (``RagCorpus`` + ``:retrieveContexts`` + catalog LLM | ``VertexRagStore``)."""
 
     engine_id: str = "rag_engine"
-    engine_label: str = "Level 6: Managed Vertex AI RAG Engine"
+    engine_label: str = "Level 2: Managed Vertex AI RAG Engine"
     tier_profile: str = TIER_PROFILE
     stages: tuple[str, ...] = ("query_prep", "retrieve", "synthesize", "evaluate")
 

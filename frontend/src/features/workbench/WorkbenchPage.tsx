@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAppData } from "../../app/AppDataProvider";
 import { useSessionUi } from "../../app/BattleSessions";
@@ -7,6 +8,7 @@ import { useSafeMode } from "../../app/SafeMode";
 import { SHORT_LEVEL_LABEL } from "../../app/Shell";
 import { DocumentDrawer } from "../../components/DocumentDrawer";
 import { DocumentViewer } from "../../components/DocumentViewer";
+import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { PaneResizer, useElementWidth, usePaneWidth } from "../../components/ui/PaneResizer";
 import { Pill } from "../../components/ui/Pill";
@@ -27,6 +29,7 @@ import { LevelIngestBanner } from "../levels/LevelIngestBanner";
 import { activeStageId } from "../levels/model";
 import { modelLabel, type ModelSelection } from "../levels/modelSelection";
 import { QuestionPicker } from "../levels/QuestionPicker";
+import { replaySpeedWireValue } from "../levels/ReplaySpeedSelect";
 import { RunPills, runStateAttr } from "../levels/RunPills";
 import { StageDetail, type AnswerSource } from "../levels/StageDetail";
 import { StageRail } from "../levels/StageRail";
@@ -39,11 +42,14 @@ import {
   WORKBENCH_SESSION,
   WORKBENCH_SLOT_ID,
   activeQueryStages,
+  applyPromptInjectionTest,
   backingLevelForProfile,
+  buildModelArmorBanner,
   buildPipelineDescriptor,
   coerceSelectionForSpec,
   coerceSpec,
   defaultPresetSpec,
+  effectiveGuardrail,
   isSpecEnabled,
   matchingPresetLevelId,
   pipelineSummaryLabel,
@@ -200,6 +206,10 @@ export const WorkbenchPage: React.FC = () => {
   const [selectedStage, setSelectedStage] = useSessionUi<string | null>(WORKBENCH_SESSION, "selectedStage", null, isStageId);
   const [userPicked, setUserPicked] = useSessionUi<boolean>(WORKBENCH_SESSION, "userPicked", false);
   const [storedCitation, setStoredCitation] = useSessionUi<Citation | null>(WORKBENCH_SESSION, "citation", null, isCitation);
+  const [, setStoredGolden] = useSessionUi<string>(WORKBENCH_SESSION, "goldenId", "");
+  const [, setStoredQuestionId] = useSessionUi<string>(WORKBENCH_SESSION, "questionId", "");
+  const [, setStoredQuery] = useSessionUi<string>(WORKBENCH_SESSION, "query", "");
+  const [injectionTestActive, setInjectionTestActive] = useSessionUi<boolean>(WORKBENCH_SESSION, "injectionTestActive", false);
   const citation = useMemo(() => maskValue(storedCitation), [maskValue, storedCitation]);
   const [viewerOpen, setViewerOpen] = useState(false);
 
@@ -255,13 +265,31 @@ export const WorkbenchPage: React.FC = () => {
       solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
+      replaySpeed: replaySpeedWireValue(health?.demo_mode ?? null) ?? null,
     });
   };
 
   const onReset = (): void => {
     setViewerOpen(false);
+    setInjectionTestActive(false);
     stream.reset();
   };
+
+  const onTryPromptInjection = useCallback((): void => {
+    const next = applyPromptInjectionTest(spec);
+    setSpec(next.spec);
+    setStoredGolden("");
+    setStoredQuestionId(next.questionId);
+    setStoredQuery(next.query);
+    setInjectionTestActive(true);
+  }, [ setInjectionTestActive, setSpec, setStoredGolden, setStoredQuery, setStoredQuestionId, spec ]);
+
+  const effectiveDemoMode = health?.demo_mode ?? models.catalog?.demo_mode ?? null;
+  const armorBanner = useMemo(
+    () => buildModelArmorBanner(effectiveDemoMode, spec, injectionTestActive),
+    [effectiveDemoMode, injectionTestActive, spec],
+  );
+  const guardrailActive = effectiveGuardrail(spec) === "model_armor";
 
   const [questionPref, setQuestionWidth] = usePaneWidth("question", QUESTION_PANE);
   const [docPref, setDocWidth] = usePaneWidth("document-viewer", DOC_PANE);
@@ -279,6 +307,11 @@ export const WorkbenchPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-lg font-semibold text-ink-1">Composable RAG Workbench</h1>
           <Pill tone={activePreset ? "ok" : "info"} mono>{summaryLabel}</Pill>
+          {guardrailActive && (
+            <Pill tone="ok" mono data-testid="workbench-header-guardrail-pill">
+              Guardrail · Model Armor
+            </Pill>
+          )}
           <BackingCorpusPill
             backingLevelId={backingLevelId}
             ingestState={ingestState}
@@ -301,7 +334,19 @@ export const WorkbenchPage: React.FC = () => {
 
       <Panel
         title="Pipeline recipe builder"
-        subtitle="Start from any of the 8 Level presets or mix-and-match index store, retriever, semantic reranker, context order, and ADK tools"
+        subtitle="Start from any of the 8 Level presets or mix-and-match index store, retriever, semantic reranker, context order, ADK tools, and Google Cloud Model Armor guardrails"
+        actions={
+          <Button
+            size="sm"
+            variant={guardrailActive ? "primary" : "secondary"}
+            disabled={stream.isStreaming}
+            onClick={onTryPromptInjection}
+            leadingIcon={<ShieldAlert className="h-3.5 w-3.5" aria-hidden />}
+            data-testid="try-prompt-injection-btn"
+          >
+            Try Prompt-Injection Test
+          </Button>
+        }
       >
         <SlotControls
           idPrefix="workbench"
@@ -336,6 +381,23 @@ export const WorkbenchPage: React.FC = () => {
       >
         <div className="flex min-w-0 xl:row-span-2">
           <Panel title="Question" subtitle="Golden benchmark or custom" className="flex-1">
+            {armorBanner && (
+              <div
+                role="status"
+                data-testid={armorBanner.tone === "warn" ? "model-armor-replay-banner" : "model-armor-live-banner"}
+                className={`mb-3 rounded-md border p-2.5 text-xs leading-relaxed ${
+                  armorBanner.tone === "warn"
+                    ? "border-clay bg-surface-0 text-ink-1"
+                    : "border-moss bg-surface-0 text-ink-1"
+                }`}
+              >
+                <div className="mb-1 flex items-center gap-1.5 font-semibold">
+                  <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${armorBanner.tone === "warn" ? "text-clay" : "text-moss"}`} aria-hidden />
+                  <span>{armorBanner.title}</span>
+                </div>
+                <p className="text-ink-2">{armorBanner.body}</p>
+              </div>
+            )}
             <QuestionPicker
               levelId={backingLevelId}
               sessionKey={WORKBENCH_SESSION}

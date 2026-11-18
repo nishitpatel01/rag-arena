@@ -20,6 +20,7 @@ import { ArchitectureDiagram } from "./ArchitectureDiagram";
 import { CompareRunBanner } from "./CompareRunBanner";
 import { LevelIngestBanner } from "./LevelIngestBanner";
 import { LevelQuestionPanel } from "./LevelQuestionPanel";
+import { ReplaySpeedSelect, replaySpeedWireValue } from "./ReplaySpeedSelect";
 import { RunPills, runStateAttr } from "./RunPills";
 import { StageDetail, type AnswerSource } from "./StageDetail";
 import { StageRail } from "./StageRail";
@@ -116,6 +117,7 @@ const LevelBody: React.FC<{
       solicitationFilter: uploadScope.isUploadActive ? uploadScope.scope : null,
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
+      replaySpeed: replaySpeedWireValue(demoMode) ?? null,
     });
   };
 
@@ -298,7 +300,7 @@ const IngestStatusPill: React.FC<{
     const label = activeUpload
       ? gate.blocked
         ? ephemeral
-          ? `${activeUpload.id} · Levels 1–6 only`
+          ? `${activeUpload.id} · Levels 1–4, 7–8 only`
           : `${activeUpload.id} · not ingested`
         : `${activeUpload.id} · ${gate.count ?? 0} ${levelId === "managed_vertex" ? "docs" : levelId === "rag_engine" ? "files" : "chunks"}`
       : "upload workspace";
@@ -354,13 +356,16 @@ export const LevelPage: React.FC = () => {
             levelIngest={levelIngest}
           />
         </div>
-        <Link
-          to={`/workbench?preset=${level.level_id}`}
-          className="text-xs font-medium text-moss underline"
-          data-testid="customize-in-workbench"
-        >
-          Customize in Workbench →
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <ReplaySpeedSelect demoMode={health?.demo_mode ?? null} />
+          <Link
+            to={`/workbench?preset=${level.level_id}`}
+            className="text-xs font-medium text-moss underline"
+            data-testid="customize-in-workbench"
+          >
+            Customize in Workbench →
+          </Link>
+        </div>
       </div>
       <LevelBody
         key={level.level_id}

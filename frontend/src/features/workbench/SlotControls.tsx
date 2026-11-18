@@ -1,5 +1,5 @@
 import React from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ShieldCheck } from "lucide-react";
 import { SHORT_LEVEL_LABEL } from "../../app/Shell";
 import { Pill } from "../../components/ui/Pill";
 import {
@@ -21,6 +21,8 @@ import {
   CANONICAL_AGENT_TOOLS,
   CONTEXT_ORDERS,
   CONTEXT_ORDER_LABELS,
+  GUARDRAIL_LABELS,
+  GUARDRAIL_MODES,
   INDEX_PROFILES,
   MAX_CANDIDATE_K_BY_PROFILE,
   PROFILE_LABELS,
@@ -37,9 +39,11 @@ import {
   backingLevelForProfile,
   coerceSpec,
   defaultPresetSpec,
+  effectiveGuardrail,
   isBqProfile,
   isScannProfile,
   matchingPresetLevelId,
+  type GuardrailMode,
 } from "./pipelineSpecModel";
 
 export interface SlotControlsProps {
@@ -157,7 +161,7 @@ const AgentToolChecklist: React.FC<AgentToolChecklistProps> = ({ idPrefix, selec
               onChange={(e) => onToggle(tool, e.target.checked)}
               className="mt-0.5 rounded border-line"
             />
-            <span className="font-mono text-[11px] leading-snug text-ink-1">{AGENT_TOOL_LABELS[tool]}</span>
+            <span className="font-mono text-xs leading-snug text-ink-1">{AGENT_TOOL_LABELS[tool]}</span>
           </label>
         );
       })}
@@ -186,6 +190,8 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
   const maxCand = MAX_CANDIDATE_K_BY_PROFILE[spec.index_profile];
   const maxTopK = Math.min(TOP_K_RANGE[1], maxCand);
   const stages = activeQueryStages(spec);
+  const guardrail = effectiveGuardrail(spec);
+  const gridColsClass = showLabelInput ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4";
 
   const applyPatch = (next: PipelineSpec): void => onChange(coerceSpec(next));
   const pickPreset = (levelId: LevelId): void => {
@@ -217,7 +223,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
         onPickPreset={pickPreset}
       />
 
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid gap-2.5 ${gridColsClass}`}>
         <div className="flex flex-col gap-1">
           <label htmlFor={`${idPrefix}-index-profile`} className="text-xs font-medium text-ink-2">
             1. Index Profile <span className="font-normal text-ink-3">(corpus store)</span>
@@ -385,10 +391,31 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
           </select>
         </div>
 
+        <div className="flex flex-col gap-1">
+          <label htmlFor={`${idPrefix}-guardrail`} className="flex items-center gap-1.5 text-xs font-medium text-ink-2">
+            <span>8. Safety Guardrail</span>
+            <span className="font-normal text-ink-3">(Model Armor)</span>
+          </label>
+          <select
+            id={`${idPrefix}-guardrail`}
+            data-testid={`${idPrefix}-guardrail`}
+            value={guardrail}
+            disabled={disabled}
+            onChange={(e) => applyPatch({ ...spec, guardrail: e.target.value as GuardrailMode })}
+            className={selectClass}
+          >
+            {GUARDRAIL_MODES.map((gm) => (
+              <option key={gm} value={gm}>
+                {GUARDRAIL_LABELS[gm]}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {showLabelInput && (
           <div className="flex flex-col gap-1">
             <label htmlFor={`${idPrefix}-recipe-label`} className="text-xs font-medium text-ink-2">
-              8. Recipe Label <span className="font-normal text-ink-3">(optional)</span>
+              9. Recipe Label <span className="font-normal text-ink-3">(optional)</span>
             </label>
             <input
               id={`${idPrefix}-recipe-label`}
@@ -396,7 +423,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
               maxLength={80}
               value={spec.label ?? ""}
               disabled={disabled}
-              placeholder="e.g. RAG Engine + Discovery Rerank"
+              placeholder="e.g. Hybrid RRF + Model Armor"
               onChange={(e) => applyPatch({ ...spec, label: e.target.value })}
               className={selectClass}
             />
@@ -413,7 +440,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <span>Active query stages:</span>
         <span className="font-mono text-ink-2" data-testid={`${idPrefix}-active-stages`}>
           {stages.join(" → ")}
@@ -423,6 +450,15 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
           Backing store:{" "}
           <span className="font-mono text-ink-2">{SHORT_LEVEL_LABEL[backingLevel] ?? backingLevel}</span>
         </span>
+        {guardrail === "model_armor" && (
+          <>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1 font-medium text-moss" data-testid={`${idPrefix}-guardrail-pill`}>
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+              Model Armor v1 ($0/mo template)
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -170,7 +170,7 @@ export const UploadWorkspacePanel: React.FC<UploadWorkspacePanelProps> = ({
         const out = await uploadApi.startIngest(wsId, level, confirmUsd);
         if (out.needsConfirmation && out.estimate) {
           setPendingEstimate(out.estimate);
-          throw new Error(out.error ?? "Cost confirmation required before running Level 3 ingestion.");
+          throw new Error(out.error ?? "Cost confirmation required before running Level 7 (Multimodal) ingestion.");
         }
         if (!out.job) throw new Error(out.error ?? "Upload ingestion did not return a job.");
         wsState.setScope(wsId);
@@ -212,7 +212,7 @@ export const UploadWorkspacePanel: React.FC<UploadWorkspacePanelProps> = ({
   return (
     <Panel
       title="Your own documents (upload workspaces)"
-      subtitle="Private Cloud Storage bucket · direct-to-GCS resumable PDF uploads (no app size/page cap) · scoped L1–L5 ingestion"
+      subtitle="Private Cloud Storage bucket · direct-to-GCS resumable PDF uploads (no app size/page cap) · scoped L1–L4 & L7–L8 ingestion"
       bodyClassName="flex flex-col gap-3"
     >
       <BucketStatusCard

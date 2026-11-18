@@ -9,14 +9,14 @@
 // ---------------------------------------------------------------------------
 
 export const LEVEL_IDS = [
-  "level1_naive",
-  "level2_hybrid",
-  "level3_multimodal",
-  "level4_agentic",
   "managed_vertex",
   "rag_engine",
+  "level1_naive",
+  "level2_hybrid",
   "alloydb_scann",
   "vertex_vector_v2",
+  "level3_multimodal",
+  "level4_agentic",
 ] as const;
 export type LevelId = (typeof LEVEL_IDS)[number];
 
@@ -346,6 +346,7 @@ export type ModelProvider =
   | "anthropic_vertex"
   | "vertex_ai_search"
   | "vertex_rag_engine"
+  | "vertex_genai_eval"
   | (string & {});
 
 export interface ModelCatalogEntry {
@@ -366,6 +367,8 @@ export interface ModelCatalogEntry {
   readonly levels?: readonly string[] | null;
   /** Request-priced managed models (Vertex AI Search summary): USD per 1,000 requests. */
   readonly usd_per_1k_requests?: number | null;
+  /** True for legacy recorded models kept for replay compatibility (e.g. gemini-3.8-flash). */
+  readonly legacy?: boolean;
 }
 
 export interface RecordedPair {
@@ -375,11 +378,24 @@ export interface RecordedPair {
   readonly question_ids: readonly string[];
 }
 
+export interface RecommendedModelPair {
+  readonly profile_id: string;
+  readonly profile_label: string;
+  readonly synthesis_model: string;
+  readonly judge_model: string;
+  readonly alt_judge_model: string | null;
+  readonly rationale: string;
+  readonly judge_rationale: string;
+  readonly cross_family: boolean;
+  readonly adk_compatible: boolean;
+}
+
 export interface ModelsResponse {
   readonly models: readonly ModelCatalogEntry[];
   readonly defaults: { readonly synthesis_model: string; readonly judge_model: string };
   readonly demo_mode: DemoMode | string;
   readonly recorded_pairs: readonly RecordedPair[];
+  readonly recommended_pairs?: readonly RecommendedModelPair[];
 }
 
 // ---------------------------------------------------------------------------
@@ -412,7 +428,11 @@ export interface LeaderboardRow {
   readonly avg_qa_relevance?: number | null;
   readonly avg_context_precision?: number | null;
   readonly avg_latency_ms?: number | null;
+  readonly avg_engine_cost_usd?: number | null;
+  readonly avg_judge_cost_usd?: number | null;
   readonly avg_cost_usd?: number | null;
+  readonly engine_cost_usd?: number | null;
+  readonly judge_cost_usd?: number | null;
   readonly questions_covered?: number;
   readonly failures?: number;
   readonly first_run_at?: string | null;
@@ -638,15 +658,17 @@ export interface EvalCompleteEvent extends BaseEvent {
   readonly judge_location?: string;
   readonly input_tokens?: number;
   readonly output_tokens?: number;
+  readonly engine_cost_usd?: number;
   readonly judge_cost_usd?: number;
   readonly run_cost_usd?: number;
+  readonly total_cost_usd?: number;
   readonly rationale?: string;
   /** Battle Score 0–100 computed by the server (scoring.battle_score) at emit time; absent on older servers. */
   readonly battle_score?: number;
   readonly score_breakdown?: ScoreBreakdown;
 }
 
-/** `scoring.ScoreBreakdown.to_dict()` — the measured inputs of the Battle Score (cost = engine + judge). */
+/** `scoring.ScoreBreakdown.to_dict()` — the measured inputs of the Battle Score (`cost_usd` = operational engine cost). */
 export interface ScoreBreakdown {
   readonly battle_score: number;
   readonly efficiency: number;
@@ -655,6 +677,9 @@ export interface ScoreBreakdown {
   readonly context_precision: number;
   readonly latency_ms: number;
   readonly cost_usd: number;
+  readonly engine_cost_usd?: number;
+  readonly judge_cost_usd?: number;
+  readonly total_cost_usd?: number;
 }
 
 export interface EngineErrorEvent extends BaseEvent {
@@ -859,8 +884,10 @@ export interface EngineEvaluation {
   readonly judgeLocation?: string | null;
   readonly inputTokens?: number | null;
   readonly outputTokens?: number | null;
+  readonly engineCostUsd?: number | null;
   readonly judgeCostUsd?: number | null;
   readonly runCostUsd?: number | null;
+  readonly totalCostUsd?: number | null;
   readonly rationale?: string | null;
   /** Server-emitted Battle Score (null when the server did not send a valid one — never computed client-side). */
   readonly battleScore?: number | null;

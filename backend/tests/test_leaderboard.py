@@ -33,8 +33,8 @@ _RECORDINGS = _PROJECT_ROOT / "data" / "recordings"
 _PROJECT = "acme-proj-1"
 _ROW_KEYS = {
     "engine", "level_label", "runs", "avg_battle_score", "avg_efficiency", "avg_groundedness", "avg_qa_relevance",
-    "avg_context_precision", "avg_latency_ms", "avg_cost_usd", "questions_covered", "failures", "first_run_at",
-    "last_run_at", "provenance",
+    "avg_context_precision", "avg_latency_ms", "avg_engine_cost_usd", "avg_judge_cost_usd", "avg_cost_usd",
+    "questions_covered", "failures", "first_run_at", "last_run_at", "provenance",
 }
 _TOP_KEYS = {"source", "generated_at", "filters", "notes", "stats", "groups"}
 _GROUP_KEYS = {"synthesis_model", "judge_model", "pair_known", "note", "rows"}

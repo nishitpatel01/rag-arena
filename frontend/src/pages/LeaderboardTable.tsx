@@ -12,8 +12,10 @@ import {
 import {
   formatBattleScore,
   formatMetric,
+  isManagedEvalService,
   provenanceDetails,
   provenanceSummary,
+  resolveLeaderboardRowCosts,
   type LeaderboardGroup,
   type RankedRow,
 } from "./leaderboardModel";
@@ -26,7 +28,9 @@ const HEADERS: readonly { label: string; title?: string; right?: boolean }[] = [
   { label: "QA", title: "QA relevance (avg, 0–1)", right: true },
   { label: "CP", title: "Context precision (avg, 0–1)", right: true },
   { label: "Latency", title: "Average engine latency", right: true },
-  { label: "Run cost", title: "Average run cost incl. the judge", right: true },
+  { label: "Engine $", title: "Average operational engine cost (scored in Battle Score efficiency)", right: true },
+  { label: "Judge $", title: "Average external judge / evaluation cost (excluded from Battle Score)", right: true },
+  { label: "Total $", title: "Average total run cost (Engine $ + Judge $)", right: true },
   { label: "Runs", title: "Scored runs", right: true },
   { label: "Questions", title: "Distinct questions covered", right: true },
   { label: "Failures", title: "Runs without judge metrics", right: true },
@@ -47,7 +51,7 @@ const ProvenanceRow: React.FC<{
   return (
     <tr className={isWinner ? "bg-winner border-l-2 border-l-moss text-ink-2" : "bg-surface-1 text-ink-3"}>
       <td colSpan={HEADERS.length} className="px-2 pb-1.5 pt-0">
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span>Provenance: {mask(provenanceSummary(item.row.provenance))}</span>
           {details.length > 0 && (
             <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}
@@ -57,7 +61,7 @@ const ProvenanceRow: React.FC<{
           )}
         </div>
         {open && (
-          <dl id={id} className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-[11px]">
+          <dl id={id} className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-xs">
             {details.map(([k, v]) => (
               <React.Fragment key={k}>
                 <dt className="text-ink-3">{k}</dt>
@@ -77,6 +81,7 @@ const RowCells: React.FC<{
   readonly highlightMetric: HighlightMetric;
 }> = ({ item, isWinner, highlightMetric }) => {
   const r = item.row;
+  const costs = resolveLeaderboardRowCosts(r);
   return (
     <tr
       aria-label={isWinner ? highlightAriaLabel(highlightMetric) : undefined}
@@ -87,7 +92,7 @@ const RowCells: React.FC<{
       <td className={cell}>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-ink-1">{r.level_label ?? r.engine}</span>
-          <span className="font-mono text-[11px] text-ink-3">{r.engine}</span>
+          <span className="font-mono text-xs text-ink-3">{r.engine}</span>
           {isWinner && <Pill tone="ok">{highlightBadgeText(highlightMetric)}</Pill>}
         </div>
       </td>
@@ -96,7 +101,9 @@ const RowCells: React.FC<{
       <td className={num}>{formatMetric(r.avg_qa_relevance)}</td>
       <td className={num}>{formatMetric(r.avg_context_precision)}</td>
       <td className={num}>{formatMs(r.avg_latency_ms ?? null)}</td>
-      <td className={num}>{formatUsd(r.avg_cost_usd ?? null)}</td>
+      <td className={`${num} font-medium text-ink-1`} title="Scored operational engine cost">{formatUsd(costs.engineCostUsd)}</td>
+      <td className={`${num} text-ink-3`} title="External evaluation judge cost (unscored)">{formatUsd(costs.judgeCostUsd)}</td>
+      <td className={num} title="Total run cost (Engine $ + Judge $)">{formatUsd(costs.totalCostUsd)}</td>
       <td className={num}>{r.runs ?? 0}</td>
       <td className={num}>{r.questions_covered ?? 0}</td>
       <td className={`${num} ${(r.failures ?? 0) > 0 ? "text-clay" : ""}`}>{r.failures ?? 0}</td>
@@ -113,16 +120,27 @@ export const LeaderboardTable: React.FC<{
 }> = ({ group, index, highlightMetric = DEFAULT_HIGHLIGHT_METRIC }) => {
   const { mask } = useSafeMode();
   const pairText = `synthesis ${group.synthesisModel}, judge ${group.judgeModel}`;
+  const managedEval = isManagedEvalService(group.judgeModel);
   const winners = useMemo(
     () => bestEngineSet(group.rows.map((item) => item.row), highlightMetric),
     [group.rows, highlightMetric]
   );
   return (
     <section className="flex flex-col gap-1.5" aria-label={mask(pairText)}>
-      <h2 className="text-sm font-semibold text-ink-1">
-        synthesis <span className="font-mono">{mask(group.synthesisModel)}</span> · judge{" "}
-        <span className="font-mono">{mask(group.judgeModel)}</span>
-      </h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-ink-1">
+          synthesis <span className="font-mono">{mask(group.synthesisModel)}</span> · judge{" "}
+          <span className="font-mono">{mask(group.judgeModel)}</span>
+        </h2>
+        {managedEval && (
+          <Pill tone="info" title="Managed Vertex AI GenAI Evaluation Service (:evaluateInstances)">
+            Vertex AI GenAI Eval
+          </Pill>
+        )}
+        <Pill tone="neutral" title="Battle Score efficiency grades operational Engine $ only; Judge $ is shown separately">
+          Engine $ scored · Judge $ split
+        </Pill>
+      </div>
       {group.note && <p className="text-xs text-ochre" role="note">{mask(group.note)}</p>}
       <div className="w-full overflow-x-auto rounded-md border border-line">
         <table className="w-full border-collapse text-xs">

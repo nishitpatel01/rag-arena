@@ -3,3 +3,71 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Executive Decision Brief print layout (spec §7.1: zero raw hex literals outside tokens.css). */
+@media print {
+  @page {
+    margin: 14mm 12mm;
+  }
+
+  :root,
+  :root.dark {
+    color-scheme: light;
+    --surface-0: white;
+    --surface-1: white;
+    --surface-2: rgb(244 243 240);
+    --ink-1: black;
+    --ink-2: rgb(55 52 47);
+    --ink-3: rgb(95 90 84);
+    --line: rgb(206 202 194);
+    --winner-row-bg: rgb(235 243 233);
+  }
+
+  html,
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  header,
+  nav,
+  [data-print-hide="true"],
+  [role="separator"],
+  [data-testid="compare-mode-toggle"],
+  [data-testid="reset-page"],
+  [data-testid="reset-ablation"] {
+    display: none !important;
+  }
+
+  [data-print-only="true"] {
+    display: block !important;
+    margin-bottom: 10pt;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .sticky {
+    position: static !important;
+    box-shadow: none !important;
+  }
+
+  .overflow-x-auto,
+  .overflow-auto {
+    overflow: visible !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -31,6 +32,7 @@ from app.ingestion.uploads import owner_key
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.model_recommender import recommended_pairs_for_catalog
 from app.core.models_catalog import (
     ModelSelectionError,
     RunModels,
@@ -44,6 +46,7 @@ from app.core.pipeline_spec import (
     BQ_RETRIEVAL_MODES,
     CANONICAL_AGENT_TOOLS,
     CONTEXT_ORDERS,
+    GUARDRAIL_MODES,
     INDEX_PROFILES,
     MANAGED_INDEX_PROFILES,
     MAX_CANDIDATE_K_BY_PROFILE,
@@ -82,6 +85,21 @@ _MAX_QUERY_CHARS = 4000
 _MAX_CITATIONS_IN_FRAME = 10
 _MAX_RETRIEVED_CHUNKS_IN_FRAME = 20
 _QUEUE_IDLE_GRACE_SECONDS = 10.0
+_REPLAY_SPEED_OVERRIDE_RANGE: tuple[float, float] = (1.0, 100.0)
+
+
+def _parse_replay_speed_override(body: dict[str, Any]) -> float | None:
+    """Validate optional per-request ``replay_speed`` in [1.0, 100.0] (honored ONLY in ``DEMO_MODE=replay``)."""
+    raw = body.get("replay_speed")
+    if raw is None:
+        return None
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        raise ValueError("Field 'replay_speed' must be a finite number between 1.0 and 100.0")
+    val = float(raw)
+    low, high = _REPLAY_SPEED_OVERRIDE_RANGE
+    if not math.isfinite(val) or not (low <= val <= high):
+        raise ValueError(f"Field 'replay_speed' must be between {low} and {high}, got {raw!r}")
+    return val
 
 
 def _format_sse_event(payload: dict[str, Any]) -> str:
@@ -161,19 +179,28 @@ def _answer_complete_event(run_id: str, result: EngineResult, *, stream_key: str
 def _eval_complete_event(
     run_id: str, result: EngineResult, outcome: EvalOutcome, *, stream_key: str | None = None
 ) -> dict[str, Any]:
-    """``eval_complete`` with the judge outcome; ``run_cost_usd`` = engine cost + judge cost (both measured).
+    """``eval_complete`` with the judge outcome and split operational Engine Cost vs external Judge Cost.
 
     ``battle_score`` + ``score_breakdown`` are computed here (live, record AND replay) with ``scoring.battle_score``
-    from the judge metrics, the engine latency and the run cost — the leaderboard's inputs; recordings never store it.
+    from the judge metrics, the engine latency and operational **Engine Cost** (excluding external judge overhead);
+    total run cost (``cost_usd`` / ``run_cost_usd`` / ``total_cost_usd``) = engine cost + judge cost.
     """
+    engine_cost = round(float(result.cost_usd), 8)
+    judge_cost = round(float(outcome.judge_cost_usd), 8)
     total_cost = run_cost_usd(result, outcome)
-    breakdown = battle_score(outcome.metrics, int(result.latency_ms), total_cost).to_dict()
+    breakdown = battle_score(
+        outcome.metrics, int(result.latency_ms), engine_cost, judge_cost_usd=judge_cost
+    ).to_dict()
     return {
         "event": "eval_complete",
         "run_id": run_id,
         "engine": stream_key or result.engine_id,
         **eval_outcome_to_dict(outcome),
+        "engine_cost_usd": engine_cost,
+        "judge_cost_usd": judge_cost,
+        "cost_usd": total_cost,
         "run_cost_usd": total_cost,
+        "total_cost_usd": total_cost,
         "battle_score": breakdown["battle_score"],
         "score_breakdown": breakdown,
         "ts": utc_now_iso(),
@@ -514,6 +541,7 @@ async def models_endpoint(request: Request) -> JSONResponse:
             "defaults": {"synthesis_model": synthesis_id, "judge_model": judge_id},
             "demo_mode": settings.demo_mode,
             "recorded_pairs": pairs,
+            "recommended_pairs": recommended_pairs_for_catalog(catalog),
         }
     )
 
@@ -546,6 +574,7 @@ def _pipeline_schema_payload() -> dict[str, Any]:
         "context_orders": list(CONTEXT_ORDERS),
         "reasoning_modes": list(REASONING_MODES),
         "agent_tools": list(CANONICAL_AGENT_TOOLS),
+        "guardrail_modes": list(GUARDRAIL_MODES),
         "top_k_range": list(TOP_K_RANGE),
         "max_pipelines_per_battle": _MAX_PIPELINES_PER_BATTLE,
     }
@@ -687,15 +716,22 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
             raise ValueError("Request body must be a JSON object")
         if body.get("engines") is not None and body.get("pipelines") is not None:
             raise ValueError("Provide either 'engines' or 'pipelines', not both")
-        models = _resolve_run_models(body, settings)
+        replay_speed_override = _parse_replay_speed_override(body)
+        # Honor per-request replay_speed ONLY when DEMO_MODE == "replay"; live/record telemetry is never altered.
+        run_settings = (
+            replace(settings, replay_speed=replay_speed_override)
+            if replay_speed_override is not None and settings.demo_mode == "replay"
+            else settings
+        )
+        models = _resolve_run_models(body, run_settings)
         if body.get("pipelines") is not None:
             (
                 query, q_id, selected_engines, sol_filter,
                 registry, models_by_key, specs_by_key, scope_levels,
-            ) = _prepare_pipeline_battle(body, settings, models)
+            ) = _prepare_pipeline_battle(body, run_settings, models)
         else:
-            query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, _enabled_placeholder(settings))
-            registry = get_engine_registry(settings, models=models, level_ids=tuple(selected_engines))
+            query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, _enabled_placeholder(run_settings))
+            registry = get_engine_registry(run_settings, models=models, level_ids=tuple(selected_engines))
             scope_levels = selected_engines
     except (PipelineSpecError, ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
@@ -706,7 +742,7 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
 
     event_generator = _stream_battle_events(
         query=query, question_id=q_id, selected_engines=selected_engines,
-        solicitation_filter=sol_filter, registry=registry, settings=settings,
+        solicitation_filter=sol_filter, registry=registry, settings=run_settings,
         query_run_writer=getattr(request.app.state, "query_run_writer", None), models=models,
         models_by_key=models_by_key, specs_by_key=specs_by_key,
     )

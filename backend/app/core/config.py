@@ -45,14 +45,14 @@ _FORBIDDEN_MODEL_SUBSTRINGS: tuple[str, ...] = (
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 ALL_LEVEL_IDS: tuple[str, ...] = (
-    "level1_naive",
-    "level2_hybrid",
-    "level3_multimodal",
-    "level4_agentic",
     "managed_vertex",
     "rag_engine",
+    "level1_naive",
+    "level2_hybrid",
     "alloydb_scann",
     "vertex_vector_v2",
+    "level3_multimodal",
+    "level4_agentic",
 )
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 VALID_ACCESS_MODES: tuple[str, ...] = ("iap", "public")
@@ -69,18 +69,18 @@ _IAP_AUDIENCE_RE = re.compile(
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
 # Standing $0/mo levels enabled by default in live/record mode; ephemeral ScaNN levels opt in via ENABLED_LEVELS.
 DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
+    "managed_vertex",
+    "rag_engine",
     "level1_naive",
     "level2_hybrid",
     "level3_multimodal",
     "level4_agentic",
-    "managed_vertex",
-    "rag_engine",
 )
 # Replay mode enables all 8 recorded levels by default (including ephemeral ScaNN benchmarks).
 DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
-DEFAULT_APP_VERSION: str = "1.6.0"  # x-release-please-version
+DEFAULT_APP_VERSION: str = "1.6.1"  # x-release-please-version
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
 DEFAULT_HYBRID_CANDIDATE_K: int = 50
 DEFAULT_RERANK_TOP_N: int = 5
@@ -148,6 +148,12 @@ _SCANN_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
 _SCANN_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
 _VVS2_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,62}")
 _PG_IDENT_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]{0,62}")
+# Google Cloud Model Armor Guardrails (REST v1; $0/mo standing template storage).
+DEFAULT_MODEL_ARMOR_LOCATION: str = "us-central1"
+_MODEL_ARMOR_LOCATION_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
+_MODEL_ARMOR_TEMPLATE_RE = re.compile(
+    r"(?:[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}|projects/[A-Za-z0-9._-]+/locations/[a-z][a-z0-9-]{1,30}/templates/[a-zA-Z0-9][a-zA-Z0-9_-]{0,62})"
+)
 
 
 def _load_dotenv_file(dotenv_path: Path) -> dict[str, str]:
@@ -272,6 +278,8 @@ class ArenaSettings:
     rag_engine_chunk_size: int = DEFAULT_RAG_ENGINE_CHUNK_SIZE
     rag_engine_chunk_overlap: int = DEFAULT_RAG_ENGINE_CHUNK_OVERLAP
     rag_engine_timeout_seconds: int = DEFAULT_RAG_ENGINE_TIMEOUT_SECONDS
+    model_armor_location: str = DEFAULT_MODEL_ARMOR_LOCATION
+    model_armor_template_id: str = ""
 
     @property
     def model_verification_path(self) -> Path:
@@ -328,8 +336,25 @@ class ArenaSettings:
         self._validate_vais()
         self._validate_rag_engine()
         self._validate_scann()
+        self._validate_model_armor()
         self._validate_upload_bucket()
         self._validate_auth_and_upload_bounds()
+
+    def _validate_model_armor(self) -> None:
+        """Google Cloud Model Armor regional location and optional template identifier."""
+        if not isinstance(self.model_armor_location, str) or not _MODEL_ARMOR_LOCATION_RE.fullmatch(
+            self.model_armor_location
+        ):
+            raise ValueError(
+                f"MODEL_ARMOR_LOCATION must be a valid location (e.g. 'us-central1'), got {self.model_armor_location!r}"
+            )
+        if not isinstance(self.model_armor_template_id, str) or (
+            self.model_armor_template_id and not _MODEL_ARMOR_TEMPLATE_RE.fullmatch(self.model_armor_template_id)
+        ):
+            raise ValueError(
+                f"MODEL_ARMOR_TEMPLATE_ID must be a valid short template id or resource path, "
+                f"got {self.model_armor_template_id!r}"
+            )
 
     def _validate_scann(self) -> None:
         """Levels 7 & 8 (AlloyDB ScaNN + Vector Search 2.0) regional/identifier allow-lists and numeric bounds."""
@@ -721,6 +746,8 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         **_level3_kwargs(source),
         **_vais_kwargs(source),
         **_rag_engine_kwargs(source),
+        model_armor_location=source.get("MODEL_ARMOR_LOCATION", DEFAULT_MODEL_ARMOR_LOCATION).strip(),
+        model_armor_template_id=source.get("MODEL_ARMOR_TEMPLATE_ID", "").strip(),
         agent_max_turns=_parse_int(source.get("AGENT_MAX_TURNS", str(DEFAULT_AGENT_MAX_TURNS)), "AGENT_MAX_TURNS"),
         agent_max_tool_calls_per_turn=_parse_int(
             source.get("AGENT_MAX_TOOL_CALLS_PER_TURN", str(DEFAULT_AGENT_MAX_TOOL_CALLS_PER_TURN)), "AGENT_MAX_TOOL_CALLS_PER_TURN"

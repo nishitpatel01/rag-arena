@@ -262,7 +262,7 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
     """Level 7: Ephemeral Operational AlloyDB for PostgreSQL + ScaNN Hybrid + Ranking API."""
 
     engine_id: str = "alloydb_scann"
-    engine_label: str = "Level 7: AlloyDB PostgreSQL + ScaNN Hybrid"
+    engine_label: str = "Level 5: AlloyDB PostgreSQL + ScaNN"
     tier_profile: str = LAYOUT_SOURCE
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 
@@ -443,7 +443,7 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         if solicitation_filter and (solicitation_filter.startswith("upl_") or solicitation_filter.startswith("upload_")):
             raise ValueError(
                 "Upload workspaces (upl_*) are not indexed in ephemeral AlloyDB ScaNN benchmark instances; "
-                "select the procurement benchmark corpus or run Levels 1–6 on uploads"
+                "select the procurement benchmark corpus or run Levels 1–4 & 7–8 on uploads"
             )
         if not self.settings.alloydb_dsn.strip():
             raise RuntimeError(

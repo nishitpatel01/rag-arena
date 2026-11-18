@@ -398,7 +398,7 @@ def test_claude_agent_model_is_rejected_with_http_400() -> None:
     try:
         build_engine("level4_agentic", settings, models)
     except AgentModelNotSupportedError as exc:
-        assert "Level 4 agent model must be a Gemini model in this release" in str(exc)
+        assert "Level 8 agent model must be a Gemini model in this release" in str(exc)
     else:
         raise AssertionError("Claude must not drive the ADK agent in this release")
     body = {"query": "q", "engines": ["level4_agentic"], "synthesis_model": "claude-opus-5-5", "judge_model": "gemini-4-argon"}

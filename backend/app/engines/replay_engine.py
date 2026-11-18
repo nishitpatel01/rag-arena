@@ -135,7 +135,7 @@ class ReplayRAGEngine(BaseRAGEngine):
             raise ReplayUnavailableError(f"Recorded result is malformed: {exc}") from exc
         return EngineResult(
             engine_id=recorded.engine_id,
-            engine_label=recorded.engine_label,
+            engine_label=self.engine_label,
             answer=recorded.answer,
             citations=recorded.citations,
             retrieved_chunks=recorded.retrieved_chunks,

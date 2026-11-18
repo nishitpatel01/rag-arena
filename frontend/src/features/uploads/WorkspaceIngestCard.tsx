@@ -76,11 +76,11 @@ export const WorkspaceIngestCard: React.FC<WorkspaceIngestCardProps> = ({
         <div
           className="flex flex-col gap-2 rounded-md border border-clay bg-surface-0 p-3 text-xs"
           role="region"
-          aria-label="Confirm Level 3 ingestion cost"
+          aria-label="Confirm Level 7 multimodal ingestion cost"
           data-testid="level3-cost-confirm"
         >
           <p className="font-semibold text-ink-1">
-            Confirm Level 3 (Document AI Layout Parser + Gemini vision) cost upper bound:{" "}
+            Confirm Level 7 (Document AI Layout Parser + Gemini vision) cost upper bound:{" "}
             <span className="font-mono">{formatUsd(pendingEstimate.max_usd)}</span>
           </p>
           <p className="text-ink-2">
@@ -149,11 +149,11 @@ export const WorkspaceIngestCard: React.FC<WorkspaceIngestCardProps> = ({
         })}
         <li className="flex flex-col justify-between gap-2 rounded-md border border-line bg-surface-0 p-2.5 text-xs">
           <div className="flex flex-wrap items-center justify-between gap-1.5">
-            <span className="font-medium text-ink-1">Level 4: Agentic RAG (Google ADK)</span>
-            <Pill tone={l3Done ? "ok" : "neutral"}>{l3Done ? "ready via Level 3" : "needs Level 3"}</Pill>
+            <span className="font-medium text-ink-1">Level 8: Agentic RAG (Google ADK)</span>
+            <Pill tone={l3Done ? "ok" : "neutral"}>{l3Done ? "ready via Level 7" : "needs Level 7"}</Pill>
           </div>
           <p className="text-ink-3">
-            No separate ingestion job — Level 4's ADK agent tools query this workspace's Level 3 (<span className="font-mono">multimodal</span>) rows.
+            No separate ingestion job — Level 8&apos;s ADK agent tools query this workspace&apos;s Level 7 (<span className="font-mono">multimodal</span>) rows.
           </p>
         </li>
       </ul>

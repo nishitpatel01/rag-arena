@@ -254,7 +254,7 @@ def test_rerank_failure_is_stage_failed_and_raises_without_any_heuristic_fallbac
 
 def test_empty_hybrid_tier_fails_loud_in_retrieve() -> None:
     exc, emitter, *_ = _run_level2(rows=[])
-    assert isinstance(exc, RuntimeError) and "Level 2 ingestion" in str(exc)
+    assert isinstance(exc, RuntimeError) and "Level 4 ingestion" in str(exc)
     assert (emitter.events[-1]["event"], emitter.events[-1]["stage"]) == ("stage_failed", "retrieve")
 
 

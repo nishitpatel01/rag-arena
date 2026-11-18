@@ -5,20 +5,21 @@ import { useAppData } from "./AppDataProvider";
 import { useOptionalIngestSession } from "./IngestSessions";
 import { SafeModeToggle, useSafeMode } from "./SafeMode";
 import { ingestDataLevelFor } from "../features/ingest/ingestSession";
+import { GlobalModelPopover } from "../features/models/GlobalModelPopover";
 import { MASK_PROJECT_ID } from "../lib/safeMode";
 import { Pill } from "../components/ui/Pill";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LEVEL_IDS, type LevelDescriptor } from "../types/arena";
 
 export const SHORT_LEVEL_LABEL: Record<string, string> = {
-  level1_naive: "L1 Naive",
-  level2_hybrid: "L2 Hybrid",
-  level3_multimodal: "L3 Multimodal",
-  level4_agentic: "L4 Agentic",
-  managed_vertex: "Managed Vertex",
-  rag_engine: "L6 RAG Engine",
-  alloydb_scann: "L7 AlloyDB",
-  vertex_vector_v2: "L8 Vector v2",
+  managed_vertex: "1 · Vertex Search",
+  rag_engine: "2 · RAG Engine",
+  level1_naive: "3 · BQ Vector",
+  level2_hybrid: "4 · BQ Hybrid",
+  alloydb_scann: "5 · AlloyDB ScaNN",
+  vertex_vector_v2: "6 · Vector Search 2.0",
+  level3_multimodal: "7 · Multimodal",
+  level4_agentic: "8 · Agentic ADK",
 };
 
 export function lockedTitle(level: LevelDescriptor, all: readonly LevelDescriptor[]): string {
@@ -161,7 +162,8 @@ export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => {
           </nav>
           <div className="hidden h-5 w-px bg-line md:block" aria-hidden />
           <LevelLadderNav />
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <GlobalModelPopover />
             <HealthPills />
             <SafeModeToggle />
             <ThemeToggle />

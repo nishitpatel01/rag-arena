@@ -486,7 +486,7 @@ def test_level3_accepts_any_catalog_synthesis_model_and_fails_loud_on_empty_tier
     models = load_catalog(settings).select("claude-opus-5-5", "gemini-4-argon")
     assert build_engine("level3_multimodal", settings, models).synthesis_model.id == "claude-opus-5-5"
     exc, emitter, _, _ = _run_l3(rows=[])
-    assert isinstance(exc, RuntimeError) and "run the Level 3 ingestion job" in str(exc)
+    assert isinstance(exc, RuntimeError) and "run the Level 7 ingestion job" in str(exc)
     assert [e["event"] for e in emitter.events if e.get("stage") == "retrieve"] == ["stage_started", "stage_failed"]
 
 

@@ -37,8 +37,18 @@ import { applyUploadScopeToChoices, uploadRunGateFor } from "../src/features/upl
 import { isLayoutSource, layoutSourceLabel } from "../src/lib/elements";
 import { LEVEL_IDS, type IngestStatusResponse, type LevelDescriptor, type ModelsResponse } from "../src/types/arena";
 
-test("LEVEL_IDS, SCANN_INDEX_PROFILES, layoutSource, and Compare max include Levels 7 and 8", () => {
-  assert.deepEqual(LEVEL_IDS.slice(6), ["alloydb_scann", "vertex_vector_v2"]);
+test("LEVEL_IDS, SCANN_INDEX_PROFILES, layoutSource, and Compare max include Levels 5 and 6 (ScaNN) in Order A", () => {
+  assert.deepEqual(LEVEL_IDS, [
+    "managed_vertex",
+    "rag_engine",
+    "level1_naive",
+    "level2_hybrid",
+    "alloydb_scann",
+    "vertex_vector_v2",
+    "level3_multimodal",
+    "level4_agentic",
+  ]);
+  assert.deepEqual(LEVEL_IDS.slice(4, 6), ["alloydb_scann", "vertex_vector_v2"]);
   assert.deepEqual(SCANN_INDEX_PROFILES, ["alloydb_scann", "vertex_vector_v2"]);
   assert.equal(MAX_COMPARE_LEVELS, 8);
   assert.equal(isScannProfile("alloydb_scann"), true);
@@ -128,7 +138,7 @@ const mkStatus = (patch: Partial<IngestStatusResponse>): IngestStatusResponse =>
   ...patch,
 });
 
-test("ingestStatus gates Levels 7–8 cleanly across replay, live idle ($0/mo), and live configured", () => {
+test("ingestStatus gates Levels 5–6 cleanly across replay, live idle ($0/mo), and live configured", () => {
   assert.equal(TIER_FOR_LEVEL.alloydb_scann, null);
   assert.equal(TIER_FOR_LEVEL.vertex_vector_v2, null);
   assert.equal(isEphemeralScannLevel("alloydb_scann"), true);
@@ -198,7 +208,7 @@ test("ingestStatus gates Levels 7–8 cleanly across replay, live idle ($0/mo), 
   assert.equal(ingestPillText("vertex_vector_v2", gReady, liveReady), "ephemeral benchmark · live configured");
 });
 
-test("upload workspaces explicitly block Ephemeral ScaNN Levels 7–8 with corpus guidance", () => {
+test("upload workspaces explicitly block Ephemeral ScaNN Levels 5–6 with corpus guidance", () => {
   const ws = {
     id: "upl_abcdef012345",
     created_at: "2026-11-04T00:00:00Z",
@@ -210,11 +220,11 @@ test("upload workspaces explicitly block Ephemeral ScaNN Levels 7–8 with corpu
   };
   const g7 = uploadRunGateFor("alloydb_scann", ws);
   assert.equal(g7.blocked, true);
-  assert.match(g7.note ?? "", /Standing Levels 1–6/);
+  assert.match(g7.note ?? "", /Standing Levels 1–4 & 7–8/);
 
   const g8 = uploadRunGateFor("vertex_vector_v2", ws);
   assert.equal(g8.blocked, true);
-  assert.match(g8.note ?? "", /Ephemeral ScaNN Levels 7–8/);
+  assert.match(g8.note ?? "", /Ephemeral ScaNN Levels 5–6/);
 
   const eightLevels: LevelDescriptor[] = LEVEL_IDS.map((id, i) => ({
     level_id: id,
@@ -262,6 +272,6 @@ test("upload workspaces explicitly block Ephemeral ScaNN Levels 7–8 with corpu
   const baseChoices = levelChoices(eightLevels, catalog, { synthesis: "gemini-4-argon", judge: "claude-opus-5-5" }, "q1");
   const scoped = applyUploadScopeToChoices(baseChoices, ws);
   assert.equal(scoped.find((c) => c.levelId === "level1_naive")?.disabledReason, null);
-  assert.match(scoped.find((c) => c.levelId === "alloydb_scann")?.disabledReason ?? "", /Standing Levels 1–6/);
-  assert.match(scoped.find((c) => c.levelId === "vertex_vector_v2")?.disabledReason ?? "", /Standing Levels 1–6/);
+  assert.match(scoped.find((c) => c.levelId === "alloydb_scann")?.disabledReason ?? "", /Standing Levels 1–4 & 7–8/);
+  assert.match(scoped.find((c) => c.levelId === "vertex_vector_v2")?.disabledReason ?? "", /Standing Levels 1–4 & 7–8/);
 });

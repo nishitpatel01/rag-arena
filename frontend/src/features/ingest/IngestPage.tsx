@@ -235,7 +235,7 @@ export const IngestPage: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-ink-2">
-            Already ingested across Levels 1–6 for the default <span className="font-medium text-ink-1">Procurement corpus</span> scope — no action needed before running benchmark queries. Creating an upload workspace above starts completely empty (0 files, all levels <span className="font-mono">not ingested</span>) and never clears or overwrites this corpus.
+            Already ingested across the 6 serverless architectures (Levels 1–4, 7–8) for the default <span className="font-medium text-ink-1">Procurement corpus</span> scope — no action needed before running benchmark queries. Creating an upload workspace above starts completely empty (0 files, all levels <span className="font-mono">not ingested</span>) and never clears or overwrites this corpus.
           </p>
         </div>
 

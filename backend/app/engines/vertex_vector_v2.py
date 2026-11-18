@@ -181,7 +181,7 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
     """Level 8: Ephemeral High-QPS Vertex AI Vector Search 2.0 (ScaNN ANN + Sparse RRF + Ranking API)."""
 
     engine_id: str = "vertex_vector_v2"
-    engine_label: str = "Level 8: Vertex AI Vector Search 2.0 (ScaNN + Sparse RRF)"
+    engine_label: str = "Level 6: Vertex AI Vector Search 2.0"
     tier_profile: str = LAYOUT_SOURCE
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 
@@ -321,7 +321,7 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
         if solicitation_filter and (solicitation_filter.startswith("upl_") or solicitation_filter.startswith("upload_")):
             raise ValueError(
                 "Upload workspaces (upl_*) are not indexed in ephemeral Vector Search 2.0 benchmark collections; "
-                "select the procurement benchmark corpus or run Levels 1–6 on uploads"
+                "select the procurement benchmark corpus or run Levels 1–4 & 7–8 on uploads"
             )
         if not self.settings.vvs2_collection.strip():
             raise RuntimeError(

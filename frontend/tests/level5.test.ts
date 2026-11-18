@@ -173,7 +173,7 @@ test("picker rule: vertex-ai-search-summary is synthesis-only and valid only on 
   assert.deepEqual(allowedLevels(summary), ["managed_vertex"]);
   assert.equal(allowedLevels(CATALOG.models[0]), null);
   assert.equal(levelRestriction(summary, "managed_vertex"), null);
-  assert.match(levelRestriction(summary, "level1_naive") ?? "", /valid only on Level 5/);
+  assert.match(levelRestriction(summary, "level1_naive") ?? "", /valid only on Level 1/);
   assert.equal(levelRestriction(summary, null), null);
   // Server-declared `levels` wins over the id rule.
   assert.match(levelRestriction(entry("x", "vertex_gemini", ["synthesis"], { levels: ["level2_hybrid"] }), "level1_naive") ?? "", /valid only on level2_hybrid/);

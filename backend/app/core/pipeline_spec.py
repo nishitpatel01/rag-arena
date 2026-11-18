@@ -11,7 +11,7 @@ from dataclasses import dataclass, replace
 import hashlib
 import json
 import re
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
 from app.core.architectures import (
     DOCAI_LOCATION_PLACEHOLDER,
@@ -20,6 +20,7 @@ from app.core.architectures import (
     JUDGE_LOCATION_PLACEHOLDER,
     JUDGE_SERVICE_PLACEHOLDER,
     MM_EMBED_SERVICE_PLACEHOLDER,
+    MODEL_ARMOR_LOCATION_PLACEHOLDER,
     RAG_ENGINE_LOCATION_PLACEHOLDER,
     RAG_ENGINE_STORE_SERVICE_PLACEHOLDER,
     VAIS_LOCATION_PLACEHOLDER,
@@ -38,13 +39,13 @@ from app.core.models_catalog import (
 )
 
 INDEX_PROFILES: tuple[str, ...] = (
-    "naive",
-    "hybrid",
-    "multimodal",
     "vertex_ai_search",
     "rag_engine",
+    "naive",
+    "hybrid",
     "alloydb_scann",
     "vertex_vector_v2",
+    "multimodal",
 )
 BQ_INDEX_PROFILES: tuple[str, ...] = ("naive", "hybrid", "multimodal")
 MANAGED_INDEX_PROFILES: tuple[str, ...] = ("vertex_ai_search", "rag_engine")
@@ -83,6 +84,8 @@ BQ_RETRIEVAL_MODES: tuple[str, ...] = ("vector_cosine", "lexical_bm25", "hybrid_
 RERANKERS: tuple[str, ...] = ("none", "vertex_ranking_api")
 CONTEXT_ORDERS: tuple[str, ...] = ("score_order", "authority_amendment_first")
 REASONING_MODES: tuple[str, ...] = ("single_pass", "adk_agent")
+GUARDRAIL_MODES: tuple[str, ...] = ("none", "model_armor")
+GuardrailMode = Literal["none", "model_armor"]
 CANONICAL_AGENT_TOOLS: tuple[str, ...] = (
     "search_procurement_corpus",
     "check_amendments",
@@ -243,18 +246,18 @@ def _check_model_id_compatibility(spec: "PipelineSpec", synth_id: str, judge_id:
             raise PipelineSpecError(
                 f"Model '{VAIS_SUMMARY_MODEL_ID}' requires index_profile 'vertex_ai_search'"
             )
-        if spec.slots.reranker != "none" or spec.slots.reasoning_mode != "single_pass":
+        if spec.slots.reranker != "none" or spec.slots.reasoning_mode != "single_pass" or spec.guardrail != "none":
             raise PipelineSpecError(
                 f"Model '{VAIS_SUMMARY_MODEL_ID}' generates inside the managed search call and requires "
-                "reranker='none' and reasoning_mode='single_pass'"
+                "reranker='none', reasoning_mode='single_pass', and guardrail='none'"
             )
     if synth_id == RAG_ENGINE_GROUNDED_MODEL_ID:
         if spec.index_profile != "rag_engine":
             raise PipelineSpecError(f"Model '{RAG_ENGINE_GROUNDED_MODEL_ID}' requires index_profile 'rag_engine'")
-        if spec.slots.reranker != "none" or spec.slots.reasoning_mode != "single_pass":
+        if spec.slots.reranker != "none" or spec.slots.reasoning_mode != "single_pass" or spec.guardrail != "none":
             raise PipelineSpecError(
                 f"Model '{RAG_ENGINE_GROUNDED_MODEL_ID}' retrieves inside VertexRagStore and requires "
-                "reranker='none' and reasoning_mode='single_pass'"
+                "reranker='none', reasoning_mode='single_pass', and guardrail='none'"
             )
 
 
@@ -267,11 +270,13 @@ class PipelineSpec:
     synthesis_model: str | None = None
     judge_model: str | None = None
     label: str = ""
+    guardrail: GuardrailMode = "none"
 
     def __post_init__(self) -> None:
         _require_choice(self.index_profile, INDEX_PROFILES, "index_profile")
         if not isinstance(self.slots, QuerySlots):
             raise PipelineSpecError("Field 'slots' must be a QuerySlots instance")
+        _require_choice(self.guardrail, GUARDRAIL_MODES, "guardrail")
         _check_cross_slot_invariants(self.index_profile, self.slots)
         for field_name, val in (("synthesis_model", self.synthesis_model), ("judge_model", self.judge_model)):
             if val is not None and (not isinstance(val, str) or not val.strip() or len(val.strip()) > 128):
@@ -292,7 +297,10 @@ class PipelineSpec:
         return BACKING_LEVEL_BY_PROFILE[self.index_profile]
 
     def structural_dict(self) -> dict[str, Any]:
-        return {"index_profile": self.index_profile, "slots": self.slots.to_dict()}
+        out: dict[str, Any] = {"index_profile": self.index_profile, "slots": self.slots.to_dict()}
+        if self.guardrail != "none":
+            out["guardrail"] = self.guardrail
+        return out
 
     @property
     def pipeline_id(self) -> str:
@@ -302,6 +310,8 @@ class PipelineSpec:
 
     def preset_level_id(self, settings: ArenaSettings | None = None) -> str | None:
         """Return the matching ``ALL_LEVEL_IDS`` preset id when structural slots match 1:1, else ``None``."""
+        if self.guardrail != "none":
+            return None
         cfg = settings or ArenaSettings()
         for level_id in PRESET_LEVEL_IDS:
             preset = preset_spec(level_id, cfg)
@@ -321,6 +331,8 @@ class PipelineSpec:
             parts.append("rerank")
         if self.slots.reasoning_mode == "adk_agent":
             parts.append(f"adk({len(self.slots.agent_tools)}t)")
+        if self.guardrail != "none":
+            parts.append(self.guardrail)
         return " · ".join(parts)
 
     def to_dict(self) -> dict[str, Any]:
@@ -328,6 +340,7 @@ class PipelineSpec:
             "pipeline_id": self.pipeline_id,
             "index_profile": self.index_profile,
             "slots": self.slots.to_dict(),
+            "guardrail": self.guardrail,
         }
         if self.synthesis_model is not None:
             out["synthesis_model"] = self.synthesis_model
@@ -342,13 +355,21 @@ class PipelineSpec:
         if not isinstance(data, Mapping):
             raise PipelineSpecError("PipelineSpec payload must be a JSON object")
         profile = _require_choice(data.get("index_profile"), INDEX_PROFILES, "index_profile")
-        slots = QuerySlots.from_dict(data.get("slots"))  # type: ignore[arg-type]
+        raw_slots = data.get("slots")
+        slots = QuerySlots.from_dict(raw_slots)  # type: ignore[arg-type]
+        raw_guard = data.get("guardrail")
+        slot_guard = raw_slots.get("guardrail") if isinstance(raw_slots, Mapping) else None
+        if raw_guard is not None and slot_guard is not None and raw_guard != slot_guard:
+            raise PipelineSpecError(f"Conflicting guardrail values {raw_guard!r} vs {slot_guard!r}")
+        eff_guard = raw_guard if raw_guard is not None else (slot_guard if slot_guard is not None else "none")
+        guardrail = _require_choice(eff_guard, GUARDRAIL_MODES, "guardrail")
         return cls(
             index_profile=profile,
             slots=slots,
             synthesis_model=data.get("synthesis_model"),
             judge_model=data.get("judge_model"),
             label=str(data.get("label") or ""),
+            guardrail=guardrail,  # type: ignore[arg-type]
         )
 
 
@@ -434,7 +455,10 @@ def list_preset_specs(settings: ArenaSettings | None = None) -> tuple[tuple[str,
 
 def active_query_stages(spec: PipelineSpec) -> tuple[str, ...]:
     """Ordered subset of ``CANONICAL_QUERY_STAGES`` emitted by ``spec``."""
+    armored = spec.guardrail == "model_armor"
     if spec.slots.reasoning_mode == "adk_agent":
+        if armored:
+            return ("query_prep", "guardrail_in", "agent_turn", "synthesize", "guardrail_out", "evaluate")
         return ("query_prep", "agent_turn", "synthesize", "evaluate")
     stages: list[str] = ["query_prep"]
     if (spec.index_profile in BQ_INDEX_PROFILES or spec.index_profile in SCANN_INDEX_PROFILES) and spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
@@ -442,7 +466,12 @@ def active_query_stages(spec: PipelineSpec) -> tuple[str, ...]:
     stages.append("retrieve")
     if spec.slots.reranker == "vertex_ranking_api":
         stages.append("rerank")
-    stages.extend(["synthesize", "evaluate"])
+    if armored:
+        stages.append("guardrail_in")
+    stages.append("synthesize")
+    if armored:
+        stages.append("guardrail_out")
+    stages.append("evaluate")
     return tuple(stages)
 
 
@@ -519,47 +548,72 @@ def _single_pass_retrieval(spec: PipelineSpec) -> tuple[list[ArchNode], list[Arc
     return nodes, edges, "retrieve"
 
 
+def _model_armor_node(col: int, row: int) -> ArchNode:
+    return ArchNode(
+        "model_armor",
+        "Model Armor",
+        "Google Cloud Model Armor · v1",
+        "api",
+        col,
+        row,
+        ("guardrail_in", "guardrail_out"),
+        region=MODEL_ARMOR_LOCATION_PLACEHOLDER,
+        code_ref="app.core.model_armor:ModelArmorClient",
+    )
+
+
 def _agent_nodes_and_edges(spec: PipelineSpec) -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
     turn = ("agent_turn",)
     tools = set(spec.slots.agent_tools)
+    armored = spec.guardrail == "model_armor"
+    shift = 1 if armored else 0
     user = _user_node(spec.slots.query_transform)
-    agent = ArchNode("agent", "ADK LlmAgent loop", "Google ADK InMemoryRunner · Vertex AI Gemini", "agent", 1, 1, turn, region=GENAI_LOCATION_PLACEHOLDER)
-    nodes: list[ArchNode] = [user, agent]
-    edges: list[ArchEdge] = [ArchEdge("user", "agent", "prepared query")]
+    agent = ArchNode("agent", "ADK LlmAgent loop", "Google ADK InMemoryRunner · Vertex AI Gemini", "agent", 1 + shift, 1, turn, region=GENAI_LOCATION_PLACEHOLDER)
+    nodes: list[ArchNode] = [user]
+    edges: list[ArchEdge] = []
+    if armored:
+        nodes.append(_model_armor_node(1, 1))
+        edges.extend([ArchEdge("user", "model_armor", "prompt"), ArchEdge("model_armor", "agent", "sanitized")])
+    else:
+        edges.append(ArchEdge("user", "agent", "prepared query"))
+    nodes.append(agent)
 
     bq_tools = ("search_procurement_corpus",) + (("check_amendments",) if "check_amendments" in tools else ())
-    tool_search = ArchNode("tool_search", "search_procurement_corpus", f"{spec.index_profile} · {spec.slots.retrieval_mode}", "process", 2, 0, turn, tool_names=("search_procurement_corpus",))
-    bq = ArchNode("bq", f"document_chunks (tier {spec.index_profile})", _bq_service_label(spec), "store", 3, 1, turn, region=GCP_LOCATION_PLACEHOLDER, tool_names=bq_tools)
+    tool_search = ArchNode("tool_search", "search_procurement_corpus", f"{spec.index_profile} · {spec.slots.retrieval_mode}", "process", 2 + shift, 0, turn, tool_names=("search_procurement_corpus",))
+    bq = ArchNode("bq", f"document_chunks (tier {spec.index_profile})", _bq_service_label(spec), "store", 3 + shift, 1, turn, region=GCP_LOCATION_PLACEHOLDER, tool_names=bq_tools)
     nodes.extend([tool_search, bq])
     edges.extend([ArchEdge("agent", "tool_search", "tool call"), ArchEdge("tool_search", "agent", "chunks")])
 
     if spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
         emb_svc = MM_EMBED_SERVICE_PLACEHOLDER if spec.index_profile == "multimodal" else "Vertex AI · gemini-embedding-2"
-        nodes.append(ArchNode("embed", "Query embedding", emb_svc, "model", 3, 0, turn, region=GENAI_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",)))
+        nodes.append(ArchNode("embed", "Query embedding", emb_svc, "model", 3 + shift, 0, turn, region=GENAI_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",)))
         edges.extend([ArchEdge("tool_search", "embed", "query"), ArchEdge("embed", "bq", "3072-d vector")])
     else:
         edges.append(ArchEdge("tool_search", "bq", "lexical terms"))
 
     if spec.slots.reranker == "vertex_ranking_api":
-        nodes.append(ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 4, 0, turn, region="global", tool_names=("search_procurement_corpus",)))
+        nodes.append(ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 4 + shift, 0, turn, region="global", tool_names=("search_procurement_corpus",)))
         edges.extend([ArchEdge("bq", "rank", f"candidates (≤ {spec.slots.candidate_k})"), ArchEdge("rank", "tool_search", f"top-{spec.slots.top_k} chunks")])
     else:
         edges.append(ArchEdge("bq", "tool_search", f"top-{spec.slots.top_k} chunks"))
 
     if "check_amendments" in tools:
-        nodes.append(ArchNode("tool_amend", "check_amendments", "BigQuery amends_section lookup", "process", 2, 1, turn, tool_names=("check_amendments",)))
+        nodes.append(ArchNode("tool_amend", "check_amendments", "BigQuery amends_section lookup", "process", 2 + shift, 1, turn, tool_names=("check_amendments",)))
         edges.extend([ArchEdge("agent", "tool_amend", "tool call"), ArchEdge("tool_amend", "bq", "@section_id"), ArchEdge("tool_amend", "agent", "superseding text")])
     if "calculate_contract_pricing" in tools:
-        nodes.append(ArchNode("tool_calc", "calculate_contract_pricing", "Local AST-validated arithmetic", "process", 2, 2, turn, tool_names=("calculate_contract_pricing",)))
+        nodes.append(ArchNode("tool_calc", "calculate_contract_pricing", "Local AST-validated arithmetic", "process", 2 + shift, 2, turn, tool_names=("calculate_contract_pricing",)))
         edges.extend([ArchEdge("agent", "tool_calc", "tool call"), ArchEdge("tool_calc", "agent", "value")])
     if "verify_citations" in tools:
-        nodes.append(ArchNode("tool_verify", "verify_citations", "Local claim ↔ cited-chunk check", "process", 2, 3, turn, tool_names=("verify_citations",)))
+        nodes.append(ArchNode("tool_verify", "verify_citations", "Local claim ↔ cited-chunk check", "process", 2 + shift, 3, turn, tool_names=("verify_citations",)))
         edges.extend([ArchEdge("agent", "tool_verify", "tool call"), ArchEdge("tool_verify", "agent", "unsupported claims")])
 
-    final = ArchNode("llm", "Final response (ADK)", "Google ADK · final model turn", "model", 4, 2, ("synthesize",), region=GENAI_LOCATION_PLACEHOLDER)
-    judge = ArchNode("judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 5, 2, ("evaluate",), region=JUDGE_LOCATION_PLACEHOLDER)
+    final = ArchNode("llm", "Final response (ADK)", "Google ADK · final model turn", "model", 4 + shift, 2, ("synthesize",), region=GENAI_LOCATION_PLACEHOLDER)
+    judge = ArchNode("judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 5 + shift, 2, ("evaluate",), region=JUDGE_LOCATION_PLACEHOLDER)
     nodes.extend([final, judge])
-    edges.extend([ArchEdge("agent", "llm", "final turn"), ArchEdge("llm", "judge", "answer + tool chunks")])
+    edges.append(ArchEdge("agent", "llm", "final turn"))
+    if armored:
+        edges.append(ArchEdge("llm", "model_armor", "screen output"))
+    edges.append(ArchEdge("llm", "judge", "answer + tool chunks"))
     return tuple(nodes), tuple(edges)
 
 
@@ -585,10 +639,22 @@ def descriptor_for_pipeline(spec: PipelineSpec, settings: ArenaSettings | None =
             pre_llm = "rank"
         llm_label = "Authority-headed synthesis" if spec.slots.context_order == "authority_amendment_first" else "Answer synthesis"
         ctx_edge = f"top-{spec.slots.top_k} · amendments first" if spec.slots.context_order == "authority_amendment_first" else f"top-{spec.slots.top_k} chunks"
-        llm = ArchNode("llm", llm_label, f"Vertex AI · {cfg.gemini_fast_model}", "model", 4, 1, ("synthesize",), region=GENAI_LOCATION_PLACEHOLDER)
-        judge = ArchNode("judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 5, 1, ("evaluate",), region=JUDGE_LOCATION_PLACEHOLDER)
-        nodes_acc.extend([llm, judge])
-        edges_acc.extend([ArchEdge(pre_llm, "llm", ctx_edge), ArchEdge("llm", "judge", "answer + context")])
+        if spec.guardrail == "model_armor":
+            nodes_acc.append(_model_armor_node(4, 1))
+            llm = ArchNode("llm", llm_label, f"Vertex AI · {cfg.gemini_fast_model}", "model", 5, 1, ("synthesize",), region=GENAI_LOCATION_PLACEHOLDER)
+            judge = ArchNode("judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 6, 1, ("evaluate",), region=JUDGE_LOCATION_PLACEHOLDER)
+            nodes_acc.extend([llm, judge])
+            edges_acc.extend([
+                ArchEdge(pre_llm, "model_armor", ctx_edge),
+                ArchEdge("model_armor", "llm", "sanitized input"),
+                ArchEdge("llm", "model_armor", "screen output"),
+                ArchEdge("llm", "judge", "answer + context"),
+            ])
+        else:
+            llm = ArchNode("llm", llm_label, f"Vertex AI · {cfg.gemini_fast_model}", "model", 4, 1, ("synthesize",), region=GENAI_LOCATION_PLACEHOLDER)
+            judge = ArchNode("judge", "LLM-as-a-judge", JUDGE_SERVICE_PLACEHOLDER, "model", 5, 1, ("evaluate",), region=JUDGE_LOCATION_PLACEHOLDER)
+            nodes_acc.extend([llm, judge])
+            edges_acc.extend([ArchEdge(pre_llm, "llm", ctx_edge), ArchEdge("llm", "judge", "answer + context")])
         q_nodes, q_edges = tuple(nodes_acc), tuple(edges_acc)
 
     raw_desc = ArchitectureDescriptor(
@@ -607,6 +673,8 @@ __all__ = [
     "BQ_RETRIEVAL_MODES",
     "CANONICAL_AGENT_TOOLS",
     "CONTEXT_ORDERS",
+    "GUARDRAIL_MODES",
+    "GuardrailMode",
     "INDEX_PROFILES",
     "MANAGED_INDEX_PROFILES",
     "MAX_CANDIDATE_K_BY_PROFILE",

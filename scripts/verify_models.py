@@ -86,7 +86,7 @@ def probe_gemini(settings: ArenaSettings, spec: ModelSpec) -> tuple[bool, int | 
     resp = client.models.generate_content(
         model=spec.id,
         contents=PROBE_PROMPT,
-        config={"max_output_tokens": 256, "http_options": {"timeout": CALL_TIMEOUT_SECONDS * 1000}},
+        config={"max_output_tokens": 512, "http_options": {"timeout": CALL_TIMEOUT_SECONDS * 1000}},
     )
     text = str(getattr(resp, "text", "") or "").strip()
     return True, 200, (text[:80] or "200 OK (empty text)")

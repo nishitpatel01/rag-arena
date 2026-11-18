@@ -205,7 +205,7 @@ export const RagSynthModeBadge: React.FC<RagSynthModeBadgeProps> = ({ view, labe
     <Pill
       tone={isGrounded ? "active" : "info"}
       icon={<Icon className="h-3 w-3 shrink-0" aria-hidden />}
-      title={`Level 6 synthesis mode: ${view.mode}`}
+      title={`Vertex AI RAG Engine synthesis mode: ${view.mode}`}
     >
       {ragSynthesizeModeLabel(view, labelFor)}
     </Pill>
@@ -238,7 +238,7 @@ export const RagEngineSynthesizeDetail: React.FC<RagEngineSynthesizeDetailProps>
 
   return (
     <section
-      aria-label="Level 6 synthesis"
+      aria-label="Vertex AI RAG Engine synthesis"
       className="flex min-w-0 flex-col gap-2"
       data-testid="rag-engine-synthesize"
     >
@@ -255,7 +255,7 @@ export const RagEngineSynthesizeDetail: React.FC<RagEngineSynthesizeDetailProps>
           Gemini called <code className="font-mono">VertexRagStore</code> natively during <code className="font-mono">generate_content</code> to ground its response directly against the <code className="font-mono">RagCorpus</code>.
         </p>
       )}
-      <KeyValue columns={2} label="Level 6 synthesis telemetry" items={items} />
+      <KeyValue columns={2} label="Vertex AI RAG Engine synthesis telemetry" items={items} />
     </section>
   );
 };

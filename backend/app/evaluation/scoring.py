@@ -1,6 +1,8 @@
 """Battle Score + diagnostics derived ONLY from flags, stage_log and judge metrics (spec §6.5).
 
 Battle Score (0–100) = 40% QA Relevance + 35% Groundedness + 15% Context Precision + 10% Efficiency.
+Efficiency is computed from measured engine latency (vs 60 s) and operational **Engine Cost** (vs $0.20),
+excluding external LLM-judge / evaluation overhead so expensive autoraters never penalize fast architectures.
 No per-engine static strings exist here: every diagnostic sentence cites a measured value.
 """
 
@@ -19,14 +21,38 @@ SCORE_WEIGHTS: dict[str, float] = {
     "efficiency": 0.10,
 }
 _LATENCY_REFERENCE_MS = 60_000.0  # owner decision 2026-10-23: real runs take 15–57 s
-_COST_REFERENCE_USD = 0.20  # owner decision 2026-10-23: real runs cost $0.03–0.13
+_COST_REFERENCE_USD = 0.20  # owner decision 2026-10-23: real runs cost $0.003–$0.18 engine USD
 _LOW_METRIC_THRESHOLD = 0.6
 _MAX_DIAGNOSTICS = 8
 
 
+def _validate_non_negative_number(value: Any, name: str) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or float(value) < 0.0:
+        raise ValueError(f"{name} must be a number >= 0")
+    return float(value)
+
+
+def resolve_engine_cost_usd(
+    cost_usd: float | None,
+    *,
+    engine_cost_usd: float | None = None,
+    judge_cost_usd: float | None = None,
+) -> float | None:
+    """Resolve scored operational engine cost, falling back to ``max(0, cost_usd - judge_cost_usd)`` when needed."""
+    if engine_cost_usd is not None:
+        return round(_validate_non_negative_number(engine_cost_usd, "engine_cost_usd"), 8)
+    if cost_usd is None:
+        return None
+    total = _validate_non_negative_number(cost_usd, "cost_usd")
+    if judge_cost_usd is not None:
+        judge = _validate_non_negative_number(judge_cost_usd, "judge_cost_usd")
+        return round(max(0.0, total - judge), 8)
+    return round(total, 8)
+
+
 @dataclass(frozen=True)
 class ScoreBreakdown:
-    """Composite score with its measured components."""
+    """Composite score with its measured components (``cost_usd`` = scored operational engine cost)."""
 
     battle_score: float
     efficiency: float
@@ -35,9 +61,12 @@ class ScoreBreakdown:
     context_precision: float
     latency_ms: int
     cost_usd: float
+    engine_cost_usd: float | None = None
+    judge_cost_usd: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        engine_cost = round(float(self.cost_usd if self.engine_cost_usd is None else self.engine_cost_usd), 8)
+        out: dict[str, Any] = {
             "battle_score": self.battle_score,
             "efficiency": self.efficiency,
             "qa_relevance": self.qa_relevance,
@@ -45,24 +74,39 @@ class ScoreBreakdown:
             "context_precision": self.context_precision,
             "latency_ms": self.latency_ms,
             "cost_usd": self.cost_usd,
+            "engine_cost_usd": engine_cost,
         }
+        if self.judge_cost_usd is not None:
+            judge_cost = round(float(self.judge_cost_usd), 8)
+            out["judge_cost_usd"] = judge_cost
+            out["total_cost_usd"] = round(engine_cost + judge_cost, 8)
+        return out
 
 
 def efficiency_score(latency_ms: int, cost_usd: float) -> float:
-    """Efficiency in [0, 1]: 1 minus half-weight latency (vs 5 s) minus cost share (vs $0.01), clamped."""
+    """Efficiency in [0, 1]: 1 minus half-weight latency (vs 60 s) minus engine cost share (vs $0.20), clamped."""
     if not isinstance(latency_ms, int) or isinstance(latency_ms, bool) or latency_ms < 0:
         raise ValueError("latency_ms must be an integer >= 0")
-    if not isinstance(cost_usd, (int, float)) or cost_usd < 0:
-        raise ValueError("cost_usd must be a number >= 0")
-    penalty = (latency_ms / _LATENCY_REFERENCE_MS) * 0.5 + min(0.5, float(cost_usd) / _COST_REFERENCE_USD * 0.5)
+    engine_cost = _validate_non_negative_number(cost_usd, "cost_usd")
+    penalty = (latency_ms / _LATENCY_REFERENCE_MS) * 0.5 + min(0.5, engine_cost / _COST_REFERENCE_USD * 0.5)
     return round(max(0.0, min(1.0, 1.0 - penalty)), 3)
 
 
-def battle_score(metrics: EvalMetrics, latency_ms: int, cost_usd: float) -> ScoreBreakdown:
-    """Weighted composite of judge metrics and efficiency, scaled to 0–100."""
+def battle_score(
+    metrics: EvalMetrics,
+    latency_ms: int,
+    cost_usd: float,
+    *,
+    judge_cost_usd: float | None = None,
+) -> ScoreBreakdown:
+    """Weighted composite of judge metrics and engine-only operational efficiency, scaled to 0–100."""
     if not isinstance(metrics, EvalMetrics):
         raise TypeError("metrics must be an EvalMetrics instance")
-    eff = efficiency_score(latency_ms, cost_usd)
+    engine_cost = _validate_non_negative_number(cost_usd, "cost_usd")
+    judge_cost = (
+        None if judge_cost_usd is None else _validate_non_negative_number(judge_cost_usd, "judge_cost_usd")
+    )
+    eff = efficiency_score(latency_ms, engine_cost)
     score = (
         metrics.qa_relevance * SCORE_WEIGHTS["qa_relevance"]
         + metrics.groundedness * SCORE_WEIGHTS["groundedness"]
@@ -76,7 +120,9 @@ def battle_score(metrics: EvalMetrics, latency_ms: int, cost_usd: float) -> Scor
         groundedness=metrics.groundedness,
         context_precision=metrics.context_precision,
         latency_ms=latency_ms,
-        cost_usd=float(cost_usd),
+        cost_usd=engine_cost,
+        engine_cost_usd=engine_cost,
+        judge_cost_usd=judge_cost,
     )
 
 
@@ -137,5 +183,6 @@ __all__ = [
     "battle_score",
     "diagnostics",
     "efficiency_score",
+    "resolve_engine_cost_usd",
     "stage_log_from_dicts",
 ]

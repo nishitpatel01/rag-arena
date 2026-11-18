@@ -24,14 +24,14 @@ from app.engines.replay_engine import ReplayRAGEngine
 from app.engines.vertex_vector_v2 import VertexVectorSearchV2Engine
 
 ENGINE_CLASSES: tuple[type[BaseRAGEngine], ...] = (
-    Level1NaiveEngine,
-    Level2HybridEngine,
-    Level3MultimodalEngine,
-    Level4AgenticEngine,
     ManagedVertexSearchEngine,
     RagEngine,
+    Level1NaiveEngine,
+    Level2HybridEngine,
     AlloyDBScaNNEngine,
     VertexVectorSearchV2Engine,
+    Level3MultimodalEngine,
+    Level4AgenticEngine,
 )
 _ENGINE_CLASS_BY_ID: dict[str, type[BaseRAGEngine]] = {cls.engine_id: cls for cls in ENGINE_CLASSES}
 

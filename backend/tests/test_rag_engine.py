@@ -101,7 +101,7 @@ def _sample_retrieve_doc(uri: str, *, page: int | None = 4, text: str = "CLIN-00
 
 def test_level6_registration_descriptor_and_pseudo_model_gating() -> None:
     assert "rag_engine" in ALL_LEVEL_IDS
-    assert ENGINE_CLASSES[5] is RagEngine
+    assert ENGINE_CLASSES[1] is RagEngine
     settings = live_settings(
         gcp_project_id="acme-proj",
         enabled_levels=ALL_LEVEL_IDS,

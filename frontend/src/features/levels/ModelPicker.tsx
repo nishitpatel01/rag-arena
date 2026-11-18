@@ -1,6 +1,8 @@
 import React from "react";
+import { Sparkles } from "lucide-react";
 import { useSafeMode } from "../../app/SafeMode";
 import type { ModelRole, ModelsResponse, PipelineSpec, RecordedPair } from "../../types/arena";
+import { recommendModelPair, shortModelLabel } from "../models/modelRecommender";
 import {
   buildSpecPickerDetails,
   synthesisOptionsForSpec,
@@ -109,9 +111,43 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, erro
   }
 
   const details = spec ? buildSpecPickerDetails(catalog, selection, spec) : buildPickerDetails(catalog, selection, levelId);
+  const recommended = recommendModelPair({ catalog, levelId, spec });
+  const isRecommended =
+    selection.synthesis === recommended.synthesis_model && selection.judge === recommended.judge_model;
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 rounded-md border border-line p-2" data-testid="model-picker">
       <legend className="px-1 text-xs font-medium text-ink-2">Models</legend>
+      <div
+        className="flex flex-wrap items-center justify-between gap-1.5 rounded-md border border-line bg-surface-1 px-2 py-1.5 text-xs"
+        data-testid="model-picker-recommend"
+      >
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="inline-flex items-center gap-1 font-medium text-ink-1">
+            <Sparkles className="h-3 w-3 shrink-0 text-ochre" aria-hidden />
+            Recommend pair ({recommended.profile_label})
+          </span>
+          <span className="font-mono text-ink-3">
+            {shortModelLabel(catalog, recommended.synthesis_model)} → {shortModelLabel(catalog, recommended.judge_model)}
+          </span>
+        </div>
+        {isRecommended ? (
+          <span className="font-medium text-ok" data-testid="model-picker-recommend-active">
+            Recommended active
+          </span>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            data-testid="model-picker-apply-recommend"
+            onClick={() =>
+              onChange({ synthesis: recommended.synthesis_model, judge: recommended.judge_model })
+            }
+            className="rounded border border-moss bg-surface-0 px-2 py-0.5 font-medium text-moss transition-colors hover:bg-winner disabled:opacity-60"
+          >
+            Apply pair
+          </button>
+        )}
+      </div>
       <RoleSelect role="synthesis" label="Synthesis model" catalog={catalog} value={selection.synthesis} other={selection.judge} disabled={disabled} levelId={levelId} spec={spec} mask={mask}
         onSelect={(id) => onChange({ ...selection, synthesis: id })} />
       <RoleSelect role="judge" label="Judge model" catalog={catalog} value={selection.judge} other={selection.synthesis} disabled={disabled} levelId={levelId} spec={spec} mask={mask}

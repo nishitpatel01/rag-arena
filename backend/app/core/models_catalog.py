@@ -3,12 +3,13 @@
 The catalog is defined in code (ids, labels, providers); everything else is resolved, never guessed:
 
 * **location** — ``MODEL_LOCATION_<ID>`` override (``<ID>`` = id upper-cased, non-alphanumerics → ``_``), default
-  ``global`` (the only endpoint where all four models were probed).
+  ``global`` for publisher LLMs and ``GCP_LOCATION`` (``us-central1``) for the managed Vertex AI GenAI Evaluation Service.
 * **price** — ``app.core.pricing.PRICE_TABLE`` (published Vertex AI rates with ``source`` + ``price_as_of``). A model
   without a verified price is ``available: false`` with reason ``"price not verified"``.
 * **availability** — ``data/model_verification.json`` written by ``scripts/verify_models.py`` (one bounded live call
   per model). A model that is missing from the file or whose call failed is ``available: false`` and carries the
-  recorded (redacted) error verbatim as ``unavailable_reason``.
+  recorded (redacted) error verbatim as ``unavailable_reason``. In ``replay`` mode, ``vertex-genai-eval`` also checks
+  ``data/recordings`` honestly so replay never claims recordings that do not exist.
 
 ``require`` is the single validation gate used by ``POST /api/v1/battle/stream``: unknown id, unavailable model,
 role not allowed and judge == synthesis are all rejected (HTTP 400 before streaming). There is no fallback model.
@@ -24,6 +25,7 @@ from typing import Any
 
 from app.core.config import ArenaSettings
 from app.core.pricing import PRICE_TABLE
+from app.recording.store import RecordingStore
 
 PROVIDER_VERTEX_GEMINI = "vertex_gemini"
 PROVIDER_ANTHROPIC_VERTEX = "anthropic_vertex"
@@ -31,11 +33,14 @@ PROVIDER_ANTHROPIC_VERTEX = "anthropic_vertex"
 PROVIDER_VERTEX_AI_SEARCH = "vertex_ai_search"
 # Level 6 pseudo provider: Gemini grounded natively with VertexRagStore (synthesis on rag_engine only).
 PROVIDER_VERTEX_RAG_ENGINE = "vertex_rag_engine"
+# Managed rubric-based evaluation service (:evaluateInstances) — judge-only, distinct from all synthesis models.
+PROVIDER_VERTEX_GENAI_EVAL = "vertex_genai_eval"
 PROVIDERS: tuple[str, ...] = (
     PROVIDER_VERTEX_GEMINI,
     PROVIDER_ANTHROPIC_VERTEX,
     PROVIDER_VERTEX_AI_SEARCH,
     PROVIDER_VERTEX_RAG_ENGINE,
+    PROVIDER_VERTEX_GENAI_EVAL,
 )
 ROLE_SYNTHESIS = "synthesis"
 ROLE_JUDGE = "judge"
@@ -48,14 +53,18 @@ _MAX_VERIFICATION_BYTES = 256 * 1024
 _MAX_VERIFICATION_ENTRIES = 64
 _MAX_REASON_CHARS = 600
 
-# (id, label, provider) — selectable LLM catalog on Vertex AI.
+# (id, label, provider) — selectable LLM catalog on Vertex AI (active Gemini 4 & Claude first; legacy/gated last).
 CATALOG_ENTRIES: tuple[tuple[str, str, str], ...] = (
-    ("gemini-4-argon", "Gemini 4 Argon", PROVIDER_VERTEX_GEMINI),
+    ("gemini-4-hydrogen", "Gemini 4 Hydrogen", PROVIDER_VERTEX_GEMINI),
     ("gemini-4-carbon", "Gemini 4 Carbon", PROVIDER_VERTEX_GEMINI),
-    ("gemini-3.8-flash", "Gemini 3.8 Flash", PROVIDER_VERTEX_GEMINI),
+    ("gemini-4-argon", "Gemini 4 Argon", PROVIDER_VERTEX_GEMINI),
+    ("claude-sonnet-4-6", "Claude Sonnet 4.6", PROVIDER_ANTHROPIC_VERTEX),
     ("claude-opus-5-5", "Claude Opus 5.5", PROVIDER_ANTHROPIC_VERTEX),
+    ("gemini-3.8-flash", "Gemini 3.8 Flash (Legacy · Recorded)", PROVIDER_VERTEX_GEMINI),
+    ("claude-fable-5-2", "Claude Fable 5.2", PROVIDER_ANTHROPIC_VERTEX),
     ("claude-fable-5-1", "Claude Fable 5.1", PROVIDER_ANTHROPIC_VERTEX),
 )
+LEGACY_MODEL_IDS: frozenset[str] = frozenset({"gemini-3.8-flash"})
 # (id, label, allowed level) — pseudo synthesis models served by a managed service, valid on ONE level only.
 VAIS_SUMMARY_MODEL_ID = "vertex-ai-search-summary"
 RAG_ENGINE_GROUNDED_MODEL_ID = "vertex-rag-engine-grounded"
@@ -63,8 +72,15 @@ PSEUDO_ENTRIES: tuple[tuple[str, str, str], ...] = (
     (VAIS_SUMMARY_MODEL_ID, "Vertex AI Search summary", "managed_vertex"),
     (RAG_ENGINE_GROUNDED_MODEL_ID, "Vertex AI RAG Engine Grounded (Gemini)", "rag_engine"),
 )
+VERTEX_GENAI_EVAL_MODEL_ID = "vertex-genai-eval"
+VERTEX_GENAI_EVAL_LABEL = "Vertex AI GenAI Eval Service"
+VERTEX_GENAI_EVAL_AUTORATER_MODEL = "gemini-4-hydrogen"
 VAIS_NOT_CONFIGURED = "VAIS_ENGINE_ID / VAIS_DATA_STORE_ID not configured (run scripts/provision_vertex_search.py)"
 RAG_ENGINE_NOT_CONFIGURED = "RAG_ENGINE_CORPUS_ID not configured (run scripts/provision_rag_engine.py)"
+VERTEX_GENAI_EVAL_NOT_CONFIGURED = "GCP_PROJECT_ID not configured for Vertex AI GenAI Evaluation Service"
+VERTEX_GENAI_EVAL_NO_RECORDINGS = (
+    "no recorded runs in data/recordings for judge 'vertex-genai-eval' (switch to DEMO_MODE=live to call :evaluateInstances)"
+)
 
 
 class ModelSelectionError(ValueError):
@@ -94,6 +110,7 @@ class ModelSpec:
     # Empty = every level; otherwise the only levels this model may serve (pseudo models: ("managed_vertex",)).
     allowed_levels: tuple[str, ...] = ()
     usd_per_1k_requests: float = 0.0
+    legacy: bool = False
 
     def __post_init__(self) -> None:
         if not self.id or not self.label:
@@ -121,6 +138,7 @@ class ModelSpec:
             "verified_at": self.verified_at,
             "allowed_levels": list(self.allowed_levels),
             "usd_per_1k_requests": self.usd_per_1k_requests,
+            "legacy": self.legacy,
         }
 
     def check_level(self, level_id: str) -> None:
@@ -251,6 +269,7 @@ def _spec(model_id: str, label: str, provider: str, settings: ArenaSettings, ent
         available=available,
         unavailable_reason=reason,
         verified_at=verified_at,
+        legacy=model_id in LEGACY_MODEL_IDS,
     )
 
 
@@ -311,6 +330,59 @@ def _pseudo_spec(
     )
 
 
+def _has_recorded_judge(settings: ArenaSettings, judge_id: str) -> bool:
+    """True when ``settings.recordings_path`` holds at least one recorded pair using ``judge_id``."""
+    rec_path = settings.recordings_path
+    if not rec_path.is_dir():
+        return False
+    pairs = RecordingStore(rec_path, allow_dev_fixtures=settings.allow_dev_fixtures).recorded_pairs()
+    return any(p.get("judge_model") == judge_id and p.get("question_ids") for p in pairs)
+
+
+def _vertex_eval_spec(settings: ArenaSettings, verification: dict[str, dict[str, Any]]) -> ModelSpec:
+    """Judge-only managed Vertex AI GenAI Evaluation Service (:evaluateInstances, billed at Gemini Flash autorater rate)."""
+    locations = dict(settings.model_locations)
+    location = locations.get(location_env_suffix(VERTEX_GENAI_EVAL_MODEL_ID), settings.gcp_location or "us-central1")
+    autorater_id = VERTEX_GENAI_EVAL_AUTORATER_MODEL
+    price = PRICE_TABLE.get(VERTEX_GENAI_EVAL_MODEL_ID) or PRICE_TABLE.get(autorater_id)
+    entry = (
+        verification.get(VERTEX_GENAI_EVAL_MODEL_ID)
+        or verification.get(autorater_id)
+        or verification.get("gemini-4-argon")
+        or verification.get("gemini-3.8-flash")
+    )
+    verified_at = str(entry.get("verified_at")) if entry and entry.get("verified_at") else None
+    if price is None or not price.source or not price.price_as_of or price.input_usd_per_1m <= 0:
+        available, reason = False, PRICE_NOT_VERIFIED
+    elif entry is None:
+        available, reason = False, NOT_VERIFIED
+    elif not entry["ok"]:
+        status = entry.get("http_status")
+        message = str(entry.get("message") or "live verification call failed").strip()[:_MAX_REASON_CHARS]
+        available, reason = False, (f"HTTP {status}: {message}" if status else message)
+    elif settings.demo_mode == "replay" and not _has_recorded_judge(settings, VERTEX_GENAI_EVAL_MODEL_ID):
+        available, reason = False, VERTEX_GENAI_EVAL_NO_RECORDINGS
+    elif settings.is_live and not settings.gcp_project_id.strip():
+        available, reason = False, VERTEX_GENAI_EVAL_NOT_CONFIGURED
+    else:
+        available, reason = True, None
+    return ModelSpec(
+        id=VERTEX_GENAI_EVAL_MODEL_ID,
+        label=VERTEX_GENAI_EVAL_LABEL,
+        provider=PROVIDER_VERTEX_GENAI_EVAL,
+        location=location,
+        roles=(ROLE_JUDGE,),
+        input_usd_per_1m=float(price.input_usd_per_1m) if price else 0.0,
+        output_usd_per_1m=float(price.output_usd_per_1m) if price else 0.0,
+        price_source=price.source if price else "",
+        price_as_of=price.price_as_of if price else "",
+        available=available,
+        unavailable_reason=reason,
+        verified_at=verified_at,
+        legacy=False,
+    )
+
+
 def load_catalog(settings: ArenaSettings, verification_path: Path | None = None) -> ModelCatalog:
     """Build the catalog: code-defined entries + env locations + published prices + verification evidence."""
     if not isinstance(settings, ArenaSettings):
@@ -318,7 +390,8 @@ def load_catalog(settings: ArenaSettings, verification_path: Path | None = None)
     verification = load_verification(verification_path or settings.model_verification_path)
     llms = tuple(_spec(mid, label, provider, settings, verification.get(mid)) for mid, label, provider in CATALOG_ENTRIES)
     pseudo = tuple(_pseudo_spec(mid, label, level, settings, verification) for mid, label, level in PSEUDO_ENTRIES)
-    return ModelCatalog(models=llms + pseudo)
+    eval_spec = _vertex_eval_spec(settings, verification)
+    return ModelCatalog(models=llms + pseudo + (eval_spec,))
 
 
 def default_selection_ids(settings: ArenaSettings) -> tuple[str, str]:
@@ -334,25 +407,31 @@ def spec_for_settings_model(settings: ArenaSettings, model_id: str) -> ModelSpec
 __all__ = [
     "CATALOG_ENTRIES",
     "DEFAULT_MODEL_LOCATION",
+    "LEGACY_MODEL_IDS",
     "ModelCatalog",
     "ModelSelectionError",
     "ModelSpec",
     "NOT_VERIFIED",
     "PRICE_NOT_VERIFIED",
+    "PROVIDER_ANTHROPIC_VERTEX",
     "PROVIDER_VERTEX_AI_SEARCH",
+    "PROVIDER_VERTEX_GEMINI",
+    "PROVIDER_VERTEX_GENAI_EVAL",
     "PROVIDER_VERTEX_RAG_ENGINE",
     "PSEUDO_ENTRIES",
     "RAG_ENGINE_GROUNDED_MODEL_ID",
     "RAG_ENGINE_NOT_CONFIGURED",
-    "VAIS_NOT_CONFIGURED",
-    "VAIS_SUMMARY_MODEL_ID",
-    "PROVIDER_ANTHROPIC_VERTEX",
-    "PROVIDER_VERTEX_GEMINI",
     "ROLES",
     "ROLE_JUDGE",
     "ROLE_SYNTHESIS",
     "RunModels",
+    "VAIS_NOT_CONFIGURED",
+    "VAIS_SUMMARY_MODEL_ID",
     "VERIFICATION_FORMAT_VERSION",
+    "VERTEX_GENAI_EVAL_LABEL",
+    "VERTEX_GENAI_EVAL_MODEL_ID",
+    "VERTEX_GENAI_EVAL_NOT_CONFIGURED",
+    "VERTEX_GENAI_EVAL_NO_RECORDINGS",
     "VerificationFileError",
     "default_selection_ids",
     "load_catalog",

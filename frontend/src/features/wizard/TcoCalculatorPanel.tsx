@@ -233,7 +233,9 @@ export const TcoCalculatorPanel: React.FC<TcoCalculatorPanelProps> = ({
                           </span>
                           <span className="text-xs text-ink-3">
                             {cohort.runs} runs ·{" "}
-                            {isAltCohort ? `recorded w/ ${cohort.synthesis_model}` : cohort.synthesis_model}
+                            {isAltCohort
+                              ? `Reference cohort: ${cohort.synthesis_model} + ${cohort.judge_model}`
+                              : cohort.synthesis_model}
                           </span>
                         </div>
                       ) : (
@@ -275,10 +277,12 @@ export const TcoCalculatorPanel: React.FC<TcoCalculatorPanelProps> = ({
           <div className="mt-2 grid gap-2 border-t border-line pt-2 md:grid-cols-2">
             <ul className="flex list-disc flex-col gap-1 pl-4">
               <li>
-                <span className="font-semibold text-ink-1">Vertex AI Models &amp; APIs</span>: Gemini 3.8 Flash ($0.75 /
-                $3.75 per 1M in/out), Gemini 4 Argon ($2.00 / $10.00 per 1M in/out), gemini-embedding-2 ($0.20 / 1M),
-                text-embedding-005 ($0.10 / 1M), Discovery Engine Ranking API ($1.00 / 1k calls), Vertex AI Search
-                Enterprise ($4.00 / 1k queries; first 10 GiB indexed free, $2.50/GiB-mo above 10 GiB).
+                <span className="font-semibold text-ink-1">Vertex AI Models &amp; APIs</span>: Gemini 4 Hydrogen ($1.50
+                / $7.50 per 1M in/out), Gemini 4 Carbon &amp; Argon ($2.00 / $10.00 per 1M), Claude Sonnet 4.6 ($3.00 /
+                $15.00, L1–L7), Claude Opus 5.5 ($4.00 / $20.00, L1–L7), legacy Gemini 3.8 Flash ($0.75 / $3.75),
+                gemini-embedding-2 ($0.20 / 1M), text-embedding-005 ($0.10 / 1M), Discovery Engine Ranking API ($1.00 /
+                1k calls), Vertex AI Search Enterprise ($4.00 / 1k queries; first 10 GiB indexed free, $2.50/GiB-mo
+                above 10 GiB). Level 8 ADK requires a Gemini 4 worker.
               </li>
               <li>
                 <span className="font-semibold text-ink-1">Document AI &amp; Multimodal Ingest (L7/L8)</span>: Layout

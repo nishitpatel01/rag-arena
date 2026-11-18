@@ -53,14 +53,18 @@ _MAX_VERIFICATION_BYTES = 256 * 1024
 _MAX_VERIFICATION_ENTRIES = 64
 _MAX_REASON_CHARS = 600
 
-# (id, label, provider) — selectable LLM catalog on Vertex AI.
+# (id, label, provider) — selectable LLM catalog on Vertex AI (active Gemini 4 & Claude first; legacy/gated last).
 CATALOG_ENTRIES: tuple[tuple[str, str, str], ...] = (
-    ("gemini-4-argon", "Gemini 4 Argon", PROVIDER_VERTEX_GEMINI),
+    ("gemini-4-hydrogen", "Gemini 4 Hydrogen", PROVIDER_VERTEX_GEMINI),
     ("gemini-4-carbon", "Gemini 4 Carbon", PROVIDER_VERTEX_GEMINI),
-    ("gemini-3.8-flash", "Gemini 3.8 Flash", PROVIDER_VERTEX_GEMINI),
+    ("gemini-4-argon", "Gemini 4 Argon", PROVIDER_VERTEX_GEMINI),
+    ("claude-sonnet-4-6", "Claude Sonnet 4.6", PROVIDER_ANTHROPIC_VERTEX),
     ("claude-opus-5-5", "Claude Opus 5.5", PROVIDER_ANTHROPIC_VERTEX),
+    ("gemini-3.8-flash", "Gemini 3.8 Flash (Legacy · Recorded)", PROVIDER_VERTEX_GEMINI),
+    ("claude-fable-5-2", "Claude Fable 5.2", PROVIDER_ANTHROPIC_VERTEX),
     ("claude-fable-5-1", "Claude Fable 5.1", PROVIDER_ANTHROPIC_VERTEX),
 )
+LEGACY_MODEL_IDS: frozenset[str] = frozenset({"gemini-3.8-flash"})
 # (id, label, allowed level) — pseudo synthesis models served by a managed service, valid on ONE level only.
 VAIS_SUMMARY_MODEL_ID = "vertex-ai-search-summary"
 RAG_ENGINE_GROUNDED_MODEL_ID = "vertex-rag-engine-grounded"
@@ -70,7 +74,7 @@ PSEUDO_ENTRIES: tuple[tuple[str, str, str], ...] = (
 )
 VERTEX_GENAI_EVAL_MODEL_ID = "vertex-genai-eval"
 VERTEX_GENAI_EVAL_LABEL = "Vertex AI GenAI Eval Service"
-VERTEX_GENAI_EVAL_AUTORATER_MODEL = "gemini-3.8-flash"
+VERTEX_GENAI_EVAL_AUTORATER_MODEL = "gemini-4-hydrogen"
 VAIS_NOT_CONFIGURED = "VAIS_ENGINE_ID / VAIS_DATA_STORE_ID not configured (run scripts/provision_vertex_search.py)"
 RAG_ENGINE_NOT_CONFIGURED = "RAG_ENGINE_CORPUS_ID not configured (run scripts/provision_rag_engine.py)"
 VERTEX_GENAI_EVAL_NOT_CONFIGURED = "GCP_PROJECT_ID not configured for Vertex AI GenAI Evaluation Service"
@@ -106,6 +110,7 @@ class ModelSpec:
     # Empty = every level; otherwise the only levels this model may serve (pseudo models: ("managed_vertex",)).
     allowed_levels: tuple[str, ...] = ()
     usd_per_1k_requests: float = 0.0
+    legacy: bool = False
 
     def __post_init__(self) -> None:
         if not self.id or not self.label:
@@ -133,6 +138,7 @@ class ModelSpec:
             "verified_at": self.verified_at,
             "allowed_levels": list(self.allowed_levels),
             "usd_per_1k_requests": self.usd_per_1k_requests,
+            "legacy": self.legacy,
         }
 
     def check_level(self, level_id: str) -> None:
@@ -263,6 +269,7 @@ def _spec(model_id: str, label: str, provider: str, settings: ArenaSettings, ent
         available=available,
         unavailable_reason=reason,
         verified_at=verified_at,
+        legacy=model_id in LEGACY_MODEL_IDS,
     )
 
 
@@ -340,8 +347,9 @@ def _vertex_eval_spec(settings: ArenaSettings, verification: dict[str, dict[str,
     price = PRICE_TABLE.get(VERTEX_GENAI_EVAL_MODEL_ID) or PRICE_TABLE.get(autorater_id)
     entry = (
         verification.get(VERTEX_GENAI_EVAL_MODEL_ID)
-        if VERTEX_GENAI_EVAL_MODEL_ID in verification
-        else verification.get(autorater_id)
+        or verification.get(autorater_id)
+        or verification.get("gemini-4-argon")
+        or verification.get("gemini-3.8-flash")
     )
     verified_at = str(entry.get("verified_at")) if entry and entry.get("verified_at") else None
     if price is None or not price.source or not price.price_as_of or price.input_usd_per_1m <= 0:
@@ -371,6 +379,7 @@ def _vertex_eval_spec(settings: ArenaSettings, verification: dict[str, dict[str,
         available=available,
         unavailable_reason=reason,
         verified_at=verified_at,
+        legacy=False,
     )
 
 
@@ -398,6 +407,7 @@ def spec_for_settings_model(settings: ArenaSettings, model_id: str) -> ModelSpec
 __all__ = [
     "CATALOG_ENTRIES",
     "DEFAULT_MODEL_LOCATION",
+    "LEGACY_MODEL_IDS",
     "ModelCatalog",
     "ModelSelectionError",
     "ModelSpec",

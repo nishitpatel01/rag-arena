@@ -95,9 +95,24 @@ def test_parse_tco_workload_enforces_strict_bounds_enums_and_types() -> None:
     _assert_validation_error({"latency_sla": "batch_overnight"}, "latency_sla")
     _assert_validation_error({"compliance_posture": "hipaa_custom"}, "compliance_posture")
     _assert_validation_error({"doc_complexity": "audio_video"}, "doc_complexity")
-    _assert_validation_error({"synthesis_model": "claude-opus-5-5"}, "synthesis_model")
+    _assert_validation_error({"synthesis_model": "gpt-4o"}, "synthesis_model")
     _assert_validation_error({"unexpected_field": 123}, "Unknown")
     _assert_validation_error(["not", "a", "dict"], "JSON object")
+
+    # Expanded Gemini 4 + Anthropic Claude TCO synthesis models all parse cleanly; default is Gemini 4 Hydrogen
+    assert DEFAULT_WORKLOAD.synthesis_model == "gemini-4-hydrogen"
+    assert TCO_SYNTHESIS_MODELS == (
+        "gemini-4-hydrogen",
+        "gemini-4-carbon",
+        "gemini-4-argon",
+        "claude-sonnet-4-6",
+        "claude-opus-5-5",
+        "gemini-3.8-flash",
+    )
+    for model_id in TCO_SYNTHESIS_MODELS:
+        assert parse_tco_workload({"synthesis_model": model_id}).synthesis_model == model_id
+    for preset in ENTERPRISE_SCENARIO_PRESETS:
+        assert preset.workload.synthesis_model != "gemini-3.8-flash"
 
 
 def test_pure_core_never_invents_hardcoded_benchmark_scores() -> None:
@@ -279,14 +294,20 @@ def test_tco_api_endpoints_join_real_recorded_cohorts_and_reject_bad_inputs() ->
     assert body_def["enums"]["synthesis_model"] == list(TCO_SYNTHESIS_MODELS)
     assert len(body_def["presets"]) >= 5
 
-    # Verify real recorded cohort metrics are joined from data/recordings/ (e.g. L2 Flash has 8 recorded runs, L5 Flash has none -> alternate Argon)
-    initial_archs = {a["level_id"]: a for a in body_def["estimate"]["architectures"]}
-    assert initial_archs["level2_hybrid"]["recorded_cohort"] is not None
-    assert initial_archs["level2_hybrid"]["recorded_cohort"]["runs"] == 8
-    assert initial_archs["level2_hybrid"]["recorded_cohort"]["synthesis_model"] == "gemini-3.8-flash"
-    assert 0.80 <= initial_archs["level2_hybrid"]["recorded_cohort"]["avg_qa_relevance"] <= 0.90
+    # Selecting Claude synthesis adds explicit Level 8 ADK Gemini-4 worker watch-out
+    claude_est = estimate_enterprise_tco(parse_tco_workload({"synthesis_model": "claude-sonnet-4-6"}))
+    claude_l8 = next(a for a in claude_est.architectures if a.level_id == "level4_agentic")
+    assert any("Gemini 4 worker" in t and "ADK" in t for t in claude_l8.tradeoffs)
 
-    # Honest label invariant: managed_vertex has no gemini-3.8-flash recording, so exact cohort is None and alternate_cohort carries Argon
+    # Verify default Gemini 4 Hydrogen has no direct recordings yet -> falls back honestly to reference Argon cohort
+    initial_archs = {a["level_id"]: a for a in body_def["estimate"]["architectures"]}
+    assert body_def["defaults"]["synthesis_model"] == "gemini-4-hydrogen"
+    assert initial_archs["level2_hybrid"]["recorded_cohort"] is None
+    assert initial_archs["level2_hybrid"]["alternate_cohort"] is not None
+    assert initial_archs["level2_hybrid"]["alternate_cohort"]["synthesis_model"] == "gemini-4-argon"
+    assert initial_archs["level2_hybrid"]["alternate_cohort"]["runs"] == 8
+
+    # Honest label invariant: managed_vertex also falls back cleanly to reference Argon cohort
     assert initial_archs["managed_vertex"]["recorded_cohort"] is None
     assert initial_archs["managed_vertex"]["alternate_cohort"] is not None
     assert initial_archs["managed_vertex"]["alternate_cohort"]["synthesis_model"] == "gemini-4-argon"

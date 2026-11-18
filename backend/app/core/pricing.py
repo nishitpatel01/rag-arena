@@ -40,6 +40,14 @@ _VERTEX_PRICING_URL = "https://cloud.google.com/vertex-ai/generative-ai/pricing"
 _DISCOVERY_PRICING_URL = "https://cloud.google.com/generative-ai-app-builder/pricing"
 
 PRICE_TABLE: dict[str, ModelPrice] = {
+    "gemini-4-hydrogen": ModelPrice(
+        model="gemini-4-hydrogen",
+        input_usd_per_1m=1.50,
+        output_usd_per_1m=7.50,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-18",
+        note="Gemini 4 fast-tier global-endpoint rate (successor to gemini-3.8-flash); output rate includes thinking tokens.",
+    ),
     "gemini-4-argon": ModelPrice(
         model="gemini-4-argon",
         input_usd_per_1m=2.00,
@@ -53,10 +61,21 @@ PRICE_TABLE: dict[str, ModelPrice] = {
         input_usd_per_1m=2.00,
         output_usd_per_1m=10.00,
         source=_VERTEX_PRICING_URL,
-        price_as_of="2026-10-28",
+        price_as_of="2026-11-18",
         note=(
             "Introductory global-endpoint rate ($2.00 / $10.00 per 1M in/out; standard $4.00 / $20.00 "
             "post-introductory); output rate includes thinking tokens."
+        ),
+    ),
+    "claude-sonnet-4-6": ModelPrice(
+        model="claude-sonnet-4-6",
+        input_usd_per_1m=3.00,
+        output_usd_per_1m=15.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-18",
+        note=(
+            "Anthropic Claude Sonnet 4.6 partner model on Vertex AI, Global endpoint, <= 200K input tokens; "
+            "regional/multi-region endpoints are priced separately."
         ),
     ),
     "gemini-embedding-2": ModelPrice(
@@ -89,6 +108,14 @@ PRICE_TABLE: dict[str, ModelPrice] = {
             "regional/multi-region endpoints are priced separately."
         ),
     ),
+    "claude-fable-5-2": ModelPrice(
+        model="claude-fable-5-2",
+        input_usd_per_1m=10.00,
+        output_usd_per_1m=50.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-18",
+        note="Anthropic Claude Fable 5.2 partner model on Vertex AI, Global endpoint; regional/multi-region endpoints are priced separately.",
+    ),
     "gemini-3.8-flash": ModelPrice(
         model="gemini-3.8-flash",
         input_usd_per_1m=0.75,
@@ -96,9 +123,17 @@ PRICE_TABLE: dict[str, ModelPrice] = {
         source=_VERTEX_PRICING_URL,
         price_as_of="2026-10-21",
         note=(
-            "Introductory global-endpoint rate through 2026-12-31 (standard $1.50 / $7.50 from 2027-01-01); "
+            "Legacy recorded fast-tier global-endpoint rate through 2026-12-31 (standard $1.50 / $7.50 from 2027-01-01); "
             "output rate includes reasoning tokens."
         ),
+    ),
+    "vertex-genai-eval": ModelPrice(
+        model="vertex-genai-eval",
+        input_usd_per_1m=0.75,
+        output_usd_per_1m=3.75,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-18",
+        note="Vertex AI GenAI Evaluation Service (:evaluateInstances) autorater billing rate.",
     ),
     "claude-fable-5-1": ModelPrice(
         model="claude-fable-5-1",

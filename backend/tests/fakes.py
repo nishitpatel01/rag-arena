@@ -193,10 +193,13 @@ def fake_clients(
 
 
 CATALOG_IDS: tuple[str, ...] = (
-    "gemini-4-argon",
+    "gemini-4-hydrogen",
     "gemini-4-carbon",
-    "gemini-3.8-flash",
+    "gemini-4-argon",
+    "claude-sonnet-4-6",
     "claude-opus-5-5",
+    "gemini-3.8-flash",
+    "claude-fable-5-2",
     "claude-fable-5-1",
 )
 FABLE_403 = (

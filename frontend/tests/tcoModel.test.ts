@@ -67,7 +67,15 @@ test("parseTcoWorkload enforces strict bounds, enums, and rejects invalid inputs
   assert.equal(LATENCY_SLA_OPTIONS.length, 3);
   assert.equal(COMPLIANCE_POSTURE_OPTIONS.length, 3);
   assert.equal(DOC_COMPLEXITY_OPTIONS.length, 3);
-  assert.equal(TCO_SYNTHESIS_MODELS.length, 2);
+  assert.equal(TCO_SYNTHESIS_MODELS.length, 6);
+  assert.equal(DEFAULT_WORKLOAD.synthesis_model, "gemini-4-hydrogen");
+  assert.deepEqual(
+    [...TCO_SYNTHESIS_MODELS],
+    ["gemini-4-hydrogen", "gemini-4-carbon", "gemini-4-argon", "claude-sonnet-4-6", "claude-opus-5-5", "gemini-3.8-flash"]
+  );
+  for (const preset of ENTERPRISE_SCENARIO_PRESETS) {
+    assert.notEqual(preset.workload.synthesis_model, "gemini-3.8-flash");
+  }
 
   for (const invalid of [
     { monthly_queries: 999 },
@@ -77,11 +85,16 @@ test("parseTcoWorkload enforces strict bounds, enums, and rejects invalid inputs
     { corpus_pages: 99 },
     { corpus_pages: 500_001 },
     { data_gravity: "snowflake" },
-    { synthesis_model: "claude-opus-5-5" },
+    { synthesis_model: "gpt-4o" },
     { unknown_key: 1 },
   ]) {
     assert.throws(() => parseTcoWorkload(invalid as Record<string, unknown>));
   }
+
+  // Claude synthesis model triggers Level 8 ADK Gemini-4 worker watch-out
+  const claudeEst = estimateEnterpriseTco(parseTcoWorkload({ synthesis_model: "claude-sonnet-4-6" }));
+  const claudeL8 = claudeEst.architectures.find((a) => a.level_id === "level4_agentic");
+  assert.ok(claudeL8?.tradeoffs.some((t) => t.includes("Gemini 4 worker") && t.includes("ADK")));
 });
 
 test("logarithmic slider helpers preserve exact min/max endpoints and monotonic round-trips", () => {
@@ -219,14 +232,23 @@ test("extractRecordedCohorts joins real LeaderboardResponse groups honestly (exa
   const cohorts = extractRecordedCohorts(mockLeaderboard);
   assert.equal(cohorts.exactCohorts.get("level3_multimodal|gemini-3.8-flash")?.avg_qa_relevance, 0.825);
 
+  // Default workload uses gemini-4-hydrogen (no direct recording yet) -> honest alternate_cohort fallback
   const joined = estimateEnterpriseTco(DEFAULT_WORKLOAD, { leaderboard: mockLeaderboard });
   const byId = Object.fromEntries(joined.architectures.map((a) => [a.level_id, a]));
-  assert.equal(byId.level3_multimodal.recorded_cohort?.avg_qa_relevance, 0.825);
-  assert.equal(byId.level3_multimodal.alternate_cohort, null);
-  // managed_vertex has no Flash cohort in mock -> recorded_cohort is null, alternate_cohort shows Argon honestly
+  assert.equal(byId.level3_multimodal.recorded_cohort, null);
+  assert.equal(byId.level3_multimodal.alternate_cohort?.avg_qa_relevance, 0.825);
   assert.equal(byId.managed_vertex.recorded_cohort, null);
   assert.equal(byId.managed_vertex.alternate_cohort?.synthesis_model, "gemini-4-argon");
   assert.equal(byId.managed_vertex.alternate_cohort?.avg_qa_relevance, 0.905);
+
+  // Explicit gemini-3.8-flash workload joins exact Flash cohort cleanly
+  const flashJoined = estimateEnterpriseTco(
+    { ...DEFAULT_WORKLOAD, synthesis_model: "gemini-3.8-flash" },
+    { leaderboard: mockLeaderboard }
+  );
+  const flashById = Object.fromEntries(flashJoined.architectures.map((a) => [a.level_id, a]));
+  assert.equal(flashById.level3_multimodal.recorded_cohort?.avg_qa_relevance, 0.825);
+  assert.equal(flashById.level3_multimodal.alternate_cohort, null);
 
   // Sorting modes work deterministically
   const byTco = sortArchitectures(joined.architectures, "monthly_tco");
@@ -303,6 +325,9 @@ test("SHORT_LEVEL_LABEL and ArchitectureWizard progressive disclosure enforce Or
       })
     )
   );
+  assert.match(collapsedHtml, /data-testid="wizard-model-pair-bar"/);
+  assert.match(collapsedHtml, /Gemini 4 Hydrogen/);
+  assert.doesNotMatch(collapsedHtml, /3\.8-flash|3\.8 Flash/);
   assert.match(collapsedHtml, /data-testid="wizard-primary-card"/);
   assert.match(collapsedHtml, /data-testid="wizard-runner-up-card"/);
   assert.match(collapsedHtml, /data-testid="toggle-advanced-tco"/);

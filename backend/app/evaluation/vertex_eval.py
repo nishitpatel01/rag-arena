@@ -268,7 +268,7 @@ class VertexEvalClient:
         self._attempt_timeout = float(attempt_timeout_seconds)
         self._budget = float(budget_seconds)
         self._token_provider = token_provider
-        self._price = autorater_price or PRICE_TABLE["gemini-3.8-flash"]
+        self._price = autorater_price or PRICE_TABLE.get("vertex-genai-eval") or PRICE_TABLE["gemini-3.8-flash"]
         self._sleep = sleep
         self._clock = clock
 
@@ -420,7 +420,11 @@ class VertexGenAIEvalJudge:
         locations = dict(settings.model_locations)
         default_loc = locations.get(location_env_suffix(self.model), settings.gcp_location or "us-central1")
         self.location = location or default_loc
-        autorater_price = PRICE_TABLE.get("gemini-3.8-flash") or PRICE_TABLE.get(settings.gemini_fast_model)
+        autorater_price = (
+            PRICE_TABLE.get("vertex-genai-eval")
+            or PRICE_TABLE.get("gemini-3.8-flash")
+            or PRICE_TABLE.get(settings.gemini_fast_model)
+        )
         self._client = VertexEvalClient(
             project_id=settings.gcp_project_id,
             location=self.location,

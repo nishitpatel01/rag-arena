@@ -40,8 +40,12 @@ DOC_COMPLEXITY_OPTIONS: tuple[str, ...] = (
     "multi_hop_math",
 )
 TCO_SYNTHESIS_MODELS: tuple[str, ...] = (
-    "gemini-3.8-flash",
+    "gemini-4-hydrogen",
+    "gemini-4-carbon",
     "gemini-4-argon",
+    "claude-sonnet-4-6",
+    "claude-opus-5-5",
+    "gemini-3.8-flash",
 )
 
 MONTHLY_QUERIES_BOUNDS: tuple[int, int] = (1_000, 10_000_000)
@@ -138,7 +142,7 @@ class TcoWorkload(_SerializableMixin):
     latency_sla: str = "interactive_rag"
     compliance_posture: str = "standard_serverless"
     doc_complexity: str = "tables_diagrams"
-    synthesis_model: str = "gemini-3.8-flash"
+    synthesis_model: str = "gemini-4-hydrogen"
 
     def __post_init__(self) -> None:
         _require_enum("data_gravity", self.data_gravity, DATA_GRAVITY_OPTIONS)
@@ -195,7 +199,7 @@ ENTERPRISE_SCENARIO_PRESETS: tuple[ScenarioPreset, ...] = (
             latency_sla="interactive_rag",
             compliance_posture="standard_serverless",
             doc_complexity="tables_diagrams",
-            synthesis_model="gemini-3.8-flash",
+            synthesis_model="gemini-4-hydrogen",
         ),
     ),
     ScenarioPreset(
@@ -223,7 +227,7 @@ ENTERPRISE_SCENARIO_PRESETS: tuple[ScenarioPreset, ...] = (
             latency_sla="interactive_rag",
             compliance_posture="standard_serverless",
             doc_complexity="plain_text",
-            synthesis_model="gemini-3.8-flash",
+            synthesis_model="gemini-4-carbon",
         ),
     ),
     ScenarioPreset(
@@ -237,7 +241,7 @@ ENTERPRISE_SCENARIO_PRESETS: tuple[ScenarioPreset, ...] = (
             latency_sla="interactive_rag",
             compliance_posture="managed_turnkey",
             doc_complexity="plain_text",
-            synthesis_model="gemini-3.8-flash",
+            synthesis_model="gemini-4-hydrogen",
         ),
     ),
     ScenarioPreset(
@@ -251,7 +255,7 @@ ENTERPRISE_SCENARIO_PRESETS: tuple[ScenarioPreset, ...] = (
             latency_sla="sub_second_retrieval",
             compliance_posture="cmek_vpc",
             doc_complexity="plain_text",
-            synthesis_model="gemini-3.8-flash",
+            synthesis_model="gemini-4-hydrogen",
         ),
     ),
 )
@@ -664,6 +668,12 @@ def _score_workload_fit(
                 "BigQuery allows 1 vector index/table, so unindexed multimodal brute-force scans become costly at >=50k pages."
             )
 
+    if lid == "level4_agentic" and workload.synthesis_model.startswith("claude-"):
+        tradeoffs.insert(
+            0,
+            "Level 8 ADK requires a Gemini 4 worker (Hydrogen, Carbon, or Argon); Claude models are judge-only on ADK.",
+        )
+
     if lid == "rag_engine" and not tradeoffs:
         tradeoffs.append("Default top-10 retrieval without Ranking API lowers context precision; add rerank in Workbench.")
     if lid == "managed_vertex" and not tradeoffs:
@@ -971,7 +981,7 @@ def estimate_enterprise_tco(
 def pricing_basis_metadata() -> dict[str, Any]:
     """Return auditable published GCP pricing metadata used by the TCO engine."""
     return {
-        "price_as_of": "2026-11-01",
+        "price_as_of": "2026-11-18",
         "region_basis": "us-central1 (models on global Vertex endpoint per pricing.PRICE_TABLE)",
         "hours_per_month": HOURS_PER_MONTH,
         "models": {
@@ -983,8 +993,12 @@ def pricing_basis_metadata() -> dict[str, Any]:
                 "price_as_of": PRICE_TABLE[model_id].price_as_of,
             }
             for model_id in (
-                "gemini-3.8-flash",
+                "gemini-4-hydrogen",
+                "gemini-4-carbon",
                 "gemini-4-argon",
+                "claude-sonnet-4-6",
+                "claude-opus-5-5",
+                "gemini-3.8-flash",
                 "gemini-embedding-2",
                 "text-embedding-005",
                 "discovery-engine-rank",

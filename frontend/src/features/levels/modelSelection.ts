@@ -31,6 +31,7 @@ export const PROVIDER_LABELS: Readonly<Record<string, string>> = {
   anthropic_vertex: "Anthropic on Vertex AI",
   vertex_ai_search: "Vertex AI Search (managed)",
   vertex_rag_engine: "Vertex AI RAG Engine (grounded)",
+  vertex_genai_eval: "Vertex AI GenAI Eval",
 };
 
 export function providerLabel(provider: string): string {

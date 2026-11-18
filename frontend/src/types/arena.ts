@@ -367,6 +367,8 @@ export interface ModelCatalogEntry {
   readonly levels?: readonly string[] | null;
   /** Request-priced managed models (Vertex AI Search summary): USD per 1,000 requests. */
   readonly usd_per_1k_requests?: number | null;
+  /** True for legacy recorded models kept for replay compatibility (e.g. gemini-3.8-flash). */
+  readonly legacy?: boolean;
 }
 
 export interface RecordedPair {
@@ -376,11 +378,24 @@ export interface RecordedPair {
   readonly question_ids: readonly string[];
 }
 
+export interface RecommendedModelPair {
+  readonly profile_id: string;
+  readonly profile_label: string;
+  readonly synthesis_model: string;
+  readonly judge_model: string;
+  readonly alt_judge_model: string | null;
+  readonly rationale: string;
+  readonly judge_rationale: string;
+  readonly cross_family: boolean;
+  readonly adk_compatible: boolean;
+}
+
 export interface ModelsResponse {
   readonly models: readonly ModelCatalogEntry[];
   readonly defaults: { readonly synthesis_model: string; readonly judge_model: string };
   readonly demo_mode: DemoMode | string;
   readonly recorded_pairs: readonly RecordedPair[];
+  readonly recommended_pairs?: readonly RecommendedModelPair[];
 }
 
 // ---------------------------------------------------------------------------

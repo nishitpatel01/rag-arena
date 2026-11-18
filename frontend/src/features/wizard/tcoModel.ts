@@ -41,10 +41,18 @@ export const DOC_COMPLEXITY_OPTIONS = [
 export type DocComplexity = (typeof DOC_COMPLEXITY_OPTIONS)[number];
 
 export const TCO_SYNTHESIS_MODELS = [
-  "gemini-3.8-flash",
+  "gemini-4-hydrogen",
+  "gemini-4-carbon",
   "gemini-4-argon",
+  "claude-sonnet-4-6",
+  "claude-opus-5-5",
+  "gemini-3.8-flash",
 ] as const;
 export type TcoSynthesisModel = (typeof TCO_SYNTHESIS_MODELS)[number];
+
+export function isTcoSynthesisModel(modelId: string): modelId is TcoSynthesisModel {
+  return (TCO_SYNTHESIS_MODELS as readonly string[]).includes(modelId);
+}
 
 export type IdleMode = "serverless_zero" | "dedicated_cluster" | "dedicated_replica";
 export type FitTier = "recommended" | "runner_up" | "viable" | "not_recommended" | "baseline";
@@ -89,8 +97,12 @@ export const COMPLIANCE_POSTURE_CHOICES: readonly WizardOptionMeta<CompliancePos
 ];
 
 export const SYNTHESIS_MODEL_CHOICES: readonly WizardOptionMeta<TcoSynthesisModel>[] = [
-  { value: "gemini-3.8-flash", label: "Gemini 3.8 Flash", hint: "$0.75 / $3.75 per 1M tokens (fast)" },
-  { value: "gemini-4-argon", label: "Gemini 4 Argon", hint: "$2.00 / $10.00 per 1M tokens (flagship)" },
+  { value: "gemini-4-hydrogen", label: "Gemini 4 Hydrogen", hint: "$1.50 / $7.50 per 1M (fast tier)" },
+  { value: "gemini-4-carbon", label: "Gemini 4 Carbon", hint: "$2.00 / $10.00 per 1M (balanced)" },
+  { value: "gemini-4-argon", label: "Gemini 4 Argon", hint: "$2.00 / $10.00 per 1M (flagship)" },
+  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", hint: "$3.00 / $15.00 per 1M (L1–L7)" },
+  { value: "claude-opus-5-5", label: "Claude Opus 5.5", hint: "$4.00 / $20.00 per 1M (L1–L7)" },
+  { value: "gemini-3.8-flash", label: "Gemini 3.8 Flash (Legacy)", hint: "$0.75 / $3.75 per 1M (recorded)" },
 ];
 
 export interface TcoWorkload {
@@ -110,7 +122,7 @@ export const DEFAULT_WORKLOAD: TcoWorkload = {
   latency_sla: "interactive_rag",
   compliance_posture: "standard_serverless",
   doc_complexity: "tables_diagrams",
-  synthesis_model: "gemini-3.8-flash",
+  synthesis_model: "gemini-4-hydrogen",
 };
 
 export interface ScenarioPreset {
@@ -132,7 +144,7 @@ export const ENTERPRISE_SCENARIO_PRESETS: readonly ScenarioPreset[] = [
       latency_sla: "interactive_rag",
       compliance_posture: "standard_serverless",
       doc_complexity: "tables_diagrams",
-      synthesis_model: "gemini-3.8-flash",
+      synthesis_model: "gemini-4-hydrogen",
     },
   },
   {
@@ -160,7 +172,7 @@ export const ENTERPRISE_SCENARIO_PRESETS: readonly ScenarioPreset[] = [
       latency_sla: "interactive_rag",
       compliance_posture: "standard_serverless",
       doc_complexity: "plain_text",
-      synthesis_model: "gemini-3.8-flash",
+      synthesis_model: "gemini-4-carbon",
     },
   },
   {
@@ -174,7 +186,7 @@ export const ENTERPRISE_SCENARIO_PRESETS: readonly ScenarioPreset[] = [
       latency_sla: "interactive_rag",
       compliance_posture: "managed_turnkey",
       doc_complexity: "plain_text",
-      synthesis_model: "gemini-3.8-flash",
+      synthesis_model: "gemini-4-hydrogen",
     },
   },
   {
@@ -188,7 +200,7 @@ export const ENTERPRISE_SCENARIO_PRESETS: readonly ScenarioPreset[] = [
       latency_sla: "sub_second_retrieval",
       compliance_posture: "cmek_vpc",
       doc_complexity: "plain_text",
-      synthesis_model: "gemini-3.8-flash",
+      synthesis_model: "gemini-4-hydrogen",
     },
   },
 ];
@@ -256,8 +268,12 @@ const BYTES_PER_GIB = 1024 ** 3;
 const BYTES_PER_TIB = 1024 ** 4;
 
 const MODEL_RATES: Readonly<Record<string, { readonly inPer1M: number; readonly outPer1M: number; readonly per1kReq: number }>> = {
-  "gemini-3.8-flash": { inPer1M: 0.75, outPer1M: 3.75, per1kReq: 0 },
+  "gemini-4-hydrogen": { inPer1M: 1.5, outPer1M: 7.5, per1kReq: 0 },
+  "gemini-4-carbon": { inPer1M: 2.0, outPer1M: 10.0, per1kReq: 0 },
   "gemini-4-argon": { inPer1M: 2.0, outPer1M: 10.0, per1kReq: 0 },
+  "claude-sonnet-4-6": { inPer1M: 3.0, outPer1M: 15.0, per1kReq: 0 },
+  "claude-opus-5-5": { inPer1M: 4.0, outPer1M: 20.0, per1kReq: 0 },
+  "gemini-3.8-flash": { inPer1M: 0.75, outPer1M: 3.75, per1kReq: 0 },
   "gemini-embedding-2": { inPer1M: 0.2, outPer1M: 0, per1kReq: 0 },
   "text-embedding-005": { inPer1M: 0.1, outPer1M: 0, per1kReq: 0 },
   "discovery-engine-rank": { inPer1M: 0, outPer1M: 0, per1kReq: 1.0 },
@@ -797,6 +813,12 @@ function scoreWorkloadFit(
       score -= 8;
       tradeoffs.push("BigQuery allows 1 vector index/table, so unindexed multimodal brute-force scans become costly at >=50k pages.");
     }
+  }
+
+  if (lid === "level4_agentic" && workload.synthesis_model.startsWith("claude-")) {
+    tradeoffs.unshift(
+      "Level 8 ADK requires a Gemini 4 worker (Hydrogen, Carbon, or Argon); Claude models are judge-only on ADK."
+    );
   }
 
   if (lid === "rag_engine" && tradeoffs.length === 0) {

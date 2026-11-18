@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchModels } from "../../lib/api";
 import type { ModelsResponse } from "../../types/arena";
 import { isMockRequested } from "./useBattleStream";
@@ -8,6 +8,9 @@ import {
   serializeSelection,
   type ModelSelection,
 } from "./modelSelection";
+
+/** Custom window event broadcast whenever any UI control changes the active (synthesis, judge) pair. */
+export const MODELS_CHANGED_EVENT = "rag-arena:models-changed";
 
 export interface ModelCatalogState {
   readonly catalog: ModelsResponse | null;
@@ -36,10 +39,20 @@ function writeStored(sel: ModelSelection): void {
   }
 }
 
+export function broadcastModelSelection(sel: ModelSelection): void {
+  if (typeof window === "undefined" || typeof window.dispatchEvent !== "function") return;
+  try {
+    window.dispatchEvent(new CustomEvent<ModelSelection>(MODELS_CHANGED_EVENT, { detail: sel }));
+  } catch {
+    // Non-browser environment (SSR/Node tests).
+  }
+}
+
 /**
- * Loads GET /api/v1/models once per level page and keeps the persisted, catalog-validated selection. A stored
- * selection that is not valid on `levelId` (e.g. the Level 5 summary pseudo model on Level 1) falls back to the
- * server defaults for this page without overwriting the stored preference.
+ * Loads GET /api/v1/models and keeps the persisted, catalog-validated selection synced app-wide
+ * across Shell, Overview, Compare, Workbench, and Level pages via `rag-arena:models-changed`.
+ * A stored selection that is not valid on `levelId` (e.g. a Level 1/2 pseudo model on another level)
+ * falls back to the server defaults for that page without overwriting the stored preference.
  */
 export function useModelCatalog(levelId: string | null = null): ModelCatalogState {
   const [catalog, setCatalog] = useState<ModelsResponse | null>(null);
@@ -47,11 +60,19 @@ export function useModelCatalog(levelId: string | null = null): ModelCatalogStat
   const [loading, setLoading] = useState(true);
   const [isFixture, setIsFixture] = useState(false);
   const [selection, setSelectionState] = useState<ModelSelection | null>(null);
+  const catalogRef = useRef<ModelsResponse | null>(null);
+
+  useEffect(() => {
+    catalogRef.current = catalog;
+  }, [catalog]);
 
   useEffect(() => {
     let cancelled = false;
     const accept = (res: ModelsResponse, fixture: boolean): void => {
-      if (!Array.isArray(res.models) || !res.defaults) throw new Error("GET /api/v1/models returned an unexpected shape (missing models/defaults)");
+      if (!Array.isArray(res.models) || !res.defaults) {
+        throw new Error("GET /api/v1/models returned an unexpected shape (missing models/defaults)");
+      }
+      catalogRef.current = res;
       setCatalog(res);
       setIsFixture(fixture);
       setSelectionState(loadSelection(res, readStored(), levelId));
@@ -84,9 +105,42 @@ export function useModelCatalog(levelId: string | null = null): ModelCatalogStat
     };
   }, [levelId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncFromRaw = (raw: string | null): void => {
+      const cat = catalogRef.current;
+      if (!cat) return;
+      const next = loadSelection(cat, raw, levelId);
+      setSelectionState((prev) =>
+        prev && prev.synthesis === next.synthesis && prev.judge === next.judge ? prev : next
+      );
+    };
+    const onModelsChanged = (evt: Event): void => {
+      const detail = (evt as CustomEvent<ModelSelection | undefined>).detail;
+      const raw = detail && typeof detail.synthesis === "string" && typeof detail.judge === "string"
+        ? serializeSelection(detail)
+        : readStored();
+      syncFromRaw(raw);
+    };
+    const onStorage = (evt: StorageEvent): void => {
+      if (evt.key === MODEL_SELECTION_STORAGE_KEY) {
+        syncFromRaw(evt.newValue);
+      }
+    };
+    window.addEventListener(MODELS_CHANGED_EVENT, onModelsChanged);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(MODELS_CHANGED_EVENT, onModelsChanged);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [levelId]);
+
   const setSelection = useCallback((sel: ModelSelection): void => {
-    setSelectionState(sel);
+    setSelectionState((prev) =>
+      prev && prev.synthesis === sel.synthesis && prev.judge === sel.judge ? prev : sel
+    );
     writeStored(sel);
+    broadcastModelSelection(sel);
   }, []);
 
   return { catalog, error, loading, isFixture, selection, setSelection };

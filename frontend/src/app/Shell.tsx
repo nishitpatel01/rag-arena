@@ -5,6 +5,7 @@ import { useAppData } from "./AppDataProvider";
 import { useOptionalIngestSession } from "./IngestSessions";
 import { SafeModeToggle, useSafeMode } from "./SafeMode";
 import { ingestDataLevelFor } from "../features/ingest/ingestSession";
+import { GlobalModelPopover } from "../features/models/GlobalModelPopover";
 import { MASK_PROJECT_ID } from "../lib/safeMode";
 import { Pill } from "../components/ui/Pill";
 import { ThemeToggle } from "../theme/ThemeToggle";
@@ -161,7 +162,8 @@ export const Shell: React.FC<ShellProps> = ({ mockBanner, children }) => {
           </nav>
           <div className="hidden h-5 w-px bg-line md:block" aria-hidden />
           <LevelLadderNav />
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <GlobalModelPopover />
             <HealthPills />
             <SafeModeToggle />
             <ThemeToggle />

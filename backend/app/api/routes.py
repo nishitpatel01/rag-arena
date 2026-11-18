@@ -32,6 +32,7 @@ from app.ingestion.uploads import owner_key
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
+from app.core.model_recommender import recommended_pairs_for_catalog
 from app.core.models_catalog import (
     ModelSelectionError,
     RunModels,
@@ -540,6 +541,7 @@ async def models_endpoint(request: Request) -> JSONResponse:
             "defaults": {"synthesis_model": synthesis_id, "judge_model": judge_id},
             "demo_mode": settings.demo_mode,
             "recorded_pairs": pairs,
+            "recommended_pairs": recommended_pairs_for_catalog(catalog),
         }
     )
 

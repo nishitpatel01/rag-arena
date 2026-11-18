@@ -2,9 +2,9 @@
 
 **Eight RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.6.1](https://img.shields.io/badge/release-v1.6.1-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 500 passed](https://img.shields.io/badge/backend%20tests-500%20passed-brightgreen.svg) ![Frontend tests: 222 passed](https://img.shields.io/badge/frontend%20tests-222%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Model%20Armor%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.6.1](https://img.shields.io/badge/release-v1.6.1-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 503 passed](https://img.shields.io/badge/backend%20tests-503%20passed-brightgreen.svg) ![Frontend tests: 225 passed](https://img.shields.io/badge/frontend%20tests-225%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Model%20Armor%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.6.1 (2026-11-17, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Use-Case Wizard & TCO Calculator (`/`), Model Armor Guardrails & Composable Workbench (`/workbench`), Controlled Ablation Lab & Executive Export (`/compare`), Vertex AI GenAI Eval & Split Cost (`/leaderboard`), Releases & Docs (`/releases`), private PDF uploads, and Cloud Run live.
+**Release:** v1.6.1 (2026-11-18, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Use-Case Wizard & TCO Calculator (`/`), Gemini 4 + Claude Global Model Selector & Pair Recommender, Model Armor Guardrails & Composable Workbench (`/workbench`), Controlled Ablation Lab & Executive Export (`/compare`), Vertex AI GenAI Eval & Split Cost (`/leaderboard`), Releases & Docs (`/releases`), private PDF uploads, and Cloud Run live.
 
 ## The problem
 
@@ -74,7 +74,7 @@ flowchart LR
 **Google Cloud products**
 
 - **Vertex AI** — `gemini-embedding-2` embeddings (`RETRIEVAL_DOCUMENT` at ingestion, `RETRIEVAL_QUERY` per question)
-- **Gemini on Vertex AI** (Gemini 4 Argon, Gemini 4 Carbon, Gemini 3.8 Flash) or **Anthropic Claude on Vertex AI** — synthesis
+- **Gemini on Vertex AI** (Gemini 4 Hydrogen, Carbon, Argon) or **Anthropic Claude on Vertex AI** (Sonnet 4.6, Opus 5.5) — synthesis
 - **Claude Opus 5.5 on Vertex AI** — default LLM judge (any verified catalog model ≠ synthesis)
 - **BigQuery** — chunk table, load jobs, `VECTOR_SEARCH` (COSINE) with an IVF vector index
 
@@ -236,19 +236,19 @@ In `live` / `record` mode, open **`/ingest`** to create a private upload workspa
 - **Safety & strict scope isolation**: `/finalize` streams bytes in `O(1)` heap and rejects non-PDFs, encrypted files, `/JS`, `/Launch`, and `/EmbeddedFiles`. Owners are keyed by SHA-256 of the IAP email (`404` for anyone else). Unscoped benchmark queries exclude `upl_*` rows, upload `build_indexes` snapshots table index state in `<3 s`, Level 3 requires explicit pre-flight cost confirmation, Level 5 uses an isolated `rag-arena-uploads` store filtered by `workspace_id`, Level 6 creates an isolated `rag-arena-upl_<12hex>` `RagCorpus`, and deleting a workspace removes BigQuery rows, VAIS documents, RAG Engine corpora, and GCS objects synchronously.
 - **Reference-free evaluation & persistent progress**: upload runs grade QA relevance without a golden answer (`reference_answer_used: false`, `no reference answer` badge), stay separated under `Scope: Uploads` on the Leaderboard, and stream live progress across page navigation and reloads via `IngestSessionProvider`. Replay mode exposes zero upload routes or controls.
 
-## Model catalog
+## Model catalog & recommender
 
-Catalog in `backend/app/core/models_catalog.py`, prices in `backend/app/core/pricing.py` (published Vertex AI rates with source URL and `price_as_of`), availability in `data/model_verification.json` (`scripts/verify_models.py`), surfaced in a compact `"Pricing & availability"` disclosure inside `<ModelPicker>`.
+Catalog (`models_catalog.py`), prices (`pricing.py`), cross-family pair recommender (`model_recommender.py`), and live probes (`data/model_verification.json`) sync app-wide via header `GlobalModelPopover`, Overview Advisor, and `<ModelPicker>`. Defaults: `gemini-4-argon` + `claude-opus-5-5` (`vertex-genai-eval` `$0.75/$3.75`), server-enforced **judge ≠ synthesis** ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#4-model-selection-and-evaluation)).
 
-| Model | Id | Provider path | Input $/1M | Output $/1M | Price as of | Default verification (`data/model_verification.json`) |
-| :-- | :-- | :-- | --: | --: | :-- | :-- |
-| Gemini 4 Argon | `gemini-4-argon` | Vertex AI, google-genai | 2.00 | 10.00 | 2026-10-20 | ✅ HTTP 200 (2026-10-29) |
-| Gemini 4 Carbon | `gemini-4-carbon` | Vertex AI, google-genai | 2.00 | 10.00 | 2026-10-28 | gated until project access (`verify_models.py`) |
-| Gemini 3.8 Flash | `gemini-3.8-flash` | Vertex AI, google-genai | 0.75 | 3.75 | 2026-10-21 | ✅ HTTP 200 (2026-10-29) |
-| Claude Opus 5.5 | `claude-opus-5-5` | Anthropic on Vertex AI, `:rawPredict` | 4.00 | 20.00 | 2026-10-21 | ✅ HTTP 200 (2026-10-29) |
-| Claude Fable 5.1 | `claude-fable-5-1` | Anthropic on Vertex AI, `:rawPredict` | 10.00 | 50.00 | 2026-10-21 | quota-gated (`verify_models.py`, data sharing required) |
-
-Defaults: synthesis `gemini-4-argon`, judge `claude-opus-5-5`; **judge ≠ synthesis is enforced server-side** (HTTP 400), no fallback model. Other billable services (`gemini-embedding-2`, ranking API, Vertex AI Search, Document AI): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#4-model-selection-and-evaluation).
+| Model | Id | Provider path | $/1M in / out | Verification (`2026-11-18`) |
+| :-- | :-- | :-- | --: | :-- |
+| Gemini 4 Hydrogen | `gemini-4-hydrogen` | Vertex AI, google-genai | 1.50 / 7.50 | ✅ HTTP 200 (default fast TCO tier) |
+| Gemini 4 Carbon | `gemini-4-carbon` | Vertex AI, google-genai | 2.00 / 10.00 | ✅ HTTP 200 (balanced enterprise) |
+| Gemini 4 Argon | `gemini-4-argon` | Vertex AI, google-genai | 2.00 / 10.00 | ✅ HTTP 200 (flagship multimodal/ADK) |
+| Claude Sonnet 4.6 | `claude-sonnet-4-6` | Anthropic on Vertex AI, `:rawPredict` | 3.00 / 15.00 | ✅ HTTP 200 (L1–L7 worker / judge) |
+| Claude Opus 5.5 | `claude-opus-5-5` | Anthropic on Vertex AI, `:rawPredict` | 4.00 / 20.00 | ✅ HTTP 200 (flagship judge / L1–L7) |
+| Gemini 3.8 Flash *(Legacy)* | `gemini-3.8-flash` | Vertex AI, google-genai | 0.75 / 3.75 | ✅ HTTP 200 (`legacy: true`, recorded) |
+| Claude Fable 5.2 / 5.1 | `claude-fable-5-{2,1}` | Anthropic on Vertex AI, `:rawPredict` | 10.00 / 50.00 | gated (403 data-sharing / 429 quota) |
 
 ## Results (Levels 1–8)
 
@@ -343,20 +343,20 @@ All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI
 
 | Suite | Checks | What it guards |
 | :-- | --: | :-- |
-| **Backend total** (`pytest`, 52 files) | **500 passed** | engines (L1–L8), TCO advisor, Model Armor, Vertex GenAI Eval, composable workbench, `/releases`, uploads, API/SSE, IAP/CSP |
+| **Backend total** (`pytest`, 53 files) | **503 passed** | engines (L1–L8), model recommender, TCO advisor, Model Armor, Vertex GenAI Eval, workbench, `/releases`, uploads, IAP/CSP |
 | `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 2 · 3 | no API-layer stage pacing; AST scan of `engines/**` against swallowed errors/fallbacks |
 | `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${MODEL_ARMOR_TEMPLATE_ID}`, `${ALLOYDB_DSN}` and project numbers; replay fidelity |
-| `test_tco_calculator.py` · `test_model_armor.py` · `test_vertex_genai_eval.py` | 6 · 8 · 9 | bounded TCO & crossover math, Model Armor REST v1 screening/fail-loud, Vertex `:evaluateInstances` & split Engine/Judge cost |
-| `test_uploads.py` · `test_upload_security.py` · `test_auth_and_headers.py` | 15 · 9 · 7 | bucket privacy, IDOR/replay `404`, ES256 IAP JWT, CSP/headers, `Dockerfile` `theme-init.js` check |
+| `test_tco_calculator.py` · `test_model_recommender.py` · `test_model_armor.py` | 6 · 3 · 8 | bounded TCO & crossover math, cross-family model pair recommender, Model Armor REST v1 screening/fail-loud |
+| `test_vertex_genai_eval.py` · `test_uploads*.py` · `test_auth_and_headers.py` | 9 · 24 · 7 | Vertex `:evaluateInstances` & split cost, bucket privacy, IDOR/replay `404`, ES256 IAP JWT, CSP/headers, `Dockerfile` check |
 | `test_rag_engine*.py` · `test_alloydb_scann_engine.py` · `test_vvs2_engine.py` | 19 · 3 · 4 | `:retrieveContexts` + `VertexRagStore`, AlloyDB ScaNN + GIN RRF SQL, VVS2 `batchSearch` + dedicated ScaNN schema |
 | `test_pipeline_spec.py` · `test_composable_engine.py` · `test_releases_docs.py` | 10 · 8 · 6 | `PipelineSpec` cross-slot validation, `pipe_<12hex>` IDs, `/api/v1/releases` manifest, 6-way version sync |
 | `test_publish_manifest.py` · `test_cloudrun_deploy.py` | 5 · 23 | tracked-repo + `frontend/dist` leak scan; SPA/API routing, deploy plan, public-registry lockfiles |
-| **Frontend total** (`npm test`, 26 suites) | **222 passed** | TCO wizard, Model Armor workbench, split Engine/Judge cost, industry packs, CSV/MD brief export, replay speed, L1–L8, safe mode |
+| **Frontend total** (`npm test`, 27 suites) | **225 passed** | TCO wizard, model recommender & global selector, Model Armor, split cost, packs, brief export, replay speed, L1–L8, safe mode |
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 500 passed
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 503 passed
 PYTHONPATH=backend .venv/bin/python scripts/build_docs_manifest.py --check
-cd frontend && npm test && npm run build                        # 222 pass across 26 suites + tsc/vite
+cd frontend && npm test && npm run build                        # 225 pass across 27 suites + tsc/vite
 ```
 
 ## Repository layout
@@ -371,16 +371,16 @@ rag-arena/
 │   │   ├── evaluation/      LLM judges (golden + reference-free), evaluator, Battle Score, leaderboard
 │   │   ├── ingestion/       job runner, upload bucket/store, PyMuPDF / Document AI / vision, BQ + VAIS + RAG Engine loaders
 │   │   └── recording/       recorder, store, redaction
-│   └── tests/               500 offline tests + fakes (52 files)
+│   └── tests/               503 offline tests + fakes (53 files)
 ├── frontend/
 │   ├── src/
 │   │   ├── app/             router, shell, bootstrap retry, sessions, persistent ingest session, safe mode
-│   │   ├── features/        wizard/ · levels/ · workbench/ · compare/ · export/ · packs/ · releases/ · ingest/ · uploads/
+│   │   ├── features/        wizard/ · models/ · levels/ · workbench/ · compare/ · export/ · packs/ · releases/ · ingest/ · uploads/
 │   │   ├── components/      UI primitives, document drawer and viewer
 │   │   ├── lib/             API client, bounded SSE reader, winner highlight, safe-mode masking
 │   │   ├── pages/           overview, leaderboard
 │   │   └── theme/ styles/ types/   themes, design tokens, SSE + API types
-│   └── tests/               26 offline test suites (222 checks)
+│   └── tests/               27 offline test suites (225 checks)
 ├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (135 runs)
 ├── deploy/                  Cloud Run env template (real file git-ignored)
 ├── scripts/                 bootstrap, provisioning, ephemeral ScaNN benchmarks, docs manifest check, model check, deploy/teardown

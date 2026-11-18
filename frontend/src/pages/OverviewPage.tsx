@@ -11,12 +11,15 @@ import { Panel } from "../components/ui/Panel";
 import { Pill } from "../components/ui/Pill";
 import { levelName } from "../features/compare/compareModel";
 import { STAGE_LABELS } from "../features/levels/StageRail";
+import type { ModelSelection } from "../features/levels/modelSelection";
 import { COMPARE_SESSION } from "../features/levels/useLevelRun";
+import { MODELS_CHANGED_EVENT, useModelCatalog } from "../features/levels/useModelCatalog";
 import { ArchitectureWizard } from "../features/wizard/ArchitectureWizard";
 import { TcoCalculatorPanel } from "../features/wizard/TcoCalculatorPanel";
 import {
   DEFAULT_WORKLOAD,
   estimateEnterpriseTco,
+  isTcoSynthesisModel,
   uncheckedForCompareCandidates,
   type TcoWorkload,
 } from "../features/wizard/tcoModel";
@@ -74,10 +77,25 @@ export const OverviewPage: React.FC = () => {
   const { levels, loading, error, reload } = useAppData();
   const { leaderboard, loading: leaderboardLoading } = useRecordedCohorts();
   const { session: compareSession } = useBattleSession(COMPARE_SESSION);
+  const modelCatalog = useModelCatalog(null);
   const navigate = useNavigate();
 
   const [workload, setWorkload] = useState<TcoWorkload>(DEFAULT_WORKLOAD);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+
+  // When the user changes the active Worker model anywhere (e.g. GlobalModelPopover), sync TCO synthesis_model.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onModelsChanged = (evt: Event): void => {
+      const detail = (evt as CustomEvent<ModelSelection | undefined>).detail;
+      if (detail && isTcoSynthesisModel(detail.synthesis)) {
+        const nextSynth = detail.synthesis;
+        setWorkload((prev) => (prev.synthesis_model === nextSynth ? prev : { ...prev, synthesis_model: nextSynth }));
+      }
+    };
+    window.addEventListener(MODELS_CHANGED_EVENT, onModelsChanged);
+    return () => window.removeEventListener(MODELS_CHANGED_EVENT, onModelsChanged);
+  }, []);
 
   const estimate = useMemo(
     () => estimateEnterpriseTco(workload, { levels, leaderboard }),
@@ -103,6 +121,7 @@ export const OverviewPage: React.FC = () => {
         levels={levels}
         leaderboardLoading={leaderboardLoading}
         onCompareCandidates={handleCompareCandidates}
+        modelCatalog={modelCatalog}
         showAdvanced={showAdvanced}
         onToggleAdvanced={() => setShowAdvanced((v) => !v)}
         advancedContent={

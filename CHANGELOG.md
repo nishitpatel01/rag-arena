@@ -21,10 +21,14 @@ Enterprise Showcase & GCP Architecture Advisor: Interactive Use-Case Wizard & Mo
   - 5 industry packs (`All`, `Federal Procurement`, `SLA & Financial`, `Security & SOC`, `Legal / CUAD`) distinguishing `Recorded (Replay + Live)` questions from `Live Template` prompts.
   - One-click Executive Decision Brief export (`.md`, formula-injection-safe `.csv`, `@media print` PDF) with full `SafeMode` (`?safe=1`) redaction on `/leaderboard` and `/compare`.
   - Per-request `replay_speed` (`1×` / `4×` / `Instant`, validated `1.0`..`100.0`, strictly honored ONLY when `DEMO_MODE=replay`) wired through `routes.py`, `battleTransport.ts`, `/compare`, and `/levels/*`.
+- **Gemini 4 + Anthropic Claude Catalog, Synced App-Wide Model Selector & Model Pair Recommender (`pricing.py`, `models_catalog.py`, `model_recommender.py`, `tco.py`, `GlobalModelPopover.tsx`, `ArchitectureWizard.tsx`, `ModelPicker.tsx`)**:
+  - Expanded Vertex AI catalog and `PRICE_TABLE` with live-verified `gemini-4-hydrogen` (`$1.50/$7.50`), `gemini-4-carbon` (`$2.00/$10.00`), `gemini-4-argon` (`$2.00/$10.00`), `claude-sonnet-4-6` (`$3.00/$15.00`), `claude-opus-5-5` (`$4.00/$20.00`), `claude-fable-5-2` (`$10/$50`, data-sharing gated), and `vertex-genai-eval` (`$0.75/$3.75`), marking `gemini-3.8-flash` as `legacy: true` and refreshing `data/model_verification.json` via `scripts/verify_models.py`.
+  - Retired `gemini-3.8-flash` from Overview defaults (`DEFAULT_WORKLOAD.synthesis_model = "gemini-4-hydrogen"`, balanced preset `gemini-4-carbon`, multi-hop audit `gemini-4-argon`), expanded `TCO_SYNTHESIS_MODELS` to 6 models with Level 8 ADK Gemini-4 worker watch-outs, and labeled fallback cohorts honestly as `Reference cohort: gemini-4-argon + claude-opus-5-5`.
+  - Added deterministic cross-family Model Pair Recommender (`GET /api/v1/models` `recommended_pairs`), app-wide `rag-arena:models-changed` selection sync across the header `GlobalModelPopover`, above-the-fold Overview Advisor Worker/Judge bar, and 1-click `<ModelPicker>` recommend helper.
 
 ### Fixed
 - **Dockerfile Externalized Theme Script Parity (`Dockerfile`, `backend/tests/test_auth_and_headers.py`)**:
-  - Stage 1 (`AS spa`) now copies `frontend/public ./public` and verifies `dist/theme-init.js` after `npm run build` so CSP-compliant `script-src 'self'` theme initialization is guaranteed inside container builds (**500 backend tests** across `52` files; **222 frontend tests** across `26` suites).
+  - Stage 1 (`AS spa`) now copies `frontend/public ./public` and verifies `dist/theme-init.js` after `npm run build` so CSP-compliant `script-src 'self'` theme initialization is guaranteed inside container builds (**503 backend tests** across `53` files; **225 frontend tests** across `27` suites).
 
 ## [1.6.0] — 2026-11-16
 

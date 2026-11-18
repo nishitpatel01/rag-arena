@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  Cpu,
   GitCompare,
   Lock,
   RotateCcw,
@@ -16,6 +17,9 @@ import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { Pill, type PillTone } from "../../components/ui/Pill";
 import type { LevelDescriptor } from "../../types/arena";
+import { optionStates, providerLabel, restrictedOptionSuffix } from "../levels/modelSelection";
+import type { ModelCatalogState } from "../levels/useModelCatalog";
+import { isCrossFamilyPair, recommendModelPair, shortModelLabel } from "../models/modelRecommender";
 import {
   COMPLIANCE_POSTURE_CHOICES,
   CORPUS_PAGES_BOUNDS,
@@ -31,6 +35,7 @@ import {
   formatCompactInt,
   formatLatencySeconds,
   formatUsdMonthly,
+  isTcoSynthesisModel,
   logSliderToValue,
   valueToLogSlider,
   type ArchitectureTcoRow,
@@ -47,6 +52,7 @@ export interface ArchitectureWizardProps {
   readonly levels: readonly LevelDescriptor[];
   readonly leaderboardLoading: boolean;
   readonly onCompareCandidates: (levelIds: readonly string[]) => void;
+  readonly modelCatalog?: ModelCatalogState;
   readonly showAdvanced?: boolean;
   readonly onToggleAdvanced?: () => void;
   readonly advancedContent?: React.ReactNode;
@@ -168,8 +174,11 @@ const CohortBadges: React.FC<CohortBadgesProps> = ({ row, loading }) => {
           </Pill>
         )}
         {isAlternate && (
-          <Pill tone="warn" title="No Flash recording exists for this engine; showing recorded Gemini 4 Argon cohort">
-            Recorded w/ {cohort.synthesis_model}
+          <Pill
+            tone="warn"
+            title="No direct recording exists for the selected synthesis model; showing reference recorded cohort"
+          >
+            Reference cohort: {cohort.synthesis_model} + {cohort.judge_model}
           </Pill>
         )}
       </div>
@@ -188,6 +197,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
   levels,
   leaderboardLoading,
   onCompareCandidates,
+  modelCatalog,
   showAdvanced = false,
   onToggleAdvanced,
   advancedContent,
@@ -209,6 +219,48 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
   const rawPdfMib = (workload.corpus_pages * 120) / 1024;
   const runnerUpDeltaUsd = runnerUp.total_monthly_usd - primary.total_monthly_usd;
   const crossoverPill = regimeBadge(estimate.crossover.regime);
+
+  const catalog = modelCatalog?.catalog ?? null;
+  const recommendedPair = recommendModelPair({
+    catalog,
+    levelId: primary.level_id,
+    docComplexity: workload.doc_complexity,
+    latencySla: workload.latency_sla,
+    dataGravity: workload.data_gravity,
+    monthlyQueries: workload.monthly_queries,
+  });
+  const activeWorker = modelCatalog?.selection?.synthesis ?? workload.synthesis_model;
+  const activeJudge = modelCatalog?.selection?.judge ?? recommendedPair.judge_model;
+  const crossFamily = isCrossFamilyPair(activeWorker, activeJudge);
+  const recommendedApplied =
+    activeWorker === recommendedPair.synthesis_model &&
+    activeJudge === recommendedPair.judge_model &&
+    workload.synthesis_model === recommendedPair.synthesis_model;
+  const workerOptions = catalog ? optionStates(catalog, "synthesis", activeJudge, null) : [];
+  const judgeOptions = catalog ? optionStates(catalog, "judge", activeWorker, null) : [];
+
+  const handleWorkerChange = (nextWorker: string): void => {
+    if (nextWorker === activeJudge) return;
+    modelCatalog?.setSelection({ synthesis: nextWorker, judge: activeJudge });
+    if (isTcoSynthesisModel(nextWorker)) {
+      onChange({ ...workload, synthesis_model: nextWorker });
+    }
+  };
+
+  const handleJudgeChange = (nextJudge: string): void => {
+    if (nextJudge === activeWorker) return;
+    modelCatalog?.setSelection({ synthesis: activeWorker, judge: nextJudge });
+  };
+
+  const handleApplyRecommendedPair = (): void => {
+    modelCatalog?.setSelection({
+      synthesis: recommendedPair.synthesis_model,
+      judge: recommendedPair.judge_model,
+    });
+    if (isTcoSynthesisModel(recommendedPair.synthesis_model)) {
+      onChange({ ...workload, synthesis_model: recommendedPair.synthesis_model });
+    }
+  };
 
   return (
     <Panel
@@ -262,6 +314,118 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Above-the-fold Worker & Judge Model Pair Bar */}
+        <div
+          className="flex flex-col gap-2 rounded-lg border border-line bg-surface-0 px-3.5 py-2.5"
+          data-testid="wizard-model-pair-bar"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-1">
+                <Cpu className="h-3.5 w-3.5 text-moss" aria-hidden />
+                Worker &amp; Judge Model Pair
+              </span>
+              <Pill tone="info">{recommendedPair.profile_label}</Pill>
+              <Pill tone={crossFamily ? "ok" : "warn"}>
+                {crossFamily ? "Cross-family" : "Same family"}
+              </Pill>
+              <Pill tone="neutral" mono data-testid="wizard-tco-model-pill">
+                TCO: {shortModelLabel(catalog, workload.synthesis_model)}
+              </Pill>
+            </div>
+            <Button
+              size="sm"
+              variant={recommendedApplied ? "ghost" : "secondary"}
+              disabled={recommendedApplied}
+              leadingIcon={<Sparkles className="h-3.5 w-3.5" aria-hidden />}
+              onClick={handleApplyRecommendedPair}
+              data-testid="wizard-apply-recommended-pair"
+            >
+              {recommendedApplied ? "Recommended active" : "Apply recommended pair"}
+            </Button>
+          </div>
+
+          <div className="grid items-end gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <p className="text-xs leading-relaxed text-ink-2">
+              <span className="font-semibold text-ink-1">Recommended pair:</span>{" "}
+              <span className="font-mono text-moss" data-testid="wizard-recommended-pair">
+                {shortModelLabel(catalog, recommendedPair.synthesis_model)} →{" "}
+                {shortModelLabel(catalog, recommendedPair.judge_model)}
+              </span>
+              {" · "}
+              <span className="text-ink-3">{recommendedPair.rationale}</span>
+            </p>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="flex min-w-0 flex-col gap-1 sm:w-56">
+                <label htmlFor="wizard-worker-model" className="text-xs font-medium text-ink-2">
+                  Worker Model
+                </label>
+                <select
+                  id="wizard-worker-model"
+                  data-testid="wizard-worker-select"
+                  value={activeWorker}
+                  onChange={(e) => handleWorkerChange(e.target.value)}
+                  disabled={!catalog}
+                  className="w-full rounded-md border border-line bg-surface-1 px-2 py-1.5 text-xs text-ink-1 disabled:opacity-60"
+                >
+                  {catalog ? (
+                    workerOptions.map((o) => {
+                      const suffix = o.unavailable
+                        ? " — unavailable"
+                        : o.restricted
+                          ? restrictedOptionSuffix(o.entry)
+                          : o.disabled
+                            ? " — used as judge"
+                            : "";
+                      return (
+                        <option key={o.entry.id} value={o.entry.id} disabled={o.disabled}>
+                          {o.entry.label} · {providerLabel(o.entry.provider)}
+                          {suffix}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <option value={activeWorker}>{shortModelLabel(null, activeWorker)}</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1 sm:w-56">
+                <label htmlFor="wizard-judge-model" className="text-xs font-medium text-ink-2">
+                  Judge Model
+                </label>
+                <select
+                  id="wizard-judge-model"
+                  data-testid="wizard-judge-select"
+                  value={activeJudge}
+                  onChange={(e) => handleJudgeChange(e.target.value)}
+                  disabled={!catalog}
+                  className="w-full rounded-md border border-line bg-surface-1 px-2 py-1.5 text-xs text-ink-1 disabled:opacity-60"
+                >
+                  {catalog ? (
+                    judgeOptions.map((o) => {
+                      const suffix = o.unavailable
+                        ? " — unavailable"
+                        : o.disabled
+                          ? " — used as worker"
+                          : "";
+                      return (
+                        <option key={o.entry.id} value={o.entry.id} disabled={o.disabled}>
+                          {o.entry.label} · {providerLabel(o.entry.provider)}
+                          {suffix}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <option value={activeJudge}>{shortModelLabel(null, activeJudge)}</option>
+                  )}
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -437,7 +601,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
             <span className="inline-flex flex-wrap items-center gap-2 text-xs text-ink-3">
               <span className="font-mono">
                 {formatCompactInt(workload.monthly_queries)} q/mo · {formatCompactInt(workload.corpus_pages)} pages ·{" "}
-                {workload.synthesis_model}
+                {shortModelLabel(catalog, workload.synthesis_model)}
               </span>
               <span className="inline-flex items-center gap-1 font-medium text-moss">
                 {showAdvanced ? "Hide controls" : "Expand"}
@@ -486,8 +650,8 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                 />
               </div>
 
-              {/* Scale sliders: Monthly Queries & Corpus Pages + Synthesis Model */}
-              <div className="grid gap-3 pt-1 lg:grid-cols-3">
+              {/* Scale sliders: Monthly Queries & Corpus Pages */}
+              <div className="grid gap-3 pt-1 lg:grid-cols-2">
                 <div className="flex flex-col gap-1.5 rounded-md border border-line bg-surface-1 p-2.5">
                   <div className="flex items-baseline justify-between gap-2">
                     <label htmlFor="wizard-monthly-queries" className="text-xs font-semibold text-ink-1">
@@ -584,14 +748,26 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                   </div>
                 </div>
 
-                <OptionCards
-                  label="7. Answer Synthesis Model (Vertex AI)"
-                  value={workload.synthesis_model}
-                  options={SYNTHESIS_MODEL_CHOICES}
-                  columnsClass="grid-cols-1 sm:grid-cols-2"
-                  onSelect={(synthesis_model) => onChange({ ...workload, synthesis_model })}
-                />
               </div>
+
+              <OptionCards
+                label="7. Answer Synthesis Model (Vertex AI — Gemini 4 & Anthropic Claude)"
+                value={workload.synthesis_model}
+                options={SYNTHESIS_MODEL_CHOICES}
+                columnsClass="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                onSelect={(synthesis_model) => {
+                  onChange({ ...workload, synthesis_model });
+                  if (modelCatalog?.setSelection) {
+                    const nextJudge =
+                      synthesis_model === activeJudge
+                        ? synthesis_model.startsWith("claude-")
+                          ? "gemini-4-argon"
+                          : "claude-opus-5-5"
+                        : activeJudge;
+                    modelCatalog.setSelection({ synthesis: synthesis_model, judge: nextJudge });
+                  }
+                }}
+              />
             </div>
 
             {/* Serverless $0/mo Idle vs Dedicated Cluster Crossover Banner */}

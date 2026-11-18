@@ -9,14 +9,14 @@
 // ---------------------------------------------------------------------------
 
 export const LEVEL_IDS = [
-  "level1_naive",
-  "level2_hybrid",
-  "level3_multimodal",
-  "level4_agentic",
   "managed_vertex",
   "rag_engine",
+  "level1_naive",
+  "level2_hybrid",
   "alloydb_scann",
   "vertex_vector_v2",
+  "level3_multimodal",
+  "level4_agentic",
 ] as const;
 export type LevelId = (typeof LEVEL_IDS)[number];
 

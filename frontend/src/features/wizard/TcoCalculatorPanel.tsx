@@ -281,22 +281,22 @@ export const TcoCalculatorPanel: React.FC<TcoCalculatorPanelProps> = ({
                 Enterprise ($4.00 / 1k queries; first 10 GiB indexed free, $2.50/GiB-mo above 10 GiB).
               </li>
               <li>
-                <span className="font-semibold text-ink-1">Document AI &amp; Multimodal Ingest (L3/L4)</span>: Layout
-                Parser ($10.00 / 1k pages) + Gemini Vision diagram transcription (~5%–25% of pages by complexity). L4
-                shares the L3 multimodal BigQuery table with zero duplicate ingestion.
+                <span className="font-semibold text-ink-1">Document AI &amp; Multimodal Ingest (L7/L8)</span>: Layout
+                Parser ($10.00 / 1k pages) + Gemini Vision diagram transcription (~5%–25% of pages by complexity). L8
+                shares the L7 multimodal BigQuery table with zero duplicate ingestion.
               </li>
             </ul>
             <ul className="flex list-disc flex-col gap-1 pl-4">
               <li>
-                <span className="font-semibold text-ink-1">Serverless Idle ($0/mo) vs. Dedicated Clusters</span>: L1–L5
-                and L6 default (<span className="font-mono">RagManagedDb Serverless</span>, $0/query retrieveContexts
-                fee; optional Spanner Basic tier adds ~${RAG_ENGINE_SPANNER_BASIC_MONTHLY_USD.toFixed(2)}/mo for 100 PU)
-                carry $0.00/mo standing compute.
+                <span className="font-semibold text-ink-1">Serverless Idle ($0/mo) vs. Dedicated Clusters</span>: L1–L4
+                and L7–L8 (with L2 default <span className="font-mono">RagManagedDb Serverless</span>, $0/query
+                retrieveContexts fee; optional Spanner Basic tier adds ~${RAG_ENGINE_SPANNER_BASIC_MONTHLY_USD.toFixed(2)}/mo
+                for 100 PU) carry $0.00/mo standing compute.
               </li>
               <li>
-                <span className="font-semibold text-ink-1">Dedicated ScaNN (L7 &amp; L8)</span>: L7 AlloyDB Zonal
+                <span className="font-semibold text-ink-1">Dedicated ScaNN (L5 &amp; L6)</span>: L5 AlloyDB Zonal
                 2-vCPU / 16 GiB primary = ${ALLOYDB_BASE_MONTHLY_USD.toFixed(2)}/mo per 2.5M queries/mo (+$0.30/GiB-mo,
-                min 10 GiB; ~2× for Regional HA). L8 Vector Search 2.0{" "}
+                min 10 GiB; ~2× for Regional HA). L6 Vector Search 2.0{" "}
                 <span className="font-mono">PERFORMANCE_OPTIMIZED</span>{" "}
                 <span className="font-mono">minReplicaCount=1</span> = ${VVS2_BASE_REPLICA_MONTHLY_USD.toFixed(2)}/mo
                 per 3.5M queries/mo. Benchmark scripts tear both down to $0/mo idle after recording.

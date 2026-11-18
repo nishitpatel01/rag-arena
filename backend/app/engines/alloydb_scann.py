@@ -262,7 +262,7 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
     """Level 7: Ephemeral Operational AlloyDB for PostgreSQL + ScaNN Hybrid + Ranking API."""
 
     engine_id: str = "alloydb_scann"
-    engine_label: str = "Level 7: AlloyDB PostgreSQL + ScaNN Hybrid"
+    engine_label: str = "Level 5: AlloyDB PostgreSQL + ScaNN"
     tier_profile: str = LAYOUT_SOURCE
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 

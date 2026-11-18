@@ -171,7 +171,7 @@ export interface ManagedSynthesizeDetailProps {
 
 /** Level 5 synthesize: mode badge, summary with numbered references → citations, skipped reasons verbatim. */
 export const ManagedSynthesizeDetail: React.FC<ManagedSynthesizeDetailProps> = ({ view, citations = [], onSelectCitation, labelFor }) => (
-  <section aria-label="Level 5 synthesis" className="flex min-w-0 flex-col gap-2" data-testid="managed-synthesize">
+  <section aria-label="Managed Vertex AI Search synthesis" className="flex min-w-0 flex-col gap-2" data-testid="managed-synthesize">
     <div className="flex flex-wrap items-center gap-1.5">
       <h4 className={sectionTitle}>Synthesis mode</h4>
       <SynthModeBadge view={view} labelFor={labelFor} />

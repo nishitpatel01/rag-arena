@@ -37,14 +37,14 @@ _SPACE_HYPHEN_RE = re.compile(r"[\s-]+")
 _CONFIG_VERSION_RE = re.compile(r'(?:DEFAULT_APP_VERSION|app_version):\s*str\s*=\s*"([^"]+)"')
 
 _LEVEL_ROUTE_LABELS: dict[str, str] = {
-    "level1_naive": "L1 Naive",
-    "level2_hybrid": "L2 Hybrid",
-    "level3_multimodal": "L3 Multimodal",
-    "level4_agentic": "L4 Agentic",
-    "managed_vertex": "L5 Vertex Search",
-    "rag_engine": "L6 RAG Engine",
-    "alloydb_scann": "L7 AlloyDB ScaNN",
-    "vertex_vector_v2": "L8 Vector Search 2.0",
+    "managed_vertex": "1 · Vertex Search",
+    "rag_engine": "2 · RAG Engine",
+    "level1_naive": "3 · BQ Vector",
+    "level2_hybrid": "4 · BQ Hybrid",
+    "alloydb_scann": "5 · AlloyDB ScaNN",
+    "vertex_vector_v2": "6 · Vector Search 2.0",
+    "level3_multimodal": "7 · Multimodal",
+    "level4_agentic": "8 · Agentic ADK",
 }
 _STATIC_ROUTE_TOKENS: tuple[tuple[str, str, str], ...] = (
     ("/workbench", "/workbench", "Workbench"),

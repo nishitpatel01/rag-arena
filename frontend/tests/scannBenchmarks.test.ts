@@ -37,8 +37,18 @@ import { applyUploadScopeToChoices, uploadRunGateFor } from "../src/features/upl
 import { isLayoutSource, layoutSourceLabel } from "../src/lib/elements";
 import { LEVEL_IDS, type IngestStatusResponse, type LevelDescriptor, type ModelsResponse } from "../src/types/arena";
 
-test("LEVEL_IDS, SCANN_INDEX_PROFILES, layoutSource, and Compare max include Levels 7 and 8", () => {
-  assert.deepEqual(LEVEL_IDS.slice(6), ["alloydb_scann", "vertex_vector_v2"]);
+test("LEVEL_IDS, SCANN_INDEX_PROFILES, layoutSource, and Compare max include Levels 5 and 6 (ScaNN) in Order A", () => {
+  assert.deepEqual(LEVEL_IDS, [
+    "managed_vertex",
+    "rag_engine",
+    "level1_naive",
+    "level2_hybrid",
+    "alloydb_scann",
+    "vertex_vector_v2",
+    "level3_multimodal",
+    "level4_agentic",
+  ]);
+  assert.deepEqual(LEVEL_IDS.slice(4, 6), ["alloydb_scann", "vertex_vector_v2"]);
   assert.deepEqual(SCANN_INDEX_PROFILES, ["alloydb_scann", "vertex_vector_v2"]);
   assert.equal(MAX_COMPARE_LEVELS, 8);
   assert.equal(isScannProfile("alloydb_scann"), true);

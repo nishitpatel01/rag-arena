@@ -45,14 +45,14 @@ _FORBIDDEN_MODEL_SUBSTRINGS: tuple[str, ...] = (
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 ALL_LEVEL_IDS: tuple[str, ...] = (
-    "level1_naive",
-    "level2_hybrid",
-    "level3_multimodal",
-    "level4_agentic",
     "managed_vertex",
     "rag_engine",
+    "level1_naive",
+    "level2_hybrid",
     "alloydb_scann",
     "vertex_vector_v2",
+    "level3_multimodal",
+    "level4_agentic",
 )
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
 VALID_ACCESS_MODES: tuple[str, ...] = ("iap", "public")
@@ -69,12 +69,12 @@ _IAP_AUDIENCE_RE = re.compile(
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
 # Standing $0/mo levels enabled by default in live/record mode; ephemeral ScaNN levels opt in via ENABLED_LEVELS.
 DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
+    "managed_vertex",
+    "rag_engine",
     "level1_naive",
     "level2_hybrid",
     "level3_multimodal",
     "level4_agentic",
-    "managed_vertex",
-    "rag_engine",
 )
 # Replay mode enables all 8 recorded levels by default (including ephemeral ScaNN benchmarks).
 DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS

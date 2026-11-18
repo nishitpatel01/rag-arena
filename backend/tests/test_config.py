@@ -21,14 +21,14 @@ def _env(**overrides: str) -> dict[str, str]:
 def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
     settings = get_settings(_env())
     assert settings.enabled_levels == (
-        "level1_naive",
-        "level2_hybrid",
-        "level3_multimodal",
-        "level4_agentic",
         "managed_vertex",
         "rag_engine",
+        "level1_naive",
+        "level2_hybrid",
         "alloydb_scann",
         "vertex_vector_v2",
+        "level3_multimodal",
+        "level4_agentic",
     )
     assert settings.demo_mode == "replay"
     assert settings.replay_speed == 1.0
@@ -37,23 +37,23 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
     assert settings.allow_dev_fixtures is False
     assert settings.is_live is False
     assert ALL_LEVEL_IDS == (
-        "level1_naive",
-        "level2_hybrid",
-        "level3_multimodal",
-        "level4_agentic",
         "managed_vertex",
         "rag_engine",
+        "level1_naive",
+        "level2_hybrid",
         "alloydb_scann",
         "vertex_vector_v2",
+        "level3_multimodal",
+        "level4_agentic",
     )
     live_defaults = get_settings({"DEMO_MODE": "live", "GCP_PROJECT_ID": "test-project"})
     assert live_defaults.enabled_levels == DEFAULT_LIVE_LEVELS == (
+        "managed_vertex",
+        "rag_engine",
         "level1_naive",
         "level2_hybrid",
         "level3_multimodal",
         "level4_agentic",
-        "managed_vertex",
-        "rag_engine",
     )
 
 

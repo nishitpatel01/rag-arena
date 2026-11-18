@@ -146,7 +146,7 @@ class Level1NaiveEngine(BaseRAGEngine):
     """Level 1 Naive Vector RAG Engine: 360-char sliding windows + dense COSINE VECTOR_SEARCH."""
 
     engine_id: str = "level1_naive"
-    engine_label: str = "Level 1: Naive Vector RAG"
+    engine_label: str = "Level 3: Naive Vector RAG (BigQuery)"
     tier_profile: str = "naive"
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "synthesize", "evaluate")
 

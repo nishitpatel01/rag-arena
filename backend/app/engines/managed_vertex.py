@@ -109,7 +109,7 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
     """Build vs. Buy baseline: Vertex AI Search retrieval + (managed summary | catalog model synthesis)."""
 
     engine_id: str = "managed_vertex"
-    engine_label: str = "Level 5: Managed Vertex AI Search"
+    engine_label: str = "Level 1: Managed Vertex AI Search"
     tier_profile: str = "vertex_ai_search"
     stages: tuple[str, ...] = ("query_prep", "retrieve", "synthesize", "evaluate")
 

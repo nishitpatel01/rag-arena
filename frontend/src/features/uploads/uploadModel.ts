@@ -15,11 +15,11 @@ export const RESUMABLE_GRANULARITY_BYTES = 256 * 1024;
 export const RESUMABLE_CHUNK_BYTES = 8 * 1024 * 1024;
 export const MAX_CHUNK_RETRIES = 3;
 export const UPLOAD_INGEST_LEVELS = [
+  "managed_vertex",
+  "rag_engine",
   "level1_naive",
   "level2_hybrid",
   "level3_multimodal",
-  "managed_vertex",
-  "rag_engine",
 ] as const;
 export type UploadIngestLevel = (typeof UPLOAD_INGEST_LEVELS)[number];
 

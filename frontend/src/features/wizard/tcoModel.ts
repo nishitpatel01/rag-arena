@@ -404,66 +404,10 @@ interface LevelStaticMeta {
 
 const LEVEL_META: readonly LevelStaticMeta[] = [
   {
-    level_id: "level1_naive",
-    order: 1,
-    default_label: "Naive Vector RAG",
-    short_label: "L1 · BigQuery Vector",
-    gcp_services: ["BigQuery VECTOR_SEARCH", "Vertex AI gemini-embedding-2", "Vertex AI Gemini"],
-    idle_mode: "serverless_zero",
-    embedding_model: "gemini-embedding-2",
-    query_embed_tokens: 45,
-    rank_counts_per_query: 0,
-    prompt_tokens_per_query: 1_800,
-    output_tokens_per_query: 1_500,
-    ingest_embed_tokens_per_page: 540,
-  },
-  {
-    level_id: "level2_hybrid",
-    order: 2,
-    default_label: "BigQuery Hybrid + Reranker",
-    short_label: "L2 · BQ Hybrid + Rerank",
-    gcp_services: ["BigQuery VECTOR_SEARCH + SEARCH()", "Discovery Engine Ranking API", "gemini-embedding-2"],
-    idle_mode: "serverless_zero",
-    embedding_model: "gemini-embedding-2",
-    query_embed_tokens: 45,
-    rank_counts_per_query: 1,
-    prompt_tokens_per_query: 3_600,
-    output_tokens_per_query: 1_500,
-    ingest_embed_tokens_per_page: 450,
-  },
-  {
-    level_id: "level3_multimodal",
-    order: 3,
-    default_label: "Layout-Aware Multimodal RAG",
-    short_label: "L3 · DocAI + Vision + BQ",
-    gcp_services: ["Document AI Layout Parser", "Gemini Vision", "BigQuery Hybrid RRF", "Ranking API"],
-    idle_mode: "serverless_zero",
-    embedding_model: "gemini-embedding-2",
-    query_embed_tokens: 45,
-    rank_counts_per_query: 1,
-    prompt_tokens_per_query: 4_000,
-    output_tokens_per_query: 1_550,
-    ingest_embed_tokens_per_page: 520,
-  },
-  {
-    level_id: "level4_agentic",
-    order: 4,
-    default_label: "Agentic RAG with Google ADK",
-    short_label: "L4 · Google ADK Agent",
-    gcp_services: ["Google ADK Runner", "Document AI + Vision", "BigQuery Search + Amendments", "AST Calculator"],
-    idle_mode: "serverless_zero",
-    embedding_model: "gemini-embedding-2",
-    query_embed_tokens: 160,
-    rank_counts_per_query: 3.5,
-    prompt_tokens_per_query: 19_500,
-    output_tokens_per_query: 4_650,
-    ingest_embed_tokens_per_page: 520,
-  },
-  {
     level_id: "managed_vertex",
-    order: 5,
+    order: 1,
     default_label: "Managed Vertex AI Search",
-    short_label: "L5 · Vertex AI Search",
+    short_label: "L1 · Vertex AI Search",
     gcp_services: ["Vertex AI Search (Enterprise)", "Cloud Storage Import", "Vertex AI Gemini"],
     idle_mode: "serverless_zero",
     embedding_model: "",
@@ -475,9 +419,9 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
   },
   {
     level_id: "rag_engine",
-    order: 6,
+    order: 2,
     default_label: "Managed Vertex AI RAG Engine",
-    short_label: "L6 · Vertex RAG Engine",
+    short_label: "L2 · Vertex RAG Engine",
     gcp_services: ["Vertex AI RAG Engine", "RagManagedDb Serverless", "text-embedding-005", "Vertex AI Gemini"],
     idle_mode: "serverless_zero",
     embedding_model: "text-embedding-005",
@@ -488,10 +432,38 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
     ingest_embed_tokens_per_page: 500,
   },
   {
+    level_id: "level1_naive",
+    order: 3,
+    default_label: "Naive Vector RAG (BigQuery)",
+    short_label: "L3 · BigQuery Vector",
+    gcp_services: ["BigQuery VECTOR_SEARCH", "Vertex AI gemini-embedding-2", "Vertex AI Gemini"],
+    idle_mode: "serverless_zero",
+    embedding_model: "gemini-embedding-2",
+    query_embed_tokens: 45,
+    rank_counts_per_query: 0,
+    prompt_tokens_per_query: 1_800,
+    output_tokens_per_query: 1_500,
+    ingest_embed_tokens_per_page: 540,
+  },
+  {
+    level_id: "level2_hybrid",
+    order: 4,
+    default_label: "BigQuery Hybrid + Reranker",
+    short_label: "L4 · BQ Hybrid + Rerank",
+    gcp_services: ["BigQuery VECTOR_SEARCH + SEARCH()", "Discovery Engine Ranking API", "gemini-embedding-2"],
+    idle_mode: "serverless_zero",
+    embedding_model: "gemini-embedding-2",
+    query_embed_tokens: 45,
+    rank_counts_per_query: 1,
+    prompt_tokens_per_query: 3_600,
+    output_tokens_per_query: 1_500,
+    ingest_embed_tokens_per_page: 450,
+  },
+  {
     level_id: "alloydb_scann",
-    order: 7,
-    default_label: "AlloyDB PostgreSQL + ScaNN Hybrid",
-    short_label: "L7 · AlloyDB + ScaNN",
+    order: 5,
+    default_label: "AlloyDB PostgreSQL + ScaNN",
+    short_label: "L5 · AlloyDB + ScaNN",
     gcp_services: ["AlloyDB for PostgreSQL (ScaNN + GIN)", "Discovery Engine Ranking API", "gemini-embedding-2"],
     idle_mode: "dedicated_cluster",
     embedding_model: "gemini-embedding-2",
@@ -503,9 +475,9 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
   },
   {
     level_id: "vertex_vector_v2",
-    order: 8,
+    order: 6,
     default_label: "Vertex AI Vector Search 2.0",
-    short_label: "L8 · Vector Search 2.0",
+    short_label: "L6 · Vector Search 2.0",
     gcp_services: ["Vector Search 2.0 (DenseScann + RRF)", "Discovery Engine Ranking API", "gemini-embedding-2"],
     idle_mode: "dedicated_replica",
     embedding_model: "gemini-embedding-2",
@@ -514,6 +486,34 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
     prompt_tokens_per_query: 3_600,
     output_tokens_per_query: 1_500,
     ingest_embed_tokens_per_page: 450,
+  },
+  {
+    level_id: "level3_multimodal",
+    order: 7,
+    default_label: "Layout-Aware Multimodal RAG",
+    short_label: "L7 · DocAI + Vision + BQ",
+    gcp_services: ["Document AI Layout Parser", "Gemini Vision", "BigQuery Hybrid RRF", "Ranking API"],
+    idle_mode: "serverless_zero",
+    embedding_model: "gemini-embedding-2",
+    query_embed_tokens: 45,
+    rank_counts_per_query: 1,
+    prompt_tokens_per_query: 4_000,
+    output_tokens_per_query: 1_550,
+    ingest_embed_tokens_per_page: 520,
+  },
+  {
+    level_id: "level4_agentic",
+    order: 8,
+    default_label: "Agentic RAG (Google ADK)",
+    short_label: "L8 · Google ADK Agent",
+    gcp_services: ["Google ADK Runner", "Document AI + Vision", "BigQuery Search + Amendments", "AST Calculator"],
+    idle_mode: "serverless_zero",
+    embedding_model: "gemini-embedding-2",
+    query_embed_tokens: 160,
+    rank_counts_per_query: 3.5,
+    prompt_tokens_per_query: 19_500,
+    output_tokens_per_query: 4_650,
+    ingest_embed_tokens_per_page: 520,
   },
 ];
 
@@ -566,18 +566,18 @@ function computeCrossover(workload: TcoWorkload): CrossoverAnalysis {
   if (workload.monthly_queries < Math.floor(earliest * 0.85)) {
     regime = "serverless_favorable";
     summary =
-      `At ${workload.monthly_queries.toLocaleString("en-US")} queries/mo, $0/mo-idle serverless architectures (L2–L6) minimize TCO; ` +
+      `At ${workload.monthly_queries.toLocaleString("en-US")} queries/mo, $0/mo-idle serverless architectures (L1–L4, L7–L8) minimize TCO; ` +
       `dedicated ScaNN crosses below VAIS at ~${vvs2VsVais.toLocaleString("en-US")} queries/mo and below BQ multimodal scan at ` +
       `~${vvs2VsBqMm.toLocaleString("en-US")} queries/mo (${workload.corpus_pages.toLocaleString("en-US")} pages).`;
   } else if (workload.monthly_queries <= Math.floor(Math.max(alloydbVsVais, earliest) * 1.15)) {
     regime = "crossover_zone";
     summary =
       `Near the monthly TCO crossover (~${earliest.toLocaleString("en-US")}–${alloydbVsVais.toLocaleString("en-US")} queries/mo): ` +
-      `weigh sub-400ms dedicated ScaNN latency (L7/L8) against zero-ops serverless elasticity (L2/L3/L6).`;
+      `weigh sub-400ms dedicated ScaNN latency (L5/L6) against zero-ops serverless elasticity (L1/L2/L4/L7).`;
   } else {
     regime = "dedicated_scann_favorable";
     summary =
-      `Above the ~${earliest.toLocaleString("en-US")} queries/mo crossover: dedicated ScaNN (L7 AlloyDB / L8 Vector Search 2.0) ` +
+      `Above the ~${earliest.toLocaleString("en-US")} queries/mo crossover: dedicated ScaNN (L5 AlloyDB / L6 Vector Search 2.0) ` +
       `amortizes standing compute and avoids per-query VAIS ($4/1k) and BigQuery byte-scan fees.`;
   }
 

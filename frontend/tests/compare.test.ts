@@ -79,19 +79,19 @@ test("disabled (not enabled) levels are not offered", () => {
   assert.equal(choices.some((c) => c.levelId === IDS[3]), false);
 });
 
-test("Claude synthesis disables Level 4 with the Gemini-only reason; other levels stay runnable", () => {
+test("Claude synthesis disables Agentic ADK with the Gemini-only reason; other levels stay runnable", () => {
   const choices = levelChoices(LEVELS, CATALOG, { synthesis: "claude-fable", judge: "claude-opus-5-5" }, "");
   const l4 = choices.find((c) => c.levelId === "level4_agentic");
-  assert.match(l4?.disabledReason ?? "", /Level 4 \(ADK agent\) requires a Gemini synthesis model; claude-fable is not Gemini/);
+  assert.match(l4?.disabledReason ?? "", /Level 8 \(ADK agent\) requires a Gemini synthesis model; claude-fable is not Gemini/);
   assert.deepEqual(choices.filter((c) => c.disabledReason === null).map((c) => c.levelId), [IDS[0], IDS[1], IDS[2], IDS[4]]);
   // A disabled level is never sent even when checked.
   assert.deepEqual(enginesToRun(choices, new Set(IDS)), [IDS[0], IDS[1], IDS[2], IDS[4]]);
 });
 
-test("managed summary synthesis: only Level 5 runnable, others say why", () => {
+test("managed summary synthesis: only Managed Vertex Search (Level 1) runnable, others say why", () => {
   const choices = levelChoices(LEVELS, CATALOG, { synthesis: "vertex-ai-search-summary", judge: "claude-opus-5-5" }, "");
   assert.deepEqual(choices.filter((c) => c.disabledReason === null).map((c) => c.levelId), ["managed_vertex"]);
-  assert.match(choices[0].disabledReason ?? "", /valid only on Level 5/);
+  assert.match(choices[0].disabledReason ?? "", /valid only on Level 1/);
 });
 
 test("judge equal to synthesis disables every level", () => {

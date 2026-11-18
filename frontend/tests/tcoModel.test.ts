@@ -7,6 +7,12 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server.browser";
+import { MemoryRouter } from "react-router-dom";
+import { SHORT_LEVEL_LABEL } from "../src/app/Shell";
+import { ArchitectureWizard } from "../src/features/wizard/ArchitectureWizard";
+import { TcoCalculatorPanel } from "../src/features/wizard/TcoCalculatorPanel";
 import {
   COMPLIANCE_POSTURE_OPTIONS,
   CORPUS_PAGES_BOUNDS,
@@ -100,8 +106,25 @@ test("pure TCO estimate never invents fake scores and matches GCP standing/cross
   assert.equal(base.architectures.length, 8);
   assert.deepEqual(
     base.architectures.map((a) => a.level_id),
+    [
+      "managed_vertex",
+      "rag_engine",
+      "level1_naive",
+      "level2_hybrid",
+      "alloydb_scann",
+      "vertex_vector_v2",
+      "level3_multimodal",
+      "level4_agentic",
+    ]
+  );
+  assert.deepEqual(
+    base.architectures.map((a) => a.level_id),
     [...LEVEL_IDS]
   );
+  base.architectures.forEach((row, idx) => {
+    assert.equal(row.order, idx + 1);
+    assert.ok(row.short_label.startsWith(`L${idx + 1} · `), `short_label ${row.short_label} must start with L${idx + 1}`);
+  });
   for (const row of base.architectures) {
     assert.equal(row.recorded_cohort, null);
     assert.equal(row.alternate_cohort, null);
@@ -231,4 +254,87 @@ test("uncheckedForCompareCandidates pre-selects enabled top candidates for /comp
   assert.equal(formatUsdMonthly(0), "$0.00");
   assert.equal(formatCompactInt(25_000), "25k");
   assert.equal(formatCompactInt(1_500_000), "1.5M");
+});
+
+test("SHORT_LEVEL_LABEL and ArchitectureWizard progressive disclosure enforce Order A + A2 collapsed default", () => {
+  assert.deepEqual(
+    LEVEL_IDS.map((id) => SHORT_LEVEL_LABEL[id]),
+    [
+      "1 · Vertex Search",
+      "2 · RAG Engine",
+      "3 · BQ Vector",
+      "4 · BQ Hybrid",
+      "5 · AlloyDB ScaNN",
+      "6 · Vector Search 2.0",
+      "7 · Multimodal",
+      "8 · Agentic ADK",
+    ]
+  );
+
+  const levels: LevelDescriptor[] = LEVEL_IDS.map((id, idx) => ({
+    level_id: id,
+    label: `Level ${idx + 1}: ${SHORT_LEVEL_LABEL[id]}`,
+    order: idx + 1,
+    enabled: true,
+    stages: ["query_prep", "retrieve", "synthesize", "evaluate"],
+    architecture: { level_id: id, nodes: [], edges: [], ingest_nodes: [], ingest_edges: [] },
+  }));
+  const estimate = estimateEnterpriseTco(DEFAULT_WORKLOAD, { levels });
+
+  const collapsedHtml = renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ArchitectureWizard, {
+        workload: DEFAULT_WORKLOAD,
+        onChange: () => {},
+        estimate,
+        levels,
+        leaderboardLoading: false,
+        onCompareCandidates: () => {},
+        showAdvanced: false,
+        onToggleAdvanced: () => {},
+        advancedContent: React.createElement(TcoCalculatorPanel, {
+          estimate,
+          levels,
+          leaderboardLoading: false,
+          onCompareCandidates: () => {},
+        }),
+      })
+    )
+  );
+  assert.match(collapsedHtml, /data-testid="wizard-primary-card"/);
+  assert.match(collapsedHtml, /data-testid="wizard-runner-up-card"/);
+  assert.match(collapsedHtml, /data-testid="toggle-advanced-tco"/);
+  assert.match(collapsedHtml, /aria-expanded="false"/);
+  assert.doesNotMatch(collapsedHtml, /data-testid="overview-advanced-tco"/);
+  assert.doesNotMatch(collapsedHtml, /data-testid="tco-calculator-panel"/);
+
+  const expandedHtml = renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(ArchitectureWizard, {
+        workload: DEFAULT_WORKLOAD,
+        onChange: () => {},
+        estimate,
+        levels,
+        leaderboardLoading: false,
+        onCompareCandidates: () => {},
+        showAdvanced: true,
+        onToggleAdvanced: () => {},
+        advancedContent: React.createElement(TcoCalculatorPanel, {
+          estimate,
+          levels,
+          leaderboardLoading: false,
+          onCompareCandidates: () => {},
+        }),
+      })
+    )
+  );
+  assert.match(expandedHtml, /aria-expanded="true"/);
+  assert.match(expandedHtml, /data-testid="overview-advanced-tco"/);
+  assert.match(expandedHtml, /data-testid="wizard-crossover-banner"/);
+  assert.match(expandedHtml, /data-testid="tco-calculator-panel"/);
+  assert.match(expandedHtml, /L6 VVS2 &lt; L1 VAIS/);
 });

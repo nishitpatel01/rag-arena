@@ -283,7 +283,7 @@ class RagEngine(BaseRAGEngine):
     """Level 6: Managed Vertex AI RAG Engine (``RagCorpus`` + ``:retrieveContexts`` + catalog LLM | ``VertexRagStore``)."""
 
     engine_id: str = "rag_engine"
-    engine_label: str = "Level 6: Managed Vertex AI RAG Engine"
+    engine_label: str = "Level 2: Managed Vertex AI RAG Engine"
     tier_profile: str = TIER_PROFILE
     stages: tuple[str, ...] = ("query_prep", "retrieve", "synthesize", "evaluate")
 

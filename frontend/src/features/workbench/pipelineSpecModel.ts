@@ -81,13 +81,13 @@ export function effectiveGuardrail(spec: PipelineSpec): GuardrailMode {
 }
 
 export const INDEX_PROFILES: readonly IndexProfile[] = [
-  "naive",
-  "hybrid",
-  "multimodal",
   "vertex_ai_search",
   "rag_engine",
+  "naive",
+  "hybrid",
   "alloydb_scann",
   "vertex_vector_v2",
+  "multimodal",
 ] as const;
 
 export const BQ_INDEX_PROFILES: readonly IndexProfile[] = ["naive", "hybrid", "multimodal"] as const;

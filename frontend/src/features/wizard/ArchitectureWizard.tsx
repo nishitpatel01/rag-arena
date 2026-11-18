@@ -1,5 +1,15 @@
 import React from "react";
-import { ArrowRight, GitCompare, Lock, RotateCcw, Sparkles, TrendingUp } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  GitCompare,
+  Lock,
+  RotateCcw,
+  SlidersHorizontal,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { lockedTitle } from "../../app/Shell";
 import { Button } from "../../components/ui/Button";
@@ -37,6 +47,9 @@ export interface ArchitectureWizardProps {
   readonly levels: readonly LevelDescriptor[];
   readonly leaderboardLoading: boolean;
   readonly onCompareCandidates: (levelIds: readonly string[]) => void;
+  readonly showAdvanced?: boolean;
+  readonly onToggleAdvanced?: () => void;
+  readonly advancedContent?: React.ReactNode;
 }
 
 function workloadsEqual(a: TcoWorkload, b: TcoWorkload): boolean {
@@ -175,9 +188,12 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
   levels,
   leaderboardLoading,
   onCompareCandidates,
+  showAdvanced = false,
+  onToggleAdvanced,
+  advancedContent,
 }) => {
   const byId = new Map<string, ArchitectureTcoRow>(estimate.architectures.map((r) => [r.level_id, r]));
-  const primary = byId.get(estimate.recommended_level_id) ?? estimate.architectures[2];
+  const primary = byId.get(estimate.recommended_level_id) ?? estimate.architectures[0];
   const runnerUp = byId.get(estimate.runner_up_level_id) ?? estimate.architectures[1];
 
   const levelMap = new Map<string, LevelDescriptor>(levels.map((l) => [l.level_id, l]));
@@ -197,7 +213,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
   return (
     <Panel
       title="Enterprise Use-Case Architecture Advisor"
-      subtitle="Map your Google Cloud data gravity, document complexity, latency SLA, and monthly scale to a measured reference architecture."
+      subtitle="Pick a scenario preset to match your Google Cloud workload to a measured reference architecture — or expand below to tune scale & TCO."
       actions={
         <Button
           size="sm"
@@ -211,7 +227,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
         </Button>
       }
     >
-      <div className="flex flex-col gap-4" data-testid="architecture-wizard">
+      <div className="flex flex-col gap-3.5" data-testid="architecture-wizard">
         {/* 1-Click Enterprise Scenario Quick-Picks */}
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -249,289 +265,332 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
           </div>
         </div>
 
-        {/* Main 2-column advisor workspace */}
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,11fr)_minmax(0,13fr)]">
-          {/* Left column: 7 deterministic workload controls */}
-          <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface-0 p-3.5">
-            <OptionCards
-              label="1. Data Gravity & Store Affinity"
-              value={workload.data_gravity}
-              options={DATA_GRAVITY_CHOICES}
-              columnsClass="grid-cols-1 sm:grid-cols-2"
-              onSelect={(data_gravity) => onChange({ ...workload, data_gravity })}
-            />
-
-            <OptionCards
-              label="2. Document Structure & Reasoning Complexity"
-              value={workload.doc_complexity}
-              options={DOC_COMPLEXITY_CHOICES}
-              onSelect={(doc_complexity) => onChange({ ...workload, doc_complexity })}
-            />
-
-            <OptionCards
-              label="3. End-to-End Latency SLA"
-              value={workload.latency_sla}
-              options={LATENCY_SLA_CHOICES}
-              onSelect={(latency_sla) => onChange({ ...workload, latency_sla })}
-            />
-
-            <OptionCards
-              label="4. Security, Compliance & Ops Posture"
-              value={workload.compliance_posture}
-              options={COMPLIANCE_POSTURE_CHOICES}
-              onSelect={(compliance_posture) => onChange({ ...workload, compliance_posture })}
-            />
-
-            {/* Scale sliders: Monthly Queries & Corpus Pages */}
-            <div className="grid gap-3 pt-1 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5 rounded-md border border-line bg-surface-1 p-2.5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <label htmlFor="wizard-monthly-queries" className="text-xs font-semibold text-ink-1">
-                    5. Monthly Queries
-                  </label>
-                  <span className="font-mono text-xs font-semibold text-moss" data-testid="wizard-queries-readout">
-                    {workload.monthly_queries.toLocaleString("en-US")}/mo
-                  </span>
+        {/* Above-the-fold Primary Recommendation + Concise Runner-up Strip */}
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          {/* Primary Recommended Architecture */}
+          <div
+            className="flex flex-col gap-2.5 rounded-lg border-2 border-moss bg-winner p-3.5"
+            data-testid="wizard-primary-card"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Pill tone="ok">Primary recommendation · Fit {primary.fit_score}/100</Pill>
+                  <Pill tone="neutral" mono>
+                    {idleBadgeText(primary)}
+                  </Pill>
                 </div>
-                <input
-                  id="wizard-monthly-queries"
-                  type="range"
-                  min={0}
-                  max={1000}
-                  step={5}
-                  value={querySlider}
-                  aria-label="Monthly query volume"
-                  onChange={(e) =>
-                    onChange({
-                      ...workload,
-                      monthly_queries: logSliderToValue(Number(e.target.value), MONTHLY_QUERIES_BOUNDS),
-                    })
-                  }
-                  className="w-full accent-[var(--accent-moss)]"
-                />
-                <div className="flex flex-wrap items-center justify-between gap-1">
-                  <div className="flex flex-wrap gap-1">
-                    {QUERY_QUICK_PICKS.map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => onChange({ ...workload, monthly_queries: q })}
-                        className={`rounded border px-1.5 py-0.5 font-mono text-xs ${
-                          workload.monthly_queries === q
-                            ? "border-moss bg-winner text-ink-1 font-semibold"
-                            : "border-line bg-surface-0 text-ink-3 hover:text-ink-1"
-                        }`}
-                      >
-                        {formatCompactInt(q)}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="font-mono text-xs text-ink-3">~{avgQps < 0.1 ? avgQps.toFixed(3) : avgQps.toFixed(2)} QPS</span>
-                </div>
+                <h3 className="text-base font-semibold text-ink-1" data-testid="wizard-primary-title">
+                  {/^level\s*\d/i.test(primary.label) ? primary.label : `Level ${primary.order} · ${primary.label}`}
+                </h3>
               </div>
-
-              <div className="flex flex-col gap-1.5 rounded-md border border-line bg-surface-1 p-2.5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <label htmlFor="wizard-corpus-pages" className="text-xs font-semibold text-ink-1">
-                    6. Corpus Scale (PDF Pages)
-                  </label>
-                  <span className="font-mono text-xs font-semibold text-moss" data-testid="wizard-pages-readout">
-                    {workload.corpus_pages.toLocaleString("en-US")} pages
-                  </span>
-                </div>
-                <input
-                  id="wizard-corpus-pages"
-                  type="range"
-                  min={0}
-                  max={1000}
-                  step={5}
-                  value={corpusSlider}
-                  aria-label="Corpus size in PDF pages"
-                  onChange={(e) =>
-                    onChange({
-                      ...workload,
-                      corpus_pages: logSliderToValue(Number(e.target.value), CORPUS_PAGES_BOUNDS),
-                    })
-                  }
-                  className="w-full accent-[var(--accent-moss)]"
-                />
-                <div className="flex flex-wrap items-center justify-between gap-1">
-                  <div className="flex flex-wrap gap-1">
-                    {CORPUS_QUICK_PICKS.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => onChange({ ...workload, corpus_pages: p })}
-                        className={`rounded border px-1.5 py-0.5 font-mono text-xs ${
-                          workload.corpus_pages === p
-                            ? "border-moss bg-winner text-ink-1 font-semibold"
-                            : "border-line bg-surface-0 text-ink-3 hover:text-ink-1"
-                        }`}
-                      >
-                        {formatCompactInt(p)}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="font-mono text-xs text-ink-3">
-                    ~{rawPdfMib >= 1024 ? `${(rawPdfMib / 1024).toFixed(1)} GiB` : `${Math.round(rawPdfMib)} MiB`}
-                  </span>
-                </div>
+              <div className="text-right">
+                <p className="font-mono text-base font-semibold text-ink-1" data-testid="wizard-primary-tco">
+                  {formatUsdMonthly(primary.total_monthly_usd)}
+                  <span className="text-xs font-normal text-ink-2">/mo</span>
+                </p>
+                <p className="font-mono text-xs text-ink-3">
+                  ${primary.cost_per_1k_queries_usd.toFixed(2)} / 1k queries · {formatUsdMonthly(primary.one_time_ingestion_usd)} ingest
+                </p>
               </div>
             </div>
 
-            <OptionCards
-              label="7. Answer Synthesis Model (Vertex AI)"
-              value={workload.synthesis_model}
-              options={SYNTHESIS_MODEL_CHOICES}
-              columnsClass="grid-cols-1 sm:grid-cols-2"
-              onSelect={(synthesis_model) => onChange({ ...workload, synthesis_model })}
-            />
-          </div>
+            <div className="flex flex-wrap gap-1.5">
+              {primary.gcp_services.map((svc) => (
+                <span
+                  key={svc}
+                  className="rounded border border-line bg-surface-0 px-2 py-0.5 font-mono text-xs text-ink-2"
+                >
+                  {svc}
+                </span>
+              ))}
+            </div>
 
-          {/* Right column: Primary + Runner-up recommendations + Crossover insight */}
-          <div className="flex flex-col gap-3">
-            {/* Primary Recommended Architecture */}
+            <CohortBadges row={primary} loading={leaderboardLoading} />
+
             <div
-              className="flex flex-col gap-3 rounded-lg border-2 border-moss bg-winner p-4"
-              data-testid="wizard-primary-card"
+              className={`grid gap-2 border-t border-line pt-2 ${
+                primary.tradeoffs.length > 0 ? "sm:grid-cols-2" : "grid-cols-1"
+              }`}
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Pill tone="ok">Primary recommendation · Fit {primary.fit_score}/100</Pill>
-                    <Pill tone="neutral" mono>
-                      {idleBadgeText(primary)}
-                    </Pill>
-                  </div>
-                  <h3 className="text-base font-semibold text-ink-1" data-testid="wizard-primary-title">
-                    {/^level\s*\d/i.test(primary.label) ? primary.label : `Level ${primary.order} · ${primary.label}`}
-                  </h3>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-base font-semibold text-ink-1" data-testid="wizard-primary-tco">
-                    {formatUsdMonthly(primary.total_monthly_usd)}
-                    <span className="text-xs font-normal text-ink-2">/mo</span>
-                  </p>
-                  <p className="font-mono text-xs text-ink-3">
-                    ${primary.cost_per_1k_queries_usd.toFixed(2)} / 1k queries · {formatUsdMonthly(primary.one_time_ingestion_usd)} ingest
-                  </p>
-                </div>
+              <div>
+                <p className="text-xs font-semibold text-ink-1">Why this GCP architecture fits</p>
+                <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-4 text-xs text-ink-2">
+                  {primary.rationale.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
               </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {primary.gcp_services.map((svc) => (
-                  <span
-                    key={svc}
-                    className="rounded border border-line bg-surface-0 px-2 py-0.5 font-mono text-xs text-ink-2"
-                  >
-                    {svc}
-                  </span>
-                ))}
-              </div>
-
-              <CohortBadges row={primary} loading={leaderboardLoading} />
-
-              <div className={`grid gap-2 border-t border-line pt-2.5 ${primary.tradeoffs.length > 0 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+              {primary.tradeoffs.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-ink-1">Why this GCP architecture fits</p>
-                  <ul className="mt-1 flex list-disc flex-col gap-1 pl-4 text-xs text-ink-2">
-                    {primary.rationale.map((r) => (
-                      <li key={r}>{r}</li>
+                  <p className="text-xs font-semibold text-ink-1">Architectural watch-outs</p>
+                  <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-4 text-xs text-ink-2">
+                    {primary.tradeoffs.map((t) => (
+                      <li key={t}>{t}</li>
                     ))}
                   </ul>
                 </div>
-                {primary.tradeoffs.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-ink-1">Architectural watch-outs</p>
-                    <ul className="mt-1 flex list-disc flex-col gap-1 pl-4 text-xs text-ink-2">
-                      {primary.tradeoffs.map((t) => (
-                        <li key={t}>{t}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              )}
+            </div>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
-                {primaryEnabled ? (
-                  <Link
-                    to={`/levels/${primary.level_id}`}
-                    data-testid="wizard-open-primary"
-                    className="inline-flex items-center gap-1.5 rounded-md border border-moss bg-moss px-3 py-1.5 text-xs font-medium text-surface-0 transition-opacity hover:opacity-90"
-                  >
-                    Open Level {primary.order} live stage view <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                  </Link>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-ink-3">
-                    <Lock className="h-3.5 w-3.5" aria-hidden />
-                    {primaryLevel ? lockedTitle(primaryLevel, levels) : "Locked"}
-                  </span>
-                )}
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  leadingIcon={<GitCompare className="h-3.5 w-3.5" aria-hidden />}
-                  onClick={() => onCompareCandidates([primary.level_id, runnerUp.level_id])}
-                  data-testid="wizard-compare-top"
-                >
-                  Compare L{primary.order} vs L{runnerUp.order} on /compare
-                </Button>
+            <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
+              {primaryEnabled ? (
                 <Link
-                  to="/workbench"
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-moss hover:underline"
+                  to={`/levels/${primary.level_id}`}
+                  data-testid="wizard-open-primary"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-moss bg-moss px-3 py-1.5 text-xs font-medium text-surface-0 transition-opacity hover:opacity-90"
                 >
-                  Customize slots in Workbench <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  Open live stage view <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-ink-3">
+                  <Lock className="h-3.5 w-3.5" aria-hidden />
+                  {primaryLevel ? lockedTitle(primaryLevel, levels) : "Locked"}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                leadingIcon={<GitCompare className="h-3.5 w-3.5" aria-hidden />}
+                onClick={() => onCompareCandidates([primary.level_id, runnerUp.level_id])}
+                data-testid="wizard-compare-top"
+              >
+                Compare top 2 on /compare
+              </Button>
+              <Link
+                to="/workbench"
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-moss hover:underline"
+              >
+                Workbench <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            </div>
+          </div>
+
+          {/* Concise Runner-Up Strip */}
+          <div
+            className="flex flex-col gap-2 rounded-lg border border-line bg-surface-0 p-3.5"
+            data-testid="wizard-runner-up-card"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Pill tone="info">Runner-up · Fit {runnerUp.fit_score}/100</Pill>
+                  <Pill tone="neutral" mono>
+                    {idleBadgeText(runnerUp)}
+                  </Pill>
+                </div>
+                <h4 className="text-sm font-semibold text-ink-1">
+                  {/^level\s*\d/i.test(runnerUp.label) ? runnerUp.label : `Level ${runnerUp.order} · ${runnerUp.label}`}
+                </h4>
+              </div>
+              <div className="text-right">
+                <p className="font-mono text-sm font-semibold text-ink-1">
+                  {formatUsdMonthly(runnerUp.total_monthly_usd)}/mo
+                </p>
+                <p className="font-mono text-xs text-ink-3">
+                  {runnerUpDeltaUsd >= 0 ? "+" : "-"}
+                  {formatUsdMonthly(Math.abs(runnerUpDeltaUsd))} vs primary
+                </p>
               </div>
             </div>
 
-            {/* Runner-Up Architecture */}
-            <div
-              className="flex flex-col gap-2 rounded-lg border border-line bg-surface-0 p-3.5"
-              data-testid="wizard-runner-up-card"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Pill tone="info">Runner-up · Fit {runnerUp.fit_score}/100</Pill>
-                    <Pill tone="neutral" mono>
-                      {idleBadgeText(runnerUp)}
-                    </Pill>
-                  </div>
-                  <h4 className="text-sm font-semibold text-ink-1">
-                    {/^level\s*\d/i.test(runnerUp.label) ? runnerUp.label : `Level ${runnerUp.order} · ${runnerUp.label}`}
-                  </h4>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-sm font-semibold text-ink-1">
-                    {formatUsdMonthly(runnerUp.total_monthly_usd)}/mo
-                  </p>
-                  <p className="font-mono text-xs text-ink-3">
-                    {runnerUpDeltaUsd >= 0 ? "+" : "-"}
-                    {formatUsdMonthly(Math.abs(runnerUpDeltaUsd))} vs primary
-                  </p>
-                </div>
+            <CohortBadges row={runnerUp} loading={leaderboardLoading} />
+
+            {runnerUp.rationale[0] && <p className="text-xs text-ink-2">{runnerUp.rationale[0]}</p>}
+            {runnerUp.tradeoffs[0] && <p className="text-xs text-ink-3">{runnerUp.tradeoffs[0]}</p>}
+
+            <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2.5">
+              <span className="font-mono text-xs text-ink-3">
+                Compare pair: L{primary.order} vs L{runnerUp.order}
+              </span>
+              {runnerUpEnabled ? (
+                <Link
+                  to={`/levels/${runnerUp.level_id}`}
+                  className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-moss hover:underline"
+                >
+                  Open Level {runnerUp.order} <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-ink-3">
+                  <Lock className="h-3.5 w-3.5" aria-hidden />
+                  {runnerUpLevel ? lockedTitle(runnerUpLevel, levels) : "Locked"}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Progressive Disclosure Toggle (Collapsed by Default) */}
+        {onToggleAdvanced && (
+          <button
+            type="button"
+            aria-expanded={showAdvanced}
+            aria-controls="overview-advanced-tco"
+            data-testid="toggle-advanced-tco"
+            onClick={onToggleAdvanced}
+            className="flex w-full flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-0 px-3.5 py-2.5 text-left transition-colors hover:border-ink-3 hover:bg-surface-2"
+          >
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink-1">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-moss" aria-hidden />
+              Customize workload parameters &amp; full 8-architecture TCO matrix
+            </span>
+            <span className="inline-flex flex-wrap items-center gap-2 text-xs text-ink-3">
+              <span className="font-mono">
+                {formatCompactInt(workload.monthly_queries)} q/mo · {formatCompactInt(workload.corpus_pages)} pages ·{" "}
+                {workload.synthesis_model}
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-moss">
+                {showAdvanced ? "Hide controls" : "Expand"}
+                {showAdvanced ? (
+                  <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                )}
+              </span>
+            </span>
+          </button>
+        )}
+
+        {/* Expanded Progressive Disclosure: 7 Controls + Crossover Box + Full 8-Row TCO Matrix */}
+        {showAdvanced && (
+          <div id="overview-advanced-tco" className="flex flex-col gap-4" data-testid="overview-advanced-tco">
+            <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface-0 p-3.5">
+              <div className="grid gap-3 xl:grid-cols-2">
+                <OptionCards
+                  label="1. Data Gravity & Store Affinity"
+                  value={workload.data_gravity}
+                  options={DATA_GRAVITY_CHOICES}
+                  columnsClass="grid-cols-1 sm:grid-cols-2"
+                  onSelect={(data_gravity) => onChange({ ...workload, data_gravity })}
+                />
+
+                <OptionCards
+                  label="2. Document Structure & Reasoning Complexity"
+                  value={workload.doc_complexity}
+                  options={DOC_COMPLEXITY_CHOICES}
+                  onSelect={(doc_complexity) => onChange({ ...workload, doc_complexity })}
+                />
+
+                <OptionCards
+                  label="3. End-to-End Latency SLA"
+                  value={workload.latency_sla}
+                  options={LATENCY_SLA_CHOICES}
+                  onSelect={(latency_sla) => onChange({ ...workload, latency_sla })}
+                />
+
+                <OptionCards
+                  label="4. Security, Compliance & Ops Posture"
+                  value={workload.compliance_posture}
+                  options={COMPLIANCE_POSTURE_CHOICES}
+                  onSelect={(compliance_posture) => onChange({ ...workload, compliance_posture })}
+                />
               </div>
 
-              <CohortBadges row={runnerUp} loading={leaderboardLoading} />
+              {/* Scale sliders: Monthly Queries & Corpus Pages + Synthesis Model */}
+              <div className="grid gap-3 pt-1 lg:grid-cols-3">
+                <div className="flex flex-col gap-1.5 rounded-md border border-line bg-surface-1 p-2.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label htmlFor="wizard-monthly-queries" className="text-xs font-semibold text-ink-1">
+                      5. Monthly Queries
+                    </label>
+                    <span className="font-mono text-xs font-semibold text-moss" data-testid="wizard-queries-readout">
+                      {workload.monthly_queries.toLocaleString("en-US")}/mo
+                    </span>
+                  </div>
+                  <input
+                    id="wizard-monthly-queries"
+                    type="range"
+                    min={0}
+                    max={1000}
+                    step={5}
+                    value={querySlider}
+                    aria-label="Monthly query volume"
+                    onChange={(e) =>
+                      onChange({
+                        ...workload,
+                        monthly_queries: logSliderToValue(Number(e.target.value), MONTHLY_QUERIES_BOUNDS),
+                      })
+                    }
+                    className="w-full accent-[var(--accent-moss)]"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    <div className="flex flex-wrap gap-1">
+                      {QUERY_QUICK_PICKS.map((q) => (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => onChange({ ...workload, monthly_queries: q })}
+                          className={`rounded border px-1.5 py-0.5 font-mono text-xs ${
+                            workload.monthly_queries === q
+                              ? "border-moss bg-winner font-semibold text-ink-1"
+                              : "border-line bg-surface-0 text-ink-3 hover:text-ink-1"
+                          }`}
+                        >
+                          {formatCompactInt(q)}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="font-mono text-xs text-ink-3">
+                      ~{avgQps < 0.1 ? avgQps.toFixed(3) : avgQps.toFixed(2)} QPS
+                    </span>
+                  </div>
+                </div>
 
-              {runnerUp.rationale[0] && <p className="text-xs text-ink-2">{runnerUp.rationale[0]}</p>}
+                <div className="flex flex-col gap-1.5 rounded-md border border-line bg-surface-1 p-2.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label htmlFor="wizard-corpus-pages" className="text-xs font-semibold text-ink-1">
+                      6. Corpus Scale (PDF Pages)
+                    </label>
+                    <span className="font-mono text-xs font-semibold text-moss" data-testid="wizard-pages-readout">
+                      {workload.corpus_pages.toLocaleString("en-US")} pages
+                    </span>
+                  </div>
+                  <input
+                    id="wizard-corpus-pages"
+                    type="range"
+                    min={0}
+                    max={1000}
+                    step={5}
+                    value={corpusSlider}
+                    aria-label="Corpus size in PDF pages"
+                    onChange={(e) =>
+                      onChange({
+                        ...workload,
+                        corpus_pages: logSliderToValue(Number(e.target.value), CORPUS_PAGES_BOUNDS),
+                      })
+                    }
+                    className="w-full accent-[var(--accent-moss)]"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    <div className="flex flex-wrap gap-1">
+                      {CORPUS_QUICK_PICKS.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => onChange({ ...workload, corpus_pages: p })}
+                          className={`rounded border px-1.5 py-0.5 font-mono text-xs ${
+                            workload.corpus_pages === p
+                              ? "border-moss bg-winner font-semibold text-ink-1"
+                              : "border-line bg-surface-0 text-ink-3 hover:text-ink-1"
+                          }`}
+                        >
+                          {formatCompactInt(p)}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="font-mono text-xs text-ink-3">
+                      ~{rawPdfMib >= 1024 ? `${(rawPdfMib / 1024).toFixed(1)} GiB` : `${Math.round(rawPdfMib)} MiB`}
+                    </span>
+                  </div>
+                </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                <span className="text-xs text-ink-3">{runnerUp.tradeoffs[0] ?? ""}</span>
-                {runnerUpEnabled ? (
-                  <Link
-                    to={`/levels/${runnerUp.level_id}`}
-                    className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-moss hover:underline"
-                  >
-                    Open Level {runnerUp.order} <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                  </Link>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-ink-3">
-                    <Lock className="h-3.5 w-3.5" aria-hidden />
-                    {runnerUpLevel ? lockedTitle(runnerUpLevel, levels) : "Locked"}
-                  </span>
-                )}
+                <OptionCards
+                  label="7. Answer Synthesis Model (Vertex AI)"
+                  value={workload.synthesis_model}
+                  options={SYNTHESIS_MODEL_CHOICES}
+                  columnsClass="grid-cols-1 sm:grid-cols-2"
+                  onSelect={(synthesis_model) => onChange({ ...workload, synthesis_model })}
+                />
               </div>
             </div>
 
@@ -550,19 +609,21 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
               <p className="text-xs text-ink-2">{estimate.crossover.summary}</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5 font-mono text-xs text-ink-3">
                 <span>
-                  L8 VVS2 &lt; L5 VAIS: ~{estimate.crossover.vvs2_vs_vais_queries.toLocaleString("en-US")} q/mo
+                  L6 VVS2 &lt; L1 VAIS: ~{estimate.crossover.vvs2_vs_vais_queries.toLocaleString("en-US")} q/mo
                 </span>
                 <span>
-                  L7 AlloyDB &lt; L5 VAIS: ~{estimate.crossover.alloydb_vs_vais_queries.toLocaleString("en-US")} q/mo
+                  L5 AlloyDB &lt; L1 VAIS: ~{estimate.crossover.alloydb_vs_vais_queries.toLocaleString("en-US")} q/mo
                 </span>
                 <span>
-                  L8 VVS2 &lt; L3 BQ Scan ({formatCompactInt(workload.corpus_pages)} p): ~
+                  L6 VVS2 &lt; L7 BQ Scan ({formatCompactInt(workload.corpus_pages)} p): ~
                   {estimate.crossover.vvs2_vs_bq_multimodal_queries.toLocaleString("en-US")} q/mo
                 </span>
               </div>
             </div>
+
+            {advancedContent}
           </div>
-        </div>
+        )}
       </div>
     </Panel>
   );

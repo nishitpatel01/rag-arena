@@ -275,7 +275,7 @@ class Level2HybridEngine(BaseRAGEngine):
     """Level 2: hybrid VECTOR_SEARCH + SEARCH() RRF over contextual-lineage page chunks + Ranking API rerank."""
 
     engine_id: str = "level2_hybrid"
-    engine_label: str = "Level 2: BigQuery Hybrid + Reranker"
+    engine_label: str = "Level 4: BigQuery Hybrid + Reranker"
     tier_profile: str = "hybrid"
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 

@@ -81,61 +81,61 @@ export interface GcpArchitectureStackInfo {
 }
 
 const GCP_STACK_BY_ENGINE: Readonly<Record<string, GcpArchitectureStackInfo>> = {
-  level1_naive: {
-    engineId: "level1_naive",
-    displayName: "Level 1 · Serverless BigQuery Vector Baseline",
-    gcpServices: "Cloud Storage + Vertex AI gemini-embedding-2 + BigQuery VECTOR_SEARCH (Cosine) + Vertex AI Gemini",
-    idleStandingCost: "$0/mo serverless idle",
-    bestFitWorkload: "Clean narrative FAQs and low-cost baseline validation over existing BigQuery tables",
-  },
-  level2_hybrid: {
-    engineId: "level2_hybrid",
-    displayName: "Level 2 · BigQuery Hybrid RRF + Vertex Ranking API",
-    gcpServices: "BigQuery VECTOR_SEARCH + SEARCH (BM25) + RRF + Discovery Engine Ranking API + Vertex AI Gemini",
-    idleStandingCost: "$0/mo serverless idle",
-    bestFitWorkload: "Exact SKU, CLIN, clause, and identifier lookup requiring lexical + semantic precision",
-  },
-  level3_multimodal: {
-    engineId: "level3_multimodal",
-    displayName: "Level 3 · Layout-Aware Multimodal RAG",
-    gcpServices: "Document AI Layout Parser + Gemini Vision + Multimodal Embeddings + BigQuery Hybrid + Ranking API",
-    idleStandingCost: "$0/mo serverless idle",
-    bestFitWorkload: "Dense multi-column SLA matrices, financial schedules, and embedded architecture diagrams",
-  },
-  level4_agentic: {
-    engineId: "level4_agentic",
-    displayName: "Level 4 · Agentic Multi-Hop RAG on Google ADK",
-    gcpServices: "Google ADK multi-turn agent + BigQuery Hybrid + Ranking API + AST pricing calculator + citation verifier",
-    idleStandingCost: "$0/mo serverless idle",
-    bestFitWorkload: "Cross-document contract amendments, supersession verification, and deterministic financial math",
-  },
   managed_vertex: {
     engineId: "managed_vertex",
-    displayName: "Level 5 · Managed Vertex AI Search",
+    displayName: "Level 1 · Managed Vertex AI Search",
     gcpServices: "Google Cloud Discovery Engine (managed parsing, chunking, indexing, retrieval, and grounded summaries)",
     idleStandingCost: "$0/mo standing idle (per-query pricing)",
     bestFitWorkload: "Turnkey enterprise search portals minimizing custom ingestion and pipeline maintenance",
   },
   rag_engine: {
     engineId: "rag_engine",
-    displayName: "Level 6 · Managed Vertex AI RAG Engine",
+    displayName: "Level 2 · Managed Vertex AI RAG Engine",
     gcpServices: "Vertex AI RagCorpus (RagManagedDb KNN serverless or Spanner) + text-embedding-005 + Vertex AI Gemini",
     idleStandingCost: "$0/mo in RagManagedDb KNN mode",
     bestFitWorkload: "Managed corpus lifecycle with direct Gemini grounding and optional Ranking API reranking",
   },
+  level1_naive: {
+    engineId: "level1_naive",
+    displayName: "Level 3 · Naive Vector RAG (BigQuery)",
+    gcpServices: "Cloud Storage + Vertex AI gemini-embedding-2 + BigQuery VECTOR_SEARCH (Cosine) + Vertex AI Gemini",
+    idleStandingCost: "$0/mo serverless idle",
+    bestFitWorkload: "Clean narrative FAQs and low-cost baseline validation over existing BigQuery tables",
+  },
+  level2_hybrid: {
+    engineId: "level2_hybrid",
+    displayName: "Level 4 · BigQuery Hybrid RRF + Vertex Ranking API",
+    gcpServices: "BigQuery VECTOR_SEARCH + SEARCH (BM25) + RRF + Discovery Engine Ranking API + Vertex AI Gemini",
+    idleStandingCost: "$0/mo serverless idle",
+    bestFitWorkload: "Exact SKU, CLIN, clause, and identifier lookup requiring lexical + semantic precision",
+  },
   alloydb_scann: {
     engineId: "alloydb_scann",
-    displayName: "Level 7 · AlloyDB for PostgreSQL + ScaNN Hybrid",
+    displayName: "Level 5 · AlloyDB for PostgreSQL + ScaNN Hybrid",
     gcpServices: "AlloyDB PostgreSQL + alloydb_scann ANN index + tsvector RRF + Discovery Engine Ranking API",
     idleStandingCost: "Dedicated vCPU/RAM cluster ($0/mo when torn down via ephemeral script)",
     bestFitWorkload: "High-QPS transactional OLTP + sub-second filtered vector/full-text hybrid workloads",
   },
   vertex_vector_v2: {
     engineId: "vertex_vector_v2",
-    displayName: "Level 8 · Vertex AI Vector Search 2.0 ScaNN",
+    displayName: "Level 6 · Vertex AI Vector Search 2.0 ScaNN",
     gcpServices: "Vertex AI Vector Search 2.0 Collection (ScaNN ANN + sparse hybrid) + Discovery Engine Ranking API",
     idleStandingCost: "Dedicated minReplicaCount>=1 endpoint ($0/mo when torn down via ephemeral script)",
     bestFitWorkload: "Multi-million-document low-latency ANN vector retrieval at sustained enterprise query volume",
+  },
+  level3_multimodal: {
+    engineId: "level3_multimodal",
+    displayName: "Level 7 · Layout-Aware Multimodal RAG",
+    gcpServices: "Document AI Layout Parser + Gemini Vision + Multimodal Embeddings + BigQuery Hybrid + Ranking API",
+    idleStandingCost: "$0/mo serverless idle",
+    bestFitWorkload: "Dense multi-column SLA matrices, financial schedules, and embedded architecture diagrams",
+  },
+  level4_agentic: {
+    engineId: "level4_agentic",
+    displayName: "Level 8 · Agentic Multi-Hop RAG on Google ADK",
+    gcpServices: "Google ADK multi-turn agent + BigQuery Hybrid + Ranking API + AST pricing calculator + citation verifier",
+    idleStandingCost: "$0/mo serverless idle",
+    bestFitWorkload: "Cross-document contract amendments, supersession verification, and deterministic financial math",
   },
 };
 

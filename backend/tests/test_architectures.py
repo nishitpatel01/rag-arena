@@ -84,11 +84,16 @@ def test_levels_endpoint_lists_all_levels_with_enabled_flag_and_descriptor() -> 
     assert body["enabled_levels"] == ["level1_naive"]
     assert [lvl["level_id"] for lvl in body["levels"]] == list(ALL_LEVEL_IDS)
     first = body["levels"][0]
+    assert first["level_id"] == "managed_vertex" and first["order"] == 1
     assert {"level_id", "label", "order", "enabled", "stages", "tier_profile", "architecture"} <= set(first)
+    for idx, lvl in enumerate(body["levels"], start=1):
+        assert lvl["order"] == idx
+        assert lvl["label"].startswith(f"Level {idx}:")
     node = first["architecture"]["nodes"][0]
     assert {"id", "label", "service", "kind", "col", "row", "stage_ids"} <= set(node)
     assert set(node) <= {"id", "label", "service", "kind", "col", "row", "stage_ids", "region", "code_ref"}
-    bq_node = next(n for n in first["architecture"]["nodes"] if n["id"] == "bq")
+    bq_level = next(lvl for lvl in body["levels"] if lvl["level_id"] == "level1_naive")
+    bq_node = next(n for n in bq_level["architecture"]["nodes"] if n["id"] == "bq")
     assert bq_node["code_ref"].startswith("app.engines.level1_naive:") and bq_node["region"]
     edge = first["architecture"]["edges"][0]
     assert {"from", "to", "label"} == set(edge)

@@ -415,7 +415,7 @@ def _level4_tool_nodes() -> tuple[ArchNode, ...]:
     """The four ADK tools and the services they call; all light up during ``agent_turn`` (per tool via ``tool_names``)."""
     turn, search, amend = ("agent_turn",), ("search_procurement_corpus",), ("check_amendments",)
     return (
-        ArchNode("tool_search", "search_procurement_corpus", "Level 3 retrieval (embed → RRF → rerank)", "process", 2, 0, turn,
+        ArchNode("tool_search", "search_procurement_corpus", "Multimodal hybrid retrieval (embed → RRF → rerank)", "process", 2, 0, turn,
                  code_ref=f"{_L4_TOOLS_REF}:run_search", tool_names=search),
         ArchNode("tool_amend", "check_amendments", "BigQuery parameterized amends_section lookup", "process", 2, 1, turn,
                  code_ref=f"{_L4_TOOLS_REF}:run_check_amendments", tool_names=amend),
@@ -680,14 +680,14 @@ def _level8() -> ArchitectureDescriptor:
 
 
 _DESCRIPTORS: tuple[ArchitectureDescriptor, ...] = (
-    _level1(),
-    _level2(),
-    _level3(),
-    _level4(),
     _managed(),
     _level6(),
+    _level1(),
+    _level2(),
     _level7(),
     _level8(),
+    _level3(),
+    _level4(),
 )
 _BY_ID: dict[str, ArchitectureDescriptor] = {d.level_id: d for d in _DESCRIPTORS}
 

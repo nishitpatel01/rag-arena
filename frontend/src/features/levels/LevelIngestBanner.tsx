@@ -50,7 +50,7 @@ export const LevelIngestBanner: React.FC<LevelIngestBannerProps> = ({ currentLev
     progress.embed && progress.embed.total > 0
       ? Math.round((progress.embed.done / progress.embed.total) * 100)
       : null;
-  const sharedNote = currentLevelId !== backingLevelId ? " (feeds Level 4 Agentic RAG)" : "";
+  const sharedNote = currentLevelId !== backingLevelId ? " (feeds Level 8 Agentic RAG)" : "";
   const scopeLabel = entry.scope ? `workspace ${entry.scope}` : "procurement corpus";
 
   return (

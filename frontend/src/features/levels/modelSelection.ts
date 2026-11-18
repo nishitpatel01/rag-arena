@@ -57,8 +57,8 @@ export function allowedLevels(entry: ModelCatalogEntry): readonly string[] | nul
 export function restrictedOptionSuffix(entry: ModelCatalogEntry): string {
   const allowed = allowedLevels(entry);
   if (!allowed || allowed.length === 0) return "";
-  if (allowed.length === 1 && allowed[0] === MANAGED_LEVEL) return " — Level 5 only";
-  if (allowed.length === 1 && allowed[0] === RAG_ENGINE_LEVEL) return " — Level 6 only";
+  if (allowed.length === 1 && allowed[0] === MANAGED_LEVEL) return " — Level 1 only";
+  if (allowed.length === 1 && allowed[0] === RAG_ENGINE_LEVEL) return " — Level 2 only";
   return ` — ${allowed.join(", ")} only`;
 }
 
@@ -68,10 +68,10 @@ export function levelRestriction(entry: ModelCatalogEntry, levelId: string | nul
   const allowed = allowedLevels(entry);
   if (allowed === null || allowed.includes(levelId)) return null;
   if (allowed.includes(MANAGED_LEVEL) && allowed.length === 1) {
-    return "managed Vertex AI Search summary — valid only on Level 5 (Managed Vertex AI Search)";
+    return "managed Vertex AI Search summary — valid only on Level 1 (Managed Vertex AI Search)";
   }
   if (allowed.includes(RAG_ENGINE_LEVEL) && allowed.length === 1) {
-    return "VertexRagStore grounded synthesis — valid only on Level 6 (Managed Vertex AI RAG Engine)";
+    return "VertexRagStore grounded synthesis — valid only on Level 2 (Managed Vertex AI RAG Engine)";
   }
   return `valid only on ${allowed.join(", ")}`;
 }

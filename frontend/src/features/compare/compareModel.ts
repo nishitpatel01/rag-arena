@@ -37,12 +37,12 @@ export function levelName(label: string): string {
   return stripped.length > 0 ? stripped : label;
 }
 
-/** Level 4 runs its ADK agent on the synthesis model: Gemini only (the server answers HTTP 400 otherwise). */
+/** Agentic RAG (Google ADK) runs its ADK agent on the synthesis model: Gemini only (the server answers HTTP 400 otherwise). */
 function level4Reason(catalog: ModelsResponse, sel: ModelSelection, levelId: string): string | null {
   if (levelId !== LEVEL4_ENGINE) return null;
   const synth = findModel(catalog, sel.synthesis);
   if (!synth || synth.provider === GEMINI_PROVIDER) return null;
-  return `Level 4 (ADK agent) requires a Gemini synthesis model; ${synth.label} is not Gemini.`;
+  return `Level 8 (ADK agent) requires a Gemini synthesis model; ${synth.label} is not Gemini.`;
 }
 
 /** Replay plays recordings only: the (engine, synthesis, judge) recording must contain the question. */

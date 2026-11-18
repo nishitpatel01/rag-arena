@@ -104,8 +104,19 @@ def test_pure_core_never_invents_hardcoded_benchmark_scores() -> None:
     """Spec P3 authenticity invariant: pure core without recorded cohorts emits None for QA/GR/CP."""
     est = estimate_enterprise_tco(DEFAULT_WORKLOAD)
     assert len(est.architectures) == len(ALL_LEVEL_IDS) == 8
-    assert tuple(a.level_id for a in est.architectures) == ALL_LEVEL_IDS
-    for arch in est.architectures:
+    assert tuple(a.level_id for a in est.architectures) == ALL_LEVEL_IDS == (
+        "managed_vertex",
+        "rag_engine",
+        "level1_naive",
+        "level2_hybrid",
+        "alloydb_scann",
+        "vertex_vector_v2",
+        "level3_multimodal",
+        "level4_agentic",
+    )
+    for idx, arch in enumerate(est.architectures, start=1):
+        assert arch.order == idx
+        assert arch.short_label.startswith(f"L{idx} · ")
         assert arch.recorded_cohort is None
         assert arch.alternate_cohort is None
 

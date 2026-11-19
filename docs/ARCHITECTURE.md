@@ -249,7 +249,8 @@ Tools registered on the `LlmAgent`:
   `RankingClient.rank`.
 - `check_amendments(section_id, solicitation_id?)`: runs parameterized `build_amendment_lookup_sql` against
   `document_chunks_v3` (`tier_profile = 'multimodal'`, matching `amends_section` or `section_id` prefix; unscoped runs
-  exclude `upl_*`).
+  exclude `upl_*`). Treated as authoritative in `AGENT_INSTRUCTION`: when `check_amendments` returns zero amendments,
+  the base clause governs without redundant amendment-hunting search loops.
 - `calculate_contract_pricing(expression, variables?)`: AST-validated arithmetic (`engines/agent_calculator.py`; max
   400 chars, max 64 AST nodes, max exponent 12; rejects calls/attributes/subscripts).
 - `verify_citations(draft_answer, cited_chunk_ids?)`: deterministic numeric/currency/percentage, `CLIN-*`, `SEC-*`, and
@@ -260,8 +261,8 @@ Upload scope pinning (`ToolDeps.upload_scope`): when a run targets a private upl
 `upload_scope` is closure-pinned inside `search_procurement_corpus` and `check_amendments`. Omitted filter arguments
 are forced to `upload_scope`, and any conflicting `solicitation_filter` / `solicitation_id` (e.g. a prompt-injected PDF
 instructing the model to read `solicitation_01` or another user's `upl_*`) raises `ToolArgumentError` immediately.
-Level 4 requires a `vertex_gemini` synthesis model (`gemini-4-argon`, `gemini-4-carbon`, or `gemini-3.8-flash`); Claude
-models remain selectable as the LLM judge.
+Level 4 requires a `vertex_gemini` synthesis model (`gemini-4-hydrogen`, `gemini-4-carbon`, `gemini-4-argon`, or
+legacy `gemini-3.8-flash`); Claude models remain selectable as the LLM judge.
 
 ---
 

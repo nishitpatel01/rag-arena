@@ -5,7 +5,7 @@ import { Pill } from "../../components/ui/Pill";
 import { api } from "../../lib/api";
 import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN } from "../../lib/validation";
 import type { BenchmarkQuestion } from "../../types/arena";
-import { isMockRequested } from "../levels/useBattleStream";
+import { isMockRequested } from "../levels/battleTransport";
 import {
   GOLDEN_BADGE_LABEL,
   INDUSTRY_PACKS,

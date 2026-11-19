@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.2] - 2026-11-18
+
+Gemini 4 Hydrogen Replay Refresh (`183` official recordings), Multimodal & ADK Engine Quality Fixes, Single-Row Navigation, Responsive Workbench Fit, WCAG AA Contrast, Route Code-Splitting, and Cloud Run/Terraform Model Armor Parity (`$0/mo` standing idle).
+
+### Added
+- **Live Gemini 4 Hydrogen + Claude Opus 5.5 Benchmark Cohort (`scripts/record_live_benchmarks.py`, `data/recordings/**`)**:
+  - Added spend-bounded, resumable CLI recorder (`--max-spend-usd`, `--overwrite`, `assert_redacted`, `0644` permissions) and recorded all `48/48` standing golden runs (`8/8` across `managed_vertex`, `rag_engine`, `level1_naive`, `level2_hybrid`, `level3_multimodal`, and `level4_agentic` — zero timeouts on `q_sla_credit_calculation`, expanding total official replay recordings from `135` to **`183`**).
+  - Enables full zero-credential replay and live-joined Overview TCO/fit scoring on `gemini-4-hydrogen__claude-opus-5-5` (`1 · Vertex Search` Battle `89.4`, `8 · Agentic ADK` Battle `88.8` / QA `0.961` at `21.6 s`, `2 · RAG Engine` Battle `87.8`, `4 · BQ Hybrid` Battle `85.7` at `11.5 s`).
+- **Single-Row `"Architectures ▾"` Menu, Responsive Diagram Fit & Route Code-Splitting (`Shell.tsx`, `navMenuModel.ts`, `ArchitectureDiagram.tsx`, `diagramModel.ts`, `routes.tsx`)**:
+  - Replaced inline 8-tab header wrap with an accessible `Architectures ▾` menu (`aria-haspopup="menu"`, active route label, pulsing ingest indicator, lock states) so the top navigation fits on a single row.
+  - Added responsive viewBox scaling (`MIN_FIT_SCALE = 0.72`, `NODE_W = 168`) eliminating horizontal clipping on 7–8 column Composable Workbench pipelines at `1600×1000`, plus `React.lazy` + `<Suspense>` route splitting cutting the initial JS bundle `-50.0%` (`693.8 kB` → `346.7 kB`, `0` Rollup warnings).
+
+### Fixed
+- **Level 7 Multimodal Orphan-Heading Elimination & Level 8 ADK Negative-Lookup Guard (`multimodal.py`, `level3_multimodal.py`, `agent_runtime.py`)**:
+  - Prevented `group_page_elements()` from flushing heading-only buffers before tables/subheadings and added `dedupe_heading_stubs()` pre-rerank filtering (`deduped_heading_stubs` reported in `retrieve`).
+  - Added authoritative negative-lookup termination rule to `AGENT_INSTRUCTION` when `check_amendments` returns zero amendments, cutting Level 8 Argon engine spend on `q_soc_p1_response_matrix` `-70.2%` (`$0.1807` → `$0.0538`, QA `0.98`).
+- **WCAG 2.1 AA Contrast, `/releases` Nested Inline Code, `/compare` Deduplication, `SafeMode` & Model Armor IAM Parity (`tokens.css`, `releasesModel.ts`, `DocMarkdown.tsx`, `LevelChecklist.tsx`, `ScopeSelector.tsx`, `ModelPicker.tsx`, `scripts/deploy_cloudrun.sh`, `infra/main.tf`)**:
+  - Tuned `--ink-3` and light/dark semantic accents to strict `>= 4.5:1` WCAG AA across all surfaces, rendered nested inline `code` and safe links inside **bold** changelog items, deduplicated shared `disabledReason` banners on `/compare`, masked `upl_*` workspaces/PDF filenames in `SafeMode`, and auto-bound `roles/modelarmor.user` + `modelarmor.googleapis.com` when `MODEL_ARMOR_TEMPLATE_ID` is set (**510 backend tests** across `54` files; **231 frontend tests** across `28` suites).
+
 ## [1.6.1] - 2026-11-17
 
 Enterprise Showcase & GCP Architecture Advisor: Interactive Use-Case Wizard & Monthly TCO Calculator, Google Cloud Model Armor Guardrails, Vertex AI GenAI Evaluation Service + Split Engine/Judge Cost, Industry Packs, Executive Brief Export, and Replay Speed Control (`$0/mo` standing idle).

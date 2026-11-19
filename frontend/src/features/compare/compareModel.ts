@@ -80,6 +80,17 @@ export function enginesToRun(choices: readonly LevelChoice[], checked: ReadonlyS
   return choices.filter((c) => c.disabledReason === null && checked.has(c.levelId)).map((c) => c.levelId);
 }
 
+/**
+ * When >= 2 choices are blocked with the exact same `disabledReason` and all blocked choices share it,
+ * return that single reason once so `LevelChecklist` avoids repeating the same warning 8 times.
+ */
+export function sharedDisabledReason(choices: readonly LevelChoice[]): string | null {
+  const blocked = choices.map((c) => c.disabledReason).filter((r): r is string => r !== null && r.length > 0);
+  if (blocked.length < 2) return null;
+  const first = blocked[0];
+  return blocked.every((r) => r === first) ? first : null;
+}
+
 export interface CostEstimateLine {
   readonly engine: string;
   /** Average recorded run cost (engine + judge) for this pair, or null when nothing is recorded. */

@@ -2,9 +2,9 @@
 
 **Eight RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.6.1](https://img.shields.io/badge/release-v1.6.1-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 503 passed](https://img.shields.io/badge/backend%20tests-503%20passed-brightgreen.svg) ![Frontend tests: 225 passed](https://img.shields.io/badge/frontend%20tests-225%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Model%20Armor%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.6.2](https://img.shields.io/badge/release-v1.6.2-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 510 passed](https://img.shields.io/badge/backend%20tests-510%20passed-brightgreen.svg) ![Frontend tests: 231 passed](https://img.shields.io/badge/frontend%20tests-231%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Model%20Armor%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.6.1 (2026-11-18, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Use-Case Wizard & TCO Calculator (`/`), Gemini 4 + Claude Global Model Selector & Pair Recommender, Model Armor Guardrails & Composable Workbench (`/workbench`), Controlled Ablation Lab & Executive Export (`/compare`), Vertex AI GenAI Eval & Split Cost (`/leaderboard`), Releases & Docs (`/releases`), private PDF uploads, and Cloud Run live.
+**Release:** v1.6.2 (2026-11-18, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight levels (Levels 1–6 standing live + Levels 7–8 ephemeral ScaNN benchmarks at $0/mo idle), Use-Case Wizard & TCO Calculator (`/`), Gemini 4 + Claude Global Model Selector & Pair Recommender (`183` recorded runs incl. `gemini-4-hydrogen`), Model Armor Guardrails & Composable Workbench (`/workbench`), Controlled Ablation Lab & Executive Export (`/compare`), Vertex AI GenAI Eval & Split Cost (`/leaderboard`), Releases & Docs (`/releases`), private PDF uploads, and Cloud Run live.
 
 ## The problem
 
@@ -22,7 +22,7 @@ Teams choosing a RAG architecture on Google Cloud rarely see measured quality, l
 - **Eight progressively richer & specialized architectures** (naive vector → hybrid + rerank → layout multimodal → agentic ADK → managed Vertex AI Search → managed Vertex AI RAG Engine → AlloyDB + ScaNN → Vertex AI Vector Search 2.0 ScaNN + Sparse RRF) tested on a **45-PDF benchmark corpus** (8 golden questions) **or your own uploaded PDFs** (v1.1+).
 - **Every stage measured and streamed live** over SSE: the real SQL or API request, what came back, backend-measured duration, tokens and cost, drawn on a live architecture diagram.
 - **An LLM judge that differs from the synthesis model** (enforced server-side) scores groundedness, QA relevance and context precision — with reference-free judging on uploaded or custom questions; **Compare** and **Leaderboard** highlight the winner by your chosen metric.
-- **Zero-credential replay** of 135 recorded real runs, and **one-command Cloud Run deployment** to your own project.
+- **Zero-credential replay** of 183 recorded real runs, and **one-command Cloud Run deployment** to your own project.
 
 Design guarantees (full principles table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#0-design-principles-v3)):
 
@@ -339,11 +339,11 @@ Run streams are `data: {json}\n\n` frames bounded by `MAX_SSE_FRAMES` (600). Eve
 
 ## Quality & tests
 
-All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0, Model Armor, Vertex GenAI Eval and ADK). Measured 2026-11-17:
+All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0, Model Armor, Vertex GenAI Eval and ADK). Measured 2026-11-18:
 
 | Suite | Checks | What it guards |
 | :-- | --: | :-- |
-| **Backend total** (`pytest`, 53 files) | **503 passed** | engines (L1–L8), model recommender, TCO advisor, Model Armor, Vertex GenAI Eval, workbench, `/releases`, uploads, IAP/CSP |
+| **Backend total** (`pytest`, 54 files) | **510 passed** | engines (L1–L8), model recommender, TCO advisor, Model Armor, Vertex GenAI Eval, workbench, `/releases`, uploads, IAP/CSP |
 | `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 2 · 3 | no API-layer stage pacing; AST scan of `engines/**` against swallowed errors/fallbacks |
 | `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${MODEL_ARMOR_TEMPLATE_ID}`, `${ALLOYDB_DSN}` and project numbers; replay fidelity |
 | `test_tco_calculator.py` · `test_model_recommender.py` · `test_model_armor.py` | 6 · 3 · 8 | bounded TCO & crossover math, cross-family model pair recommender, Model Armor REST v1 screening/fail-loud |
@@ -351,12 +351,12 @@ All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI
 | `test_rag_engine*.py` · `test_alloydb_scann_engine.py` · `test_vvs2_engine.py` | 19 · 3 · 4 | `:retrieveContexts` + `VertexRagStore`, AlloyDB ScaNN + GIN RRF SQL, VVS2 `batchSearch` + dedicated ScaNN schema |
 | `test_pipeline_spec.py` · `test_composable_engine.py` · `test_releases_docs.py` | 10 · 8 · 6 | `PipelineSpec` cross-slot validation, `pipe_<12hex>` IDs, `/api/v1/releases` manifest, 6-way version sync |
 | `test_publish_manifest.py` · `test_cloudrun_deploy.py` | 5 · 23 | tracked-repo + `frontend/dist` leak scan; SPA/API routing, deploy plan, public-registry lockfiles |
-| **Frontend total** (`npm test`, 27 suites) | **225 passed** | TCO wizard, model recommender & global selector, Model Armor, split cost, packs, brief export, replay speed, L1–L8, safe mode |
+| **Frontend total** (`npm test`, 28 suites) | **231 passed** | TCO wizard, model recommender, WCAG AA tokens, nav menu, responsive SVG, Model Armor, split cost, packs, brief export, safe mode |
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 503 passed
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 510 passed
 PYTHONPATH=backend .venv/bin/python scripts/build_docs_manifest.py --check
-cd frontend && npm test && npm run build                        # 225 pass across 27 suites + tsc/vite
+cd frontend && npm test && npm run build                        # 231 pass across 28 suites + tsc/vite
 ```
 
 ## Repository layout
@@ -371,7 +371,7 @@ rag-arena/
 │   │   ├── evaluation/      LLM judges (golden + reference-free), evaluator, Battle Score, leaderboard
 │   │   ├── ingestion/       job runner, upload bucket/store, PyMuPDF / Document AI / vision, BQ + VAIS + RAG Engine loaders
 │   │   └── recording/       recorder, store, redaction
-│   └── tests/               503 offline tests + fakes (53 files)
+│   └── tests/               510 offline tests + fakes (54 files)
 ├── frontend/
 │   ├── src/
 │   │   ├── app/             router, shell, bootstrap retry, sessions, persistent ingest session, safe mode
@@ -380,10 +380,10 @@ rag-arena/
 │   │   ├── lib/             API client, bounded SSE reader, winner highlight, safe-mode masking
 │   │   ├── pages/           overview, leaderboard
 │   │   └── theme/ styles/ types/   themes, design tokens, SSE + API types
-│   └── tests/               27 offline test suites (225 checks)
-├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (135 runs)
+│   └── tests/               28 offline test suites (231 checks)
+├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (183 runs)
 ├── deploy/                  Cloud Run env template (real file git-ignored)
-├── scripts/                 bootstrap, provisioning, ephemeral ScaNN benchmarks, docs manifest check, model check, deploy/teardown
+├── scripts/                 bootstrap, provisioning, live & ScaNN benchmark recorders, docs manifest check, model check, deploy/teardown
 ├── .github/workflows/       release-docs.yml (CI test/leak gate + automated release-please PRs)
 ├── infra/                   Terraform (main.tf)
 ├── docs/                    ARCHITECTURE, SETUP_GUIDE, audits, screenshots
@@ -401,14 +401,14 @@ rag-arena/
 | Release | Scope | Status |
 | :-- | :-- | :-- |
 | `v1.0` | Levels 1–5 (naive, hybrid + rerank, multimodal, ADK agent, managed Vertex AI Search), Compare, Leaderboard, Cloud Run (IAP live + optional public replay) | ✅ live |
-| `v1.1` | Private user PDF uploads across all levels (direct-to-GCS resumable upload, L3 cost confirmation, isolated L5 uploads store), reference-free judging, Leaderboard/Compare winner highlighting | ✅ live |
-| `v1.1.1` | Upload ingestion `build_indexes` fast-path (`~58 s` → `<3 s` via table index snapshot) | ✅ live |
+| `v1.1` / `1.1.1` | Private user PDF uploads across all levels (direct-to-GCS resumable upload, L3 cost confirmation, isolated L5 uploads store, `<3 s` index snapshot fast-path), reference-free judging | ✅ live |
 | `v1.2.0` | Level 6 Managed Vertex AI RAG Engine (`rag_engine`: `:retrieveContexts` + `VertexRagStore` grounding, isolated `upl_*` `RagCorpus`, minimum-cost provisioning) | ✅ live |
 | `v1.3.0` | Composable RAG Workbench (`/workbench`), Controlled 2–4 Recipe Ablation Lab (`/compare`), and Retrieval Diff Inspector | ✅ live |
 | `v1.4.0` | Ephemeral ScaNN Benchmarks (Level 7 AlloyDB + ScaNN, Level 8 Vertex AI Vector Search 2.0 ScaNN + Sparse RRF, $0/mo standing idle) | ✅ live |
 | `v1.5.0` | In-App Releases & Documentation Tab (`/releases`) + deterministic `release-please` & CI drift/leak automation | ✅ live |
 | `v1.6.0` | P0 Security, Data Correctness & Terraform Parity (ES256 IAP JWT verification, CSP/headers, >30p upload lift, L7/L8 SQL honesty, bounded SSE, v3 Terraform parity) | ✅ live |
-| `v1.6.1` | Enterprise Showcase (Use-Case Wizard & TCO Calculator, Model Armor Guardrails, Vertex GenAI Eval + Split Engine/Judge Cost, Industry Packs, Executive Brief Export, Replay Speed) | ✅ ready |
+| `v1.6.1` | Enterprise Showcase (Use-Case Wizard & TCO Calculator, Model Armor Guardrails, Vertex GenAI Eval + Split Engine/Judge Cost, Industry Packs, Executive Brief Export, Replay Speed) | ✅ live |
+| `v1.6.2` | Gemini 4 Hydrogen Replay Refresh (`183` recordings), L7/L8 Engine Fixes, Single-Row `"Architectures ▾"` Nav, Responsive Workbench Fit, WCAG AA Contrast, Route Code-Splitting, Model Armor IAM Parity | ✅ ready |
 
 ## License
 

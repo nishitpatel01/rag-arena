@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 Gemini 4 Hydrogen Replay Refresh (`183` official recordings), Multimodal & ADK Engine Quality Fixes, Single-Row Navigation, Responsive Workbench Fit, WCAG AA Contrast, Route Code-Splitting, and Cloud Run/Terraform Model Armor Parity (`$0/mo` standing idle).
 
 ### Added
-- **Live Gemini 4 Hydrogen + Claude Opus 5.5 Benchmark Cohort (`scripts/record_live_benchmarks.py`, `data/recordings/**`)**:
+- **Live Gemini 4 Hydrogen + Claude Opus 5.5 Benchmark Cohort (`scripts/record_live_benchmarks.py`, `data/recordings/`)**:
   - Added spend-bounded, resumable CLI recorder (`--max-spend-usd`, `--overwrite`, `assert_redacted`, `0644` permissions) and recorded all `48/48` standing golden runs (`8/8` across `managed_vertex`, `rag_engine`, `level1_naive`, `level2_hybrid`, `level3_multimodal`, and `level4_agentic` — zero timeouts on `q_sla_credit_calculation`, expanding total official replay recordings from `135` to **`183`**).
   - Enables full zero-credential replay and live-joined Overview TCO/fit scoring on `gemini-4-hydrogen__claude-opus-5-5` (`1 · Vertex Search` Battle `89.4`, `8 · Agentic ADK` Battle `88.8` / QA `0.961` at `21.6 s`, `2 · RAG Engine` Battle `87.8`, `4 · BQ Hybrid` Battle `85.7` at `11.5 s`).
 - **Single-Row `"Architectures ▾"` Menu, Responsive Diagram Fit & Route Code-Splitting (`Shell.tsx`, `navMenuModel.ts`, `ArchitectureDiagram.tsx`, `diagramModel.ts`, `routes.tsx`)**:

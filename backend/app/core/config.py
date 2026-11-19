@@ -80,7 +80,7 @@ DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
 DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
-DEFAULT_APP_VERSION: str = "1.6.2"  # x-release-please-version
+DEFAULT_APP_VERSION: str = "1.6.3"  # x-release-please-version
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
 DEFAULT_HYBRID_CANDIDATE_K: int = 50
 DEFAULT_RERANK_TOP_N: int = 5

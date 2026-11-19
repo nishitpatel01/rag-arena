@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.3](https://github.com/nishitpatel01/rag-arena/compare/v1.6.2...v1.6.3) (2026-11-19)
+
+
+### Documentation
+
+* **readme:** refresh Order A ladder, Gemini 4 Hydrogen results & 12 v1.6.2 screenshots ([db4f00d](https://github.com/nishitpatel01/rag-arena/commit/db4f00db47cebd66987f1082d7c6dddba9323ad2))
+* **readme:** refresh Order A ladder, Gemini 4 Hydrogen results, and 12 v1.6.2 screenshots ([0115475](https://github.com/nishitpatel01/rag-arena/commit/0115475696579bde4064312da8847dc5d40efa73))
+
 ## [1.6.2] - 2026-11-18
 
 Gemini 4 Hydrogen Replay Refresh (`183` official recordings), Multimodal & ADK Engine Quality Fixes, Single-Row Navigation, Responsive Workbench Fit, WCAG AA Contrast, Route Code-Splitting, and Cloud Run/Terraform Model Armor Parity (`$0/mo` standing idle).

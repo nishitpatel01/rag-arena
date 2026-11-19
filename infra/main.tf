@@ -101,6 +101,18 @@ variable "vais_uploads_engine_id" {
   default     = "rag-arena-uploads-search"
 }
 
+variable "model_armor_location" {
+  description = "Google Cloud Model Armor template location (MODEL_ARMOR_LOCATION in .env; e.g. us-central1)"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "model_armor_template_id" {
+  description = "Optional Model Armor template id (MODEL_ARMOR_TEMPLATE_ID in .env; empty = Model Armor disabled)"
+  type        = string
+  default     = ""
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -118,6 +130,7 @@ locals {
     "bigquery.googleapis.com",
     "discoveryengine.googleapis.com",
     "documentai.googleapis.com",
+    "modelarmor.googleapis.com",
     "storage.googleapis.com",
     "alloydb.googleapis.com",
     "vectorsearch.googleapis.com",
@@ -451,9 +464,14 @@ locals {
   live_sa_roles = toset(concat(
     ["roles/aiplatform.user", "roles/bigquery.jobUser", "roles/documentai.apiUser"],
     [var.live_ingest ? "roles/discoveryengine.editor" : "roles/discoveryengine.viewer"],
+    var.model_armor_template_id != "" ? ["roles/modelarmor.user"] : [],
   ))
   iap_audience_map = var.access_mode == "iap" ? {
     IAP_JWT_AUDIENCE = "/projects/${data.google_project.current.number}/locations/${var.region}/services/${var.service_name}"
+  } : {}
+  model_armor_env_map = var.model_armor_template_id != "" ? {
+    MODEL_ARMOR_LOCATION    = var.model_armor_location
+    MODEL_ARMOR_TEMPLATE_ID = var.model_armor_template_id
   } : {}
   live_env = merge(
     {
@@ -462,6 +480,7 @@ locals {
       UPLOAD_BUCKET  = local.effective_upload_bucket
     },
     local.iap_audience_map,
+    local.model_armor_env_map,
     var.live_env,
     {
       DEMO_MODE          = "live"

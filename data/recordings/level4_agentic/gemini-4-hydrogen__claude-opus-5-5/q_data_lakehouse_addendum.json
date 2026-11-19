@@ -1,0 +1,1206 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-18T23:48:02.403Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-hydrogen",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-hydrogen",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "f4b29f5c4407570d0657a8951a1a1d572e7b8422",
+    "app_version": "1.6.1",
+    "engine": "level4_agentic",
+    "question_id": "q_data_lakehouse_addendum",
+    "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+    "run_id": "run_2df17cddad8a"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-11-18T23:47:36.145Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+        "prepared_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          }
+        ],
+        "element_intent": [
+          "table",
+          "diagram"
+        ],
+        "intent_matches": {
+          "table": [
+            "cost",
+            "clin"
+          ],
+          "diagram": [
+            "diagram",
+            "architecture",
+            "medallion"
+          ]
+        },
+        "handed_to_agent": "Question: In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?\nAcronyms: CLIN = Contract Line Item Number; SLA = Service Level Agreement\nElement intent (keywords found): table, diagram"
+      },
+      "ts": "2026-11-18T23:47:36.146Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value. check_amendments is authoritative for amendment lookups: when it returns zero amendments (no amendments found), the base clause governs \u2014 do NOT call search_procurement_corpus again just to hunt for amendments.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?\nAcronyms: CLIN = Contract Line Item Number; SLA = Service Level Agreement\nElement intent (keywords found): table, diagram",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 118.0,
+        "model_call_timeout_seconds": 45,
+        "model_call_attempts": 2,
+        "max_output_tokens_per_turn": 4096
+      },
+      "ts": "2026-11-18T23:47:36.146Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 4871,
+      "tokens": {
+        "prompt": 1344,
+        "output": 222,
+        "thinking": 310,
+        "total": 1876
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "check_amendments",
+        "check_amendments"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:41.018Z",
+      "t_rel_ms": 4872
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "query": "DATA-SLA-3.1 streaming ingestion latency SLA"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2026964240414809499",
+      "repair": false,
+      "ts": "2026-11-18T23:47:41.018Z",
+      "t_rel_ms": 4873
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-1004 Active Lakehouse Storage",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2026964240414807638",
+      "repair": false,
+      "ts": "2026-11-18T23:47:41.018Z",
+      "t_rel_ms": 4873
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "query": "Medallion storage layers architecture diagram",
+        "element_types": [
+          "diagram"
+        ]
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2026964240414809873",
+      "repair": false,
+      "ts": "2026-11-18T23:47:41.018Z",
+      "t_rel_ms": 4873
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "DATA-SLA-3.1",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2026964240414808012",
+      "repair": false,
+      "ts": "2026-11-18T23:47:41.018Z",
+      "t_rel_ms": 4873
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "section_or_clin_id": "CLIN-1004"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2026964240414806151",
+      "repair": false,
+      "ts": "2026-11-18T23:47:41.018Z",
+      "t_rel_ms": 4873
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 47/47 RRF candidates \u00b7 top 05_Amendments_and_Addenda.pdf p.1 (0.7607) \u00b7 44.3 MB scanned",
+      "duration_ms": 1776,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2026964240414809499",
+      "repair": false,
+      "ts": "2026-11-18T23:47:42.802Z",
+      "t_rel_ms": 6657
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 44/44 RRF candidates \u00b7 top 03_Pricing_and_Volume_Tiers.pdf p.1 (0.9596) \u00b7 44.3 MB scanned",
+      "duration_ms": 1782,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2026964240414807638",
+      "repair": false,
+      "ts": "2026-11-18T23:47:42.802Z",
+      "t_rel_ms": 6657
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "1 chunks of 1/42 RRF candidates \u00b7 top 02_Architecture_Requirements.pdf p.1 (0.7058) \u00b7 44.3 MB scanned",
+      "duration_ms": 1489,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2026964240414809873",
+      "repair": false,
+      "ts": "2026-11-18T23:47:42.802Z",
+      "t_rel_ms": 6657
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0001 (effective 2026-03-20) \u00b7 05_Amendments_and_Addenda.pdf p.1 \u00b7 2 row(s) \u00b7 7.3 MB scanned",
+      "duration_ms": 586,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2026964240414808012",
+      "repair": false,
+      "ts": "2026-11-18T23:47:42.802Z",
+      "t_rel_ms": 6657
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0001 (effective 2026-03-20) \u00b7 05_Amendments_and_Addenda.pdf p.1 \u00b7 2 row(s) \u00b7 7.3 MB scanned",
+      "duration_ms": 672,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2026964240414806151",
+      "repair": false,
+      "ts": "2026-11-18T23:47:42.802Z",
+      "t_rel_ms": 6657
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 10556,
+      "tokens": {
+        "prompt": 8516,
+        "output": 475,
+        "thinking": 1034,
+        "total": 10025
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:53.359Z",
+      "t_rel_ms": 17213
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"cited_chunk_ids\": [\"solicitation_02_05_amendments_and_addenda_p1_e2_multimodal\", \"solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal\", \"solicitation_02_02_architecture_requirements_p1_e0_multimodal\"], \"draft_answer\": \"In Solicitation 02 (SOL-2026-DATA-02), Addendum 0001 (05_Amendments_and_Addenda.pdf, effective 2026-03-20) supersedes both DATA-SLA-3.1 and CLIN-1004 as follows:\\n\\n1. Streaming Ingestion Latency SLA (DATA-SLA-3.1): Addendum 0001 supersedes Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf, reducing the maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\\n2. Active Lakehouse Storage (CLIN-1004): Addendum 0001 supersedes CLIN-1004 in 03_Pricing_and_Volume_Tiers.pdf. For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo and lowering the annual total for 6,000 TB from $1,440,000 to $1,224,000.\\n3. Medallion Storage Layers: The architecture diagram in 02_Architecture_Requirements.pdf (ARCH-MEDALLION-02) shows three Medall\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_13176236188022670023",
+      "repair": false,
+      "ts": "2026-11-18T23:47:53.359Z",
+      "t_rel_ms": 17213
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 14,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "15 claims checked \u00b7 0 unsupported",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_13176236188022670023",
+      "repair": false,
+      "ts": "2026-11-18T23:47:53.360Z",
+      "t_rel_ms": 17215
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "seq": 15,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 3874,
+      "tokens": {
+        "prompt": 10167,
+        "output": 478,
+        "thinking": 48,
+        "total": 10693
+      },
+      "function_calls": [],
+      "text_preview": "In Solicitation 02 (SOL-2026-DATA-02), **Addendum 0001** (`05_Amendments_and_Addenda.pdf`, effective 2026-03-20) supersedes both `DATA-SLA-3.1` and `CLIN-1004` as follows:\n\n1. **Streaming Ingestion Latency SLA (`DATA-SLA-3.1`):** Addendum 0001 supersedes Clause `DATA-SLA-3.1` in `01_RFP_Data_Platform.pdf`, reducing the maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from **30 seconds** down to **5 seconds** (`p99 <= 5.0 seconds`) using BigQuery Storage Write API committed streams.\n2. **Active Lakehouse Storage (`CLIN-1004`):** Addendum 0001 supersedes `CLIN-1004` in",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:57.235Z",
+      "t_rel_ms": 21090
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 21091,
+      "payload": {
+        "turns": 3,
+        "agent_turn_events": 15,
+        "tool_calls": 6,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 3,
+          "check_amendments": 2,
+          "calculate_contract_pricing": 0,
+          "verify_citations": 1
+        },
+        "tool_errors": 0,
+        "verify_calls": 1,
+        "unsupported_claims_before": 0,
+        "unsupported_claims_after": 0,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [],
+        "unsupported_after_list": [],
+        "repair_turns": 0,
+        "final_answer_check": {
+          "checked_claims": 15,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 3,
+        "tokens": {
+          "prompt": 20027,
+          "output": 1175,
+          "thinking": 1392,
+          "total": 22594
+        },
+        "citations": [
+          "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+          "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+          "solicitation_02_02_architecture_requirements_p1_e0_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 9,
+        "retrieval_usage": {
+          "embedding_tokens": 63,
+          "rank_billed_counts": 3,
+          "bigquery_bytes": 147515982,
+          "bigquery_jobs": 5,
+          "search_calls": 3
+        },
+        "calculator_values": []
+      },
+      "ts": "2026-11-18T23:47:57.237Z",
+      "t_rel_ms": 21092
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 3,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-11-18T23:47:57.237Z",
+      "t_rel_ms": 21092
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 20027,
+        "output_tokens": 1175,
+        "thinking_tokens": 1392,
+        "turns": 3,
+        "final_turn": {
+          "turn_index": 3,
+          "duration_ms": 3874,
+          "tokens": {
+            "prompt": 10167,
+            "output": 478,
+            "thinking": 48,
+            "total": 10693
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "In Solicitation 02 (SOL-2026-DATA-02), **Addendum 0001** (`05_Amendments_and_Addenda.pdf`, effective 2026-03-20) supersedes both `DATA-SLA-3.1` and `CLIN-1004` as follows:\n\n1. **Streaming Ingestion Latency SLA (`DATA-SLA-3.1`):** Addendum 0001 supersedes Clause `DATA-SLA-3.1` in `01_RFP_Data_Platform.pdf`, reducing the maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from **30 seconds** down to **5 seconds** (`p99 <= 5.0 seconds`) using BigQuery Storage Write API committed streams.\n2. **Active Lakehouse Storage (`CLIN-1004`):** Addendum 0001 supersedes `CLIN-1004` in `03_Pricing_and_Volume_Tiers.pdf`. For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), `CLIN-1004` receives a **15% volume discount**, reducing the effective rate from **$20.00/TB/mo** to **$17.00/TB/mo** and lowering the annual total for 6,000 TB from **$1,440,000** to **$1,224,000**.\n3. **Medallion Storage Layers:** The architecture diagram in `02_Architecture_Requirements.pdf` (`ARCH-MEDALLION-02`) shows three Medallion storage layers:\n   - **BigQuery Bronze (Raw)**\n   - **BigQuery Silver (Curated)**\n   - **BigQuery Gold (Governed)**"
+      },
+      "ts": "2026-11-18T23:47:57.237Z",
+      "t_rel_ms": 21092
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "reference_answer_used": true,
+        "max_tokens": 1024
+      },
+      "ts": "2026-11-18T23:47:57.238Z",
+      "t_rel_ms": 21092
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_2df17cddad8a",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 5165,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.97,
+        "qa_relevance": 0.95,
+        "context_precision": 0.7,
+        "reference_answer_used": true,
+        "input_tokens": 4565,
+        "output_tokens": 517,
+        "judge_cost_usd": 0.0286,
+        "rationale": "Every candidate claim is supported by the retrieved context: the 30s-to-5s p99 SLA, the 15% discount from $20 to $17/TB/mo ($1,440,000 to $1,224,000), and the Bronze/Silver/Gold diagram labels; attributing CLIN-1004 to 03_Pricing_and_Volume_Tiers.pdf rests only on the tool log, a minor inference. The answer covers all three parts and matches the reference, though it omits the explicit $216,000 savings and the layer descriptions (raw CDC, deduplicated entities, semantic marts/Feature Store). The context holds all needed facts but includes irrelevant noise, such as licensing reporting and Aimmun",
+        "judge_response_id": "msg_vrtx_011ChBHbj6iXsYQVZ6A7Ju86"
+      },
+      "ts": "2026-11-18T23:48:02.403Z",
+      "t_rel_ms": 26257
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 8: Agentic RAG (Google ADK)",
+    "answer": "In Solicitation 02 (SOL-2026-DATA-02), **Addendum 0001** (`05_Amendments_and_Addenda.pdf`, effective 2026-03-20) supersedes both `DATA-SLA-3.1` and `CLIN-1004` as follows:\n\n1. **Streaming Ingestion Latency SLA (`DATA-SLA-3.1`):** Addendum 0001 supersedes Clause `DATA-SLA-3.1` in `01_RFP_Data_Platform.pdf`, reducing the maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from **30 seconds** down to **5 seconds** (`p99 <= 5.0 seconds`) using BigQuery Storage Write API committed streams.\n2. **Active Lakehouse Storage (`CLIN-1004`):** Addendum 0001 supersedes `CLIN-1004` in `03_Pricing_and_Volume_Tiers.pdf`. For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), `CLIN-1004` receives a **15% volume discount**, reducing the effective rate from **$20.00/TB/mo** to **$17.00/TB/mo** and lowering the annual total for 6,000 TB from **$1,440,000** to **$1,224,000**.\n3. **Medallion Storage Layers:** The architecture diagram in `02_Architecture_Requirements.pdf` (`ARCH-MEDALLION-02`) shows three Medallion storage layers:\n   - **BigQuery Bronze (Raw)**\n   - **BigQuery Silver (Curated)**\n   - **BigQuery Gold (Governed)**",
+    "citations": [
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "DATA-AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.5401,
+          "y1": 0.3266
+        },
+        "excerpt": "[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004] Solicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20 - STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1): To support real-time fraud detect",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CLIN-1001",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006) | CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total | | --- | --- | --- | --- | --- | --- | | CLIN-1001 | BigQuery Enterprise Plus Ba",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_e0_multimodal",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "ARCH-MEDALLION-02",
+        "element_type": "diagram",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline): [DIAGRAM transcription \u00b7 gemini-4-argon] Diagram: VECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture Components: - Cloud Pub/S",
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "DATA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-20",
+        "amends_section": "DATA-SLA-3.1,CLIN-1004",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.5401,
+          "y1": 0.3266
+        },
+        "content": "[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n- STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1): To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\n- STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004): For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo ($1,224,000 annual total for 6,000 TB instead of $1,440,000).",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "DATA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-20",
+        "amends_section": "DATA-SLA-3.1,CLIN-1004",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.951,
+          "y1": 0.0981
+        },
+        "content": "ADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_e0_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "diagram",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n[DIAGRAM transcription \u00b7 gemini-4-argon]\nDiagram: VECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nComponents:\n- Cloud Pub/Sub Ingest (box)\n- Dataflow + Cloud DLP (box)\n- BigQuery Bronze (Raw) (box)\n- BigQuery Silver (Curated) (box)\n- BigQuery Gold (Governed) (box)\n- Vertex AI Feature Store (box)\nConnections:\n- Cloud Pub/Sub Ingest -- Dataflow + Cloud DLP\n- Dataflow + Cloud DLP -- BigQuery Bronze (Raw)\n- BigQuery Silver (Curated) -- BigQuery Gold (Governed)\n- BigQuery Gold (Governed) -- Vertex AI Feature Store\nRegions:\n- VECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture: Cloud Pub/Sub Ingest, Dataflow + Cloud DLP, BigQuery Bronze (Raw), BigQuery Silver (Curated), BigQuery Gold (Governed), Vertex AI Feature Store\nNotes:\n- Document header: SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\n- Page title: EXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\n- Metadata line: DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS (truncated at right edge)\n- Text above diagram describes Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline) across 3 numbered items: 1. Ingestion Layer, 2. Stream Processing, 3. Medallion Storage in BigQuery + BigLake Iceberg (Bronze, Silver, Gold layers).\n- Diagram boxes are arranged in two rows of three boxes each; horizontal lines connect adjacent boxes within each row, with no drawn connector between the top row (C3) and bottom row (C4).",
+        "score": 0.7058,
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_01_rfp_data_platform_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "DATA-SLA-3.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8835,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM",
+        "score": 0.2824,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_coherusbiosciencesinc_20200227_10-k_ex-10.29_12021376_ex-10.29_development agreement_p11_e11_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "CoherusBiosciencesInc_20200227_10-K_EX-10.29_12021376_EX-10.29_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 11,
+        "bbox": {
+          "page": 11,
+          "x0": 0.1467,
+          "y0": 0.6619,
+          "x1": 0.3035,
+          "y1": 0.6732
+        },
+        "content": "3.3 Information.",
+        "score": 0.083,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6113,
+          "y1": 0.2736
+        },
+        "content": "Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n- Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n- Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing, PII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n- Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables. Silver Layer: Deduplicated, schema-enforced enterprise entity tables. Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.",
+        "score": 0.0734,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_coherusbiosciencesinc_20200227_10-k_ex-10.29_12021376_ex-10.29_development agreement_p17_e5_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "CoherusBiosciencesInc_20200227_10-K_EX-10.29_12021376_EX-10.29_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 17,
+        "bbox": {
+          "page": 17,
+          "x0": 0.1467,
+          "y0": 0.6701,
+          "x1": 0.6347,
+          "y1": 0.6949
+        },
+        "content": "7.3.2 Reporting.\nAs of the First Commercial Sale of any Licensed Products in the Field in the Territory, within [***] ([***]) days after the end of each calendar quarter, Licensee shall deliver to Bioeq",
+        "score": 0.0699,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-1001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |",
+        "score": 0.9596,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_aimmunetherapeuticsinc_20200205_8-k_ex-10.3_11967170_ex-10.3_development agreement_p23_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 23,
+        "bbox": {
+          "page": 23,
+          "x0": 0.0839,
+          "y0": 0.063,
+          "x1": 0.2942,
+          "y1": 0.2122
+        },
+        "content": "ARTICLE 6 SUPPLY\nspecified on Schedule 6.1 within [***] ([***]) Business Days from the Effective Date or otherwise as agreed to by the Parties, and shall provide appropriate documentation at such time (i.e., appropriate certificates of analysis or compliance, as applicable). The Product shall be made available to Aimmune [***]. For clarity, Aimmune shall bear all costs in connection with such supply of Product related to shipping, taxes, additional testing and other matters. 6.2 Packaging and Labeling; Certain Other Manufacturing Activities. Notwithstanding anything to the contrary contained herein, Aimmune or its designated Third Party shall be responsible ([***]) for all final product labeling and packaging (whether in commercial or clinical packaging presentation), including materials such as patient inserts, patient medication guides, professional inserts and any other written, printed or graphic materials accompanying the Product and considered to be part of the finished Product packaging and labeling, and handling, storage, quality control, quality assurance, testing and release (collectively, \u201cPackaging and Labeling\u201d). Aimmune or its designated Third Party shall ensure that all such Packaging and Labeling complies with Applicable Laws, GMPs and the Regulatory Approvals for the Product. To the extent that a Third Party is involved in Packaging and Labeling or other activities described in this Section 6.2, [***] shall be [***] responsible for[***], qualifying such Third Party to perform such activities.",
+        "score": 0.1435,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "DATA-SLA-3.1 streaming ingestion latency SLA",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 47/47 RRF candidates \u00b7 top 05_Amendments_and_Addenda.pdf p.1 (0.7607) \u00b7 44.3 MB scanned",
+        "latency_ms": 1776
+      },
+      {
+        "step_number": 2,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-1004 Active Lakehouse Storage",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 44/44 RRF candidates \u00b7 top 03_Pricing_and_Volume_Tiers.pdf p.1 (0.9596) \u00b7 44.3 MB scanned",
+        "latency_ms": 1782
+      },
+      {
+        "step_number": 3,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "Medallion storage layers architecture diagram",
+          "solicitation_id": "solicitation_02",
+          "element_types": [
+            "diagram"
+          ]
+        },
+        "result_summary": "1 chunks of 1/42 RRF candidates \u00b7 top 02_Architecture_Requirements.pdf p.1 (0.7058) \u00b7 44.3 MB scanned",
+        "latency_ms": 1489
+      },
+      {
+        "step_number": 4,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "DATA-SLA-3.1"
+        },
+        "result_summary": "governing: Amendment 0001 (effective 2026-03-20) \u00b7 05_Amendments_and_Addenda.pdf p.1 \u00b7 2 row(s) \u00b7 7.3 MB scanned",
+        "latency_ms": 586
+      },
+      {
+        "step_number": 5,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CLIN-1004"
+        },
+        "result_summary": "governing: Amendment 0001 (effective 2026-03-20) \u00b7 05_Amendments_and_Addenda.pdf p.1 \u00b7 2 row(s) \u00b7 7.3 MB scanned",
+        "latency_ms": 672
+      },
+      {
+        "step_number": 6,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "In Solicitation 02 (SOL-2026-DATA-02), Addendum 0001 (05_Amendments_and_Addenda.pdf, effective 2026-03-20) supersedes both DATA-SLA-3.1 and CLIN-1004 as follows:\n\n1. Streaming Ingestion Latency SLA (DATA-SLA-3.1): Addendum 0001 supersedes Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf, reducing the maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\n2. Active Lakehouse Storage (CLIN-1004): Addendum 0001 supersedes CLIN-1004 in 03_Pricing_and_Volume_Tiers.pdf. For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo and lowering the annual total for 6,000 TB from $1,440,000 to $1,224,000.\n3. Medallion Storage Layers: The architecture diagram in 02_Architecture_Requirements.pdf (ARCH-MEDALLION-02) shows three Medallion storage layers:\n- BigQuery Bronze (Raw)\n- BigQuery Silver (Curated)\n- BigQuery Gold (Governed)",
+          "cited_chunk_ids": [
+            "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+            "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+            "solicitation_02_02_architecture_requirements_p1_e0_multimodal"
+          ]
+        },
+        "result_summary": "15 claims checked \u00b7 0 unsupported",
+        "latency_ms": 0
+      }
+    ],
+    "latency_ms": 21092,
+    "cost_usd": 0.0523056,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-18T23:47:36.145Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?",
+          "prepared_query": "In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram? (CLIN = Contract Line Item Number; SLA = Service Level Agreement)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "SLA",
+              "expansion": "Service Level Agreement"
+            }
+          ],
+          "element_intent": [
+            "table",
+            "diagram"
+          ],
+          "intent_matches": {
+            "table": [
+              "cost",
+              "clin"
+            ],
+            "diagram": [
+              "diagram",
+              "architecture",
+              "medallion"
+            ]
+          },
+          "handed_to_agent": "Question: In Solicitation 02 (SOL-2026-DATA-02), how does Addendum 0001 modify the streaming ingestion latency SLA (DATA-SLA-3.1) and the annual cost for 6,000 TB of Active Lakehouse Storage (CLIN-1004), and what are the three Medallion storage layers shown in the architecture diagram?\nAcronyms: CLIN = Contract Line Item Number; SLA = Service Level Agreement\nElement intent (keywords found): table, diagram"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-18T23:47:36.146Z",
+        "duration_ms": 21091,
+        "request": {},
+        "payload": {
+          "turns": 3,
+          "agent_turn_events": 15,
+          "tool_calls": 6,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 3,
+            "check_amendments": 2,
+            "calculate_contract_pricing": 0,
+            "verify_citations": 1
+          },
+          "tool_errors": 0,
+          "verify_calls": 1,
+          "unsupported_claims_before": 0,
+          "unsupported_claims_after": 0,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [],
+          "unsupported_after_list": [],
+          "repair_turns": 0,
+          "final_answer_check": {
+            "checked_claims": 15,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 3,
+          "tokens": {
+            "prompt": 20027,
+            "output": 1175,
+            "thinking": 1392,
+            "total": 22594
+          },
+          "citations": [
+            "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+            "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+            "solicitation_02_02_architecture_requirements_p1_e0_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 9,
+          "retrieval_usage": {
+            "embedding_tokens": 63,
+            "rank_billed_counts": 3,
+            "bigquery_bytes": 147515982,
+            "bigquery_jobs": 5,
+            "search_calls": 3
+          },
+          "calculator_values": []
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-18T23:47:57.237Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-hydrogen",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 20027,
+          "output_tokens": 1175,
+          "thinking_tokens": 1392,
+          "turns": 3,
+          "final_turn": {
+            "turn_index": 3,
+            "duration_ms": 3874,
+            "tokens": {
+              "prompt": 10167,
+              "output": 478,
+              "thinking": 48,
+              "total": 10693
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "In Solicitation 02 (SOL-2026-DATA-02), **Addendum 0001** (`05_Amendments_and_Addenda.pdf`, effective 2026-03-20) supersedes both `DATA-SLA-3.1` and `CLIN-1004` as follows:\n\n1. **Streaming Ingestion Latency SLA (`DATA-SLA-3.1`):** Addendum 0001 supersedes Clause `DATA-SLA-3.1` in `01_RFP_Data_Platform.pdf`, reducing the maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from **30 seconds** down to **5 seconds** (`p99 <= 5.0 seconds`) using BigQuery Storage Write API committed streams.\n2. **Active Lakehouse Storage (`CLIN-1004`):** Addendum 0001 supersedes `CLIN-1004` in `03_Pricing_and_Volume_Tiers.pdf`. For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), `CLIN-1004` receives a **15% volume discount**, reducing the effective rate from **$20.00/TB/mo** to **$17.00/TB/mo** and lowering the annual total for 6,000 TB from **$1,440,000** to **$1,224,000**.\n3. **Medallion Storage Layers:** The architecture diagram in `02_Architecture_Requirements.pdf` (`ARCH-MEDALLION-02`) shows three Medallion storage layers:\n   - **BigQuery Bronze (Raw)**\n   - **BigQuery Silver (Curated)**\n   - **BigQuery Gold (Governed)**"
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 20027,
+      "output_tokens": 1175,
+      "embedding_tokens": 63,
+      "thinking_tokens": 1392,
+      "model": "gemini-4-hydrogen",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout+gemini_vision"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.97,
+      "qa_relevance": 0.95,
+      "context_precision": 0.7
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 5164,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4565,
+    "output_tokens": 517,
+    "judge_cost_usd": 0.0286,
+    "rationale": "Every candidate claim is supported by the retrieved context: the 30s-to-5s p99 SLA, the 15% discount from $20 to $17/TB/mo ($1,440,000 to $1,224,000), and the Bronze/Silver/Gold diagram labels; attributing CLIN-1004 to 03_Pricing_and_Volume_Tiers.pdf rests only on the tool log, a minor inference. The answer covers all three parts and matches the reference, though it omits the explicit $216,000 savings and the layer descriptions (raw CDC, deduplicated entities, semantic marts/Feature Store). The context holds all needed facts but includes irrelevant noise, such as licensing reporting and Aimmun",
+    "judge_response_id": "msg_vrtx_011ChBHbj6iXsYQVZ6A7Ju86"
+  }
+}

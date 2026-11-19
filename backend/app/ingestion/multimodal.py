@@ -138,13 +138,24 @@ def group_page_elements(elements: list[LayoutElement]) -> list[_Group]:
     for el in elements:
         if el.kind == "figure":
             continue  # figures are represented by the page's vision transcription (diagram chunk)
+        only_headings = bool(buf) and all(e.kind == "heading" for e in buf)
         if el.kind == "table":
-            flush()
-            groups.append(_Group("table", el.heading, (el.text,), (el,)))
+            if only_headings:
+                buf_headings = [e.text.strip() for e in buf if e.text.strip()]
+                buf.clear()
+                parts = list(dict.fromkeys([*buf_headings, *([el.heading.strip()] if el.heading.strip() else [])]))
+                merged_heading = " — ".join(parts) if parts else el.heading
+            else:
+                flush()
+                merged_heading = el.heading
+            groups.append(_Group("table", merged_heading, (el.text,), (el,)))
             continue
-        only_headings = all(e.kind == "heading" for e in buf)
         size = sum(len(e.text) + 1 for e in buf)
-        if buf and (el.kind == "heading" or _section_key(el) != _section_key(buf[0]) or (size + len(el.text) > MAX_NARRATIVE_CHARS and not only_headings)):
+        if buf and not only_headings and (
+            el.kind == "heading"
+            or _section_key(el) != _section_key(buf[0])
+            or size + len(el.text) > MAX_NARRATIVE_CHARS
+        ):
             flush()
         buf.append(el)
     flush()

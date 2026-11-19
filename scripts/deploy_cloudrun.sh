@@ -205,7 +205,9 @@ ingest_roles() {
 print_plan() {
   local sa apis de_role gcs_role member access
   sa="$(cfg RUNTIME_SA_NAME)"; read -r de_role gcs_role <<< "$(ingest_roles)"
-  apis="$APIS_BASE"; [[ "$(cfg ACCESS_MODE)" == "iap" ]] && apis="$apis iap.googleapis.com"
+  apis="$APIS_BASE"
+  [[ "$(cfg ACCESS_MODE)" == "iap" ]] && apis="$apis iap.googleapis.com"
+  [[ -n "$(cfg MODEL_ARMOR_TEMPLATE_ID)" ]] && apis="$apis modelarmor.googleapis.com"
   plan "enable-apis $apis"
   plan "artifact-repo $(cfg ARTIFACT_REPO) ($(cfg REGION), docker)"
   plan "cloud-build $(image_uri '<tag>')"
@@ -215,6 +217,7 @@ print_plan() {
   plan "iam dataset $(cfg BQ_DATASET) roles/bigquery.dataEditor -> $sa"
   plan "iam project roles/documentai.apiUser -> $sa"
   plan "iam project $de_role -> $sa"
+  [[ -n "$(cfg MODEL_ARMOR_TEMPLATE_ID)" ]] && plan "iam project roles/modelarmor.user -> $sa"
   plan "iam bucket $(cfg GCS_CORPUS_BUCKET) $gcs_role -> $sa"
   if [[ "$(cfg UPLOAD_BUCKET_MODE)" == "auto" ]]; then
     plan "upload-bucket $(cfg UPLOAD_BUCKET) (auto: create if missing; private; $(cfg REGION))"
@@ -296,7 +299,9 @@ preflight() {
 }
 
 enable_apis() {
-  local apis="$APIS_BASE"; [[ "$(cfg ACCESS_MODE)" == "iap" ]] && apis="$apis iap.googleapis.com"
+  local apis="$APIS_BASE"
+  [[ "$(cfg ACCESS_MODE)" == "iap" ]] && apis="$apis iap.googleapis.com"
+  [[ -n "$(cfg MODEL_ARMOR_TEMPLATE_ID)" ]] && apis="$apis modelarmor.googleapis.com"
   echo "==> enabling APIs: $apis"
   # shellcheck disable=SC2086
   gc services enable $apis
@@ -384,9 +389,12 @@ PY
 
 grant_live_roles() {
   local role de_role gcs_role member="serviceAccount:$LIVE_SA"
+  local roles=(roles/aiplatform.user roles/bigquery.jobUser roles/documentai.apiUser)
   read -r de_role gcs_role <<< "$(ingest_roles)"
+  roles+=("$de_role")
+  [[ -n "$(cfg MODEL_ARMOR_TEMPLATE_ID)" ]] && roles+=(roles/modelarmor.user)
   echo "==> least-privilege bindings for $(cfg RUNTIME_SA_NAME)"
-  for role in roles/aiplatform.user roles/bigquery.jobUser roles/documentai.apiUser "$de_role"; do
+  for role in "${roles[@]}"; do
     retry_iam gc projects add-iam-policy-binding "$(cfg GCP_PROJECT_ID)" --member="$member" --role="$role" --condition=None
   done
   grant_dataset_writer

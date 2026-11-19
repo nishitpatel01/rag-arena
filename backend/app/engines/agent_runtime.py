@@ -37,7 +37,9 @@ AGENT_INSTRUCTION = (
     "1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. "
     "For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n"
     "2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an "
-    "amendment supersedes it, the latest amendment governs — report the superseded and the governing value.\n"
+    "amendment supersedes it, the latest amendment governs — report the superseded and the governing value. "
+    "check_amendments is authoritative for amendment lookups: when it returns zero amendments (no amendments found), "
+    "the base clause governs — do NOT call search_procurement_corpus again just to hunt for amendments.\n"
     "3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); "
     "never do arithmetic yourself.\n"
     "4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it "
@@ -66,7 +68,9 @@ def agent_instruction_for_tools(
     ]
     if "check_amendments" in enabled_tools:
         steps.append(
-            f"{len(steps) + 1}. Call check_amendments for reported CLINs or clauses; the latest amendment governs."
+            f"{len(steps) + 1}. Call check_amendments for reported CLINs or clauses; the latest amendment governs. "
+            "check_amendments is authoritative: when it returns zero amendments (no amendments found), do NOT call "
+            "search_procurement_corpus again just to hunt for amendments."
         )
     if "calculate_contract_pricing" in enabled_tools:
         steps.append(

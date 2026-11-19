@@ -54,6 +54,20 @@ export function maskDeep<T>(value: T, health: IdentitySource | null | undefined)
   return maskAt(value, health, 0) as T;
 }
 
+export const MASK_UPLOAD_WORKSPACE = "upl_••••••••••••";
+const UPLOAD_WORKSPACE_PATTERN = /\bupl_[0-9a-f]{12}\b/gi;
+
+/** Mask upload workspace ids and private customer PDF filenames when SafeMode is active. */
+export function maskUploadScopeSummary(scope: string, readyNames: readonly string[], safeMode: boolean): string {
+  if (!safeMode) {
+    return readyNames.length > 0 ? `${scope} (${readyNames.join(", ")})` : scope;
+  }
+  const maskedScope = scope.replace(UPLOAD_WORKSPACE_PATTERN, MASK_UPLOAD_WORKSPACE);
+  if (readyNames.length === 0) return maskedScope;
+  const noun = readyNames.length === 1 ? "1 uploaded PDF — masked" : `${readyNames.length} uploaded PDFs — masked`;
+  return `${maskedScope} (${noun})`;
+}
+
 /** Initial toggle state: on when the URL has `safe=1` or localStorage holds "1"; off otherwise. */
 export function initialSafeMode(search: string, stored: string | null): boolean {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);

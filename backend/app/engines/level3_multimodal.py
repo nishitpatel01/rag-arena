@@ -188,6 +188,59 @@ def candidate_summary(c: HybridCandidate) -> dict[str, Any]:
     }
 
 
+_MAX_HEADING_STUB_CHARS = 160
+_HEADING_PREFIX_RE = re.compile(
+    r"^(?:exhibit|schedule|appendix|article|section|clause|table|figure|part|contents)\b",
+    re.IGNORECASE,
+)
+
+
+def _norm_ws(text: str) -> str:
+    return " ".join(text.split()).lower()
+
+
+def _looks_like_heading_banner(raw: str) -> bool:
+    stripped = raw.strip()
+    if not stripped or len(stripped) > _MAX_HEADING_STUB_CHARS or "\n" in stripped:
+        return False
+    if stripped.endswith(":"):
+        return True
+    if _HEADING_PREFIX_RE.match(stripped):
+        return True
+    alpha = [ch for ch in stripped if ch.isalpha()]
+    return len(alpha) >= 4 and (sum(1 for ch in alpha if ch.isupper()) / len(alpha)) >= 0.75
+
+
+def dedupe_heading_stubs(candidates: list[HybridCandidate]) -> tuple[list[HybridCandidate], int]:
+    """Drop short single-line orphan heading ``narrative_text`` stubs when the same ``(doc_name, page_number)``
+    also returned a richer sibling chunk (table/diagram or substantially longer narrative chunk)."""
+    by_page: dict[tuple[str, int], list[HybridCandidate]] = {}
+    for cand in candidates:
+        by_page.setdefault((cand.chunk.doc_name, cand.chunk.page_number), []).append(cand)
+
+    kept: list[HybridCandidate] = []
+    dropped = 0
+    for cand in candidates:
+        chunk = cand.chunk
+        stripped = chunk.content.strip()
+        if chunk.element_type == "narrative_text" and len(stripped) <= _MAX_HEADING_STUB_CHARS and "\n" not in stripped:
+            siblings = [s for s in by_page[(chunk.doc_name, chunk.page_number)] if s.chunk.chunk_id != chunk.chunk_id]
+            norm_self = _norm_ws(stripped)
+            subsumed = bool(norm_self) and any(
+                len(s.chunk.content.strip()) > len(stripped) and norm_self in _norm_ws(s.chunk.content)
+                for s in siblings
+            )
+            has_richer_sibling = any(
+                s.chunk.element_type in ("table", "diagram") or len(s.chunk.content.strip()) >= max(160, len(stripped) * 2)
+                for s in siblings
+            )
+            if subsumed or (has_richer_sibling and _looks_like_heading_banner(stripped)):
+                dropped += 1
+                continue
+        kept.append(cand)
+    return kept, dropped
+
+
 def row_to_l3_candidate(row: Any, rrf_rank: int) -> HybridCandidate:
     base = row_to_candidate(row, rrf_rank, tier_profile="multimodal")
     chunk = replace(
@@ -255,13 +308,21 @@ class Level3MultimodalEngine(Level2HybridEngine):
             rows, stats = await self.blocking(
                 run_hybrid_query_job, bq_client, sql, vector, terms, solicitation_filter, self.settings.query_timeout_seconds
             )
-            candidates = [row_to_l3_candidate(r, idx) for idx, r in enumerate(rows[:k], start=1)]
-            if not candidates:
+            raw_candidates = [row_to_l3_candidate(r, idx) for idx, r in enumerate(rows[:k], start=1)]
+            if not raw_candidates:
                 raise RuntimeError("multimodal retrieval returned 0 rows for tier 'multimodal' — run the Level 7 ingestion job")
-            ctx.payload = self._retrieve_payload(rows, candidates, stats)
+            candidates, deduped_stubs = dedupe_heading_stubs(raw_candidates)
+            ctx.payload = self._retrieve_payload(rows, candidates, stats, deduped_heading_stubs=deduped_stubs)
         return candidates
 
-    def _retrieve_payload(self, rows: list[Any], candidates: list[HybridCandidate], stats: dict[str, Any]) -> dict[str, Any]:
+    def _retrieve_payload(
+        self,
+        rows: list[Any],
+        candidates: list[HybridCandidate],
+        stats: dict[str, Any],
+        *,
+        deduped_heading_stubs: int = 0,
+    ) -> dict[str, Any]:
         def count(attr: str) -> dict[str, int]:
             out: dict[str, int] = {}
             for c in candidates:
@@ -271,6 +332,7 @@ class Level3MultimodalEngine(Level2HybridEngine):
 
         return {
             "rows_returned": len(rows), "candidate_k": self.settings.hybrid_candidate_k, **stats,
+            "deduped_heading_stubs": deduped_heading_stubs,
             "rrf_k": RRF_K, "vector_k": VECTOR_K, "lexical_k": LEXICAL_K, "embedding_column": EMBEDDING_COLUMN,
             "with_both_ranks": sum(1 for c in candidates if c.vector_rank and c.lexical_rank),
             "element_types": count("element_type"), "layout_sources": count("layout_source"),
@@ -358,6 +420,7 @@ __all__ = [
     "authority_order",
     "build_authority_context",
     "candidate_summary",
+    "dedupe_heading_stubs",
     "detect_element_intent",
     "format_chunk_with_authority_header",
     "prepare_l3_query",

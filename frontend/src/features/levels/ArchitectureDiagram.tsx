@@ -5,7 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { PaneResizer, useElementWidth, usePaneWidth } from "../../components/ui/PaneResizer";
 import { MIN_DIAGRAM_PX, NODE_PANE, paneMax } from "../../lib/paneWidth";
 import { DiagramNode } from "./DiagramNode";
-import { buildEdgePaths, deriveNodeView, visibleEdgeLabels, followTarget, layoutNodes, resolveNodeService, type NodeServiceView, type NodeView } from "./diagramModel";
+import { buildEdgePaths, computeDiagramScale, deriveNodeView, visibleEdgeLabels, followTarget, layoutNodes, resolveNodeService, truncateEdgeLabel, type NodeServiceView, type NodeView } from "./diagramModel";
 import { deriveToolNodeView, toolFlowEdges, toolNodeBindings, toolNodeSummary, type ToolBinding } from "./agentTimelineModel";
 import { NodeDetails } from "./NodeDetails";
 import { summarizeStage } from "./stagePayloads";
@@ -126,8 +126,8 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
 
   const togglePin = (): void => setPinnedId((cur) => (cur ? null : shownId));
 
-  // Scale ≥ 1 so labels never shrink below their font size; grow to fill the available width.
-  const scale = innerWidth !== undefined ? Math.max(1, innerWidth / layout.width) : 1;
+  // Responsive scale down to MIN_FIT_SCALE (0.72) so 7–8 col Workbench diagrams fit without clipping at 1600px.
+  const scale = computeDiagramScale(innerWidth, layout.width);
   const svgWidth = Math.round(layout.width * scale);
   const svgHeight = Math.max(DIAGRAM_MIN_HEIGHT, Math.round(layout.height * scale));
 
@@ -161,7 +161,7 @@ export const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({
               {p.flowing && <path d={p.d} fill="none" stroke="var(--accent-moss)" strokeWidth={2.5} className="edge-flowing" />}
               {p.edge.label && shownLabels.has(i) && (
                 <text x={p.labelX} y={p.labelY} textAnchor="middle" fontSize={11} fill="var(--ink-3)">
-                  {p.edge.label.length > 12 ? `${p.edge.label.slice(0, 11)}…` : p.edge.label}
+                  {truncateEdgeLabel(p.edge.label)}
                 </text>
               )}
             </g>

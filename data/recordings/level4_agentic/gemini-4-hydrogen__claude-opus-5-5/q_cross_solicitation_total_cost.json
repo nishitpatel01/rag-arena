@@ -1,0 +1,1744 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-18T23:49:10.099Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-hydrogen",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-hydrogen",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "f4b29f5c4407570d0657a8951a1a1d572e7b8422",
+    "app_version": "1.6.1",
+    "engine": "level4_agentic",
+    "question_id": "q_cross_solicitation_total_cost",
+    "query": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.",
+    "run_id": "run_14bf6048b606"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-11-18T23:48:26.335Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.",
+        "prepared_query": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03. (CLIN = Contract Line Item Number)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          }
+        ],
+        "element_intent": [
+          "table",
+          "amendment"
+        ],
+        "intent_matches": {
+          "table": [
+            "clin"
+          ],
+          "amendment": [
+            "amended"
+          ]
+        },
+        "handed_to_agent": "Question: Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.\nAcronyms: CLIN = Contract Line Item Number\nElement intent (keywords found): table, amendment"
+      },
+      "ts": "2026-11-18T23:48:26.336Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value. check_amendments is authoritative for amendment lookups: when it returns zero amendments (no amendments found), the base clause governs \u2014 do NOT call search_procurement_corpus again just to hunt for amendments.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.\nAcronyms: CLIN = Contract Line Item Number\nElement intent (keywords found): table, amendment",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 118.0,
+        "model_call_timeout_seconds": 45,
+        "model_call_attempts": 2,
+        "max_output_tokens_per_turn": 4096
+      },
+      "ts": "2026-11-18T23:48:26.336Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 6505,
+      "tokens": {
+        "prompt": 1368,
+        "output": 312,
+        "thinking": 445,
+        "total": 2125
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "check_amendments",
+        "search_procurement_corpus",
+        "check_amendments",
+        "check_amendments",
+        "search_procurement_corpus",
+        "check_amendments"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-0004-AB",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659215016",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "CLIN-0004-AB",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659215243",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-1004 Active Lakehouse Storage CLIN-1002 BigQuery Autoscaling Reservation",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659215470",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "section_or_clin_id": "CLIN-1004"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659215697",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "section_or_clin_id": "CLIN-1002"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659215924",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "query": "CLIN-2001 Cloud Security Architect"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659216151",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "CLIN-2001",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_3984365628659216378",
+      "repair": false,
+      "ts": "2026-11-18T23:48:32.842Z",
+      "t_rel_ms": 6506
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 44/44 RRF candidates \u00b7 top 04_Pricing_Schedule_CLINs.pdf p.1 (0.9493) \u00b7 44.3 MB scanned",
+      "duration_ms": 1616,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659215016",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0001 (effective 2026-03-15) \u00b7 06_Amendment_0001_Scope_Update.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+      "duration_ms": 742,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659215243",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 45/45 RRF candidates \u00b7 top 03_Pricing_and_Volume_Tiers.pdf p.1 (0.9389) \u00b7 44.3 MB scanned",
+      "duration_ms": 1595,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659215470",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0001 (effective 2026-03-20) \u00b7 05_Amendments_and_Addenda.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+      "duration_ms": 495,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659215697",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CLIN-1002 in solicitation_02 \u00b7 7.3 MB scanned",
+      "duration_ms": 585,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659215924",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 14,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 44/44 RRF candidates \u00b7 top 04_Pricing_Labor_Categories.pdf p.1 (0.9842) \u00b7 44.3 MB scanned",
+      "duration_ms": 1770,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659216151",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 15,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "governing: Amendment 0001 (effective 2026-03-25) \u00b7 05_Master_Services_Agreement_MSA.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+      "duration_ms": 481,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_3984365628659216378",
+      "repair": false,
+      "ts": "2026-11-18T23:48:34.615Z",
+      "t_rel_ms": 8279
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 16,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 5687,
+      "tokens": {
+        "prompt": 11322,
+        "output": 169,
+        "thinking": 563,
+        "total": 12054
+      },
+      "function_calls": [
+        "calculate_contract_pricing"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:48:40.302Z",
+      "t_rel_ms": 13967
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 17,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "calculate_contract_pricing",
+      "tool_args": {
+        "expression": "(hours_01 * rate_01 * (1 - disc_01)) + (tb_02 * rate_1004 * months) + (rate_1002 * months) + (hours_03 * rate_03)",
+        "variables": {
+          "rate_01": 245,
+          "rate_03": 250,
+          "disc_01": 0.05,
+          "hours_01": 2000,
+          "rate_1004": 17,
+          "hours_03": 2000,
+          "months": 12,
+          "rate_1002": 48000,
+          "tb_02": 6000
+        }
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_10818299587883404185",
+      "repair": false,
+      "ts": "2026-11-18T23:48:40.302Z",
+      "t_rel_ms": 13967
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 18,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "calculate_contract_pricing",
+      "tool_args": null,
+      "tool_result_summary": "2000.0 * 245.0 * (1 - 0.05) + 6000.0 * 17.0 * 12.0 + 48000.0 * 12.0 + 2000.0 * 250.0 = 2765500.0",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_10818299587883404185",
+      "repair": false,
+      "ts": "2026-11-18T23:48:40.304Z",
+      "t_rel_ms": 13968
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 19,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 9974,
+      "tokens": {
+        "prompt": 12310,
+        "output": 1017,
+        "thinking": 233,
+        "total": 13560
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:48:50.278Z",
+      "t_rel_ms": 23942
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 20,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"draft_answer\": \"The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\\n\\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\\n\\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:** **$1,800,000.00**\\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: 6,000 \u00d7 $17.00 \u00d7 12 = **$1,224,000.00**.\\n   - **CLIN-1002 (12 months BigQuery Autoscaling Reservation):** No amendments; base rate in `03_Pricing_and_Volume_Tiers.pdf` governs at $48,000/mo \u00d7 12 = **$576,000.00**.\\n\\n3. **Solicitation 03 \u2014 CLIN-2001 (2,000 hours):** **$500,000.00**\\n   - Base rate of $265.00/hr ($530,000) in `04_Pricing_Labor_Categories.pdf` is superseded by MSA Amendmen\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_9323252359843675253",
+      "repair": false,
+      "ts": "2026-11-18T23:48:50.278Z",
+      "t_rel_ms": 23942
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 21,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "27 claims checked \u00b7 1 unsupported ($1,800,000.00)",
+      "duration_ms": 1,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_9323252359843675253",
+      "repair": false,
+      "ts": "2026-11-18T23:48:50.280Z",
+      "t_rel_ms": 23944
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 22,
+      "turn_index": 4,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 7761,
+      "tokens": {
+        "prompt": 13816,
+        "output": 1003,
+        "thinking": 118,
+        "total": 14937
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": true,
+      "ts": "2026-11-18T23:48:58.041Z",
+      "t_rel_ms": 31705
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 23,
+      "turn_index": 4,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"cited_chunk_ids\": [\"solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal\", \"solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal\", \"solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal\", \"solicitation_02_05_amendments_and_addenda_p1_e2_multimodal\", \"solicitation_03_04_pricing_labor_categories_p1_e3_multimodal\", \"solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal\"], \"draft_answer\": \"The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\\n\\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\\n\\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:**\\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: \u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_4329055216963188904",
+      "repair": true,
+      "ts": "2026-11-18T23:48:58.041Z",
+      "t_rel_ms": 31705
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 24,
+      "turn_index": 4,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "26 claims checked \u00b7 0 unsupported",
+      "duration_ms": 1,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_4329055216963188904",
+      "repair": true,
+      "ts": "2026-11-18T23:48:58.043Z",
+      "t_rel_ms": 31707
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "seq": 25,
+      "turn_index": 5,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 5893,
+      "tokens": {
+        "prompt": 15168,
+        "output": 809,
+        "thinking": 15,
+        "total": 15992
+      },
+      "function_calls": [],
+      "text_preview": "The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\n\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\n\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:**\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Vol",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:49:03.937Z",
+      "t_rel_ms": 37601
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 37602,
+      "payload": {
+        "turns": 5,
+        "agent_turn_events": 25,
+        "tool_calls": 10,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 3,
+          "check_amendments": 4,
+          "calculate_contract_pricing": 1,
+          "verify_citations": 2
+        },
+        "tool_errors": 0,
+        "verify_calls": 2,
+        "unsupported_claims_before": 1,
+        "unsupported_claims_after": 0,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [
+          "$1,800,000.00"
+        ],
+        "unsupported_after_list": [],
+        "repair_turns": 1,
+        "final_answer_check": {
+          "checked_claims": 26,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 5,
+        "tokens": {
+          "prompt": 53984,
+          "output": 3310,
+          "thinking": 1374,
+          "total": 58668
+        },
+        "citations": [
+          "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+          "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+          "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+          "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+          "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+          "solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 18,
+        "retrieval_usage": {
+          "embedding_tokens": 83,
+          "rank_billed_counts": 3,
+          "bigquery_bytes": 140263896,
+          "bigquery_jobs": 7,
+          "search_calls": 3
+        },
+        "calculator_values": [
+          2765500.0
+        ]
+      },
+      "ts": "2026-11-18T23:49:03.939Z",
+      "t_rel_ms": 37603
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 5,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-11-18T23:49:03.939Z",
+      "t_rel_ms": 37603
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 53984,
+        "output_tokens": 3310,
+        "thinking_tokens": 1374,
+        "turns": 5,
+        "final_turn": {
+          "turn_index": 5,
+          "duration_ms": 5893,
+          "tokens": {
+            "prompt": 15168,
+            "output": 809,
+            "thinking": 15,
+            "total": 15992
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\n\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\n\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:**\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: 6,000 \u00d7 $17.00 \u00d7 12 = **$1,224,000.00**.\n   - **CLIN-1002 (12 months BigQuery Autoscaling Reservation):** No amendments; base rate in `03_Pricing_and_Volume_Tiers.pdf` governs at $48,000/mo \u00d7 12 = **$576,000.00**.\n\n3. **Solicitation 03 \u2014 CLIN-2001 (2,000 hours):** **$500,000.00**\n   - Base rate of $265.00/hr ($530,000) in `04_Pricing_Labor_Categories.pdf` is superseded by MSA Amendment 0001 (`05_Master_Services_Agreement_MSA.pdf`), which establishes a $250.00/hr rate ceiling: 2,000 \u00d7 $250.00 = $500,000.00.\n\n**Combined Total:** $465,500.00 + $1,224,000.00 + $576,000.00 + $500,000.00 = **$2,765,500.00**"
+      },
+      "ts": "2026-11-18T23:49:03.939Z",
+      "t_rel_ms": 37603
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "reference_answer_used": true,
+        "max_tokens": 1024
+      },
+      "ts": "2026-11-18T23:49:03.939Z",
+      "t_rel_ms": 37603
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_14bf6048b606",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 6159,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.96,
+        "qa_relevance": 0.98,
+        "context_precision": 0.75,
+        "reference_answer_used": true,
+        "input_tokens": 6418,
+        "output_tokens": 541,
+        "judge_cost_usd": 0.036492,
+        "rationale": "Every rate, discount, line total and the combined $2,765,500.00 match the amendment chunks, base schedules and the calculate_contract_pricing tool output, and the arithmetic checks out; mapping CLIN-1004's base schedule to 03_Pricing_and_Volume_Tiers.pdf rests only on the top search-hit metadata, which is a minor inference. The answer fully addresses all three solicitations and agrees with the reference, omitting only the optional $2,966,000 unamended comparison. The pricing and amendment chunks are highly relevant, but several retrieved chunks are off-topic (Zero Trust architecture, medallion",
+        "judge_response_id": "msg_vrtx_011ChBHgfLQ4LKeBDwn45qqV"
+      },
+      "ts": "2026-11-18T23:49:10.099Z",
+      "t_rel_ms": 43763
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 8: Agentic RAG (Google ADK)",
+    "answer": "The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\n\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\n\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:**\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: 6,000 \u00d7 $17.00 \u00d7 12 = **$1,224,000.00**.\n   - **CLIN-1002 (12 months BigQuery Autoscaling Reservation):** No amendments; base rate in `03_Pricing_and_Volume_Tiers.pdf` governs at $48,000/mo \u00d7 12 = **$576,000.00**.\n\n3. **Solicitation 03 \u2014 CLIN-2001 (2,000 hours):** **$500,000.00**\n   - Base rate of $265.00/hr ($530,000) in `04_Pricing_Labor_Categories.pdf` is superseded by MSA Amendment 0001 (`05_Master_Services_Agreement_MSA.pdf`), which establishes a $250.00/hr rate ceiling: 2,000 \u00d7 $250.00 = $500,000.00.\n\n**Combined Total:** $465,500.00 + $1,224,000.00 + $576,000.00 + $500,000.00 = **$2,765,500.00**",
+    "citations": [
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX | CLIN | Description | Unit | Qty | Base Rate | Year 1 Total | | --- | --- | --- | --- | --- | --- | | CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.5718,
+          "y1": 0.3973
+        },
+        "excerpt": "[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB] Solicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15 - SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO): Section SEC-4.2.1 of 01_RFP_Base_",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "CLIN-1001",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006) | CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total | | --- | --- | --- | --- | --- | --- | | CLIN-1001 | BigQuery Enterprise Plus Ba",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "solicitation_id": "solicitation_02",
+        "page_number": 1,
+        "section_id": "DATA-AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.5401,
+          "y1": 0.3266
+        },
+        "excerpt": "[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004] Solicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20 - STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1): To support real-time fraud detect",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "CLIN-2001",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap): | CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total | | --- | --- | --- | --- | --- | --- | | CLIN-2001 | Cloud Security Architect | Top Sec",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "solicitation_id": "solicitation_03",
+        "page_number": 1,
+        "section_id": "MSA-AMD-0001",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6456,
+          "y1": 0.309
+        },
+        "excerpt": "[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf] Solicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25 - LIMITATION OF LIABILITY (MSA SECTION 8.1): Aggregate liability under this ",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "MSA",
+        "element_type": "narrative_text",
+        "section_id": "MSA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-25",
+        "amends_section": "CLIN-2001",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6456,
+          "y1": 0.309
+        },
+        "content": "[AMENDMENT 0001 - SUPERSEDES CLIN-2001 IN 04_Pricing_Labor_Categories.pdf]\nSolicitation: SOL-2026-SEC-03 | MSA Section 9.4 & Amendment 0001 | Effective: 2026-03-25\n- LIMITATION OF LIABILITY (MSA SECTION 8.1): Aggregate liability under this Agreement is capped at two times (2x) the total annual contract value, excluding willful misconduct or indemnification obligations.\n- MANDATORY LABOR RATE CAP OVERRIDE (SUPERSEDES CLIN-2001): Notwithstanding the $265.00/hr base rate listed in 04_Pricing_Labor_Categories.pdf, MSA Amendment 0001 establishes a binding enterprise rate ceiling of $250.00/hr for CLIN-2001 (Cloud Security Architect). For 2,000 annual hours, the amended CLIN-2001 total is $500,000.00 (saving $15.00/hr or $30,000.00 annually).",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_05_master_services_agreement_msa_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "05_Master_Services_Agreement_MSA.pdf",
+        "doc_type": "MSA",
+        "element_type": "narrative_text",
+        "section_id": "MSA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-25",
+        "amends_section": "CLIN-2001",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8704,
+          "y1": 0.0981
+        },
+        "content": "MASTER SERVICES AGREEMENT (MSA) & AMENDMENT 0001 RATE CAP OVERRIDE",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "DATA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-20",
+        "amends_section": "DATA-SLA-3.1,CLIN-1004",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.5401,
+          "y1": 0.3266
+        },
+        "content": "[AMENDMENT 0001 - SUPERSEDES DATA-SLA-3.1 AND CLIN-1004]\nSolicitation: SOL-2026-DATA-02 | Addendum Number: 0001 | Effective Date: 2026-03-20\n- STREAMING INGESTION LATENCY OVERRIDE (SUPERSEDES DATA-SLA-3.1): To support real-time fraud detection, Clause DATA-SLA-3.1 in 01_RFP_Data_Platform.pdf is amended to reduce maximum end-to-end Pub/Sub -> Dataflow -> BigQuery Silver streaming latency from 30 seconds down to 5 seconds (p99 <= 5.0 seconds) using BigQuery Storage Write API committed streams.\n- STORAGE TIER VOLUME DISCOUNT (SUPERSEDES CLIN-1004): For Active Lakehouse Storage exceeding 5 Petabytes (5,000 TB), CLIN-1004 receives a 15% volume discount, reducing the effective rate from $20.00/TB/mo to $17.00/TB/mo ($1,224,000 annual total for 6,000 TB instead of $1,440,000).",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_05_amendments_and_addenda_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "05_Amendments_and_Addenda.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "DATA-AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-20",
+        "amends_section": "DATA-SLA-3.1,CLIN-1004",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.951,
+          "y1": 0.0981
+        },
+        "content": "ADDENDUM 0001: REAL-TIME 5-SECOND STREAMING SLA & STORAGE VOLUME DISCOUNT",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.5718,
+          "y1": 0.3973
+        },
+        "content": "[AMENDMENT 0001 - SUPERSEDES SEC-4.2.1 AND CLIN-0004-AB]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0001 | Effective Date: 2026-03-15\n- SUPERSESSION OF CLAUSE SEC-4.2.1 (DISASTER RECOVERY RTO/RPO): Section SEC-4.2.1 of 01_RFP_Base_Solicitation.pdf is hereby superseded in full. The required Recovery Time Objective (RTO) is tightened from 4 hours to 15 minutes, and the Recovery Point Objective (RPO) is tightened from 1 hour to 0 minutes (synchronous zero-data-loss cross-region replication between us-central1 and us-east4).\n- SUPERSESSION OF CLIN-0004-AB (CLOUD SECURITY ARCHITECT LABOR RATE): Due to added FedRAMP High Rev 5 zero-data-loss cryptographic verification scope, the CLIN-0004-AB Cloud Security Architect hourly rate in 04_Pricing_Schedule_CLINs.pdf is increased from $210.00/hr to $245.00/hr.\n- VOLUME DISCOUNT FORMULA FOR CLIN-0004-AB: When contracted CLIN-0004-AB hours exceed 1,500 hours in a contract year, a 5% volume discount applies to the entire CLIN-0004-AB order: For 2,000 base hours: 2,000 * $245.00 * (1 - 0.05) = $465,500.00 net total.",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_06_amendment_0001_scope_update_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "06_Amendment_0001_Scope_Update.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0001",
+        "amendment_number": 1,
+        "effective_date": "2026-03-15",
+        "amends_section": "SEC-4.2.1,CLIN-0004-AB",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.926,
+          "y1": 0.0981
+        },
+        "content": "AMENDMENT 0001: MANDATORY RTO/RPO TIGHTENING & CLIN-0004-AB RATE REVISION",
+        "score": 0.0,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "03_Pricing_and_Volume_Tiers.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-1001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SCHEDULE B: LAKEHOUSE COMPUTE SLOTS & STORAGE VOLUME TIERS (CLIN-1001 TO 1006)\n| CLIN | Service Component | Unit | Monthly Qty | Base Unit Rate | Annual Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-1001 | BigQuery Enterprise Plus Baseline | 500 Slots | 12 mos | $26,000/mo | $312,000 |\n| CLIN-1002 | BigQuery Autoscaling Reservation | 1,000 Slots | 12 mos | $48,000/mo | $576,000 |\n| CLIN-1003 | Dataflow Streaming Compute | vCPU-Hr | 50,000 | $0.069/hr | $41,400 |\n| CLIN-1004 | Active Lakehouse Storage (Base) | Terabyte | 6,000 TB | $20.00/TB/mo | $1,440,000 |\n| CLIN-1005 | Dataplex Governance & Lineage | Monthly | 12 mos | $6,500/mo | $78,000 |\n| CLIN-1006 | Lead Data Platform Architect | Hour | 1,500 hrs | $225.00/hr | $337,500 |",
+        "score": 0.9389,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6113,
+          "y1": 0.2736
+        },
+        "content": "Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n- Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n- Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing, PII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n- Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables. Silver Layer: Deduplicated, schema-enforced enterprise entity tables. Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.",
+        "score": 0.1496,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_01_rfp_data_platform_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "DATA-SLA-3.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8835,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM",
+        "score": 0.1365,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_cnspharmaceuticalsinc_20200326_8-k_ex-10.1_12079626_ex-10.1_development agreement_p2_e6_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "CnsPharmaceuticalsInc_20200326_8-K_EX-10.1_12079626_EX-10.1_Development Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 2,
+        "bbox": {
+          "page": 2,
+          "x0": 0.4671,
+          "y0": 0.4269,
+          "x1": 0.5339,
+          "y1": 0.4366
+        },
+        "content": "ARTICLE 4",
+        "score": 0.0725,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |",
+        "score": 0.9493,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "narrative_text",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.311,
+          "x1": 0.6098,
+          "y1": 0.3266
+        },
+        "content": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\nNote: CLIN-0004-AB base rate is $210/hr for 2,000 hours ($420,000 base Year 1).",
+        "score": 0.875,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6226,
+          "y1": 0.2913
+        },
+        "content": "[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02 Q12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation period for BigQuery and Cloud SQL volumes under FedRAMP High? A12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule (or 30-day rotation for Tier-0 identity signing keys). Q19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB? A19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the 5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.7684,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "02_Statement_of_Work_SOW.pdf",
+        "doc_type": "SOW",
+        "element_type": "table",
+        "section_id": "SOW-2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "STATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\n| --- | --- | --- | --- | --- |\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |",
+        "score": 0.7113,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-2001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\n| CLIN | Labor Category | Clearance | Annual Hours | Base Hourly Rate | Extended Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-2001 | Cloud Security Architect | Top Secret / SCI | 2,000 | $265.00/hr | $530,000 |\n| CLIN-2002 | SOC Incident Commander | Secret | 2,000 | $240.00/hr | $480,000 |\n| CLIN-2003 | Senior Threat Hunter (SOC L3) | Secret | 4,000 | $185.00/hr | $740,000 |\n| CLIN-2004 | Incident Response Analyst (L2) | Public Trust | 6,000 | $145.00/hr | $870,000 |\n| CLIN-2005 | Tier-1 Security Analyst (L1) | Public Trust | 8,000 | $110.00/hr | $880,000 |",
+        "score": 0.9842,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_04_pricing_labor_categories_p1_e4_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "04_Pricing_Labor_Categories.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "narrative_text",
+        "section_id": "CLIN-2001",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.258,
+          "x1": 0.6661,
+          "y1": 0.2736
+        },
+        "content": "Base Labor Rate Schedule (Prior to MSA Amendment 0001 Rate Cap):\nNote: CLIN-2001 base schedule rate is $265.00/hr before MSA Amendment 0001 rate cap.",
+        "score": 0.5052,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_01_rfp_security_operations_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-OPS-1.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8999,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC",
+        "score": 0.0948,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8237,
+          "y1": 0.2736
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n- Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds, signaling the Policy Administrator (PA) to mint short-lived mTLS / OIDC session tokens.\n- Data Plane Policy Enforcement Point (PEP): Identity-Aware Proxy (IAP) and Envoy Service Mesh ingress gateways terminate all untrusted traffic and permit per-request access to protected enclave resources only upon PA verification.\n- Continuous Telemetry: Every PEP allow/deny decision streams to Google SecOps SIEM.",
+        "score": 0.0767,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-0004-AB",
+          "solicitation_id": "solicitation_01",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 44/44 RRF candidates \u00b7 top 04_Pricing_Schedule_CLINs.pdf p.1 (0.9493) \u00b7 44.3 MB scanned",
+        "latency_ms": 1616
+      },
+      {
+        "step_number": 2,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "CLIN-0004-AB"
+        },
+        "result_summary": "governing: Amendment 0001 (effective 2026-03-15) \u00b7 06_Amendment_0001_Scope_Update.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+        "latency_ms": 742
+      },
+      {
+        "step_number": 3,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-1004 Active Lakehouse Storage CLIN-1002 BigQuery Autoscaling Reservation",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 45/45 RRF candidates \u00b7 top 03_Pricing_and_Volume_Tiers.pdf p.1 (0.9389) \u00b7 44.3 MB scanned",
+        "latency_ms": 1595
+      },
+      {
+        "step_number": 4,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CLIN-1004"
+        },
+        "result_summary": "governing: Amendment 0001 (effective 2026-03-20) \u00b7 05_Amendments_and_Addenda.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+        "latency_ms": 495
+      },
+      {
+        "step_number": 5,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_02",
+          "section_or_clin_id": "CLIN-1002"
+        },
+        "result_summary": "no amendment row names CLIN-1002 in solicitation_02 \u00b7 7.3 MB scanned",
+        "latency_ms": 585
+      },
+      {
+        "step_number": 6,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-2001 Cloud Security Architect",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 44/44 RRF candidates \u00b7 top 04_Pricing_Labor_Categories.pdf p.1 (0.9842) \u00b7 44.3 MB scanned",
+        "latency_ms": 1770
+      },
+      {
+        "step_number": 7,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_03",
+          "section_or_clin_id": "CLIN-2001"
+        },
+        "result_summary": "governing: Amendment 0001 (effective 2026-03-25) \u00b7 05_Master_Services_Agreement_MSA.pdf p.1 \u00b7 2 row(s) \u00b7 0.0 MB scanned",
+        "latency_ms": 481
+      },
+      {
+        "step_number": 8,
+        "tool_name": "calculate_contract_pricing",
+        "tool_args": {
+          "expression": "(hours_01 * rate_01 * (1 - disc_01)) + (tb_02 * rate_1004 * months) + (rate_1002 * months) + (hours_03 * rate_03)",
+          "variables": {
+            "rate_01": 245,
+            "rate_03": 250,
+            "disc_01": 0.05,
+            "hours_01": 2000,
+            "rate_1004": 17,
+            "hours_03": 2000,
+            "months": 12,
+            "rate_1002": 48000,
+            "tb_02": 6000
+          }
+        },
+        "result_summary": "2000.0 * 245.0 * (1 - 0.05) + 6000.0 * 17.0 * 12.0 + 48000.0 * 12.0 + 2000.0 * 250.0 = 2765500.0",
+        "latency_ms": 0
+      },
+      {
+        "step_number": 9,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\n\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\n\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:** **$1,800,000.00**\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: 6,000 \u00d7 $17.00 \u00d7 12 = **$1,224,000.00**.\n   - **CLIN-1002 (12 months BigQuery Autoscaling Reservation):** No amendments; base rate in `03_Pricing_and_Volume_Tiers.pdf` governs at $48,000/mo \u00d7 12 = **$576,000.00**.\n\n3. **Solicitation 03 \u2014 CLIN-2001 (2,000 hours):** **$500,000.00**\n   - Base rate of $265.00/hr ($530,000) in `04_Pricing_Labor_Categories.pdf` is superseded by MSA Amendment 0001 (`05_Master_Services_Agreement_MSA.pdf`), which establishes a $250.00/hr rate ceiling: 2,000 \u00d7 $250.00 = $500,000.00.\n\n**Combined Total:** $465,500.00 + $1,224,000.00 + $576,000.00 + $500,000.00 = **$2,765,500.00**\n\nCITED_CHUNK_IDS: solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal, solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal, solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal, solicitation_02_05_amendments_and_addenda_p1_e2_multimodal, solicitation_03_04_pricing_labor_categories_p1_e3_multimodal, solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal",
+          "cited_chunk_ids": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+            "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+            "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+            "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+            "solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal"
+          ]
+        },
+        "result_summary": "27 claims checked \u00b7 1 unsupported ($1,800,000.00)",
+        "latency_ms": 1
+      },
+      {
+        "step_number": 10,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\n\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\n\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:**\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: 6,000 \u00d7 $17.00 \u00d7 12 = **$1,224,000.00**.\n   - **CLIN-1002 (12 months BigQuery Autoscaling Reservation):** No amendments; base rate in `03_Pricing_and_Volume_Tiers.pdf` governs at $48,000/mo \u00d7 12 = **$576,000.00**.\n\n3. **Solicitation 03 \u2014 CLIN-2001 (2,000 hours):** **$500,000.00**\n   - Base rate of $265.00/hr ($530,000) in `04_Pricing_Labor_Categories.pdf` is superseded by MSA Amendment 0001 (`05_Master_Services_Agreement_MSA.pdf`), which establishes a $250.00/hr rate ceiling: 2,000 \u00d7 $250.00 = $500,000.00.\n\n**Combined Total:** $465,500.00 + $1,224,000.00 + $576,000.00 + $500,000.00 = **$2,765,500.00**\n\nCITED_CHUNK_IDS: solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal, solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal, solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal, solicitation_02_05_amendments_and_addenda_p1_e2_multimodal, solicitation_03_04_pricing_labor_categories_p1_e3_multimodal, solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal",
+          "cited_chunk_ids": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+            "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+            "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+            "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+            "solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal"
+          ]
+        },
+        "result_summary": "26 claims checked \u00b7 0 unsupported",
+        "latency_ms": 1
+      }
+    ],
+    "latency_ms": 37603,
+    "cost_usd": 0.1191226,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-18T23:48:26.335Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.",
+          "prepared_query": "Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03. (CLIN = Contract Line Item Number)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            }
+          ],
+          "element_intent": [
+            "table",
+            "amendment"
+          ],
+          "intent_matches": {
+            "table": [
+              "clin"
+            ],
+            "amendment": [
+              "amended"
+            ]
+          },
+          "handed_to_agent": "Question: Calculate the combined Year 1 amended spend across all three solicitations for: (1) 2,000 hours of CLIN-0004-AB in Solicitation 01, (2) 6,000 TB of CLIN-1004 Active Lakehouse Storage plus 12 months of CLIN-1002 BigQuery Autoscaling Reservation in Solicitation 02, and (3) 2,000 hours of CLIN-2001 Cloud Security Architect in Solicitation 03.\nAcronyms: CLIN = Contract Line Item Number\nElement intent (keywords found): table, amendment"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-18T23:48:26.336Z",
+        "duration_ms": 37602,
+        "request": {},
+        "payload": {
+          "turns": 5,
+          "agent_turn_events": 25,
+          "tool_calls": 10,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 3,
+            "check_amendments": 4,
+            "calculate_contract_pricing": 1,
+            "verify_citations": 2
+          },
+          "tool_errors": 0,
+          "verify_calls": 2,
+          "unsupported_claims_before": 1,
+          "unsupported_claims_after": 0,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [
+            "$1,800,000.00"
+          ],
+          "unsupported_after_list": [],
+          "repair_turns": 1,
+          "final_answer_check": {
+            "checked_claims": 26,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 5,
+          "tokens": {
+            "prompt": 53984,
+            "output": 3310,
+            "thinking": 1374,
+            "total": 58668
+          },
+          "citations": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_06_amendment_0001_scope_update_p1_e2_multimodal",
+            "solicitation_02_03_pricing_and_volume_tiers_p1_e2_multimodal",
+            "solicitation_02_05_amendments_and_addenda_p1_e2_multimodal",
+            "solicitation_03_04_pricing_labor_categories_p1_e3_multimodal",
+            "solicitation_03_05_master_services_agreement_msa_p1_e2_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 18,
+          "retrieval_usage": {
+            "embedding_tokens": 83,
+            "rank_billed_counts": 3,
+            "bigquery_bytes": 140263896,
+            "bigquery_jobs": 7,
+            "search_calls": 3
+          },
+          "calculator_values": [
+            2765500.0
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-18T23:49:03.939Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-hydrogen",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 53984,
+          "output_tokens": 3310,
+          "thinking_tokens": 1374,
+          "turns": 5,
+          "final_turn": {
+            "turn_index": 5,
+            "duration_ms": 5893,
+            "tokens": {
+              "prompt": 15168,
+              "output": 809,
+              "thinking": 15,
+              "total": 15992
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "The combined Year 1 amended spend across all three solicitations is **$2,765,500.00**:\n\n1. **Solicitation 01 \u2014 CLIN-0004-AB (2,000 hours):** **$465,500.00**\n   - Base rate of $210.00/hr ($420,000) in `04_Pricing_Schedule_CLINs.pdf` is superseded by Amendment 0001 (`06_Amendment_0001_Scope_Update.pdf`), which increases the rate to $245.00/hr with a 5% volume discount for >1,500 hours: 2,000 \u00d7 $245.00 \u00d7 (1 \u2212 0.05) = $465,500.00.\n\n2. **Solicitation 02 \u2014 CLIN-1004 & CLIN-1002:**\n   - **CLIN-1004 (6,000 TB Active Lakehouse Storage):** Base rate of $20.00/TB/mo ($1,440,000/yr) in `03_Pricing_and_Volume_Tiers.pdf` is superseded by Amendment 0001 (`05_Amendments_and_Addenda.pdf`), which applies a 15% volume discount (>5,000 TB), reducing the rate to $17.00/TB/mo: 6,000 \u00d7 $17.00 \u00d7 12 = **$1,224,000.00**.\n   - **CLIN-1002 (12 months BigQuery Autoscaling Reservation):** No amendments; base rate in `03_Pricing_and_Volume_Tiers.pdf` governs at $48,000/mo \u00d7 12 = **$576,000.00**.\n\n3. **Solicitation 03 \u2014 CLIN-2001 (2,000 hours):** **$500,000.00**\n   - Base rate of $265.00/hr ($530,000) in `04_Pricing_Labor_Categories.pdf` is superseded by MSA Amendment 0001 (`05_Master_Services_Agreement_MSA.pdf`), which establishes a $250.00/hr rate ceiling: 2,000 \u00d7 $250.00 = $500,000.00.\n\n**Combined Total:** $465,500.00 + $1,224,000.00 + $576,000.00 + $500,000.00 = **$2,765,500.00**"
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 53984,
+      "output_tokens": 3310,
+      "embedding_tokens": 83,
+      "thinking_tokens": 1374,
+      "model": "gemini-4-hydrogen",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.96,
+      "qa_relevance": 0.98,
+      "context_precision": 0.75
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 6159,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 6418,
+    "output_tokens": 541,
+    "judge_cost_usd": 0.036492,
+    "rationale": "Every rate, discount, line total and the combined $2,765,500.00 match the amendment chunks, base schedules and the calculate_contract_pricing tool output, and the arithmetic checks out; mapping CLIN-1004's base schedule to 03_Pricing_and_Volume_Tiers.pdf rests only on the top search-hit metadata, which is a minor inference. The answer fully addresses all three solicitations and agrees with the reference, omitting only the optional $2,966,000 unamended comparison. The pricing and amendment chunks are highly relevant, but several retrieved chunks are off-topic (Zero Trust architecture, medallion",
+    "judge_response_id": "msg_vrtx_011ChBHgfLQ4LKeBDwn45qqV"
+  }
+}

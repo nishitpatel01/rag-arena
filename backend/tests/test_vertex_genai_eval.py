@@ -190,10 +190,10 @@ def test_resolve_engine_cost_usd_handles_explicit_subtracted_and_legacy_inputs()
         resolve_engine_cost_usd(-0.01)
 
 
-def test_leaderboard_splits_engine_and_judge_costs_across_all_135_official_recordings() -> None:
+def test_leaderboard_splits_engine_and_judge_costs_across_all_183_official_recordings() -> None:
     board = leaderboard_from_recordings(RecordingStore(_RECORDINGS))
     rows = [r for g in board["groups"] for r in g["rows"]]
-    assert sum(r["runs"] for r in rows) == 135
+    assert sum(r["runs"] for r in rows) == 183
 
     total_engine_spend = 0.0
     total_judge_spend = 0.0

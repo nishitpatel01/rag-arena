@@ -1,0 +1,1385 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-18T23:47:34.327Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-hydrogen",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-hydrogen",
+      "reasoning": "gemini-4-argon",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "f4b29f5c4407570d0657a8951a1a1d572e7b8422",
+    "app_version": "1.6.1",
+    "engine": "level4_agentic",
+    "question_id": "q_sla_credit_calculation",
+    "query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+    "run_id": "run_06388c090f1c"
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-11-18T23:47:02.029Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+        "prepared_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "element_intent": [
+          "table",
+          "diagram"
+        ],
+        "intent_matches": {
+          "table": [
+            "clin",
+            "credit"
+          ],
+          "diagram": [
+            "exhibit"
+          ]
+        },
+        "handed_to_agent": "Question: In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?\nAcronyms: CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine\nElement intent (keywords found): table, diagram"
+      },
+      "ts": "2026-11-18T23:47:02.029Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value. check_amendments is authoritative for amendment lookups: when it returns zero amendments (no amendments found), the base clause governs \u2014 do NOT call search_procurement_corpus again just to hunt for amendments.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?\nAcronyms: CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine\nElement intent (keywords found): table, diagram",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 118.0,
+        "model_call_timeout_seconds": 45,
+        "model_call_attempts": 2,
+        "max_output_tokens_per_turn": 4096
+      },
+      "ts": "2026-11-18T23:47:02.029Z",
+      "t_rel_ms": 1
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 3820,
+      "tokens": {
+        "prompt": 1362,
+        "output": 199,
+        "thinking": 183,
+        "total": 1744
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "check_amendments",
+        "check_amendments"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:05.850Z",
+      "t_rel_ms": 3822
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-0001-AA CLIN-0002-AA pricing monthly rate",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_125039002910612107",
+      "repair": false,
+      "ts": "2026-11-18T23:47:05.850Z",
+      "t_rel_ms": 3822
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_01",
+        "query": "Exhibit 05 SLA service credit availability 99.40% 99.70%"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_125039002910611624",
+      "repair": false,
+      "ts": "2026-11-18T23:47:05.850Z",
+      "t_rel_ms": 3822
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_01",
+        "section_or_clin_id": "CLIN-0001-AA"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_125039002910611141",
+      "repair": false,
+      "ts": "2026-11-18T23:47:05.850Z",
+      "t_rel_ms": 3822
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_01",
+        "section_or_clin_id": "CLIN-0002-AA"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_125039002910610658",
+      "repair": false,
+      "ts": "2026-11-18T23:47:05.850Z",
+      "t_rel_ms": 3822
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 45/45 RRF candidates \u00b7 top 04_Pricing_Schedule_CLINs.pdf p.1 (0.9442) \u00b7 44.3 MB scanned",
+      "duration_ms": 1505,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_125039002910612107",
+      "repair": false,
+      "ts": "2026-11-18T23:47:07.640Z",
+      "t_rel_ms": 5611
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 47/47 RRF candidates \u00b7 top 05_SLA_and_QASP_Requirements.pdf p.1 (0.659) \u00b7 44.3 MB scanned",
+      "duration_ms": 1787,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_125039002910611624",
+      "repair": false,
+      "ts": "2026-11-18T23:47:07.640Z",
+      "t_rel_ms": 5611
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CLIN-0001-AA in solicitation_01 \u00b7 7.3 MB scanned",
+      "duration_ms": 635,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_125039002910611141",
+      "repair": false,
+      "ts": "2026-11-18T23:47:07.640Z",
+      "t_rel_ms": 5611
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CLIN-0002-AA in solicitation_01 \u00b7 7.3 MB scanned",
+      "duration_ms": 714,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_125039002910610658",
+      "repair": false,
+      "ts": "2026-11-18T23:47:07.640Z",
+      "t_rel_ms": 5611
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 4311,
+      "tokens": {
+        "prompt": 6197,
+        "output": 151,
+        "thinking": 399,
+        "total": 6747
+      },
+      "function_calls": [
+        "check_amendments",
+        "calculate_contract_pricing"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:11.952Z",
+      "t_rel_ms": 9923
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "section_or_clin_id": "SLA-4.2",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_16798831845090059353",
+      "repair": false,
+      "ts": "2026-11-18T23:47:11.952Z",
+      "t_rel_ms": 9923
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "calculate_contract_pricing",
+      "tool_args": {
+        "expression": "(clin1_rate * clin1_credit_pct) + (clin2_nodes * clin2_rate * clin2_credit_pct)",
+        "variables": {
+          "clin2_nodes": 20,
+          "clin1_rate": 45000,
+          "clin2_credit_pct": 0.1,
+          "clin1_credit_pct": 0.25,
+          "clin2_rate": 1250
+        }
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_16798831845090061106",
+      "repair": false,
+      "ts": "2026-11-18T23:47:11.952Z",
+      "t_rel_ms": 9923
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names SLA-4.2 in solicitation_01 \u00b7 7.3 MB scanned",
+      "duration_ms": 636,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_16798831845090059353",
+      "repair": false,
+      "ts": "2026-11-18T23:47:12.590Z",
+      "t_rel_ms": 10561
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 14,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "calculate_contract_pricing",
+      "tool_args": null,
+      "tool_result_summary": "45000.0 * 0.25 + 20.0 * 1250.0 * 0.1 = 13750.0",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_16798831845090061106",
+      "repair": false,
+      "ts": "2026-11-18T23:47:12.590Z",
+      "t_rel_ms": 10561
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 15,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 5615,
+      "tokens": {
+        "prompt": 6968,
+        "output": 595,
+        "thinking": 165,
+        "total": 7728
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:18.205Z",
+      "t_rel_ms": 16177
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 16,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"cited_chunk_ids\": [\"solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal\", \"solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal\", \"solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal\"], \"draft_answer\": \"In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\\n\\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee.\\n   - Service Credit: $45,000 \u00d7 25% = **$11,250.00**.\\n\\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes = **$25,000.00** (per 04_Pricing_Schedule_CLINs.pdf).\\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee.\\n   - Service Credit: $25,000 \u00d7 10% = **$2,500.00**.\\n\\n**Combined SLA Service Credit:** $11,25\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_17541706274749721238",
+      "repair": false,
+      "ts": "2026-11-18T23:47:18.206Z",
+      "t_rel_ms": 16177
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 17,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "16 claims checked \u00b7 3 unsupported ($25,000.00, $25,000, $2,500.00)",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_17541706274749721238",
+      "repair": false,
+      "ts": "2026-11-18T23:47:18.207Z",
+      "t_rel_ms": 16178
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 18,
+      "turn_index": 4,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 5043,
+      "tokens": {
+        "prompt": 7935,
+        "output": 541,
+        "thinking": 129,
+        "total": 8605
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": true,
+      "ts": "2026-11-18T23:47:23.251Z",
+      "t_rel_ms": 21222
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 19,
+      "turn_index": 4,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": "{\"cited_chunk_ids\": [\"solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal\", \"solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal\", \"solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal\"], \"draft_answer\": \"In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\\n\\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee ($45,000 \u00d7 25% = **$11,250.00**).\\n\\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes (per 04_Pricing_Schedule_CLINs.pdf).\\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee (20 \u00d7 $1,250 \u00d7 10%).\\n\\n**Combined SLA Service Credit:** **$13,750.00**.\\n\\nCITED_CHUNK_IDS: solicitation_01_04_pricing_schedule_clins\u2026",
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2331525811497079798",
+      "repair": true,
+      "ts": "2026-11-18T23:47:23.251Z",
+      "t_rel_ms": 21222
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 20,
+      "turn_index": 4,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "13 claims checked \u00b7 0 unsupported",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2331525811497079798",
+      "repair": true,
+      "ts": "2026-11-18T23:47:23.252Z",
+      "t_rel_ms": 21224
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "seq": 21,
+      "turn_index": 5,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 4827,
+      "tokens": {
+        "prompt": 8752,
+        "output": 431,
+        "thinking": 14,
+        "total": 9197
+      },
+      "function_calls": [],
+      "text_preview": "In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\n\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee ($45,000 \u00d7 25% = **$11,250.00**).\n\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\n  ",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-18T23:47:28.080Z",
+      "t_rel_ms": 26052
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 26052,
+      "payload": {
+        "turns": 5,
+        "agent_turn_events": 21,
+        "tool_calls": 8,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 2,
+          "check_amendments": 3,
+          "calculate_contract_pricing": 1,
+          "verify_citations": 2
+        },
+        "tool_errors": 0,
+        "verify_calls": 2,
+        "unsupported_claims_before": 3,
+        "unsupported_claims_after": 0,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [
+          "$25,000.00",
+          "$25,000",
+          "$2,500.00"
+        ],
+        "unsupported_after_list": [],
+        "repair_turns": 1,
+        "final_answer_check": {
+          "checked_claims": 13,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 5,
+        "tokens": {
+          "prompt": 31214,
+          "output": 1917,
+          "thinking": 890,
+          "total": 34021
+        },
+        "citations": [
+          "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+          "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+          "solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 9,
+        "retrieval_usage": {
+          "embedding_tokens": 70,
+          "rank_billed_counts": 2,
+          "bigquery_bytes": 110430798,
+          "bigquery_jobs": 5,
+          "search_calls": 2
+        },
+        "calculator_values": [
+          13750.0
+        ]
+      },
+      "ts": "2026-11-18T23:47:28.082Z",
+      "t_rel_ms": 26053
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 5,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-11-18T23:47:28.082Z",
+      "t_rel_ms": 26053
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 31214,
+        "output_tokens": 1917,
+        "thinking_tokens": 890,
+        "turns": 5,
+        "final_turn": {
+          "turn_index": 5,
+          "duration_ms": 4827,
+          "tokens": {
+            "prompt": 8752,
+            "output": 431,
+            "thinking": 14,
+            "total": 9197
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\n\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee ($45,000 \u00d7 25% = **$11,250.00**).\n\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee (20 \u00d7 $1,250 \u00d7 10%).\n\n**Combined SLA Service Credit:** **$13,750.00**."
+      },
+      "ts": "2026-11-18T23:47:28.082Z",
+      "t_rel_ms": 26053
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "reference_answer_used": true,
+        "max_tokens": 1024
+      },
+      "ts": "2026-11-18T23:47:28.082Z",
+      "t_rel_ms": 26053
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_06388c090f1c",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 6244,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.97,
+        "qa_relevance": 0.95,
+        "context_precision": 0.55,
+        "reference_answer_used": true,
+        "input_tokens": 4301,
+        "output_tokens": 492,
+        "judge_cost_usd": 0.027044,
+        "rationale": "Every figure in the answer is supported by the retrieved context: the $45,000/mo and $1,250/node-mo rates, the 25% P1 Severe Breach and 10% P1 Critical tiers in SLA-4.2, the no-amendment findings, and the calculation tool's $13,750 result. The answer matches the reference total and tier logic but leaves the $25,000 monthly fee and $2,500 CLIN-0002-AA subtotal implicit rather than stated. The pricing table, SLA tier table and SLA formula chunks are on point, but the video-view fee schedule, IBM managed-hosting SLA text and unrelated amendment Q&A add substantial noise.",
+        "judge_response_id": "msg_vrtx_011ChBHZcSpnWEBJV2qQdbUQ"
+      },
+      "ts": "2026-11-18T23:47:34.327Z",
+      "t_rel_ms": 32298
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 8: Agentic RAG (Google ADK)",
+    "answer": "In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\n\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee ($45,000 \u00d7 25% = **$11,250.00**).\n\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee (20 \u00d7 $1,250 \u00d7 10%).\n\n**Combined SLA Service Credit:** **$13,750.00**.",
+    "citations": [
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "CLIN-0004-AB",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX | CLIN | Description | Unit | Qty | Base Rate | Year 1 Total | | --- | --- | --- | --- | --- | --- | | CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SLA-4.2",
+        "element_type": "table",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "excerpt": "Clause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula: | Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit | | --- | --- | --- | --- | | P1 Critical | 99.99% Target (<99.99% to 99.50%) | \\(<=",
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "SLA-4.2",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.258,
+          "x1": 0.521,
+          "y1": 0.2736
+        },
+        "excerpt": "Clause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula: Formula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage. Example: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the applicable P1 Severe B",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "04_Pricing_Schedule_CLINs.pdf",
+        "doc_type": "PRICING_CLIN",
+        "element_type": "table",
+        "section_id": "CLIN-0004-AB",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "SCHEDULE B: CONTRACT LINE ITEM NUMBER (CLIN) PRICING MATRIX\n| CLIN | Description | Unit | Qty | Base Rate | Year 1 Total |\n| --- | --- | --- | --- | --- | --- |\n| CLIN-0001-AA | Shared VPC & Landing Zone Core | Monthly | 12 | $45,000/mo | $540,000 |\n| CLIN-0002-AA | GKE Enterprise Managed Cluster | Node-Mo | 240 | $1,250/mo | $300,000 |\n| CLIN-0003-AA | Cloud SQL Enterprise Plus HA | Instance | 24 | $3,800/mo | $91,200 |\n| CLIN-0004-AB | Cloud Security Architect Labor | Hour | 2,000 | $210.00/hr | $420,000 |\n| CLIN-0005-AC | Principal SRE / Migration Eng | Hour | 3,000 | $195.00/hr | $585,000 |\n| CLIN-0006-AD | Cloud HA VPN & Interconnect | Monthly | 12 | $8,500/mo | $102,000 |\n| CLIN-0007-AE | Cloud Armor Enterprise Tier | Monthly | 12 | $4,200/mo | $50,400 |\n| CLIN-0008-AD | DR Failover Automation Suite | Annual | 1 | $115,000/yr | $115,000 |",
+        "score": 0.9442,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "02_Statement_of_Work_SOW.pdf",
+        "doc_type": "SOW",
+        "element_type": "table",
+        "section_id": "SOW-2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "STATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\n| --- | --- | --- | --- | --- |\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |",
+        "score": 0.8033,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_vitalibisinc_20180316_8-k_ex-10.2_11100168_ex-10.2_hosting agreement_p9_e6_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "VitalibisInc_20180316_8-K_EX-10.2_11100168_EX-10.2_Hosting Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "table",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 9,
+        "bbox": {
+          "page": 9,
+          "x0": 0.2698,
+          "y0": 0.3301,
+          "x1": 0.4162,
+          "y1": 0.3399
+        },
+        "content": "2. License and Hosting Fees\n| # of Monthly Video Views | Fee |\n| --- | --- |\n| Up to 9,999 | $0 |\n| Between 10,000 \u2013 24,999 | $1,000 |\n| Between 25,000 \u2013 49,999 | $1,500 |\n| Over 50,000 | $2,000 |",
+        "score": 0.615,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "narrative_text",
+        "section_id": "SLA-4.2",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.258,
+          "x1": 0.521,
+          "y1": 0.2736
+        },
+        "content": "Clause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\nFormula: Credit_USD = Monthly_CLIN_Invoice * Credit_Percentage. Example: If CLIN-0001-AA ($45,000/mo) drops to 99.40% uptime (<99.50%), the applicable P1 Severe Breach credit is 25% (\\( $45,000 * 0.25 = $11,250.00\\) credit).",
+        "score": 0.539,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6226,
+          "y1": 0.2913
+        },
+        "content": "[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02 Q12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation period for BigQuery and Cloud SQL volumes under FedRAMP High? A12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule (or 30-day rotation for Tier-0 identity signing keys). Q19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB? A19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the 5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.4275,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "SLA-4.2",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Clause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| --- | --- | --- | --- |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | \\(<=\\) 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | \\(<\\) 99.50% Monthly Availability | \\(<=\\) 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | \\(<\\) 99.90% Non-Core Services | \\(<=\\) 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | \\(<=\\) 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | \\(<=\\) 24 hours | 0% (Corrective Action) |",
+        "score": 0.5687,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 25,
+        "bbox": {
+          "page": 25,
+          "x0": 0.0873,
+          "y0": 0.2584,
+          "x1": 0.6755,
+          "y1": 0.4102
+        },
+        "content": "Availability Credits\n- If in any month during the term of Managed Hosting Services the Monthly Availability Percentage for a Qualifying Server is less than the SLA Target Percentage for that Qualifying Server, Customer shall be eligible to receive an Availability Credit, subject to Section 8.3(b), 8.4, 8.5, 8.6 and 8.7.\n- If in any month during the term of Managed Hosting Services the Monthly Availability Percentage for Basic Monitoring or Advanced Monitoring Services is less than the SLA Target Percentage for Basic Monitoring or Advanced Monitoring Services, Customer shall be eligible to receive an Availability Credit, subject to Section 8.3(b), 8.4, 8.5, 8.6 and 8.7.\n- Customer agrees to contact the IBM Help Desk to report problems and open trouble tickets that reflect the start time of the Outage event.",
+        "score": 0.3801,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_e5_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 25,
+        "bbox": {
+          "page": 25,
+          "x0": 0.0841,
+          "y0": 0.5155,
+          "x1": 0.3198,
+          "y1": 0.5407
+        },
+        "content": "Exclusivity of Remedies\nCustomer agrees that its sole remedy for IBM\u2019s failure to meet an SLA Target Percentage is the Availability Credit as provided in this Agreement.",
+        "score": 0.3608,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_quantumgroupincfl_20090120_8-k_ex-99.2_3672910_ex-99.2_hosting agreement_p25_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement.pdf",
+        "doc_type": "COMMERCIAL_AGREEMENT",
+        "element_type": "narrative_text",
+        "section_id": null,
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 25,
+        "bbox": {
+          "page": 25,
+          "x0": 0.0841,
+          "y0": 0.0545,
+          "x1": 0.7854,
+          "y1": 0.2543
+        },
+        "content": "Service Levels\nIBM will provide the following monthly availability Service Level Agreement (\u201cSLA\u201d) for the Services provided by IBM:\n- For Managed Devices and Managed Servers (including firewall(s) and switches) that are not clustered or configured in a high availability configuration, the SLA is a minimum of 99.7 percent.\n- For Managed Devices and Managed Servers (including firewall(s) and switches) that are clustered or configured in a high availability configuration, the SLA is a minimum of 99.9 percent.\n- For Managed Application Solution (including firewall(s) and switches) that are clustered or configured in a high availability configuration, the SLA is a minimum of 98.0 percent.\n- For Managed Application Solution (including firewall(s) and switches) that is not clustered or configured in a high availability configuration, the SLA is a minimum of 99.5 percent.\n- For Basic Monitoring Services the SLA is a minimum of 99.9 percent applicable only for the core infrastructure components (including power, cooling, Internet connectivity, firewalls, load balancers, SSL acceleration, Network Intrusion Detection, VLAN segments, switches, VPN connection at the Hosting Center, and all related connections).\n- For Advanced Monitoring Services the SLA is a minimum of 99.9 percent applicable only for the core infrastructure components (including power, cooling, Internet connectivity, firewalls, load balancers, SSL acceleration, Network Intrusion Detection, VLAN segments, switches, VPN connection at the Hosting Center, and all related connections).",
+        "score": 0.3533,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-0001-AA CLIN-0002-AA pricing monthly rate",
+          "solicitation_id": "solicitation_01",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 45/45 RRF candidates \u00b7 top 04_Pricing_Schedule_CLINs.pdf p.1 (0.9442) \u00b7 44.3 MB scanned",
+        "latency_ms": 1505
+      },
+      {
+        "step_number": 2,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "Exhibit 05 SLA service credit availability 99.40% 99.70%",
+          "solicitation_id": "solicitation_01",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 47/47 RRF candidates \u00b7 top 05_SLA_and_QASP_Requirements.pdf p.1 (0.659) \u00b7 44.3 MB scanned",
+        "latency_ms": 1787
+      },
+      {
+        "step_number": 3,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "CLIN-0001-AA"
+        },
+        "result_summary": "no amendment row names CLIN-0001-AA in solicitation_01 \u00b7 7.3 MB scanned",
+        "latency_ms": 635
+      },
+      {
+        "step_number": 4,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "CLIN-0002-AA"
+        },
+        "result_summary": "no amendment row names CLIN-0002-AA in solicitation_01 \u00b7 7.3 MB scanned",
+        "latency_ms": 714
+      },
+      {
+        "step_number": 5,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "SLA-4.2"
+        },
+        "result_summary": "no amendment row names SLA-4.2 in solicitation_01 \u00b7 7.3 MB scanned",
+        "latency_ms": 636
+      },
+      {
+        "step_number": 6,
+        "tool_name": "calculate_contract_pricing",
+        "tool_args": {
+          "expression": "(clin1_rate * clin1_credit_pct) + (clin2_nodes * clin2_rate * clin2_credit_pct)",
+          "variables": {
+            "clin2_nodes": 20,
+            "clin1_rate": 45000,
+            "clin2_credit_pct": 0.1,
+            "clin1_credit_pct": 0.25,
+            "clin2_rate": 1250
+          }
+        },
+        "result_summary": "45000.0 * 0.25 + 20.0 * 1250.0 * 0.1 = 13750.0",
+        "latency_ms": 0
+      },
+      {
+        "step_number": 7,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\n\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee.\n   - Service Credit: $45,000 \u00d7 25% = **$11,250.00**.\n\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes = **$25,000.00** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee.\n   - Service Credit: $25,000 \u00d7 10% = **$2,500.00**.\n\n**Combined SLA Service Credit:** $11,250.00 + $2,500.00 = **$13,750.00**.\n\nCITED_CHUNK_IDS: solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal, solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal, solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal",
+          "cited_chunk_ids": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+            "solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal"
+          ]
+        },
+        "result_summary": "16 claims checked \u00b7 3 unsupported ($25,000.00, $25,000, $2,500.00)",
+        "latency_ms": 0
+      },
+      {
+        "step_number": 8,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\n\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee ($45,000 \u00d7 25% = **$11,250.00**).\n\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee (20 \u00d7 $1,250 \u00d7 10%).\n\n**Combined SLA Service Credit:** **$13,750.00**.\n\nCITED_CHUNK_IDS: solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal, solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal, solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal",
+          "cited_chunk_ids": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+            "solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal"
+          ]
+        },
+        "result_summary": "13 claims checked \u00b7 0 unsupported",
+        "latency_ms": 0
+      }
+    ],
+    "latency_ms": 26053,
+    "cost_usd": 0.0698875,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-18T23:47:02.028Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?",
+          "prepared_query": "In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05? (CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            },
+            {
+              "term": "SLA",
+              "expansion": "Service Level Agreement"
+            },
+            {
+              "term": "VPC",
+              "expansion": "Virtual Private Cloud"
+            },
+            {
+              "term": "GKE",
+              "expansion": "Google Kubernetes Engine"
+            }
+          ],
+          "element_intent": [
+            "table",
+            "diagram"
+          ],
+          "intent_matches": {
+            "table": [
+              "clin",
+              "credit"
+            ],
+            "diagram": [
+              "exhibit"
+            ]
+          },
+          "handed_to_agent": "Question: In Solicitation 01, if Shared VPC & Landing Zone Core (CLIN-0001-AA) experiences 99.40% monthly availability in Month 4 and GKE Enterprise Managed Cluster (CLIN-0002-AA, 20 nodes active that month) experiences 99.70% availability, what is the combined dollar SLA service credit owed under Exhibit 05?\nAcronyms: CLIN = Contract Line Item Number; SLA = Service Level Agreement; VPC = Virtual Private Cloud; GKE = Google Kubernetes Engine\nElement intent (keywords found): table, diagram"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-18T23:47:02.029Z",
+        "duration_ms": 26052,
+        "request": {},
+        "payload": {
+          "turns": 5,
+          "agent_turn_events": 21,
+          "tool_calls": 8,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 2,
+            "check_amendments": 3,
+            "calculate_contract_pricing": 1,
+            "verify_citations": 2
+          },
+          "tool_errors": 0,
+          "verify_calls": 2,
+          "unsupported_claims_before": 3,
+          "unsupported_claims_after": 0,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [
+            "$25,000.00",
+            "$25,000",
+            "$2,500.00"
+          ],
+          "unsupported_after_list": [],
+          "repair_turns": 1,
+          "final_answer_check": {
+            "checked_claims": 13,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 5,
+          "tokens": {
+            "prompt": 31214,
+            "output": 1917,
+            "thinking": 890,
+            "total": 34021
+          },
+          "citations": [
+            "solicitation_01_04_pricing_schedule_clins_p1_e2_multimodal",
+            "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+            "solicitation_01_05_sla_and_qasp_requirements_p1_e4_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 9,
+          "retrieval_usage": {
+            "embedding_tokens": 70,
+            "rank_billed_counts": 2,
+            "bigquery_bytes": 110430798,
+            "bigquery_jobs": 5,
+            "search_calls": 2
+          },
+          "calculator_values": [
+            13750.0
+          ]
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-18T23:47:28.082Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-hydrogen",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 31214,
+          "output_tokens": 1917,
+          "thinking_tokens": 890,
+          "turns": 5,
+          "final_turn": {
+            "turn_index": 5,
+            "duration_ms": 4827,
+            "tokens": {
+              "prompt": 8752,
+              "output": 431,
+              "thinking": 14,
+              "total": 9197
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "In Solicitation 01, the combined SLA service credit owed under Exhibit 05 (Clause SLA-4.2 in 05_SLA_and_QASP_Requirements.pdf) is **$13,750.00**. No amendments supersede CLIN-0001-AA, CLIN-0002-AA, or SLA-4.2, so the base terms govern.\n\n1. **CLIN-0001-AA (Shared VPC & Landing Zone Core):**\n   - Monthly CLIN Fee: **$45,000/mo** (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.40%** (< 99.50% Monthly Availability), which triggers a **P1 Severe Breach** credit of **25%** of the Monthly CLIN Fee ($45,000 \u00d7 25% = **$11,250.00**).\n\n2. **CLIN-0002-AA (GKE Enterprise Managed Cluster):**\n   - Monthly CLIN Fee: **$1,250/mo** per node \u00d7 20 active nodes (per 04_Pricing_Schedule_CLINs.pdf).\n   - Availability: **99.70%** (< 99.99% to 99.50%), which triggers a **P1 Critical** credit of **10%** of the Monthly CLIN Fee (20 \u00d7 $1,250 \u00d7 10%).\n\n**Combined SLA Service Credit:** **$13,750.00**."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 31214,
+      "output_tokens": 1917,
+      "embedding_tokens": 70,
+      "thinking_tokens": 890,
+      "model": "gemini-4-hydrogen",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.97,
+      "qa_relevance": 0.95,
+      "context_precision": 0.55
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": true,
+    "duration_ms": 6244,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 4301,
+    "output_tokens": 492,
+    "judge_cost_usd": 0.027044,
+    "rationale": "Every figure in the answer is supported by the retrieved context: the $45,000/mo and $1,250/node-mo rates, the 25% P1 Severe Breach and 10% P1 Critical tiers in SLA-4.2, the no-amendment findings, and the calculation tool's $13,750 result. The answer matches the reference total and tier logic but leaves the $25,000 monthly fee and $2,500 CLIN-0002-AA subtotal implicit rather than stated. The pricing table, SLA tier table and SLA formula chunks are on point, but the video-view fee schedule, IBM managed-hosting SLA text and unrelated amendment Q&A add substantial noise.",
+    "judge_response_id": "msg_vrtx_011ChBHZcSpnWEBJV2qQdbUQ"
+  }
+}

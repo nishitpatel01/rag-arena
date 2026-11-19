@@ -6,7 +6,7 @@ import { IngestSessionProvider } from "./IngestSessions";
 import { SafeModeProvider } from "./SafeMode";
 import { Shell } from "./Shell";
 import { routes } from "./routes";
-import { isMockRequested } from "../features/levels/useBattleStream";
+import { isMockRequested } from "../features/levels/battleTransport";
 
 export const App: React.FC = () => {
   const element = useRoutes(routes);

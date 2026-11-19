@@ -21,7 +21,7 @@ import {
 } from "../packs/industryPacks";
 import { validateModelsForSpec, workbenchReplayGate } from "../workbench/pipelineSpecModel";
 import { ModelPicker } from "./ModelPicker";
-import { isMockRequested } from "./useBattleStream";
+import { isMockRequested } from "./battleTransport";
 import { replayGate, validateSelection, type ModelSelection } from "./modelSelection";
 import type { ModelCatalogState } from "./useModelCatalog";
 import { useQuestionFields, type QuestionOverride } from "./useQuestionFields";

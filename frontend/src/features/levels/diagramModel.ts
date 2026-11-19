@@ -3,12 +3,35 @@
 import type { ArchEdge, ArchNode, EngineTimeline, StageStatus } from "../../types/arena";
 import { IDLE_STAGE } from "./model";
 
-export const NODE_W = 160;
+export const NODE_W = 168;
 /** Label, service, status/timing, then up to SUMMARY_MAX_LINES result-summary lines. */
 export const NODE_H = 92;
-/** Mono 11 px ≈ 6.6 px/char → 21 chars fit inside NODE_W minus 10 px padding each side. */
-export const SUMMARY_LINE_CHARS = 21;
+/** Mono 11 px ≈ 6.6 px/char → 22 chars fit inside NODE_W minus 10 px padding each side. */
+export const SUMMARY_LINE_CHARS = 22;
 export const SUMMARY_MAX_LINES = 2;
+/** Lowest responsive scale factor before horizontal scrolling kicks in on narrow screens. */
+export const MIN_FIT_SCALE = 0.72;
+
+export function computeDiagramScale(innerWidth: number | undefined, layoutWidth: number): number {
+  if (innerWidth === undefined || !Number.isFinite(innerWidth) || innerWidth <= 0 || layoutWidth <= 0) return 1;
+  return Math.max(MIN_FIT_SCALE, innerWidth / layoutWidth);
+}
+
+export function truncateNodeLabel(label: string, maxChars = 20): string {
+  return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label;
+}
+
+export function truncateServiceLine(text: string, maxChars = 26): string {
+  return text.length > maxChars ? `${text.slice(0, maxChars - 1)}…` : text;
+}
+
+export function truncateStatusLine(text: string, maxChars = 23): string {
+  return text.length > maxChars ? `${text.slice(0, maxChars - 1)}…` : text;
+}
+
+export function truncateEdgeLabel(label: string, maxChars = 18): string {
+  return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label;
+}
 
 /**
  * Wraps a " · "-separated summary onto at most `maxLines` lines of ≤ `maxChars` characters,
@@ -127,9 +150,9 @@ export function deriveNodeView(node: ArchNode, timeline: EngineTimeline | undefi
   return best;
 }
 
-/** Approximate width of an 11 px edge label (≤ 12 chars shown). */
+/** Approximate width of an 11 px edge label (≤ 18 chars shown). */
 export function edgeLabelWidth(label: string): number {
-  return Math.min(label.length, 12) * 6.2;
+  return Math.min(label.length, 18) * 6.0;
 }
 
 export interface EdgePath {

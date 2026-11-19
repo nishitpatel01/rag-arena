@@ -205,7 +205,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ catalog, loading, erro
               })}
             </ul>
           )}
-          {replay.blockedReason && <p className="mt-1 text-clay" role="alert">Run disabled: {replay.blockedReason}</p>}
+          {replay.blockedReason && <p className="mt-1 text-clay" role="alert">Run disabled: {mask(replay.blockedReason)}</p>}
         </div>
       )}
     </fieldset>

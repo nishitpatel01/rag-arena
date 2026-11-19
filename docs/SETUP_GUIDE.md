@@ -278,10 +278,10 @@ buckets/service accounts, grant IAM, run Cloud Build, and deploy Cloud Run.
    provision/verify just the private upload bucket and its IAM). It leak-scans the Cloud Build upload set, creates or
    verifies the private upload bucket (PAP enforced, UBLA on, no auto-delete lifecycle), grants the live runtime SA
    least-privilege roles (`aiplatform.user` covering Vertex AI models + RAG Engine, `bigquery.jobUser`, dataset `WRITER`,
-   `documentai.apiUser`, `discoveryengine.editor|viewer`, corpus bucket access, and `storage.objectUser` +
-   `storage.legacyBucketReader` on `UPLOAD_BUCKET`, plus `storage.objectViewer` on `UPLOAD_BUCKET` for the Vertex AI
-   Search service agent while Google's project-level `aiplatform.ragServiceAgent` reads corpus/upload buckets directly),
-   leaves the replay SA with zero roles, deploys the services, and prints their URLs.
+   `documentai.apiUser`, `discoveryengine.editor|viewer`, `modelarmor.user` when `MODEL_ARMOR_TEMPLATE_ID` is set, corpus
+   bucket access, and `storage.objectUser` + `storage.legacyBucketReader` on `UPLOAD_BUCKET`, plus `storage.objectViewer`
+   on `UPLOAD_BUCKET` for the Vertex AI Search service agent while Google's project-level `aiplatform.ragServiceAgent`
+   reads corpus/upload buckets directly), leaves the replay SA with zero roles, deploys the services, and prints their URLs.
 3. IAP: open the live URL and sign in with an allowlisted account; each signed-in user sees only their own `upl_*`
    workspaces (keyed by SHA-256 of the IAP email), while the public replay service exposes zero upload routes (`404`)
    or identity fields.

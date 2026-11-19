@@ -2,45 +2,53 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { CodeBlock } from "../../components/ui/CodeBlock";
 import { useSafeMode } from "../../app/SafeMode";
-import { parseDocBlocks, parseInlineTokens, type DocBlock, type TableAlign } from "./releasesModel";
+import { parseDocBlocks, parseInlineTokens, type DocBlock, type InlineToken, type LeafInlineToken, type TableAlign } from "./releasesModel";
 
-export function renderRichInline(text: string, keyPrefix: string, mask: (s: string) => string): React.ReactNode[] {
-  return parseInlineTokens(mask(text)).map((tok, idx) => {
-    const key = `${keyPrefix}-${idx}`;
-    if (tok.kind === "strong") {
-      return <strong key={key} className="font-semibold text-ink-1">{tok.text}</strong>;
-    }
-    if (tok.kind === "code") {
-      return <code key={key} className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs text-ink-1">{tok.text}</code>;
-    }
-    if (tok.kind === "link") {
-      if (tok.internalRoute) {
-        return (
-          <Link key={key} to={tok.href} className="font-medium text-moss underline-offset-2 hover:underline">
-            {tok.label}
-          </Link>
-        );
-      }
-      if (tok.external) {
-        return (
-          <a
-            key={key}
-            href={tok.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-moss underline-offset-2 hover:underline"
-          >
-            {tok.label}
-          </a>
-        );
-      }
+function renderLeafToken(tok: LeafInlineToken, key: string): React.ReactNode {
+  if (tok.kind === "code") {
+    return <code key={key} className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs text-ink-1">{tok.text}</code>;
+  }
+  if (tok.kind === "link") {
+    if (tok.internalRoute) {
       return (
-        <a key={key} href={tok.href} className="font-medium text-moss underline-offset-2 hover:underline">
+        <Link key={key} to={tok.href} className="font-medium text-moss underline-offset-2 hover:underline">
+          {tok.label}
+        </Link>
+      );
+    }
+    if (tok.external) {
+      return (
+        <a
+          key={key}
+          href={tok.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-moss underline-offset-2 hover:underline"
+        >
           {tok.label}
         </a>
       );
     }
-    return <React.Fragment key={key}>{tok.text}</React.Fragment>;
+    return (
+      <a key={key} href={tok.href} className="font-medium text-moss underline-offset-2 hover:underline">
+        {tok.label}
+      </a>
+    );
+  }
+  return <React.Fragment key={key}>{tok.text}</React.Fragment>;
+}
+
+export function renderRichInline(text: string, keyPrefix: string, mask: (s: string) => string): React.ReactNode[] {
+  return parseInlineTokens(mask(text)).map((tok: InlineToken, idx: number) => {
+    const key = `${keyPrefix}-${idx}`;
+    if (tok.kind === "strong") {
+      return (
+        <strong key={key} className="font-semibold text-ink-1">
+          {tok.children.map((child, cIdx) => renderLeafToken(child, `${key}-s${cIdx}`))}
+        </strong>
+      );
+    }
+    return renderLeafToken(tok, key);
   });
 }
 

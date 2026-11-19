@@ -299,18 +299,19 @@ def test_tco_api_endpoints_join_real_recorded_cohorts_and_reject_bad_inputs() ->
     claude_l8 = next(a for a in claude_est.architectures if a.level_id == "level4_agentic")
     assert any("Gemini 4 worker" in t and "ADK" in t for t in claude_l8.tradeoffs)
 
-    # Verify default Gemini 4 Hydrogen has no direct recordings yet -> falls back honestly to reference Argon cohort
+    # Standing levels join direct Gemini 4 Hydrogen cohorts; ephemeral ScaNN levels fall back honestly to reference Argon cohort
     initial_archs = {a["level_id"]: a for a in body_def["estimate"]["architectures"]}
     assert body_def["defaults"]["synthesis_model"] == "gemini-4-hydrogen"
-    assert initial_archs["level2_hybrid"]["recorded_cohort"] is None
-    assert initial_archs["level2_hybrid"]["alternate_cohort"] is not None
-    assert initial_archs["level2_hybrid"]["alternate_cohort"]["synthesis_model"] == "gemini-4-argon"
-    assert initial_archs["level2_hybrid"]["alternate_cohort"]["runs"] == 8
-
-    # Honest label invariant: managed_vertex also falls back cleanly to reference Argon cohort
-    assert initial_archs["managed_vertex"]["recorded_cohort"] is None
-    assert initial_archs["managed_vertex"]["alternate_cohort"] is not None
-    assert initial_archs["managed_vertex"]["alternate_cohort"]["synthesis_model"] == "gemini-4-argon"
+    for standing_id in ("managed_vertex", "rag_engine", "level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic"):
+        assert initial_archs[standing_id]["recorded_cohort"] is not None
+        assert initial_archs[standing_id]["recorded_cohort"]["synthesis_model"] == "gemini-4-hydrogen"
+        assert initial_archs[standing_id]["recorded_cohort"]["runs"] == 8
+        assert initial_archs[standing_id]["alternate_cohort"] is None
+    for scann_id in ("alloydb_scann", "vertex_vector_v2"):
+        assert initial_archs[scann_id]["recorded_cohort"] is None
+        assert initial_archs[scann_id]["alternate_cohort"] is not None
+        assert initial_archs[scann_id]["alternate_cohort"]["synthesis_model"] == "gemini-4-argon"
+        assert initial_archs[scann_id]["alternate_cohort"]["runs"] == 8
 
     # POST /api/v1/tco/estimate with Argon joins exact Argon cohorts across all 8 levels
     res_argon = client.post(

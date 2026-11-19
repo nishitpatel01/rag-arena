@@ -18,11 +18,14 @@ export interface SafeDocHref {
   readonly internalRoute: boolean;
 }
 
-export type InlineToken =
+export type LeafInlineToken =
   | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "strong"; readonly text: string }
   | { readonly kind: "code"; readonly text: string }
   | { readonly kind: "link"; readonly label: string; readonly href: string; readonly external: boolean; readonly internalRoute: boolean };
+
+export type InlineToken =
+  | LeafInlineToken
+  | { readonly kind: "strong"; readonly text: string; readonly children: readonly LeafInlineToken[] };
 
 export interface DocListItem {
   readonly text: string;
@@ -91,17 +94,14 @@ export function sanitizeDocHref(rawHref: string): SafeDocHref | null {
   return null;
 }
 
-/** Tokenizes inline bold, monospace code, and safe links without interpreting raw HTML. */
-export function parseInlineTokens(text: string): InlineToken[] {
+const LEAF_INLINE_TOKEN_RE = /(`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\))/g;
+
+function parseLeafInlineTokens(text: string): LeafInlineToken[] {
   if (!text) return [];
-  const parts = text.split(INLINE_TOKEN_RE).slice(0, MAX_INLINE_PARTS);
-  const out: InlineToken[] = [];
+  const parts = text.split(LEAF_INLINE_TOKEN_RE).slice(0, MAX_INLINE_PARTS);
+  const out: LeafInlineToken[] = [];
   for (const part of parts) {
     if (!part) continue;
-    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
-      out.push({ kind: "strong", text: part.slice(2, -2) });
-      continue;
-    }
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
       out.push({ kind: "code", text: part.slice(1, -1) });
       continue;
@@ -115,6 +115,23 @@ export function parseInlineTokens(text: string): InlineToken[] {
       }
     }
     out.push({ kind: "text", text: part });
+  }
+  return out;
+}
+
+/** Tokenizes inline bold (including nested inline code/links), monospace code, and safe links without interpreting raw HTML. */
+export function parseInlineTokens(text: string): InlineToken[] {
+  if (!text) return [];
+  const parts = text.split(INLINE_TOKEN_RE).slice(0, MAX_INLINE_PARTS);
+  const out: InlineToken[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      const inner = part.slice(2, -2);
+      out.push({ kind: "strong", text: inner, children: parseLeafInlineTokens(inner) });
+      continue;
+    }
+    out.push(...parseLeafInlineTokens(part));
   }
   return out;
 }

@@ -3,6 +3,121 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.4](https://github.com/nishitpatel01/rag-arena/compare/v1.6.3...v1.6.4) (2026-11-23)
+
+
+### Added
+
+* **acl:** add identity-aware document ACLs and row-level security (v1.6.3) ([22992e4](https://github.com/nishitpatel01/rag-arena/commit/22992e409c17f1935e2b0d920b8d62ab5578fc52))
+* **acl:** Identity-Aware Document ACLs & Row-Level Security (v1.6.3) ([afb9382](https://github.com/nishitpatel01/rag-arena/commit/afb93823115598c1834a0622edfc1f77b621fdc8))
+* **backend:** v3 StageEmitter contracts, timer-free SSE forwarder, record/replay, ingestion jobs ([51be8f5](https://github.com/nishitpatel01/rag-arena/commit/51be8f5ed685a99c2c230617e8ea718c1aa1a1fb))
+* **benchmarks:** record Gemini 4 Hydrogen cohort, fix L7/L8 retrieval, and add Model Armor IAM parity ([cccf2d8](https://github.com/nishitpatel01/rag-arena/commit/cccf2d8d90f5215489131dc02bbed06fe19f4072))
+* **compare:** real /compare page — one question, selected levels run concurrently, stacked rails, side-by-side answers, server-computed Battle Score scoreboard ([d87eadb](https://github.com/nishitpatel01/rag-arena/commit/d87eadb0443a195d56598b73aec583c31d103d15))
+* **core:** add canonical PipelineSpec, validator, presets, and dynamic descriptor ([4333e0f](https://github.com/nishitpatel01/rag-arena/commit/4333e0f82ca7ea5e1be5315d7306ea78c97f55ea))
+* **deploy:** configurable Cloud Run deployment (region, IAP|public, optional public replay copy, LIVE_INGEST), single SPA+API image, least-privilege SAs, teardown, Terraform parity, v3 compose ([6f742a4](https://github.com/nishitpatel01/rag-arena/commit/6f742a4b73a9a64cccf6b41a54deda3619842386))
+* **docai:** idempotent rag-arena-layout-parser provisioning (REST, env-only ids) in script, bootstrap and Terraform ([43ba563](https://github.com/nishitpatel01/rag-arena/commit/43ba563e7daae71b1c42dff5ae7f11ffc442fe06))
+* **engines:** implement ComposableRAGEngine, pipeline APIs, and query_runs provenance ([9a02632](https://github.com/nishitpatel01/rag-arena/commit/9a026321946aa2a4fb3108da6386b70829608217))
+* **engines:** implement Level 6 Vertex AI RAG Engine and grounded mode ([d42509a](https://github.com/nishitpatel01/rag-arena/commit/d42509a265286d3a47011bc33a20e0232c52f3df))
+* **eval:** add Vertex AI GenAI Eval Service and split engine vs judge economics ([160756a](https://github.com/nishitpatel01/rag-arena/commit/160756abb5ba1e9b49c2dfa31fc65f037b68c71d))
+* **eval:** Claude Opus 5.5 as LLM-as-a-judge via Vertex AI (distinct from synthesis model) ([68b3a56](https://github.com/nishitpatel01/rag-arena/commit/68b3a561c9cfbf57176fcd5d4a6ab07f2e408d81))
+* **frontend:** add industry benchmark packs, executive brief export, and replay speed control ([307f41b](https://github.com/nishitpatel01/rag-arena/commit/307f41b30c9418eb767e45c76efd4fc2ed1c84a1))
+* **frontend:** BigQuery index-usage and rerank billing lines; diagram fits six nodes; refresh Level 2 screenshots ([349f90c](https://github.com/nishitpatel01/rag-arena/commit/349f90ca08f5b5c16609140a67028a5f394249f2))
+* **frontend:** full diagram transcription from retrieved chunks; Level 3 README screenshot ([5a3058a](https://github.com/nishitpatel01/rag-arena/commit/5a3058ade2aa1b9c44fd78e33a44c9ef6e2c7e5a))
+* **frontend:** Level 2 views — acronym expansion diff, hybrid RRF candidates, rerank before/after, Level 1 compare teaser ([d1d530b](https://github.com/nishitpatel01/rag-arena/commit/d1d530b4245cb9fe2e3287175b7a597d18833e93))
+* **frontend:** Level 3 views — element/layout/bbox-source badges, authority headers, element mix, diagram transcription drawer, parse summary ([9c44716](https://github.com/nishitpatel01/rag-arena/commit/9c447162910327603b46292f7628cdcec490f155))
+* **frontend:** Level 4 live agent timeline — model/tool rows in arrival order, pricing expressions, citation-repair diff, tool nodes light up while calls are open ([500749c](https://github.com/nishitpatel01/rag-arena/commit/500749c36bf78b8e0faa3bcb7af33791dbb09f55))
+* **frontend:** Level 5 Vertex AI Search views (results + extractive segments, summary vs model modes, managed ingest), 21-level5.png ([1e7f8a3](https://github.com/nishitpatel01/rag-arena/commit/1e7f8a365a03faf8bb9fad4550179e8e7f3d7dae))
+* **frontend:** level pages show the newest run that included them (Compare or own), with question/models, banner, and Clear ([dc098ed](https://github.com/nishitpatel01/rag-arena/commit/dc098edad6944e77224a8f5afabe3fa245a62407))
+* **frontend:** live Level 1 polish — verbatim index states, ingest run provenance table, markdown answers ([69ed3d5](https://github.com/nishitpatel01/rag-arena/commit/69ed3d56638fc0f159b79f46c8df6292a742cfe8))
+* **frontend:** per-page run sessions survive navigation (runs keep streaming), Reset / Stop & reset on level and Compare pages ([049d7a6](https://github.com/nishitpatel01/rag-arena/commit/049d7a6c359eca38f3566a3226c2a3f0773ec774))
+* **frontend:** per-run synthesis and judge model picker ([692f574](https://github.com/nishitpatel01/rag-arena/commit/692f5742b73b2975ef96cea74875aa351d86e86d))
+* **frontend:** polish Level 4 diagram/timeline for real recordings and add 20-level4.png ([7643511](https://github.com/nishitpatel01/rag-arena/commit/7643511df78cf71e356fb481d57def3a1b4fe8d3))
+* **frontend:** resizable Document viewer and Node details panes (drag/keyboard, persisted, wider defaults) ([d5f0168](https://github.com/nishitpatel01/rag-arena/commit/d5f0168855cbe188576071f6aed532e35b2fa968))
+* **frontend:** resizable Question pane; side panes share space so the middle column keeps &gt;= 480 px ([1d17618](https://github.com/nishitpatel01/rag-arena/commit/1d17618840f648af415a17da718591b2be1a25c9))
+* **frontend:** screen-share safe mode (mask project id, bucket, project number); fix per-document ingest progress rows ([32c2074](https://github.com/nishitpatel01/rag-arena/commit/32c2074812e74baa03e8eccb9e40456d0108f295))
+* **frontend:** show judge rationale, judge tokens/cost and run cost (engine + judge) ([e8b4369](https://github.com/nishitpatel01/rag-arena/commit/e8b4369c2f7655e342d46fddc375fb93bd42dd39))
+* **frontend:** v3 full-width shell, light/dark/system theme, stage rail and live architecture diagram ([8478425](https://github.com/nishitpatel01/rag-arena/commit/847842582926deaee3c32b49b65c7cc16a0666f7))
+* **guardrails:** add Google Cloud Model Armor v1 guardrail slot and Workbench screening ([2afba0c](https://github.com/nishitpatel01/rag-arena/commit/2afba0c9e1babfd554371c423dc2402f64fae820))
+* **ingest:** add Vertex AI RAG Engine corpus and isolated upload ingestion ([cd36717](https://github.com/nishitpatel01/rag-arena/commit/cd36717b1fe56a01eb852978b195ae8ebfb9bf09))
+* **ingest:** Level 3 multimodal ingestion — Document AI Layout Parser v1.5 elements, Gemini vision diagram transcription, element-aware chunks, multimodal embeddings ([d1b694b](https://github.com/nishitpatel01/rag-arena/commit/d1b694ba28b0393334535eae5c63e62a0ffa33fe))
+* **ingest:** live Vertex embedder and BigQuery loader for ingestion jobs ([be2a845](https://github.com/nishitpatel01/rag-arena/commit/be2a8457da8dbb4c75bd7b0dc333ecd1e1434ad8))
+* **leaderboard:** /leaderboard from query_runs (live) or recordings (replay), per-pair tables with provenance; delete hand-typed precomputed_runs.json ([5678375](https://github.com/nishitpatel01/rag-arena/commit/56783754b47abfb37fc826600222cd877a87d13a))
+* **level1:** query embedding format, query_runs provenance per live run ([1adb425](https://github.com/nishitpatel01/rag-arena/commit/1adb4253142b8ddba205c0b2423e2d67e5b5b8c8))
+* **level2:** Level 2 hybrid engine with measured query_prep, embed, RRF retrieve, rerank, synthesize stages ([2b80d43](https://github.com/nishitpatel01/rag-arena/commit/2b80d4346d62aca9166ca82f0e334b6f027e74cd))
+* **level3:** Level 3 engine — element intent, multimodal RRF retrieve, rerank, authority-header synthesis (latest amendment first) ([7c80822](https://github.com/nishitpatel01/rag-arena/commit/7c80822f9e755a4752f428eb8e4bfa261fda00cc))
+* **level4:** agent tools on real data — corpus search (Level 3 retrieve+rerank), BigQuery amendment lookup, AST-safe pricing calculator, citation verifier ([2e651b9](https://github.com/nishitpatel01/rag-arena/commit/2e651b983b7688931e756b164bec9d73d7fd752d))
+* **level4:** real Google ADK agent (LlmAgent + InMemoryRunner) with live agent_turn telemetry, bounded turns/tool calls/timeouts, one citation-repair turn ([ba6cc60](https://github.com/nishitpatel01/rag-arena/commit/ba6cc609921b97dae0efd720d07e4b097ad79d49))
+* **level5:** Managed Vertex AI Search — provisioning, GCS sync + managed import job, search/summary engine (two synthesis modes), 16 recordings; battle route builds only requested engines ([5994be6](https://github.com/nishitpatel01/rag-arena/commit/5994be65e60195ba9ff31b137418bdc504c18dc0))
+* **models:** add Gemini 4 + Claude catalog, synced selector, and pair recommender ([faec7eb](https://github.com/nishitpatel01/rag-arena/commit/faec7eb61f18ffc43733f25df977ac8bf83463e5))
+* **models:** verified model catalog with per-run synthesis and judge selection ([b903440](https://github.com/nishitpatel01/rag-arena/commit/b903440cd836abcce4b3f9cfc7597c79c0df4da4))
+* **rag-engine:** add safe RagManagedDb provisioning and Level 6 config ([053c20a](https://github.com/nishitpatel01/rag-arena/commit/053c20a19fead6391022a38ecccce32fcc8bb879))
+* **recording:** redact project, bucket, credential and home paths before writing recordings ([a0a2e84](https://github.com/nishitpatel01/rag-arena/commit/a0a2e84af599b2ca132f01a543173a8b20fb6819))
+* **releases:** add /api/v1/releases manifest compiler, drift CLI, and container packaging ([383a9d5](https://github.com/nishitpatel01/rag-arena/commit/383a9d5dbab2ecce78739d0e997ae59190a64aa4))
+* **rerank:** Discovery Engine Ranking API REST client with bounds, pricing per rank count ([c3745cc](https://github.com/nishitpatel01/rag-arena/commit/c3745cc98e82f22fe41a2bfb8bd103f09c51fa28))
+* **retrieve:** hybrid VECTOR_SEARCH + SEARCH() RRF SQL with per-row ranks; CUAD docs labelled COMMERCIAL_AGREEMENT ([d5a5b7c](https://github.com/nishitpatel01/rag-arena/commit/d5a5b7c32dfef74c89083231b34cbd8cef4d785a))
+* **scann:** promote Level 7 AlloyDB ScaNN & Level 8 Vector Search 2.0 engines, UI, and ephemeral scripts ([db9f869](https://github.com/nishitpatel01/rag-arena/commit/db9f8694415fc7c9960b6431baa8b92db6fe761e))
+* **ui:** ship v1.6.2 single-row nav, responsive Workbench SVG, WCAG AA tokens, and route splitting ([bf99d7a](https://github.com/nishitpatel01/rag-arena/commit/bf99d7ab44391e5a0e69a2dfac71949c111cc4b0))
+* **ux:** order 8 architectures simplest-to-complex (Order A) and simplify Overview page with progressive disclosure ([2c90def](https://github.com/nishitpatel01/rag-arena/commit/2c90def2069eb20d460ab3ad42b8c4d7cd9c9870))
+* **v1.2:** add Level 6 UI, Cloud Run parity, 24 recordings, and v1.2.0 docs ([6d1bfd1](https://github.com/nishitpatel01/rag-arena/commit/6d1bfd19d0019c53f9f691a1c1d93d04b17ff9f4))
+* **v1.3:** add Controlled Ablation Lab, Retrieval Diff Inspector, and v1.3.0 docs ([64776d1](https://github.com/nishitpatel01/rag-arena/commit/64776d138c4e33e42ad89fbf23cdd56e9eb4c7dd))
+* **v1.4:** add 32 live ScaNN golden recordings and v1.4.0 release documentation ([62b0d6f](https://github.com/nishitpatel01/rag-arena/commit/62b0d6fd728a974f96e07890a7ee56da41d94da0))
+* **v1.5:** add in-app /releases documentation hub and release-please CI workflow ([37db489](https://github.com/nishitpatel01/rag-arena/commit/37db4895c1c5794014642bfeef2812b7d93aac7b))
+* v1.6.2 Gemini 4 Hydrogen replay refresh, engine fixes, and UI/deploy polish ([1d88de2](https://github.com/nishitpatel01/rag-arena/commit/1d88de2a9743c2a5cad7874daf3c0980192c66c9))
+* **viewer:** citation drawer with real PDF page render and text-match highlights ([52a5697](https://github.com/nishitpatel01/rag-arena/commit/52a5697d3d0a6db4eb301fab00d76ba0d39543cd))
+* **wizard-tco:** add enterprise architecture advisor and monthly GCP TCO calculator ([5e65d4c](https://github.com/nishitpatel01/rag-arena/commit/5e65d4c652f3b4c75ac9625b031d917db668af19))
+* **workbench:** add interactive /workbench UI synced with live ArchitectureDiagram ([fae8363](https://github.com/nishitpatel01/rag-arena/commit/fae8363a3f330522856b7cf05d2c1dfc5a2f68c9))
+
+
+### Changed
+
+* **ingest:** skip 60s index poll on upload workspace ingestion (v1.1.1) ([8e4a188](https://github.com/nishitpatel01/rag-arena/commit/8e4a18873722f0a8c739d191d28f9be35d883287))
+* **ingest:** skip 60s index poll on upload workspace ingestion (v1.1.1) ([b297158](https://github.com/nishitpatel01/rag-arena/commit/b2971587a6244e887b830113337a6ce83c620cca))
+
+
+### Fixed
+
+* **build:** frontend lockfile resolves from the public npm registry (was an internal proxy host); publish.json forbids internal proxy hostnames ([d1a873e](https://github.com/nishitpatel01/rag-arena/commit/d1a873eb1dda7d87f797d2787f9969c5f69a4e60))
+* **corpus:** draw diagram titles/labels in dark ink so rendered diagrams are readable ([a3298ef](https://github.com/nishitpatel01/rag-arena/commit/a3298ef39502b8e0441cecad817e04efbabc06fe))
+* **frontend:** fail loud when a run or ingest stream ends without a terminal event ([5f5e665](https://github.com/nishitpatel01/rag-arena/commit/5f5e6657feea173d8ce200aa0a68cdf955665b0e))
+* honest local-corpus ingest node, env-driven CORS, v3 table in env template; Phase 1 D5/D7 evidence ([1ad0843](https://github.com/nishitpatel01/rag-arena/commit/1ad084359f07913ebd89ffc3cb139fd492b639d1))
+* **ingest:** accurate non-live ingest status message (no stale 'Phase 1' wording) ([4ad7e8b](https://github.com/nishitpatel01/rag-arena/commit/4ad7e8b66bb8907d0820d8f827a150d6ef9cf645))
+* **ingest:** require PyMuPDF in live mode, fail on empty docs, extract unclipped text ([0300986](https://github.com/nishitpatel01/rag-arena/commit/0300986b05204e617e68373e9717c3e2d2b5af23))
+* **leaderboard:** never aggregate synthetic dev fixture recordings ([9dcc826](https://github.com/nishitpatel01/rag-arena/commit/9dcc82605b9aa8899cff529505f30b331d5ec19c))
+* **level4,deploy:** thinking config via ADK BuiltInPlanner; image installs a public-PyPI lock (google-adk 2.12.0) instead of unpinned ranges that resolved to adk 1.14.1 ([aa4d20a](https://github.com/nishitpatel01/rag-arena/commit/aa4d20ae93d669168ecfde91e6aa9e74d29efffa))
+* **replay:** keep Level 3 citation layout_source/bbox_source when decoding recordings ([3735c1c](https://github.com/nishitpatel01/rag-arena/commit/3735c1c7d7261928fcf4befb194c96151c10c11d))
+* **scoring:** efficiency references 60 s / $0.20 per run so speed and cost separate real runs (owner decision) ([108b98d](https://github.com/nishitpatel01/rag-arena/commit/108b98d5f2253f558203bc851404012ae4dfcc0a))
+* **ux:** align remaining Order A Level N labels, TCO posture notes, and backend INDEX_PROFILES ([1893aae](https://github.com/nishitpatel01/rag-arena/commit/1893aaedf3e674e3e8bc236303f9ee0642e138dd))
+* **wizard,workbench:** address QA review polish, TCO watch-outs, and live replay_speed wire hygiene ([12c8e6a](https://github.com/nishitpatel01/rag-arena/commit/12c8e6af82830af23303b2bb3fd6668b5f1f0a4f))
+
+
+### Documentation
+
+* add Level 4 (Google ADK agentic RAG) architecture, results, and D1-D6 evidence ([9099fa2](https://github.com/nishitpatel01/rag-arena/commit/9099fa20c739c640ec6ba37ab53c168000cf5370))
+* Cloud Run deployment (configurable), Phase 6 progress ([7b8aae7](https://github.com/nishitpatel01/rag-arena/commit/7b8aae7c519b9e0416bac3df0de3eef0b8feb6f4))
+* Level 2 live — architecture, walkthrough with screenshots, Level 1 vs Level 2 results, Ranking API pricing ([d946e32](https://github.com/nishitpatel01/rag-arena/commit/d946e321c308b36ec27611d84355d4351bf12eb2))
+* Level 3 live — compact README (one screenshot per level, averages table), detail moved to ARCHITECTURE/SETUP ([8efa35a](https://github.com/nishitpatel01/rag-arena/commit/8efa35aa14af1e4a894ef157ec8aa1aa9d10a45c))
+* Level 5 (Managed Vertex AI Search) architecture, results and D1-D6 evidence ([5d09a95](https://github.com/nishitpatel01/rag-arena/commit/5d09a955114b46f776051328292cf8f5b466cd56))
+* **phase1:** D1/D2/D3/D5/D6 evidence; golden set is 8 questions ([d680267](https://github.com/nishitpatel01/rag-arena/commit/d680267fef3abb662a0f55584f747d54905e9c9c))
+* **phase1:** D4 UI evidence ([d790d4f](https://github.com/nishitpatel01/rag-arena/commit/d790d4f62f151f81405819a38a59ca4bbbea6f52))
+* **phase1:** record owner feedback items (judge model, viewer, model picker) ([423acd4](https://github.com/nishitpatel01/rag-arena/commit/423acd4aed766d1c9b2d9545be34cc2ab1796887))
+* **phase2:** D1-D6 evidence for Level 2 ([7bcf3fc](https://github.com/nishitpatel01/rag-arena/commit/7bcf3fcbc4a3da031de4542c413882f38d7aa55e))
+* **phase3:** D1-D6 evidence for Level 3 ([b653bcb](https://github.com/nishitpatel01/rag-arena/commit/b653bcb81d13a04c27da0ef993e7649e0a6e972f))
+* README Compare/Leaderboard + compact layout; Phase 6 decisions (history A, parked engines kept) ([f85b850](https://github.com/nishitpatel01/rag-arena/commit/f85b850335e7a3a54bf36906a2f3c55a654e1b31))
+* README opens with problem + solution, GCP products per level, q… ([071c182](https://github.com/nishitpatel01/rag-arena/commit/071c1829d21ef214d423625157079e5d1e714cf4))
+* README opens with problem + solution, GCP products per level, quality & tests, clean layout tree, MIT LICENSE; principles table moved to ARCHITECTURE §0 ([7219188](https://github.com/nishitpatel01/rag-arena/commit/7219188a89c97b0a96f82bea891fbebf75f3a48f))
+* README screenshots for Compare and Leaderboard ([b06a189](https://github.com/nishitpatel01/rag-arena/commit/b06a18957b128b214ed8a0cc0838841f3dcb4dcb))
+* README screenshots for Compare and Leaderboard ([7c32f58](https://github.com/nishitpatel01/rag-arena/commit/7c32f58e43051646a0404d8fbbec5c4a3ffd6606))
+* **readme:** one screenshot per architecture; condense stage walkthrough into a table; drop unused screenshots ([fef80a9](https://github.com/nishitpatel01/rag-arena/commit/fef80a9bfb6630705b1ae2c3a70d0d8ebc184bed))
+* **readme:** refresh Order A ladder, Gemini 4 Hydrogen results & 12 v1.6.2 screenshots ([db4f00d](https://github.com/nishitpatel01/rag-arena/commit/db4f00db47cebd66987f1082d7c6dddba9323ad2))
+* **readme:** refresh Order A ladder, Gemini 4 Hydrogen results, and 12 v1.6.2 screenshots ([0115475](https://github.com/nishitpatel01/rag-arena/commit/0115475696579bde4064312da8847dc5d40efa73))
+* **screenshots:** 14 live UI screenshots (safe mode, guard-verified) for each stage, architecture, viewer, ingest, leaderboard ([0deb6cb](https://github.com/nishitpatel01/rag-arena/commit/0deb6cbaf825748de9e1aa36302f2bd1d1ec7c80))
+* **screenshots:** Level 2 retrieve candidates, rerank before/after, query prep, architecture (replay, guard-verified) ([25e8553](https://github.com/nishitpatel01/rag-arena/commit/25e85535aecf88d9a4e00ee6777e451c2bbeca52))
+* **task:** Cloud Run gate passed (owner live run + ingestion on deployed UI) ([0758991](https://github.com/nishitpatel01/rag-arena/commit/07589912fad7c12310ccd1daf13710f8d2656fd3))
+* **task:** Phase 6 compare, UI session and leaderboard evidence ([2decd23](https://github.com/nishitpatel01/rag-arena/commit/2decd23a3aeb0333df3d245d45d1c0695bf5b53e))
+* v3 README with architecture, stage-by-stage walkthrough, model catalog, Level 1 results; refresh architecture and setup guides ([d775bd0](https://github.com/nishitpatel01/rag-arena/commit/d775bd0600bf50477538b091374f5736607c6692))
+* **v3:** Cloud Run deployment plan (IAP, least-privilege SA, env-only config) in Phase 6 ([b63953c](https://github.com/nishitpatel01/rag-arena/commit/b63953c951a80c99688cffcf9dff2894f7d4efa2))
+* **v3:** spec, task tracker, v2 authenticity audit, env-only configuration ([f72d3b1](https://github.com/nishitpatel01/rag-arena/commit/f72d3b158a14b3d2f4e45bc40a7bd560427d6f66))
+
 ## [1.6.3] - 2026-11-20
 
 Identity-Aware Document ACLs & Row-Level Security (RLS) across BigQuery, AlloyDB ScaNN, Vector Search 2.0, Vertex AI Search, ADK tool closures, Document Viewer, Composable Workbench, and Overview TCO Advisor (`$0.00/mo` standing idle; `6` live recorded ACL refusal demos isolated from the `183`-run baseline leaderboard).

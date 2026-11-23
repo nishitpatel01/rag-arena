@@ -30,7 +30,7 @@ export const Panel: React.FC<PanelProps> = ({
           {title && <h2 className="text-sm font-semibold text-ink-1">{title}</h2>}
           {subtitle && <p className="text-xs text-ink-3">{subtitle}</p>}
         </div>
-        {actions && <div className="flex items-center gap-2">{actions}</div>}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-1.5">{actions}</div>}
       </header>
     )}
     <div className={`min-w-0 flex-1 p-4 ${bodyClassName}`}>{children}</div>

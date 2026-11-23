@@ -20,6 +20,8 @@ import { COMPARE_SESSION } from "../levels/useLevelRun";
 import { ScopeSelector } from "../uploads/ScopeSelector";
 import { applyUploadScopeToChoices } from "../uploads/uploadModel";
 import { useUploadWorkspaces, type UploadWorkspacesState } from "../uploads/useUploadWorkspaces";
+import { AccessPersonaSelect } from "../acl/AccessPersonaSelect";
+import { useAccessPersona, type AccessPersonaState } from "../acl/aclModel";
 import {
   ABLATION_SESSION,
   ablationSlotChoices,
@@ -76,6 +78,7 @@ interface SharedCompareProps {
   readonly demoMode: string | null;
   readonly models: ModelCatalogState;
   readonly uploadScope: UploadWorkspacesState;
+  readonly acl: AccessPersonaState;
   readonly highlightMetric: HighlightMetric;
   readonly setHighlightMetric: (m: HighlightMetric) => void;
 }
@@ -85,6 +88,7 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
   demoMode,
   models,
   uploadScope,
+  acl,
   highlightMetric,
   setHighlightMetric,
 }) => {
@@ -100,9 +104,22 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
 
   const effectiveQid = uploadScope.isUploadActive ? "" : question.questionId;
   const choices = useMemo(() => {
-    const base = levelChoices(levels, models.catalog, models.selection, effectiveQid);
+    const aclOpts = uploadScope.isUploadActive
+      ? null
+      : { personaId: acl.personaId, demos: acl.recordedDemos, capabilities: acl.capabilities };
+    const base = levelChoices(levels, models.catalog, models.selection, effectiveQid, aclOpts);
     return uploadScope.isUploadActive ? applyUploadScopeToChoices(base, uploadScope.activeWorkspace) : base;
-  }, [levels, models.catalog, models.selection, effectiveQid, uploadScope.isUploadActive, uploadScope.activeWorkspace]);
+  }, [
+    levels,
+    models.catalog,
+    models.selection,
+    effectiveQid,
+    uploadScope.isUploadActive,
+    uploadScope.activeWorkspace,
+    acl.personaId,
+    acl.recordedDemos,
+    acl.capabilities,
+  ]);
   const checked = useMemo(() => new Set(choices.map((c) => c.levelId).filter((id) => !unchecked.has(id))), [choices, unchecked]);
   const engines = enginesToRun(choices, checked);
   const estimate = costEstimate(leaderboard.data, engines, models.selection);
@@ -133,6 +150,7 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
       synthesisModel: sel?.synthesis ?? null,
       judgeModel: sel?.judge ?? null,
       replaySpeed: replaySpeedWireValue(demoMode) ?? null,
+      accessPersona: acl.isRestricted ? acl.personaId : null,
     });
   };
   const openCitation = useCallback((engine: string, citation: Citation) => setSelected({ engine, citation }), []);
@@ -179,6 +197,14 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
               error={uploadScope.error}
               disabled={stream.isStreaming}
               onChange={uploadScope.setScope}
+            />
+          }
+          aclControl={
+            <AccessPersonaSelect
+              id="compare-acl-select"
+              acl={acl}
+              demoMode={demoMode}
+              disabled={stream.isStreaming}
             />
           }
         />
@@ -251,6 +277,7 @@ const PresetLadderView: React.FC<SharedCompareProps> = ({
         open={selected !== null}
         onClose={() => setSelected(null)}
         retrievedChunks={selected ? stream.state.timelines[selected.engine]?.answer?.retrievedChunks : undefined}
+        accessPersona={acl.personaId}
       />
     </>
   );
@@ -261,6 +288,7 @@ const AblationLabView: React.FC<SharedCompareProps & { readonly presets: readonl
   demoMode,
   models,
   uploadScope,
+  acl,
   highlightMetric,
   setHighlightMetric,
   presets,
@@ -332,6 +360,7 @@ const AblationLabView: React.FC<SharedCompareProps & { readonly presets: readonl
       synthesisModel: sel?.synthesis ?? null,
       judgeModel: sel?.judge ?? null,
       replaySpeed: replaySpeedWireValue(demoMode) ?? null,
+      accessPersona: acl.isRestricted ? acl.personaId : null,
     });
   };
   const openCitation = useCallback((engine: string, citation: Citation) => setSelected({ engine, citation }), []);
@@ -379,6 +408,14 @@ const AblationLabView: React.FC<SharedCompareProps & { readonly presets: readonl
               error={uploadScope.error}
               disabled={stream.isStreaming}
               onChange={uploadScope.setScope}
+            />
+          }
+          aclControl={
+            <AccessPersonaSelect
+              id="ablation-acl-select"
+              acl={acl}
+              demoMode={demoMode}
+              disabled={stream.isStreaming}
             />
           }
         />
@@ -451,6 +488,7 @@ const AblationLabView: React.FC<SharedCompareProps & { readonly presets: readonl
         open={selected !== null}
         onClose={() => setSelected(null)}
         retrievedChunks={selected ? stream.state.timelines[selected.engine]?.answer?.retrievedChunks : undefined}
+        accessPersona={acl.personaId}
       />
     </>
   );
@@ -462,6 +500,7 @@ export const ComparePage: React.FC = () => {
   const { levels, loading, health } = useAppData();
   const models = useModelCatalog(null);
   const uploadScope = useUploadWorkspaces(health?.demo_mode ?? null);
+  const acl = useAccessPersona();
   const [highlightMetric, setHighlightMetric] = useHighlightMetric();
   const [mode, setMode] = useSessionUi<CompareMode>(COMPARE_SESSION, "compareMode", "ladder", isMode);
   const [presets, setPresets] = useState<readonly PipelinePresetEntry[]>([]);
@@ -539,6 +578,7 @@ export const ComparePage: React.FC = () => {
           demoMode={health?.demo_mode ?? null}
           models={models}
           uploadScope={uploadScope}
+          acl={acl}
           highlightMetric={highlightMetric}
           setHighlightMetric={setHighlightMetric}
         />
@@ -548,6 +588,7 @@ export const ComparePage: React.FC = () => {
           demoMode={health?.demo_mode ?? null}
           models={models}
           uploadScope={uploadScope}
+          acl={acl}
           highlightMetric={highlightMetric}
           setHighlightMetric={setHighlightMetric}
           presets={presets}

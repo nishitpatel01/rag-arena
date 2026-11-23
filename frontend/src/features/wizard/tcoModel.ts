@@ -30,6 +30,7 @@ export const COMPLIANCE_POSTURE_OPTIONS = [
   "standard_serverless",
   "managed_turnkey",
   "cmek_vpc",
+  "strict_document_acls",
 ] as const;
 export type CompliancePosture = (typeof COMPLIANCE_POSTURE_OPTIONS)[number];
 
@@ -94,6 +95,7 @@ export const COMPLIANCE_POSTURE_CHOICES: readonly WizardOptionMeta<CompliancePos
   { value: "standard_serverless", label: "Serverless ($0 Idle)", hint: "Scale-to-zero idle compute; pay per query" },
   { value: "managed_turnkey", label: "Managed Turnkey SLA", hint: "Google-managed indexing & retrieval PaaS" },
   { value: "cmek_vpc", label: "CMEK + VPC-SC Strict", hint: "Regional residency, KMS keys & Private IP" },
+  { value: "strict_document_acls", label: "Strict Document ACLs", hint: "Per-chunk RLS & group-filtered retrieval" },
 ];
 
 export const SYNTHESIS_MODEL_CHOICES: readonly WizardOptionMeta<TcoSynthesisModel>[] = [
@@ -200,6 +202,20 @@ export const ENTERPRISE_SCENARIO_PRESETS: readonly ScenarioPreset[] = [
       latency_sla: "sub_second_retrieval",
       compliance_posture: "cmek_vpc",
       doc_complexity: "plain_text",
+      synthesis_model: "gemini-4-hydrogen",
+    },
+  },
+  {
+    preset_id: "enterprise_document_acls",
+    title: "Strict Document ACLs & RLS",
+    subtitle: "Multi-group Finance, Legal & SOC2 corpora with row-level retrieval isolation at $0/mo idle",
+    workload: {
+      data_gravity: "bigquery_warehouse",
+      monthly_queries: 50_000,
+      corpus_pages: 25_000,
+      latency_sla: "interactive_rag",
+      compliance_posture: "strict_document_acls",
+      doc_complexity: "tables_diagrams",
       synthesis_model: "gemini-4-hydrogen",
     },
   },
@@ -795,6 +811,23 @@ function scoreWorkloadFit(
     if (lid === "managed_vertex") {
       score -= 5;
       tradeoffs.push("Default global Discovery Engine config requires regional datastore reconfiguration under strict residency.");
+    }
+  } else if (cp === "strict_document_acls") {
+    if (lid === "level2_hybrid" || lid === "level3_multimodal" || lid === "level4_agentic") {
+      score += 10;
+      rationale.push("Enforces native BigQuery parameterized UNNEST(@caller_groups) & ROW ACCESS POLICY before synthesis.");
+    } else if (lid === "alloydb_scann") {
+      score += 10;
+      rationale.push("Enforces native PostgreSQL Row-Level Security (CREATE POLICY + GIN allowed_groups) inside the DB engine.");
+    } else if (lid === "vertex_vector_v2") {
+      score += 8;
+      rationale.push("Applies indexed filterFields=['allowed_groups'] $in pre-filtering on dense ScaNN and sparse RRF legs.");
+    } else if (lid === "managed_vertex") {
+      score += 7;
+      rationale.push("Supports Discovery Engine allowed_groups filter expressions and enterprise IdP aclConfig.");
+    } else if (lid === "rag_engine") {
+      score -= 12;
+      tradeoffs.push("Vertex AI RAG Engine enforces IAM at the RagCorpus boundary, not per-document chunk ACLs in a shared corpus.");
     }
   }
 

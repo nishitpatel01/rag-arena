@@ -1,0 +1,1097 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-20T17:51:07.146Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-hydrogen",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-hydrogen",
+      "reasoning": "gemini-4-hydrogen",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "db4f00db47cebd66987f1082d7c6dddba9323ad2",
+    "app_version": "1.6.3",
+    "engine": "level4_agentic",
+    "question_id": "q_soc_p1_response_matrix__acl_engineering_analyst",
+    "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+    "run_id": "run_a9ca1cf0e2c3",
+    "access_persona": "engineering_analyst",
+    "caller_groups": [
+      "corp_all"
+    ]
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-11-20T17:50:41.996Z",
+      "t_rel_ms": 997
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 2,
+      "payload": {
+        "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+        "expansions": [],
+        "element_intent": [
+          "table"
+        ],
+        "intent_matches": {
+          "table": [
+            "matrix",
+            "credits",
+            "penalty",
+            "fee"
+          ]
+        },
+        "handed_to_agent": "Question: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).\nElement intent (keywords found): table"
+      },
+      "ts": "2026-11-20T17:50:41.999Z",
+      "t_rel_ms": 999
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value. check_amendments is authoritative for amendment lookups: when it returns zero amendments (no amendments found), the base clause governs \u2014 do NOT call search_procurement_corpus again just to hunt for amendments.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).\nElement intent (keywords found): table",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 117.0,
+        "model_call_timeout_seconds": 45,
+        "model_call_attempts": 2,
+        "max_output_tokens_per_turn": 4096,
+        "acl_persona": "engineering_analyst",
+        "acl_label": "Engineering Analyst",
+        "acl_groups": [
+          "corp_all"
+        ],
+        "acl_restricted": true,
+        "acl_enforcement": "bigquery_parameterized_rls",
+        "acl_supports_chunk_rls": true
+      },
+      "ts": "2026-11-20T17:50:41.999Z",
+      "t_rel_ms": 999
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 4000,
+      "tokens": {
+        "prompt": 1318,
+        "output": 107,
+        "thinking": 110,
+        "total": 1535
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:50:46.260Z",
+      "t_rel_ms": 5261
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "element_types": [
+          "table"
+        ],
+        "query": "P1 Critical P2 High incident response triage SLA containment SLA monthly fee penalty credit",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_17832245048180079719",
+      "repair": false,
+      "ts": "2026-11-20T17:50:46.260Z",
+      "t_rel_ms": 5261
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "element_types": [
+          "table"
+        ],
+        "solicitation_id": "solicitation_02",
+        "query": "SOC2 Type II HIPAA controls required"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_17832245048180077592",
+      "repair": false,
+      "ts": "2026-11-20T17:50:46.260Z",
+      "t_rel_ms": 5261
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "0 chunks of 0/3 RRF candidates \u00b7 no chunk after filter \u00b7 44.5 MB scanned",
+      "duration_ms": 2454,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_17832245048180079719",
+      "repair": false,
+      "ts": "2026-11-20T17:50:48.717Z",
+      "t_rel_ms": 7718
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "0 chunks of 0/3 RRF candidates \u00b7 no chunk after filter \u00b7 0.0 MB scanned \u00b7 cache hit",
+      "duration_ms": 2142,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_17832245048180077592",
+      "repair": false,
+      "ts": "2026-11-20T17:50:48.717Z",
+      "t_rel_ms": 7718
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 1757,
+      "tokens": {
+        "prompt": 1728,
+        "output": 91,
+        "thinking": 24,
+        "total": 1843
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:50:50.475Z",
+      "t_rel_ms": 9475
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "P1 Critical P2 High incident response triage SLA containment SLA monthly fee penalty credit",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_14894482794945449756",
+      "repair": false,
+      "ts": "2026-11-20T17:50:50.475Z",
+      "t_rel_ms": 9475
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_02",
+        "query": "SOC2 Type II HIPAA controls required"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_14894482794945447451",
+      "repair": false,
+      "ts": "2026-11-20T17:50:50.475Z",
+      "t_rel_ms": 9475
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0399) \u00b7 0.0 MB scanned \u00b7 cache hit",
+      "duration_ms": 2073,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_14894482794945449756",
+      "repair": false,
+      "ts": "2026-11-20T17:50:52.549Z",
+      "t_rel_ms": 11550
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 02_Architecture_Requirements.pdf p.1 (0.0718) \u00b7 0.0 MB scanned \u00b7 cache hit",
+      "duration_ms": 2069,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_14894482794945447451",
+      "repair": false,
+      "ts": "2026-11-20T17:50:52.549Z",
+      "t_rel_ms": 11550
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 2039,
+      "tokens": {
+        "prompt": 4332,
+        "output": 103,
+        "thinking": 50,
+        "total": 4485
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:50:54.589Z",
+      "t_rel_ms": 13590
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "query": "03_Incident_Response_SLAs.pdf P1 P2 triage containment penalty"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_17254980084165320974",
+      "repair": false,
+      "ts": "2026-11-20T17:50:54.589Z",
+      "t_rel_ms": 13590
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "04_Compliance_and_SOC2_Matrix.pdf SOC2 HIPAA controls",
+        "solicitation_id": "solicitation_02"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_17254980084165321637",
+      "repair": false,
+      "ts": "2026-11-20T17:50:54.589Z",
+      "t_rel_ms": 13590
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 14,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0413) \u00b7 44.5 MB scanned",
+      "duration_ms": 1596,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_17254980084165320974",
+      "repair": false,
+      "ts": "2026-11-20T17:50:56.605Z",
+      "t_rel_ms": 15606
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 15,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 02_Architecture_Requirements.pdf p.1 (0.0681) \u00b7 44.5 MB scanned",
+      "duration_ms": 2014,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_17254980084165321637",
+      "repair": false,
+      "ts": "2026-11-20T17:50:56.605Z",
+      "t_rel_ms": 15606
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "seq": 16,
+      "turn_index": 4,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 5290,
+      "tokens": {
+        "prompt": 6985,
+        "output": 134,
+        "thinking": 456,
+        "total": 7575
+      },
+      "function_calls": [],
+      "text_preview": "The requested documents\u2014**`03_Incident_Response_SLAs.pdf`** (Solicitation 03) and **`04_Compliance_and_SOC2_Matrix.pdf`** (Solicitation 02)\u2014were not found in the procurement corpus search results.\n\nBecause those documents are unavailable in the retrieved results, the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits for Solicitation 03, as well as the SOC2 Type II and HIPAA controls required in Solicitation 02, cannot be retrieved or compared.\n\nCITED_CHUNK_IDS:",
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:51:01.896Z",
+      "t_rel_ms": 20897
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 19898,
+      "payload": {
+        "turns": 4,
+        "agent_turn_events": 16,
+        "tool_calls": 6,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 6,
+          "check_amendments": 0,
+          "calculate_contract_pricing": 0,
+          "verify_citations": 0
+        },
+        "tool_errors": 0,
+        "verify_calls": 0,
+        "unsupported_claims_before": null,
+        "unsupported_claims_after": null,
+        "repair_turns": 0,
+        "final_answer_check": {
+          "checked_claims": 0,
+          "unsupported_claims": 0,
+          "unsupported_list": []
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 4,
+        "tokens": {
+          "prompt": 14363,
+          "output": 435,
+          "thinking": 640,
+          "total": 15438
+        },
+        "citations": [],
+        "citation_source": "acl_abstention",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 6,
+        "retrieval_usage": {
+          "embedding_tokens": 139,
+          "rank_billed_counts": 4,
+          "bigquery_bytes": 133628691,
+          "bigquery_jobs": 6,
+          "search_calls": 6
+        },
+        "calculator_values": [],
+        "acl_persona": "engineering_analyst",
+        "acl_label": "Engineering Analyst",
+        "acl_groups": [
+          "corp_all"
+        ],
+        "acl_restricted": true,
+        "acl_enforcement": "bigquery_parameterized_rls",
+        "acl_supports_chunk_rls": true
+      },
+      "ts": "2026-11-20T17:51:01.897Z",
+      "t_rel_ms": 20898
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 4,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-11-20T17:51:01.897Z",
+      "t_rel_ms": 20898
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 14363,
+        "output_tokens": 435,
+        "thinking_tokens": 640,
+        "turns": 4,
+        "final_turn": {
+          "turn_index": 4,
+          "duration_ms": 5290,
+          "tokens": {
+            "prompt": 6985,
+            "output": 134,
+            "thinking": 456,
+            "total": 7575
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "The requested documents\u2014**`03_Incident_Response_SLAs.pdf`** (Solicitation 03) and **`04_Compliance_and_SOC2_Matrix.pdf`** (Solicitation 02)\u2014were not found in the procurement corpus search results.\n\nBecause those documents are unavailable in the retrieved results, the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits for Solicitation 03, as well as the SOC2 Type II and HIPAA controls required in Solicitation 02, cannot be retrieved or compared."
+      },
+      "ts": "2026-11-20T17:51:01.897Z",
+      "t_rel_ms": 20898
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "reference_answer_used": false,
+        "max_tokens": 1024
+      },
+      "ts": "2026-11-20T17:51:01.897Z",
+      "t_rel_ms": 20898
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_a9ca1cf0e2c3",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 5248,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.95,
+        "qa_relevance": 0.4,
+        "context_precision": 0.05,
+        "reference_answer_used": false,
+        "input_tokens": 3408,
+        "output_tokens": 390,
+        "judge_cost_usd": 0.021432,
+        "rationale": "The candidate answer makes no unsupported claims: the retrieved context contains only architecture exhibits from 02_Architecture_Requirements.pdf and SOL-2026-SEC-03 Zero Trust material, plus search logs showing zero or unrelated hits, so stating the requested documents were not found is accurate. The abstention is appropriate and addresses each requested item explicitly, but it supplies none of the SLA, penalty-credit or SOC2/HIPAA details, which limits its relevance. The retrieved chunks are almost entirely off-topic (medallion pipeline and zero-trust diagrams), with no incident response SLA",
+        "judge_response_id": "msg_vrtx_011ChEbzzads4z15RUuzHSCN"
+      },
+      "ts": "2026-11-20T17:51:07.146Z",
+      "t_rel_ms": 26147
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 8: Agentic RAG (Google ADK)",
+    "answer": "The requested documents\u2014**`03_Incident_Response_SLAs.pdf`** (Solicitation 03) and **`04_Compliance_and_SOC2_Matrix.pdf`** (Solicitation 02)\u2014were not found in the procurement corpus search results.\n\nBecause those documents are unavailable in the retrieved results, the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits for Solicitation 03, as well as the SOC2 Type II and HIPAA controls required in Solicitation 02, cannot be retrieved or compared.",
+    "citations": [],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6113,
+          "y1": 0.2736
+        },
+        "content": "Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n- Ingestion Layer: Global Cloud Pub/Sub topics with schema validation & dead-letter queues.\n- Stream Processing: Dataflow Streaming Engine (Apache Beam) performing windowing, PII tokenization via Cloud DLP, and Storage Write API exactly-once commits.\n- Medallion Storage in BigQuery + BigLake Iceberg:\n- Bronze Layer: Raw append-only change-data-capture (CDC) tables. Silver Layer: Deduplicated, schema-enforced enterprise entity tables. Gold Layer: Governed semantic marts & Vertex AI Feature Store embeddings.",
+        "score": 0.0718,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_01_rfp_data_platform_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "01_RFP_Data_Platform.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "DATA-SLA-3.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8835,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-DATA-02: ENTERPRISE DATA LAKEHOUSE & AI PLATFORM",
+        "score": 0.0421,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_02_02_architecture_requirements_p1_e0_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_02",
+        "doc_name": "02_Architecture_Requirements.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "diagram",
+        "section_id": "ARCH-MEDALLION-02",
+        "amendment_number": 0,
+        "effective_date": "2026-02-01",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline):\n[DIAGRAM transcription \u00b7 gemini-4-argon]\nDiagram: VECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture\nComponents:\n- Cloud Pub/Sub Ingest (box)\n- Dataflow + Cloud DLP (box)\n- BigQuery Bronze (Raw) (box)\n- BigQuery Silver (Curated) (box)\n- BigQuery Gold (Governed) (box)\n- Vertex AI Feature Store (box)\nConnections:\n- Cloud Pub/Sub Ingest -- Dataflow + Cloud DLP\n- Dataflow + Cloud DLP -- BigQuery Bronze (Raw)\n- BigQuery Silver (Curated) -- BigQuery Gold (Governed)\n- BigQuery Gold (Governed) -- Vertex AI Feature Store\nRegions:\n- VECTOR DIAGRAM: SOL-2026-DATA-02 Pub/Sub -> Dataflow -> BigQuery Medallion Architecture: Cloud Pub/Sub Ingest, Dataflow + Cloud DLP, BigQuery Bronze (Raw), BigQuery Silver (Curated), BigQuery Gold (Governed), Vertex AI Feature Store\nNotes:\n- Document header: SOL-2026-DATA-02 | 02_Architecture_Requirements.pdf\n- Page title: EXHIBIT A: STREAMING PUB/SUB -> DATAFLOW -> BIGQUERY MEDALLION TOPOLOGY\n- Metadata line: DOC_TYPE=TECHNICAL_EXHIBIT | SECTION=ARCH-MEDALLION-02 | ELEMENT=diagram | AMENDMENT=0 | EFFECTIVE=2026-02-01 | AMENDS (truncated at right edge)\n- Text above diagram describes Architecture Specification ARCH-MEDALLION-02 (Lakehouse Medallion Pipeline) across 3 numbered items: 1. Ingestion Layer, 2. Stream Processing, 3. Medallion Storage in BigQuery + BigLake Iceberg (Bronze, Silver, Gold layers).\n- Diagram boxes are arranged in two rows of three boxes each; horizontal lines connect adjacent boxes within each row, with no drawn connector between the top row (C3) and bottom row (C4).",
+        "score": 0.0059,
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_03_01_rfp_security_operations_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-OPS-1.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8999,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC",
+        "score": 0.0399,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8237,
+          "y1": 0.2736
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n- Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds, signaling the Policy Administrator (PA) to mint short-lived mTLS / OIDC session tokens.\n- Data Plane Policy Enforcement Point (PEP): Identity-Aware Proxy (IAP) and Envoy Service Mesh ingress gateways terminate all untrusted traffic and permit per-request access to protected enclave resources only upon PA verification.\n- Continuous Telemetry: Every PEP allow/deny decision streams to Google SecOps SIEM.",
+        "score": 0.0214,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "diagram",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n[DIAGRAM transcription \u00b7 gemini-4-argon]\nDiagram: VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP\nComponents:\n- Untrusted Subject + Device (box)\n- Policy Engine (PE) Context (box)\n- Policy Administrator (PA) (box)\n- Policy Enforcement Point (PEP) (box)\n- BeyondCorp IAP + mTLS Mesh (box)\n- Protected Enterprise Enclave (box)\nConnections:\n- Untrusted Subject + Device -- Policy Engine (PE) Context\n- Policy Engine (PE) Context -- Policy Administrator (PA)\n- Policy Enforcement Point (PEP) -- BeyondCorp IAP + mTLS Mesh\n- BeyondCorp IAP + mTLS Mesh -- Protected Enterprise Enclave\nRegions:\n- VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP: Untrusted Subject + Device, Policy Engine (PE) Context, Policy Administrator (PA), Policy Enforcement Point (PEP), BeyondCorp IAP + mTLS Mesh, Protected Enterprise Enclave\nNotes:\n- The document header reads: EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY.\n- The diagram is arranged in two horizontal rows of three boxes each inside an outer container box.\n- Row 1 (C1, C2, C3) and Row 2 (C4, C5, C6) have horizontal connecting lines between adjacent boxes, with no vertical line drawn between Row 1 and Row 2.\n- Above the diagram, text lists Architecture Specification ZTA-NIST-800-207 (Zero Trust Enforcement Flow) with numbered items 1, 2, and 3.",
+        "score": 0.0152,
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "P1 Critical P2 High incident response triage SLA containment SLA monthly fee penalty credit",
+          "solicitation_id": "solicitation_03",
+          "element_types": [
+            "table"
+          ]
+        },
+        "result_summary": "0 chunks of 0/3 RRF candidates \u00b7 no chunk after filter \u00b7 44.5 MB scanned",
+        "latency_ms": 2454
+      },
+      {
+        "step_number": 2,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "SOC2 Type II HIPAA controls required",
+          "solicitation_id": "solicitation_02",
+          "element_types": [
+            "table"
+          ]
+        },
+        "result_summary": "0 chunks of 0/3 RRF candidates \u00b7 no chunk after filter \u00b7 0.0 MB scanned \u00b7 cache hit",
+        "latency_ms": 2142
+      },
+      {
+        "step_number": 3,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "P1 Critical P2 High incident response triage SLA containment SLA monthly fee penalty credit",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0399) \u00b7 0.0 MB scanned \u00b7 cache hit",
+        "latency_ms": 2073
+      },
+      {
+        "step_number": 4,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "SOC2 Type II HIPAA controls required",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 02_Architecture_Requirements.pdf p.1 (0.0718) \u00b7 0.0 MB scanned \u00b7 cache hit",
+        "latency_ms": 2069
+      },
+      {
+        "step_number": 5,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "03_Incident_Response_SLAs.pdf P1 P2 triage containment penalty",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0413) \u00b7 44.5 MB scanned",
+        "latency_ms": 1596
+      },
+      {
+        "step_number": 6,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "04_Compliance_and_SOC2_Matrix.pdf SOC2 HIPAA controls",
+          "solicitation_id": "solicitation_02",
+          "element_types": null
+        },
+        "result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 02_Architecture_Requirements.pdf p.1 (0.0681) \u00b7 44.5 MB scanned",
+        "latency_ms": 2014
+      }
+    ],
+    "latency_ms": 20898,
+    "cost_usd": 0.0336348,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-20T17:50:41.996Z",
+        "duration_ms": 2,
+        "request": {},
+        "payload": {
+          "original_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "prepared_query": "Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).",
+          "expansions": [],
+          "element_intent": [
+            "table"
+          ],
+          "intent_matches": {
+            "table": [
+              "matrix",
+              "credits",
+              "penalty",
+              "fee"
+            ]
+          },
+          "handed_to_agent": "Question: Compare the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits in Solicitation 03 (03_Incident_Response_SLAs.pdf), along with the SOC2 Type II and HIPAA controls required in Solicitation 02 (04_Compliance_and_SOC2_Matrix.pdf).\nElement intent (keywords found): table"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-20T17:50:41.999Z",
+        "duration_ms": 19898,
+        "request": {},
+        "payload": {
+          "turns": 4,
+          "agent_turn_events": 16,
+          "tool_calls": 6,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 6,
+            "check_amendments": 0,
+            "calculate_contract_pricing": 0,
+            "verify_citations": 0
+          },
+          "tool_errors": 0,
+          "verify_calls": 0,
+          "unsupported_claims_before": null,
+          "unsupported_claims_after": null,
+          "repair_turns": 0,
+          "final_answer_check": {
+            "checked_claims": 0,
+            "unsupported_claims": 0,
+            "unsupported_list": []
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 4,
+          "tokens": {
+            "prompt": 14363,
+            "output": 435,
+            "thinking": 640,
+            "total": 15438
+          },
+          "citations": [],
+          "citation_source": "acl_abstention",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 6,
+          "retrieval_usage": {
+            "embedding_tokens": 139,
+            "rank_billed_counts": 4,
+            "bigquery_bytes": 133628691,
+            "bigquery_jobs": 6,
+            "search_calls": 6
+          },
+          "calculator_values": [],
+          "acl_persona": "engineering_analyst",
+          "acl_label": "Engineering Analyst",
+          "acl_groups": [
+            "corp_all"
+          ],
+          "acl_restricted": true,
+          "acl_enforcement": "bigquery_parameterized_rls",
+          "acl_supports_chunk_rls": true
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-20T17:51:01.897Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-hydrogen",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 14363,
+          "output_tokens": 435,
+          "thinking_tokens": 640,
+          "turns": 4,
+          "final_turn": {
+            "turn_index": 4,
+            "duration_ms": 5290,
+            "tokens": {
+              "prompt": 6985,
+              "output": 134,
+              "thinking": 456,
+              "total": 7575
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "The requested documents\u2014**`03_Incident_Response_SLAs.pdf`** (Solicitation 03) and **`04_Compliance_and_SOC2_Matrix.pdf`** (Solicitation 02)\u2014were not found in the procurement corpus search results.\n\nBecause those documents are unavailable in the retrieved results, the P1 Critical and P2 High incident response triage SLAs, containment SLAs, and monthly fee penalty credits for Solicitation 03, as well as the SOC2 Type II and HIPAA controls required in Solicitation 02, cannot be retrieved or compared."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 14363,
+      "output_tokens": 435,
+      "embedding_tokens": 139,
+      "thinking_tokens": 640,
+      "model": "gemini-4-hydrogen",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout+gemini_vision"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.95,
+      "qa_relevance": 0.4,
+      "context_precision": 0.05
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": false,
+    "duration_ms": 5248,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3408,
+    "output_tokens": 390,
+    "judge_cost_usd": 0.021432,
+    "rationale": "The candidate answer makes no unsupported claims: the retrieved context contains only architecture exhibits from 02_Architecture_Requirements.pdf and SOL-2026-SEC-03 Zero Trust material, plus search logs showing zero or unrelated hits, so stating the requested documents were not found is accurate. The abstention is appropriate and addresses each requested item explicitly, but it supplies none of the SLA, penalty-credit or SOC2/HIPAA details, which limits its relevance. The retrieved chunks are almost entirely off-topic (medallion pipeline and zero-trust diagrams), with no incident response SLA",
+    "judge_response_id": "msg_vrtx_011ChEbzzads4z15RUuzHSCN"
+  }
+}

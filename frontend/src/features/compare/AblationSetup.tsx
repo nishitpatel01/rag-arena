@@ -39,6 +39,7 @@ export interface AblationSetupProps {
   readonly onReset: () => void;
   readonly canReset: boolean;
   readonly scopeControl?: React.ReactNode;
+  readonly aclControl?: React.ReactNode;
   readonly uploadScopeId?: string | null;
 }
 
@@ -167,6 +168,7 @@ export const AblationSetup: React.FC<AblationSetupProps> = (p) => {
           onChange={p.onQuestion}
           disabled={p.isStreaming}
           scopeControl={p.scopeControl}
+          aclControl={p.aclControl}
           uploadScopeId={p.uploadScopeId}
         />
         <div className="flex flex-col gap-3">

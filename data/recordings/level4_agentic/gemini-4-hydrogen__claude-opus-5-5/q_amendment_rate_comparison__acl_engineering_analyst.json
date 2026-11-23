@@ -1,0 +1,1258 @@
+{
+  "header": {
+    "format_version": 1,
+    "recorded_at": "2026-11-20T17:48:17.827Z",
+    "project_id": "${GCP_PROJECT_ID}",
+    "demo_mode": "record",
+    "synthesis_model": "gemini-4-hydrogen",
+    "judge_model": "claude-opus-5-5",
+    "model_ids": {
+      "generation": "gemini-4-hydrogen",
+      "reasoning": "gemini-4-hydrogen",
+      "embedding": "gemini-embedding-2",
+      "judge": "claude-opus-5-5",
+      "judge_provider": "anthropic_vertex"
+    },
+    "git_sha": "db4f00db47cebd66987f1082d7c6dddba9323ad2",
+    "app_version": "1.6.3",
+    "engine": "level4_agentic",
+    "question_id": "q_amendment_rate_comparison__acl_engineering_analyst",
+    "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+    "run_id": "run_d4f5258df702",
+    "access_persona": "engineering_analyst",
+    "caller_groups": [
+      "corp_all"
+    ]
+  },
+  "events": [
+    {
+      "event": "stage_started",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "label": "Query preparation (acronyms + element intent)",
+      "service": "Engine (local)",
+      "request": {
+        "query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "acronym_map": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          },
+          {
+            "term": "SLA",
+            "expansion": "Service Level Agreement"
+          },
+          {
+            "term": "RTO",
+            "expansion": "Recovery Time Objective"
+          },
+          {
+            "term": "RPO",
+            "expansion": "Recovery Point Objective"
+          },
+          {
+            "term": "QASP",
+            "expansion": "Quality Assurance Surveillance Plan"
+          },
+          {
+            "term": "PEP",
+            "expansion": "Policy Enforcement Point"
+          },
+          {
+            "term": "SOW",
+            "expansion": "Statement of Work"
+          },
+          {
+            "term": "RFP",
+            "expansion": "Request for Proposal"
+          },
+          {
+            "term": "MSA",
+            "expansion": "Master Services Agreement"
+          },
+          {
+            "term": "ZTA",
+            "expansion": "Zero Trust Architecture"
+          },
+          {
+            "term": "VPC",
+            "expansion": "Virtual Private Cloud"
+          },
+          {
+            "term": "VPN",
+            "expansion": "Virtual Private Network"
+          },
+          {
+            "term": "BGP",
+            "expansion": "Border Gateway Protocol"
+          },
+          {
+            "term": "ASN",
+            "expansion": "Autonomous System Number"
+          },
+          {
+            "term": "KMS",
+            "expansion": "Key Management Service"
+          },
+          {
+            "term": "GKE",
+            "expansion": "Google Kubernetes Engine"
+          }
+        ],
+        "intent_keywords": {
+          "table": [
+            "table",
+            "rate",
+            "rates",
+            "price",
+            "pricing",
+            "cost",
+            "clin",
+            "matrix",
+            "tier",
+            "tiers",
+            "hourly",
+            "labor",
+            "credit",
+            "credits",
+            "volume",
+            "schedule",
+            "penalty",
+            "percentage",
+            "fee"
+          ],
+          "diagram": [
+            "diagram",
+            "topology",
+            "architecture",
+            "flow",
+            "component",
+            "components",
+            "connected",
+            "connects",
+            "failover",
+            "exhibit",
+            "pep",
+            "control plane",
+            "network",
+            "pipeline",
+            "medallion"
+          ],
+          "amendment": [
+            "amendment",
+            "amendments",
+            "amend",
+            "amended",
+            "supersede",
+            "supersedes",
+            "superseded",
+            "revised",
+            "revision",
+            "current",
+            "latest",
+            "effective",
+            "updated",
+            "change",
+            "changed"
+          ]
+        }
+      },
+      "ts": "2026-11-20T17:47:55.339Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "query_prep",
+      "duration_ms": 0,
+      "payload": {
+        "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+        "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+        "expansions": [
+          {
+            "term": "CLIN",
+            "expansion": "Contract Line Item Number"
+          }
+        ],
+        "element_intent": [
+          "table",
+          "amendment"
+        ],
+        "intent_matches": {
+          "table": [
+            "rate",
+            "cost",
+            "clin",
+            "hourly"
+          ],
+          "amendment": [
+            "amended"
+          ]
+        },
+        "handed_to_agent": "Question: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?\nAcronyms: CLIN = Contract Line Item Number\nElement intent (keywords found): table, amendment"
+      },
+      "ts": "2026-11-20T17:47:55.340Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "label": "ADK agent loop (tools)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "framework": "google-adk",
+        "agent": "LlmAgent",
+        "runner": "InMemoryRunner",
+        "method": "runner.run_async",
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "location": "global",
+        "thinking_level": "LOW",
+        "instruction": "You are an enterprise procurement analyst agent. Answer ONLY from tool results \u2014 never from memory.\nWorkflow:\n1. Call search_procurement_corpus to find the relevant clauses, CLIN pricing tables, SLA matrices or diagrams. For questions spanning several solicitations, search each solicitation separately (solicitation_id filter).\n2. For every CLIN or clause whose value you report, call check_amendments with its solicitation_id; when an amendment supersedes it, the latest amendment governs \u2014 report the superseded and the governing value. check_amendments is authoritative for amendment lookups: when it returns zero amendments (no amendments found), the base clause governs \u2014 do NOT call search_procurement_corpus again just to hunt for amendments.\n3. Compute every total, discount, credit or sum with calculate_contract_pricing (pass every number as a variable); never do arithmetic yourself.\n4. Before answering, call verify_citations with your full draft answer and the chunk_ids that support it. If it reports unsupported claims or unknown chunk ids, repair the draft (correct or remove those claims, or retrieve support) and call verify_citations exactly once more.\n5. Final answer: concise, cite document names, state amendment supersession explicitly, and end with exactly one line `CITED_CHUNK_IDS: <comma-separated chunk_ids>` listing only chunk_ids returned by tools that support the answer.\nBe efficient: batch independent tool calls in one turn, avoid redundant calculations, keep the answer under 250 words.\nRequest at most 8 tool calls in a single turn.",
+        "tools": [
+          "search_procurement_corpus",
+          "check_amendments",
+          "calculate_contract_pricing",
+          "verify_citations"
+        ],
+        "user_message": "Question: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?\nAcronyms: CLIN = Contract Line Item Number\nElement intent (keywords found): table, amendment",
+        "max_turns": 8,
+        "max_tool_calls_per_turn": 8,
+        "timeout_seconds": 118.0,
+        "model_call_timeout_seconds": 45,
+        "model_call_attempts": 2,
+        "max_output_tokens_per_turn": 4096,
+        "acl_persona": "engineering_analyst",
+        "acl_label": "Engineering Analyst",
+        "acl_groups": [
+          "corp_all"
+        ],
+        "acl_restricted": true,
+        "acl_enforcement": "bigquery_parameterized_rls",
+        "acl_supports_chunk_rls": true
+      },
+      "ts": "2026-11-20T17:47:55.340Z",
+      "t_rel_ms": 0
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 1,
+      "turn_index": 1,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 3960,
+      "tokens": {
+        "prompt": 1316,
+        "output": 184,
+        "thinking": 131,
+        "total": 1631
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "search_procurement_corpus",
+        "check_amendments",
+        "check_amendments"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:47:59.471Z",
+      "t_rel_ms": 4132
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 2,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-0004-AB Cloud Security Architect hourly rate discount Year 1",
+        "solicitation_id": "solicitation_01"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2072038280997034524",
+      "repair": false,
+      "ts": "2026-11-20T17:47:59.471Z",
+      "t_rel_ms": 4132
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 3,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "query": "CLIN-2001 Cloud Security Architect rate cap"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2072038280997035543",
+      "repair": false,
+      "ts": "2026-11-20T17:47:59.471Z",
+      "t_rel_ms": 4132
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 4,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_01",
+        "section_or_clin_id": "CLIN-0004-AB"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2072038280997032466",
+      "repair": false,
+      "ts": "2026-11-20T17:47:59.471Z",
+      "t_rel_ms": 4132
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 5,
+      "turn_index": 1,
+      "kind": "tool_call",
+      "tool_name": "check_amendments",
+      "tool_args": {
+        "solicitation_id": "solicitation_03",
+        "section_or_clin_id": "CLIN-2001"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_2072038280997033485",
+      "repair": false,
+      "ts": "2026-11-20T17:47:59.471Z",
+      "t_rel_ms": 4132
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 6,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "5 chunks of 11/11 RRF candidates \u00b7 top 07_Amendment_0002_Vendor_QA.pdf p.1 (0.9338) \u00b7 44.5 MB scanned",
+      "duration_ms": 1666,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2072038280997034524",
+      "repair": false,
+      "ts": "2026-11-20T17:48:01.209Z",
+      "t_rel_ms": 5869
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 7,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0564) \u00b7 44.5 MB scanned",
+      "duration_ms": 1735,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2072038280997035543",
+      "repair": false,
+      "ts": "2026-11-20T17:48:01.209Z",
+      "t_rel_ms": 5869
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 8,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CLIN-0004-AB in solicitation_01 \u00b7 7.5 MB scanned",
+      "duration_ms": 811,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2072038280997032466",
+      "repair": false,
+      "ts": "2026-11-20T17:48:01.209Z",
+      "t_rel_ms": 5869
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 9,
+      "turn_index": 1,
+      "kind": "tool_result",
+      "tool_name": "check_amendments",
+      "tool_args": null,
+      "tool_result_summary": "no amendment row names CLIN-2001 in solicitation_03 \u00b7 7.5 MB scanned",
+      "duration_ms": 863,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_2072038280997033485",
+      "repair": false,
+      "ts": "2026-11-20T17:48:01.209Z",
+      "t_rel_ms": 5869
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 10,
+      "turn_index": 2,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 2906,
+      "tokens": {
+        "prompt": 4717,
+        "output": 96,
+        "thinking": 215,
+        "total": 5028
+      },
+      "function_calls": [
+        "search_procurement_corpus",
+        "calculate_contract_pricing"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:48:04.116Z",
+      "t_rel_ms": 8776
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 11,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": {
+        "query": "CLIN-2001 rate cap hourly rate",
+        "solicitation_id": "solicitation_03"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_14030645283003006712",
+      "repair": false,
+      "ts": "2026-11-20T17:48:04.116Z",
+      "t_rel_ms": 8776
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 12,
+      "turn_index": 2,
+      "kind": "tool_call",
+      "tool_name": "calculate_contract_pricing",
+      "tool_args": {
+        "variables": {
+          "hours": 2000,
+          "discount": 0.05,
+          "rate": 245
+        },
+        "expression": "hours * rate * (1 - discount)"
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_14030645283003005819",
+      "repair": false,
+      "ts": "2026-11-20T17:48:04.116Z",
+      "t_rel_ms": 8776
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 13,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "search_procurement_corpus",
+      "tool_args": null,
+      "tool_result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0294) \u00b7 44.5 MB scanned",
+      "duration_ms": 1553,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_14030645283003006712",
+      "repair": false,
+      "ts": "2026-11-20T17:48:05.671Z",
+      "t_rel_ms": 10331
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 14,
+      "turn_index": 2,
+      "kind": "tool_result",
+      "tool_name": "calculate_contract_pricing",
+      "tool_args": null,
+      "tool_result_summary": "2000.0 * 245.0 * (1 - 0.05) = 465500.0",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_14030645283003005819",
+      "repair": false,
+      "ts": "2026-11-20T17:48:05.671Z",
+      "t_rel_ms": 10331
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 15,
+      "turn_index": 3,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 3360,
+      "tokens": {
+        "prompt": 6362,
+        "output": 233,
+        "thinking": 168,
+        "total": 6763
+      },
+      "function_calls": [
+        "verify_citations"
+      ],
+      "text_preview": null,
+      "call_id": null,
+      "repair": false,
+      "ts": "2026-11-20T17:48:09.031Z",
+      "t_rel_ms": 13692
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 16,
+      "turn_index": 3,
+      "kind": "tool_call",
+      "tool_name": "verify_citations",
+      "tool_args": {
+        "draft_answer": "In Solicitation 01 (07_Amendment_0002_Vendor_QA.pdf, AMD-0002-QA, Q19), the amended hourly rate for a Cloud Security Architect under CLIN-0004-AB is $245/hr. With the 5% volume discount (>1,500 hours) applied to the 2,000 base hours, the net Year 1 cost is $465,500.00.\n\nFor Solicitation 03 (CLIN-2001), no chunks containing CLIN-2001 or an amended rate cap were found in the procurement corpus, and check_amendments returned no amendments for CLIN-2001. Therefore, a rate cap comparison cannot be provided from the retrieved documents.",
+        "cited_chunk_ids": [
+          "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+        ]
+      },
+      "tool_result_summary": null,
+      "duration_ms": null,
+      "tokens": null,
+      "call_id": "call_16975606046072870875",
+      "repair": false,
+      "ts": "2026-11-20T17:48:09.031Z",
+      "t_rel_ms": 13692
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 17,
+      "turn_index": 3,
+      "kind": "tool_result",
+      "tool_name": "verify_citations",
+      "tool_args": null,
+      "tool_result_summary": "7 claims checked \u00b7 1 unsupported (CLIN-2001)",
+      "duration_ms": 0,
+      "status": "ok",
+      "tokens": null,
+      "call_id": "call_16975606046072870875",
+      "repair": false,
+      "ts": "2026-11-20T17:48:09.032Z",
+      "t_rel_ms": 13693
+    },
+    {
+      "event": "agent_turn",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "seq": 18,
+      "turn_index": 4,
+      "kind": "model",
+      "tool_name": null,
+      "tool_args": null,
+      "tool_result_summary": null,
+      "duration_ms": 2735,
+      "tokens": {
+        "prompt": 6873,
+        "output": 234,
+        "thinking": 50,
+        "total": 7157
+      },
+      "function_calls": [],
+      "text_preview": "In Solicitation 01 (`07_Amendment_0002_Vendor_QA.pdf`, AMD-0002-QA, Q19), the amended hourly rate for a Cloud Security Architect under CLIN-0004-AB is **$245/hr**. Applying the 5% volume discount (>1,500 hours) to the 2,000 base hours yields a net Year 1 cost of **$465,500.00**. (`check_amendments` returned no further amendments superseding CLIN-0004-AB.)\n\nFor Solicitation 03 (CLIN-2001), no chunks referencing CLIN-2001 or an amended rate cap were found in the procurement corpus, and `check_amendments` returned no amendments for CLIN-2001. Therefore, a rate cap comparison cannot be provided fr",
+      "call_id": null,
+      "repair": true,
+      "ts": "2026-11-20T17:48:11.768Z",
+      "t_rel_ms": 16428
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "agent_turn",
+      "duration_ms": 16429,
+      "payload": {
+        "turns": 4,
+        "agent_turn_events": 18,
+        "tool_calls": 7,
+        "tool_calls_by_name": {
+          "search_procurement_corpus": 3,
+          "check_amendments": 2,
+          "calculate_contract_pricing": 1,
+          "verify_citations": 1
+        },
+        "tool_errors": 0,
+        "verify_calls": 1,
+        "unsupported_claims_before": 1,
+        "unsupported_claims_after": 1,
+        "unknown_chunk_ids_before": 0,
+        "unknown_chunk_ids_after": 0,
+        "unsupported_before_list": [
+          "CLIN-2001"
+        ],
+        "unsupported_after_list": [
+          "CLIN-2001"
+        ],
+        "repair_turns": 0,
+        "final_answer_check": {
+          "checked_claims": 7,
+          "unsupported_claims": 1,
+          "unsupported_list": [
+            "CLIN-2001"
+          ]
+        },
+        "final_answer_source": "adk_final_response",
+        "final_turn_index": 4,
+        "tokens": {
+          "prompt": 19268,
+          "output": 747,
+          "thinking": 564,
+          "total": 20579
+        },
+        "citations": [
+          "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+        ],
+        "citation_source": "cited_chunk_ids_line",
+        "rejected_citation_ids": [],
+        "tool_chunks_returned": 8,
+        "retrieval_usage": {
+          "embedding_tokens": 83,
+          "rank_billed_counts": 3,
+          "bigquery_bytes": 148544117,
+          "bigquery_jobs": 5,
+          "search_calls": 3
+        },
+        "calculator_values": [
+          465500.0
+        ],
+        "acl_persona": "engineering_analyst",
+        "acl_label": "Engineering Analyst",
+        "acl_groups": [
+          "corp_all"
+        ],
+        "acl_restricted": true,
+        "acl_enforcement": "bigquery_parameterized_rls",
+        "acl_supports_chunk_rls": true
+      },
+      "ts": "2026-11-20T17:48:11.769Z",
+      "t_rel_ms": 16430
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "label": "Final response (ADK agent)",
+      "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+      "request": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "source": "adk_final_response",
+        "final_turn_index": 4,
+        "note": "no extra model call \u2014 the answer is the ADK runner's final response (measured in agent_turn)"
+      },
+      "ts": "2026-11-20T17:48:11.769Z",
+      "t_rel_ms": 16430
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "synthesize",
+      "duration_ms": 0,
+      "payload": {
+        "model": "gemini-4-hydrogen",
+        "provider": "vertex_gemini",
+        "thinking_level": "LOW",
+        "prompt_tokens": 19268,
+        "output_tokens": 747,
+        "thinking_tokens": 564,
+        "turns": 4,
+        "final_turn": {
+          "turn_index": 4,
+          "duration_ms": 2735,
+          "tokens": {
+            "prompt": 6873,
+            "output": 234,
+            "thinking": 50,
+            "total": 7157
+          }
+        },
+        "final_answer_source": "adk_final_response",
+        "answer": "In Solicitation 01 (`07_Amendment_0002_Vendor_QA.pdf`, AMD-0002-QA, Q19), the amended hourly rate for a Cloud Security Architect under CLIN-0004-AB is **$245/hr**. Applying the 5% volume discount (>1,500 hours) to the 2,000 base hours yields a net Year 1 cost of **$465,500.00**. (`check_amendments` returned no further amendments superseding CLIN-0004-AB.)\n\nFor Solicitation 03 (CLIN-2001), no chunks referencing CLIN-2001 or an amended rate cap were found in the procurement corpus, and `check_amendments` returned no amendments for CLIN-2001. Therefore, a rate cap comparison cannot be provided from the retrieved documents."
+      },
+      "ts": "2026-11-20T17:48:11.769Z",
+      "t_rel_ms": 16430
+    },
+    {
+      "event": "stage_started",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "label": "LLM-as-a-judge",
+      "service": "Vertex AI \u00b7 Claude Opus 5.5 (judge)",
+      "request": {
+        "model": "claude-opus-5-5",
+        "provider": "anthropic_vertex",
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "reference_answer_used": false,
+        "max_tokens": 1024
+      },
+      "ts": "2026-11-20T17:48:11.769Z",
+      "t_rel_ms": 16430
+    },
+    {
+      "event": "stage_completed",
+      "run_id": "run_d4f5258df702",
+      "engine": "level4_agentic",
+      "stage": "evaluate",
+      "duration_ms": 6057,
+      "payload": {
+        "judge_provider": "anthropic_vertex",
+        "judge_model": "claude-opus-5-5",
+        "judge_location": "global",
+        "groundedness": 0.85,
+        "qa_relevance": 0.6,
+        "context_precision": 0.25,
+        "reference_answer_used": false,
+        "input_tokens": 3234,
+        "output_tokens": 612,
+        "judge_cost_usd": 0.025176,
+        "rationale": "The $245/hr rate, 5% volume discount, 2,000 base hours, and $465,500.00 Year 1 figure are directly supported by Amendment 0002 Q19 and the pricing tool, and the CLIN-2001 gap is honestly reported. However, the context never names the 'Cloud Security Architect' labor category for CLIN-0004-AB. The 'no further amendments superseding' framing also slightly over-reads a check_amendments result that does not account for the Q&A amendment. The answer fully covers Solicitation 01 but cannot deliver the requested comparison, and most retrieved chunks (SLA credits, KMS rotation, migration waves, Zero T",
+        "judge_response_id": "msg_vrtx_011ChEbnQ1vFUMXvsZhJKBsA"
+      },
+      "ts": "2026-11-20T17:48:17.827Z",
+      "t_rel_ms": 22488
+    }
+  ],
+  "result": {
+    "engine_id": "level4_agentic",
+    "engine_label": "Level 8: Agentic RAG (Google ADK)",
+    "answer": "In Solicitation 01 (`07_Amendment_0002_Vendor_QA.pdf`, AMD-0002-QA, Q19), the amended hourly rate for a Cloud Security Architect under CLIN-0004-AB is **$245/hr**. Applying the 5% volume discount (>1,500 hours) to the 2,000 base hours yields a net Year 1 cost of **$465,500.00**. (`check_amendments` returned no further amendments superseding CLIN-0004-AB.)\n\nFor Solicitation 03 (CLIN-2001), no chunks referencing CLIN-2001 or an amended rate cap were found in the procurement corpus, and `check_amendments` returned no amendments for CLIN-2001. Therefore, a rate cap comparison cannot be provided from the retrieved documents.",
+    "citations": [
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "solicitation_id": "solicitation_01",
+        "page_number": 1,
+        "section_id": "AMD-0002-QA",
+        "element_type": "narrative_text",
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6226,
+          "y1": 0.2913
+        },
+        "excerpt": "[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)] Solicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02 Q12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation peri",
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      }
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "07_Amendment_0002_Vendor_QA.pdf",
+        "doc_type": "AMENDMENT",
+        "element_type": "narrative_text",
+        "section_id": "AMD-0002-QA",
+        "amendment_number": 2,
+        "effective_date": "2026-04-02",
+        "amends_section": "SEC-4.3.5",
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.1342,
+          "x1": 0.6226,
+          "y1": 0.2913
+        },
+        "content": "[AMENDMENT 0002 - VENDOR QUESTIONS AND ANSWERS (QA-01 TO QA-25)]\nSolicitation: SOL-2026-CLOUD-01 | Amendment Number: 0002 | Effective Date: 2026-04-02 Q12: What is the mandatory Cloud KMS Customer-Managed Encryption Key (CMEK) rotation period for BigQuery and Cloud SQL volumes under FedRAMP High? A12: All CMEK keys in Cloud HSM must enforce an automated 90-day rotation schedule (or 30-day rotation for Tier-0 identity signing keys). Q19: Does Amendment 0001 modify the 2,000 base hours on CLIN-0004-AB? A19: No. Base quantity remains 2,000 hours; the amended rate is $245/hr with the 5% volume discount (>1,500 hours), yielding $465,500.00 for Year 1.",
+        "score": 0.9338,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_02_statement_of_work_sow_p1_e2_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "02_Statement_of_Work_SOW.pdf",
+        "doc_type": "SOW",
+        "element_type": "table",
+        "section_id": "SOW-2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "STATEMENT OF WORK (SOW): CLOUD MIGRATION WAVES & MILESTONES\n| Wave | Target Workloads | Completion | Milestone Payment | Primary CLIN |\n| --- | --- | --- | --- | --- |\n| Wave 1 | Landing Zone, Shared VPC, Cloud HA VPN | Month 3 | $650,000 | CLIN-0001-AA |\n| Wave 2 | Core ERP & 45 Microservices on GKE | Month 7 | $1,200,000 | CLIN-0002-AA |\n| Wave 3 | DR Automation & Security Hardening | Month 12 | $550,000 | CLIN-0004-AB |",
+        "score": 0.2976,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_05_sla_and_qasp_requirements_p1_e3_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "05_SLA_and_QASP_Requirements.pdf",
+        "doc_type": "SLA_MATRIX",
+        "element_type": "table",
+        "section_id": "SLA-4.2",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "Clause SLA-4.2: Monthly Infrastructure Availability & Service Credit Formula:\n| Tier | Monthly Uptime Percentage | Response Target | Invoice Service Credit |\n| --- | --- | --- | --- |\n| P1 Critical | 99.99% Target (<99.99% to 99.50%) | \\(<=\\) 15 minutes | 10% of Monthly CLIN Fee |\n| P1 Severe Breach | \\(<\\) 99.50% Monthly Availability | \\(<=\\) 15 minutes | 25% of Monthly CLIN Fee |\n| P2 High | \\(<\\) 99.90% Non-Core Services | \\(<=\\) 30 minutes | 5% of Monthly CLIN Fee |\n| P3 Medium | Minor Control Plane Degradation | \\(<=\\) 2 hours | 2% of Monthly CLIN Fee |\n| P4 Low | Cosmetic / Reporting Delay | \\(<=\\) 24 hours | 0% (Corrective Action) |",
+        "score": 0.1739,
+        "layout_source": "documentai_layout",
+        "bbox_source": "page"
+      },
+      {
+        "chunk_id": "solicitation_01_01_rfp_base_solicitation_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "01_RFP_Base_Solicitation.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-4.2.1",
+        "amendment_number": 0,
+        "effective_date": "2026-01-15",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8356,
+          "y1": 0.0981
+        },
+        "content": "SECTION 1 & 4: BASE RFP SCOPE, DISASTER RECOVERY & CLIN REFERENCES",
+        "score": 0.0981,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_01_08_vendor_a_proposal_redacted_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_01",
+        "doc_name": "08_Vendor_A_Proposal_Redacted.pdf",
+        "doc_type": "VENDOR_PROPOSAL",
+        "element_type": "narrative_text",
+        "section_id": "PROP-EXEC-01",
+        "amendment_number": 0,
+        "effective_date": "2026-04-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.7549,
+          "y1": 0.0981
+        },
+        "content": "VENDOR A TECHNICAL & PRICE PROPOSAL (REDACTED SUBMISSION)",
+        "score": 0.0928,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_01_rfp_security_operations_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "01_RFP_Security_Operations.pdf",
+        "doc_type": "BASE_RFP",
+        "element_type": "narrative_text",
+        "section_id": "SEC-OPS-1.1",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8999,
+          "y1": 0.0981
+        },
+        "content": "SOLICITATION SOL-2026-SEC-03: ZERO TRUST ARCHITECTURE & 24/7 MANAGED SOC",
+        "score": 0.0564,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e1_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "narrative_text",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0752,
+          "y0": 0.0772,
+          "x1": 0.8237,
+          "y1": 0.2736
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n- Control Plane: Policy Engine (PE) evaluates continuous device posture, BeyondCorp context-aware access levels, and Chronicle threat intelligence feeds, signaling the Policy Administrator (PA) to mint short-lived mTLS / OIDC session tokens.\n- Data Plane Policy Enforcement Point (PEP): Identity-Aware Proxy (IAP) and Envoy Service Mesh ingress gateways terminate all untrusted traffic and permit per-request access to protected enclave resources only upon PA verification.\n- Continuous Telemetry: Every PEP allow/deny decision streams to Google SecOps SIEM.",
+        "score": 0.0181,
+        "layout_source": "documentai_layout",
+        "bbox_source": "pdf_text_layer"
+      },
+      {
+        "chunk_id": "solicitation_03_02_zero_trust_architecture_specs_p1_e0_multimodal",
+        "tier_profile": "multimodal",
+        "solicitation_id": "solicitation_03",
+        "doc_name": "02_Zero_Trust_Architecture_Specs.pdf",
+        "doc_type": "TECHNICAL_EXHIBIT",
+        "element_type": "diagram",
+        "section_id": "ZTA-NIST-800-207",
+        "amendment_number": 0,
+        "effective_date": "2026-02-10",
+        "amends_section": null,
+        "page_number": 1,
+        "bbox": {
+          "page": 1,
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 1.0,
+          "y1": 1.0
+        },
+        "content": "EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY\n[DIAGRAM transcription \u00b7 gemini-4-argon]\nDiagram: VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP\nComponents:\n- Untrusted Subject + Device (box)\n- Policy Engine (PE) Context (box)\n- Policy Administrator (PA) (box)\n- Policy Enforcement Point (PEP) (box)\n- BeyondCorp IAP + mTLS Mesh (box)\n- Protected Enterprise Enclave (box)\nConnections:\n- Untrusted Subject + Device -- Policy Engine (PE) Context\n- Policy Engine (PE) Context -- Policy Administrator (PA)\n- Policy Enforcement Point (PEP) -- BeyondCorp IAP + mTLS Mesh\n- BeyondCorp IAP + mTLS Mesh -- Protected Enterprise Enclave\nRegions:\n- VECTOR DIAGRAM: SOL-2026-SEC-03 NIST SP 800-207 Zero Trust Control Plane & PEP: Untrusted Subject + Device, Policy Engine (PE) Context, Policy Administrator (PA), Policy Enforcement Point (PEP), BeyondCorp IAP + mTLS Mesh, Protected Enterprise Enclave\nNotes:\n- The document header reads: EXHIBIT A: NIST SP 800-207 ZERO TRUST CONTROL PLANE & PEP TOPOLOGY.\n- The diagram is arranged in two horizontal rows of three boxes each inside an outer container box.\n- Row 1 (C1, C2, C3) and Row 2 (C4, C5, C6) have horizontal connecting lines between adjacent boxes, with no vertical line drawn between Row 1 and Row 2.\n- Above the diagram, text lists Architecture Specification ZTA-NIST-800-207 (Zero Trust Enforcement Flow) with numbered items 1, 2, and 3.",
+        "score": 0.0169,
+        "layout_source": "gemini_vision",
+        "bbox_source": "page"
+      }
+    ],
+    "agent_steps": [
+      {
+        "step_number": 1,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-0004-AB Cloud Security Architect hourly rate discount Year 1",
+          "solicitation_id": "solicitation_01",
+          "element_types": null
+        },
+        "result_summary": "5 chunks of 11/11 RRF candidates \u00b7 top 07_Amendment_0002_Vendor_QA.pdf p.1 (0.9338) \u00b7 44.5 MB scanned",
+        "latency_ms": 1666
+      },
+      {
+        "step_number": 2,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-2001 Cloud Security Architect rate cap",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0564) \u00b7 44.5 MB scanned",
+        "latency_ms": 1735
+      },
+      {
+        "step_number": 3,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_01",
+          "section_or_clin_id": "CLIN-0004-AB"
+        },
+        "result_summary": "no amendment row names CLIN-0004-AB in solicitation_01 \u00b7 7.5 MB scanned",
+        "latency_ms": 811
+      },
+      {
+        "step_number": 4,
+        "tool_name": "check_amendments",
+        "tool_args": {
+          "solicitation_id": "solicitation_03",
+          "section_or_clin_id": "CLIN-2001"
+        },
+        "result_summary": "no amendment row names CLIN-2001 in solicitation_03 \u00b7 7.5 MB scanned",
+        "latency_ms": 863
+      },
+      {
+        "step_number": 5,
+        "tool_name": "search_procurement_corpus",
+        "tool_args": {
+          "query": "CLIN-2001 rate cap hourly rate",
+          "solicitation_id": "solicitation_03",
+          "element_types": null
+        },
+        "result_summary": "3 chunks of 3/3 RRF candidates \u00b7 top 01_RFP_Security_Operations.pdf p.1 (0.0294) \u00b7 44.5 MB scanned",
+        "latency_ms": 1553
+      },
+      {
+        "step_number": 6,
+        "tool_name": "calculate_contract_pricing",
+        "tool_args": {
+          "expression": "hours * rate * (1 - discount)",
+          "variables": {
+            "hours": 2000,
+            "discount": 0.05,
+            "rate": 245
+          }
+        },
+        "result_summary": "2000.0 * 245.0 * (1 - 0.05) = 465500.0",
+        "latency_ms": 0
+      },
+      {
+        "step_number": 7,
+        "tool_name": "verify_citations",
+        "tool_args": {
+          "draft_answer": "In Solicitation 01 (07_Amendment_0002_Vendor_QA.pdf, AMD-0002-QA, Q19), the amended hourly rate for a Cloud Security Architect under CLIN-0004-AB is $245/hr. With the 5% volume discount (>1,500 hours) applied to the 2,000 base hours, the net Year 1 cost is $465,500.00.\n\nFor Solicitation 03 (CLIN-2001), no chunks containing CLIN-2001 or an amended rate cap were found in the procurement corpus, and check_amendments returned no amendments for CLIN-2001. Therefore, a rate cap comparison cannot be provided from the retrieved documents.",
+          "cited_chunk_ids": [
+            "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+          ]
+        },
+        "result_summary": "7 claims checked \u00b7 1 unsupported (CLIN-2001)",
+        "latency_ms": 0
+      }
+    ],
+    "latency_ms": 16430,
+    "cost_usd": 0.0417511,
+    "stage_log": [
+      {
+        "stage": "query_prep",
+        "label": "Query preparation (acronyms + element intent)",
+        "service": "Engine (local)",
+        "status": "completed",
+        "started_at": "2026-11-20T17:47:55.339Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "original_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?",
+          "prepared_query": "What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)? (CLIN = Contract Line Item Number)",
+          "expansions": [
+            {
+              "term": "CLIN",
+              "expansion": "Contract Line Item Number"
+            }
+          ],
+          "element_intent": [
+            "table",
+            "amendment"
+          ],
+          "intent_matches": {
+            "table": [
+              "rate",
+              "cost",
+              "clin",
+              "hourly"
+            ],
+            "amendment": [
+              "amended"
+            ]
+          },
+          "handed_to_agent": "Question: What is the amended hourly rate and 2,000-hour net Year 1 cost for a Cloud Security Architect in Solicitation 01 (CLIN-0004-AB) compared to the amended rate cap in Solicitation 03 (CLIN-2001)?\nAcronyms: CLIN = Contract Line Item Number\nElement intent (keywords found): table, amendment"
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "agent_turn",
+        "label": "ADK agent loop (tools)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-20T17:47:55.340Z",
+        "duration_ms": 16429,
+        "request": {},
+        "payload": {
+          "turns": 4,
+          "agent_turn_events": 18,
+          "tool_calls": 7,
+          "tool_calls_by_name": {
+            "search_procurement_corpus": 3,
+            "check_amendments": 2,
+            "calculate_contract_pricing": 1,
+            "verify_citations": 1
+          },
+          "tool_errors": 0,
+          "verify_calls": 1,
+          "unsupported_claims_before": 1,
+          "unsupported_claims_after": 1,
+          "unknown_chunk_ids_before": 0,
+          "unknown_chunk_ids_after": 0,
+          "unsupported_before_list": [
+            "CLIN-2001"
+          ],
+          "unsupported_after_list": [
+            "CLIN-2001"
+          ],
+          "repair_turns": 0,
+          "final_answer_check": {
+            "checked_claims": 7,
+            "unsupported_claims": 1,
+            "unsupported_list": [
+              "CLIN-2001"
+            ]
+          },
+          "final_answer_source": "adk_final_response",
+          "final_turn_index": 4,
+          "tokens": {
+            "prompt": 19268,
+            "output": 747,
+            "thinking": 564,
+            "total": 20579
+          },
+          "citations": [
+            "solicitation_01_07_amendment_0002_vendor_qa_p1_e2_multimodal"
+          ],
+          "citation_source": "cited_chunk_ids_line",
+          "rejected_citation_ids": [],
+          "tool_chunks_returned": 8,
+          "retrieval_usage": {
+            "embedding_tokens": 83,
+            "rank_billed_counts": 3,
+            "bigquery_bytes": 148544117,
+            "bigquery_jobs": 5,
+            "search_calls": 3
+          },
+          "calculator_values": [
+            465500.0
+          ],
+          "acl_persona": "engineering_analyst",
+          "acl_label": "Engineering Analyst",
+          "acl_groups": [
+            "corp_all"
+          ],
+          "acl_restricted": true,
+          "acl_enforcement": "bigquery_parameterized_rls",
+          "acl_supports_chunk_rls": true
+        },
+        "error_type": null,
+        "error": null
+      },
+      {
+        "stage": "synthesize",
+        "label": "Final response (ADK agent)",
+        "service": "Google ADK \u00b7 Vertex AI \u00b7 Gemini 4 Hydrogen",
+        "status": "completed",
+        "started_at": "2026-11-20T17:48:11.769Z",
+        "duration_ms": 0,
+        "request": {},
+        "payload": {
+          "model": "gemini-4-hydrogen",
+          "provider": "vertex_gemini",
+          "thinking_level": "LOW",
+          "prompt_tokens": 19268,
+          "output_tokens": 747,
+          "thinking_tokens": 564,
+          "turns": 4,
+          "final_turn": {
+            "turn_index": 4,
+            "duration_ms": 2735,
+            "tokens": {
+              "prompt": 6873,
+              "output": 234,
+              "thinking": 50,
+              "total": 7157
+            }
+          },
+          "final_answer_source": "adk_final_response",
+          "answer": "In Solicitation 01 (`07_Amendment_0002_Vendor_QA.pdf`, AMD-0002-QA, Q19), the amended hourly rate for a Cloud Security Architect under CLIN-0004-AB is **$245/hr**. Applying the 5% volume discount (>1,500 hours) to the 2,000 base hours yields a net Year 1 cost of **$465,500.00**. (`check_amendments` returned no further amendments superseding CLIN-0004-AB.)\n\nFor Solicitation 03 (CLIN-2001), no chunks referencing CLIN-2001 or an amended rate cap were found in the procurement corpus, and `check_amendments` returned no amendments for CLIN-2001. Therefore, a rate cap comparison cannot be provided from the retrieved documents."
+        },
+        "error_type": null,
+        "error": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 19268,
+      "output_tokens": 747,
+      "embedding_tokens": 83,
+      "thinking_tokens": 564,
+      "model": "gemini-4-hydrogen",
+      "embedding_model": "gemini-embedding-2"
+    },
+    "flags": {
+      "reranker_used": true,
+      "adk_runner_used": true,
+      "layout_source": "documentai_layout+gemini_vision"
+    }
+  },
+  "evaluation": {
+    "metrics": {
+      "groundedness": 0.85,
+      "qa_relevance": 0.6,
+      "context_precision": 0.25
+    },
+    "judge_model": "claude-opus-5-5",
+    "reference_answer_used": false,
+    "duration_ms": 6057,
+    "judge_provider": "anthropic_vertex",
+    "judge_location": "global",
+    "input_tokens": 3234,
+    "output_tokens": 612,
+    "judge_cost_usd": 0.025176,
+    "rationale": "The $245/hr rate, 5% volume discount, 2,000 base hours, and $465,500.00 Year 1 figure are directly supported by Amendment 0002 Q19 and the pricing tool, and the CLIN-2001 gap is honestly reported. However, the context never names the 'Cloud Security Architect' labor category for CLIN-0004-AB. The 'no further amendments superseding' framing also slightly over-reads a check_amendments result that does not account for the Q&A amendment. The answer fully covers Solicitation 01 but cannot deliver the requested comparison, and most retrieved chunks (SLA credits, KMS rotation, migration waves, Zero T",
+    "judge_response_id": "msg_vrtx_011ChEbnQ1vFUMXvsZhJKBsA"
+  }
+}

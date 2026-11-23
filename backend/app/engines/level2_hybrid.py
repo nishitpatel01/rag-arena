@@ -13,6 +13,7 @@ import re
 import time
 from typing import Any
 
+from app.core.acl import CallerAccessContext, acl_refusal_answer, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_access_token, get_bigquery_client, get_genai_client
 from app.core.models import DocumentChunk, EngineFlags, EngineResult, TokenUsage
@@ -207,6 +208,8 @@ def run_hybrid_query_job(
     lexical_terms: tuple[str, ...],
     solicitation_filter: str | None,
     timeout_seconds: int,
+    *,
+    caller_groups: tuple[str, ...] | None = None,
 ) -> tuple[list[Any], dict[str, Any]]:
     """Execute the hybrid RRF statement (worker thread); return rows and measured job statistics."""
     from google.cloud import bigquery
@@ -218,6 +221,8 @@ def run_hybrid_query_job(
     ]
     if solicitation_filter:
         params.append(bigquery.ScalarQueryParameter("solicitation_id", "STRING", solicitation_filter.strip()))
+    if caller_groups:
+        params.append(bigquery.ArrayQueryParameter("caller_groups", "STRING", list(caller_groups)))
     job = bq_client.query(sql, job_config=bigquery.QueryJobConfig(query_parameters=params))
     rows = list(job.result(timeout=timeout_seconds))
     stats = {
@@ -308,7 +313,15 @@ class Level2HybridEngine(BaseRAGEngine):
             ctx.payload = prepared.payload()
         return prepared
 
-    def _retrieve_request(self, vector: list[float], terms: tuple[str, ...], solicitation_filter: str | None) -> tuple[str, dict[str, Any]]:
+    def _retrieve_request(
+        self,
+        vector: list[float],
+        terms: tuple[str, ...],
+        solicitation_filter: str | None,
+        *,
+        caller_access: CallerAccessContext | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        restricted = bool(caller_access and caller_access.is_restricted)
         sql = build_hybrid_rrf_sql(
             self.settings.gcp_project_id,
             self.settings.bq_dataset,
@@ -319,6 +332,7 @@ class Level2HybridEngine(BaseRAGEngine):
             tier_profile=self.tier_profile,
             vector_k=VECTOR_K,
             lexical_k=LEXICAL_K,
+            include_acl_filter=restricted,
         )
         params: dict[str, Any] = {
             "query_embedding": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]},
@@ -327,13 +341,24 @@ class Level2HybridEngine(BaseRAGEngine):
         }
         if solicitation_filter:
             params["solicitation_id"] = solicitation_filter
+        if restricted and caller_access is not None:
+            params["caller_groups"] = list(caller_access.effective_groups)
         return sql, params
 
     async def _retrieve(
-        self, vector: list[float], original_query: str, solicitation_filter: str | None, bq_client: Any, emitter: StageEmitter
+        self,
+        vector: list[float],
+        original_query: str,
+        solicitation_filter: str | None,
+        bq_client: Any,
+        emitter: StageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> list[HybridCandidate]:
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
         terms = build_lexical_terms(original_query)
-        sql, params = self._retrieve_request(vector, terms, solicitation_filter)
+        sql, params = self._retrieve_request(vector, terms, solicitation_filter, caller_access=caller_access)
         candidate_k = self.settings.hybrid_candidate_k
         async with self.stage(
             emitter,
@@ -342,11 +367,23 @@ class Level2HybridEngine(BaseRAGEngine):
             service="BigQuery",
             request={"sql": sql, "params": params, "candidate_k": candidate_k},
         ) as ctx:
-            rows, stats = await self.blocking(
-                run_hybrid_query_job, bq_client, sql, vector, terms, solicitation_filter, self.settings.query_timeout_seconds
-            )
+            if caller_groups:
+                rows, stats = await self.blocking(
+                    run_hybrid_query_job,
+                    bq_client,
+                    sql,
+                    vector,
+                    terms,
+                    solicitation_filter,
+                    self.settings.query_timeout_seconds,
+                    caller_groups=caller_groups,
+                )
+            else:
+                rows, stats = await self.blocking(
+                    run_hybrid_query_job, bq_client, sql, vector, terms, solicitation_filter, self.settings.query_timeout_seconds
+                )
             candidates = [row_to_candidate(r, idx) for idx, r in enumerate(rows[:candidate_k], start=1)]
-            if not candidates:
+            if not candidates and not restricted:
                 raise RuntimeError("hybrid retrieval returned 0 rows for tier 'hybrid' — run the Level 4 ingestion job")
             ctx.payload = {
                 "rows_returned": len(rows),
@@ -357,6 +394,11 @@ class Level2HybridEngine(BaseRAGEngine):
                 "lexical_k": LEXICAL_K,
                 "with_both_ranks": sum(1 for c in candidates if c.vector_rank and c.lexical_rank),
                 "candidates": [c.summary() for c in candidates[:_MAX_CANDIDATES_IN_PAYLOAD]],
+                **(
+                    {**acl_stage_metadata(self.engine_id, caller_access), "acl_access_denied": len(candidates) == 0}
+                    if restricted
+                    else {}
+                ),
             }
         return candidates
 
@@ -409,6 +451,7 @@ class Level2HybridEngine(BaseRAGEngine):
         question_id: str | None,
         solicitation_filter: str | None,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """Execute Level 2 live: prep → embed → hybrid RRF → Ranking API → synthesize, emitting each stage."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
@@ -422,7 +465,45 @@ class Level2HybridEngine(BaseRAGEngine):
 
         prepared = await self._query_prep(cleaned, emitter)
         vector, embedding_tokens = await embed_query_stage(self, prepared.prepared, genai_client, emitter)
-        candidates = await self._retrieve(vector, prepared.original, solicitation_filter, bq_client, emitter)
+        candidates = await self._retrieve(
+            vector, prepared.original, solicitation_filter, bq_client, emitter, caller_access=caller_access
+        )
+        if not candidates and caller_access is not None and caller_access.is_restricted:
+            await emitter.skipped("rerank", reason=f"0 authorized chunks after BigQuery RLS ({caller_access.persona_id})")
+            refusal = acl_refusal_answer(caller_access, cleaned)
+            async with self.stage(
+                emitter,
+                "synthesize",
+                label="Row-level security refusal (0 authorized chunks)",
+                service="ACL Policy (local)",
+                request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.engine_id, caller_access)},
+            ) as ctx:
+                ctx.payload = {
+                    "model": self.synthesis_model.id,
+                    "answer": refusal,
+                    "prompt_tokens": 0,
+                    "output_tokens": 0,
+                    "acl_access_denied": True,
+                    **acl_stage_metadata(self.engine_id, caller_access),
+                }
+            usage = TokenUsage(
+                embedding_tokens=embedding_tokens,
+                model=self.synthesis_model.id,
+                embedding_model=self.settings.text_embedding_model,
+            )
+            return EngineResult(
+                engine_id=self.engine_id,
+                engine_label=self.engine_label,
+                answer=refusal,
+                citations=[],
+                retrieved_chunks=[],
+                agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(cost_from_usage(usage, self.synthesis_model.id), 8),
+                stage_log=self.stage_log_of(emitter),
+                usage=usage,
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source="pymupdf"),
+            )
         ranked = await self._rerank(prepared.original, candidates, emitter)
         top = [replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: self.settings.rerank_top_n]]
         answer, usage = await self._synthesize(cleaned, top, emitter, embedding_tokens)

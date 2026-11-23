@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.3] - 2026-11-20
+
+Identity-Aware Document ACLs & Row-Level Security (RLS) across BigQuery, AlloyDB ScaNN, Vector Search 2.0, Vertex AI Search, ADK tool closures, Document Viewer, Composable Workbench, and Overview TCO Advisor (`$0.00/mo` standing idle; `6` live recorded ACL refusal demos isolated from the `183`-run baseline leaderboard).
+
+### Added
+- **Pure Document ACL Domain Core & Deterministic 45-PDF Partition (`backend/app/core/acl.py`, `GET /api/v1/acl/personas`)**:
+  - Added 5 allow-listed enterprise access personas (`all_access`, `engineering_analyst`, `pricing_finance`, `security_soc2`, `legal_counsel`) with strict narrowing-only resolution (`ceiling_groups ∩ persona.groups`), `O(1)` deterministic 45-PDF classification (`corp_all` 10, `procurement_pricing` 5, `security_soc2` 2, `legal_contracts` 28, `exec_admin` 45), and honest per-architecture capability declarations (`rag_engine`: `supports_chunk_acl=False`, `corpus_boundary_only`).
+- **Store-Native Pre-Synthesis RLS & Pre-Filtering (`bq_indexer.py`, `alloydb_scann.py`, `vvs2_client.py`, `vertex_vector_v2.py`, `vais_search.py`, `infra/main.tf`)**:
+  - **BigQuery (`level1_naive`, `level2_hybrid`, `level3_multimodal`, `level4_agentic`)**: added `allowed_groups ARRAY<STRING>` DDL + Terraform parity, `build_row_access_policy_ddl()`, zero-reingest SQL backfill (`7,102/7,102` live rows backfilled, `0` empty ACLs), and parameterized `UNNEST(allowed_groups) IN UNNEST(@caller_groups)` inside `VECTOR_SEARCH`, `SEARCH()`, and `check_amendments`.
+  - **ADK Tool Closure-Pinning & Honest Abstention (`agent_tools.py`, `level4_agentic.py`, `composable.py`)**: closure-pinned `ToolDeps.caller_access` so prompt-injected PDFs cannot widen scope via tool arguments, and allowed zero-citation abstention (`acl_abstention`) when restricted personas query unauthorized documents.
+  - **AlloyDB ScaNN, Vector Search 2.0 & Vertex AI Search**: added PostgreSQL `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` + GIN `allowed_groups TEXT[]` + `set_config('app.caller_groups', ..., true)` on AlloyDB, indexed `filterFields: ["allowed_groups"]` `$in` pre-filters on Vector Search 2.0, and allow-listed `allowed_groups: ANY(...)` filter expressions on Vertex AI Search.
+  - **Vertex AI RAG Engine Fail-Closed & Document Viewer `403` Guard (`rag_engine.py`, `replay_engine.py`, `documents.py`)**: restricted personas fail closed (`AclEnforcementUnsupportedError`) on shared `RagCorpus` in both live and replay modes, and `/api/v1/documents/{page,highlights}` returns `403 acl_forbidden` on unauthorized PDFs.
+- **Frontend Access Persona Switcher, Replay ACL Demo Isolation & Overview TCO Posture (`frontend/src/features/acl/`, `LevelPage.tsx`, `ComparePage.tsx`, `WorkbenchPage.tsx`, `tco.py`, `tcoModel.ts`, `ArchitectureWizard.tsx`)**:
+  - Added cross-page `AccessPersonaSelect` (effective group pills, authorized doc ratio `10/45`..`45/45`, enforcement mechanism badge, honest `RagCorpus` warning, replay demo hints), `ACL:` run status pills, and `?persona=` forwarding to `DocumentViewer` / `DocumentDrawer`.
+  - Recorded `6` live `engineering_analyst` ACL demos on `gemini-4-hydrogen__claude-opus-5-5` (`level2_hybrid`, `level3_multimodal`, `level4_agentic` × `q_amendment_rate_comparison`, `q_soc_p1_response_matrix`) stored under `__acl_<persona>.json` and excluded from `list_recordings(include_acl=False)` so the `183`-run baseline leaderboard stays untouched.
+  - Added `"strict_document_acls"` compliance posture and 6th executive scenario preset (`Strict Document ACLs & RLS`) to backend & frontend TCO advisors (**518 backend tests** across `55` files; **238 frontend tests** across `29` suites).
+
 ## [1.6.2] - 2026-11-18
 
 Gemini 4 Hydrogen Replay Refresh (`183` official recordings), Multimodal & ADK Engine Quality Fixes, Single-Row Navigation, Responsive Workbench Fit, WCAG AA Contrast, Route Code-Splitting, and Cloud Run/Terraform Model Armor Parity (`$0/mo` standing idle).

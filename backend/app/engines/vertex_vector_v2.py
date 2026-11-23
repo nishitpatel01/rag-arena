@@ -18,6 +18,7 @@ import time
 from typing import Any
 
 from app.core import gcp_clients
+from app.core.acl import CallerAccessContext, acl_refusal_answer, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
 from app.core.models_catalog import ModelSpec, spec_for_settings_model
@@ -157,6 +158,8 @@ def _redacted_search_request(
     query_text: str,
     top_k: int,
     solicitation_filter: str | None,
+    *,
+    caller_groups: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     raw = batch_search_body(
         query_vector=query_vector[:_EMBEDDING_PREVIEW_DIMS],
@@ -164,6 +167,7 @@ def _redacted_search_request(
         top_k=top_k,
         solicitation_filter=solicitation_filter,
         index_name=res.redacted_index_name,
+        caller_groups=caller_groups,
     )
     raw["collection"] = res.redacted_collection_name
     raw["query_vector_dimensions"] = len(query_vector)
@@ -224,18 +228,24 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
         emitter: StageEmitter,
         *,
         candidate_k: int | None = None,
+        caller_access: CallerAccessContext | None = None,
     ) -> list[HybridCandidate]:
         res = Vvs2Resources.from_settings(self.settings)
         eff_k = int(candidate_k or self.settings.vvs2_top_k)
         client = self._vvs2_client or Vvs2Client(self.settings)
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
         req_body = batch_search_body(
             query_vector=vector,
             query_text=original_query,
             top_k=eff_k,
             solicitation_filter=solicitation_filter,
             index_name=res.index_name,
+            caller_groups=caller_groups,
         )
-        shown_req = _redacted_search_request(res, vector, original_query, eff_k, solicitation_filter)
+        shown_req = _redacted_search_request(
+            res, vector, original_query, eff_k, solicitation_filter, caller_groups=caller_groups
+        )
         async with self.stage(
             emitter,
             "retrieve",
@@ -252,7 +262,7 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
             )
             api_ms = max(1, int((time.perf_counter() - t0) * 1000))
             candidates = parse_batch_search_candidates(doc, tier_profile=self.tier_profile)
-            if not candidates:
+            if not candidates and not restricted:
                 raise RuntimeError(
                     f"Vector Search 2.0 collection '{res.collection_id}' returned 0 candidates — "
                     "run scripts/ephemeral_vvs2.sh --up to load the benchmark corpus or switch to DEMO_MODE=replay"
@@ -267,6 +277,11 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
                 "api_ms": api_ms,
                 "attempts": attempts,
                 "candidates": [c.summary() for c in candidates],
+                **(
+                    {**acl_stage_metadata(self.engine_id, caller_access), "acl_access_denied": len(candidates) == 0}
+                    if restricted
+                    else {}
+                ),
             }
         return candidates
 
@@ -311,8 +326,9 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
         question_id: str | None,
         solicitation_filter: str | None,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
-        """Execute Level 8 live: query_prep -> embed_query -> VVS2 batchSearch RRF -> Ranking API -> synthesize."""
+        """Execute Level 6 live: query_prep -> embed_query -> VVS2 batchSearch RRF -> Ranking API -> synthesize."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
         if not self.settings.is_live:
             raise RuntimeError(
@@ -332,7 +348,29 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
         genai_client = gcp_clients.get_genai_client(self.settings)
         prepared = await self._query_prep(cleaned, emitter)
         vector, embedding_tokens = await embed_query_stage(self, prepared.prepared, genai_client, emitter)
-        candidates = await self._retrieve_candidates(vector, prepared.original, solicitation_filter, emitter)
+        candidates = await self._retrieve_candidates(
+            vector, prepared.original, solicitation_filter, emitter, caller_access=caller_access
+        )
+        if not candidates and caller_access is not None and caller_access.is_restricted:
+            await emitter.skipped("rerank", reason=f"0 authorized DataObjects after VVS2 filterFields ({caller_access.persona_id})")
+            refusal = acl_refusal_answer(caller_access, cleaned)
+            async with self.stage(
+                emitter, "synthesize", label="Row-level security refusal (0 authorized results)", service="ACL Policy (local)",
+                request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.engine_id, caller_access)},
+            ) as ctx:
+                ctx.payload = {
+                    "model": self.synthesis_model.id, "answer": refusal, "prompt_tokens": 0, "output_tokens": 0,
+                    "acl_access_denied": True, **acl_stage_metadata(self.engine_id, caller_access),
+                }
+            usage = TokenUsage(embedding_tokens=embedding_tokens, model=self.synthesis_model.id, embedding_model=self.settings.text_embedding_model)
+            return EngineResult(
+                engine_id=self.engine_id, engine_label=self.engine_label, answer=refusal,
+                citations=[], retrieved_chunks=[], agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(cost_from_usage(usage, self.synthesis_model.id), 8),
+                stage_log=self.stage_log_of(emitter), usage=usage,
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=LAYOUT_SOURCE),
+            )
         ranked = await self._rerank(prepared.original, candidates, emitter)
         top = [replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: self.settings.rerank_top_n]]
         context_block = "\n\n".join(

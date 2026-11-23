@@ -3,6 +3,7 @@ import { Pill } from "../../components/ui/Pill";
 import { formatUsd } from "../../lib/format";
 import { isManagedEvalService, resolveTimelineCosts } from "../../pages/leaderboardModel";
 import type { EngineTimeline } from "../../types/arena";
+import { personaLabel } from "../acl/aclModel";
 import type { StreamState } from "./model";
 
 export interface RunPillsProps {
@@ -56,6 +57,16 @@ export const RunPills: React.FC<RunPillsProps> = ({ state, timeline, isStreaming
       {managedEval && (
         <Pill tone="info" title="Evaluated via Vertex AI GenAI Evaluation Service (:evaluateInstances)">
           Vertex AI GenAI Eval
+        </Pill>
+      )}
+      {state.aclRestricted && state.accessPersona && (
+        <Pill
+          tone="warn"
+          mono
+          data-testid="acl-run-pill"
+          title={`Row-level security active: ${state.accessPersona} (${state.callerGroups.join(", ")})`}
+        >
+          ACL: {personaLabel(state.accessPersona)} · {state.callerGroups.join(", ")}
         </Pill>
       )}
       {costPill && (

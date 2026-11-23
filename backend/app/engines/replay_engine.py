@@ -12,6 +12,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from app.core.acl import (
+    ARCHITECTURE_ACL_CAPABILITIES,
+    AclEnforcementUnsupportedError,
+    CallerAccessContext,
+    acl_recording_question_id,
+)
 from app.core.config import ArenaSettings
 from app.core.models import EngineResult, EvalOutcome
 from app.core.models_catalog import RunModels, default_selection_ids
@@ -123,10 +129,18 @@ class ReplayRAGEngine(BaseRAGEngine):
         question_id: str | None,
         solicitation_filter: str | None,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """Replay the engine-owned stage events of the recording and return the recorded EngineResult."""
         self.validate_query_inputs(query, solicitation_filter)
-        recording = load_recording_or_raise(self.store, self.engine_id, question_id, pair=self.pair)
+        cap = ARCHITECTURE_ACL_CAPABILITIES.get(self.engine_id)
+        if caller_access is not None and caller_access.is_restricted and cap is not None and not cap.supports_chunk_acl:
+            raise AclEnforcementUnsupportedError(
+                f"{self.engine_label} ({self.engine_id}) enforces IAM at the RagCorpus boundary only — "
+                f"{cap.honest_note}"
+            )
+        lookup_qid = acl_recording_question_id(question_id, caller_access) if question_id else None
+        recording = load_recording_or_raise(self.store, self.engine_id, lookup_qid, pair=self.pair)
         engine_events, _ = split_engine_and_eval_events(recording.events)
         await replay_events(engine_events, emitter, replay_speed=self.settings.replay_speed)
         try:

@@ -13,6 +13,12 @@ import time
 from typing import Any
 
 from app.core import gcp_clients
+from app.core.acl import (
+    AclEnforcementUnsupportedError,
+    CallerAccessContext,
+    acl_refusal_answer,
+    acl_stage_metadata,
+)
 from app.core.config import ArenaSettings
 from app.core.model_armor import (
     MAX_SANITIZE_TEXT_CHARS,
@@ -124,6 +130,8 @@ def run_lexical_query_job(
     lexical_terms: tuple[str, ...],
     solicitation_filter: str | None,
     timeout_seconds: int,
+    *,
+    caller_groups: tuple[str, ...] | None = None,
 ) -> tuple[list[Any], dict[str, Any]]:
     """Execute a parameterized BigQuery SEARCH() + exact-term query in a worker thread."""
     from google.cloud import bigquery
@@ -134,6 +142,8 @@ def run_lexical_query_job(
     ]
     if solicitation_filter:
         params.append(bigquery.ScalarQueryParameter("solicitation_id", "STRING", solicitation_filter.strip()))
+    if caller_groups:
+        params.append(bigquery.ArrayQueryParameter("caller_groups", "STRING", list(caller_groups)))
     job = bq_client.query(sql, job_config=bigquery.QueryJobConfig(query_parameters=params))
     rows = list(job.result(timeout=timeout_seconds))
     stats = {
@@ -214,7 +224,13 @@ class _UnrecordedCustomReplayEngine(BaseRAGEngine):
         super().__init__(settings=settings)
 
     async def run_query(
-        self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter
+        self,
+        query: str,
+        *,
+        question_id: str | None,
+        solicitation_filter: str | None,
+        emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         self.validate_query_inputs(query, solicitation_filter)
         raise ReplayUnavailableError(
@@ -529,10 +545,15 @@ class ComposableRAGEngine(BaseRAGEngine):
         genai_client: Any,
         bq_client: Any,
         emitter: StageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> tuple[list[HybridCandidate], int]:
         mode = self.spec.slots.retrieval_mode
         cand_k = self.spec.slots.candidate_k
         tier = self.spec.index_profile
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
+        acl_level = {"naive": "level1_naive", "hybrid": "level2_hybrid", "multimodal": "level3_multimodal"}.get(tier, "level2_hybrid")
         vector: list[float] = []
         emb_tokens = 0
         if mode in ("vector_cosine", "hybrid_rrf"):
@@ -542,44 +563,68 @@ class ComposableRAGEngine(BaseRAGEngine):
             sql = build_vector_search_sql(
                 self.settings.gcp_project_id, self.settings.bq_dataset, self.settings.bq_table,
                 top_k=cand_k, include_solicitation_filter=bool(sol_filter),
-                tier_profile=tier, embedding_column=self._embed_col,
+                tier_profile=tier, embedding_column=self._embed_col, include_acl_filter=restricted,
             )
             params: dict[str, Any] = {"query_embedding": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]}}
             if sol_filter:
                 params["solicitation_id"] = sol_filter
+            if caller_groups:
+                params["caller_groups"] = list(caller_groups)
             async with self.stage(
                 emitter, "retrieve", label=f"BigQuery VECTOR_SEARCH ({tier})", service="BigQuery",
                 request={"sql": sql, "params": params, "candidate_k": cand_k, "tier_profile": tier},
             ) as ctx:
-                rows, stats = await self.blocking(
-                    _run_vector_search_job, bq_client, sql, vector, sol_filter, self.settings.query_timeout_seconds
-                )
+                if caller_groups:
+                    rows, stats = await self.blocking(
+                        _run_vector_search_job, bq_client, sql, vector, sol_filter, self.settings.query_timeout_seconds,
+                        caller_groups=caller_groups,
+                    )
+                else:
+                    rows, stats = await self.blocking(
+                        _run_vector_search_job, bq_client, sql, vector, sol_filter, self.settings.query_timeout_seconds
+                    )
                 cands = [_row_to_bq_candidate(r, idx, tier, mode) for idx, r in enumerate(rows[:cand_k], start=1)]
-                if not cands:
+                if not cands and not restricted:
                     raise RuntimeError(f"vector_cosine retrieval returned 0 rows for tier '{tier}'")
-                ctx.payload = {"rows_returned": len(rows), "top_k": cand_k, **stats, "candidates": [candidate_summary(c) for c in cands[:_MAX_CANDIDATES_IN_PAYLOAD]]}
+                ctx.payload = {
+                    "rows_returned": len(rows), "top_k": cand_k, **stats,
+                    "candidates": [candidate_summary(c) for c in cands[:_MAX_CANDIDATES_IN_PAYLOAD]],
+                    **({**acl_stage_metadata(acl_level, caller_access), "acl_access_denied": len(cands) == 0} if restricted else {}),
+                }
             return cands, emb_tokens
 
         terms = build_lexical_terms(original)
         if mode == "lexical_bm25":
             sql = build_lexical_search_sql(
                 self.settings.gcp_project_id, self.settings.bq_dataset, self.settings.bq_table,
-                top_k=cand_k, include_solicitation_filter=bool(sol_filter), tier_profile=tier,
+                top_k=cand_k, include_solicitation_filter=bool(sol_filter), tier_profile=tier, include_acl_filter=restricted,
             )
             params = {"lexical_query": " ".join(terms), "lexical_terms": list(terms)}
             if sol_filter:
                 params["solicitation_id"] = sol_filter
+            if caller_groups:
+                params["caller_groups"] = list(caller_groups)
             async with self.stage(
                 emitter, "retrieve", label=f"BigQuery SEARCH() lexical ({tier})", service="BigQuery",
                 request={"sql": sql, "params": params, "candidate_k": cand_k, "tier_profile": tier},
             ) as ctx:
-                rows, stats = await self.blocking(
-                    run_lexical_query_job, bq_client, sql, terms, sol_filter, self.settings.query_timeout_seconds
-                )
+                if caller_groups:
+                    rows, stats = await self.blocking(
+                        run_lexical_query_job, bq_client, sql, terms, sol_filter, self.settings.query_timeout_seconds,
+                        caller_groups=caller_groups,
+                    )
+                else:
+                    rows, stats = await self.blocking(
+                        run_lexical_query_job, bq_client, sql, terms, sol_filter, self.settings.query_timeout_seconds
+                    )
                 cands = [_row_to_bq_candidate(r, idx, tier, mode) for idx, r in enumerate(rows[:cand_k], start=1)]
-                if not cands:
+                if not cands and not restricted:
                     raise RuntimeError(f"lexical_bm25 retrieval returned 0 matching rows for tier '{tier}'")
-                ctx.payload = {"rows_returned": len(rows), "candidate_k": cand_k, **stats, "candidates": [candidate_summary(c) for c in cands[:_MAX_CANDIDATES_IN_PAYLOAD]]}
+                ctx.payload = {
+                    "rows_returned": len(rows), "candidate_k": cand_k, **stats,
+                    "candidates": [candidate_summary(c) for c in cands[:_MAX_CANDIDATES_IN_PAYLOAD]],
+                    **({**acl_stage_metadata(acl_level, caller_access), "acl_access_denied": len(cands) == 0} if restricted else {}),
+                }
             return cands, 0
 
         leg_k = max(cand_k, 50)
@@ -587,6 +632,7 @@ class ComposableRAGEngine(BaseRAGEngine):
             self.settings.gcp_project_id, self.settings.bq_dataset, self.settings.bq_table,
             rrf_k=RRF_K, top_k=cand_k, include_solicitation_filter=bool(sol_filter),
             embedding_column=self._embed_col, tier_profile=tier, vector_k=leg_k, lexical_k=leg_k,
+            include_acl_filter=restricted,
         )
         params = {
             "query_embedding": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]},
@@ -594,17 +640,29 @@ class ComposableRAGEngine(BaseRAGEngine):
         }
         if sol_filter:
             params["solicitation_id"] = sol_filter
+        if caller_groups:
+            params["caller_groups"] = list(caller_groups)
         async with self.stage(
             emitter, "retrieve", label=f"BigQuery VECTOR_SEARCH + SEARCH() → RRF ({tier})", service="BigQuery",
             request={"sql": sql, "params": params, "candidate_k": cand_k, "tier_profile": tier},
         ) as ctx:
-            rows, stats = await self.blocking(
-                run_hybrid_query_job, bq_client, sql, vector, terms, sol_filter, self.settings.query_timeout_seconds
-            )
+            if caller_groups:
+                rows, stats = await self.blocking(
+                    run_hybrid_query_job, bq_client, sql, vector, terms, sol_filter, self.settings.query_timeout_seconds,
+                    caller_groups=caller_groups,
+                )
+            else:
+                rows, stats = await self.blocking(
+                    run_hybrid_query_job, bq_client, sql, vector, terms, sol_filter, self.settings.query_timeout_seconds
+                )
             cands = [_row_to_bq_candidate(r, idx, tier, mode) for idx, r in enumerate(rows[:cand_k], start=1)]
-            if not cands:
+            if not cands and not restricted:
                 raise RuntimeError(f"hybrid_rrf retrieval returned 0 rows for tier '{tier}'")
-            ctx.payload = {"rows_returned": len(rows), "candidate_k": cand_k, "rrf_k": RRF_K, **stats, "candidates": [candidate_summary(c) for c in cands[:_MAX_CANDIDATES_IN_PAYLOAD]]}
+            ctx.payload = {
+                "rows_returned": len(rows), "candidate_k": cand_k, "rrf_k": RRF_K, **stats,
+                "candidates": [candidate_summary(c) for c in cands[:_MAX_CANDIDATES_IN_PAYLOAD]],
+                **({**acl_stage_metadata(acl_level, caller_access), "acl_access_denied": len(cands) == 0} if restricted else {}),
+            }
         return cands, emb_tokens
 
     async def _rerank(self, query: str, candidates: list[HybridCandidate], emitter: StageEmitter) -> list[RerankedCandidate]:
@@ -648,8 +706,56 @@ class ComposableRAGEngine(BaseRAGEngine):
             embedding_model=self._embed_model, extra_payload={"context_order": "score_order"},
         )
 
+    async def _acl_zero_result(
+        self,
+        *,
+        cleaned: str,
+        caller_access: CallerAccessContext,
+        emb_tokens: int,
+        base_cost: float,
+        layout: str,
+        start: float,
+        emitter: StageEmitter,
+    ) -> EngineResult:
+        if "rerank" in self.stages:
+            await emitter.skipped("rerank", reason=f"0 authorized chunks after ACL filtering ({caller_access.persona_id})")
+        if "guardrail_in" in self.stages:
+            await emitter.skipped("guardrail_in", reason="0 authorized chunks after ACL filtering")
+        refusal = acl_refusal_answer(caller_access, cleaned)
+        async with self.stage(
+            emitter, "synthesize", label="Row-level security refusal (0 authorized chunks)", service="ACL Policy (local)",
+            request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.spec.preset_level_id(self.settings) or "level2_hybrid", caller_access)},
+        ) as ctx:
+            ctx.payload = {
+                "model": self.synthesis_model.id, "answer": refusal, "prompt_tokens": 0, "output_tokens": 0,
+                "acl_access_denied": True, **acl_stage_metadata(self.spec.preset_level_id(self.settings) or "level2_hybrid", caller_access),
+            }
+        if "guardrail_out" in self.stages:
+            await emitter.skipped("guardrail_out", reason="Deterministic ACL refusal (no synthesized LLM output)")
+        usage = TokenUsage(
+            embedding_tokens=emb_tokens,
+            model=self.synthesis_model.id,
+            embedding_model=self._embed_model if emb_tokens > 0 else "",
+        )
+        return EngineResult(
+            engine_id=self.engine_id, engine_label=self.engine_label, answer=refusal,
+            citations=[], retrieved_chunks=[], agent_steps=[],
+            latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+            cost_usd=round(cost_from_usage(usage, self.synthesis_model.id) + base_cost, 8),
+            stage_log=self.stage_log_of(emitter), usage=usage,
+            flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=layout),
+        )
+
     async def _run_scann_single_pass(
-        self, cleaned: str, prepared: str, original: str, sol_filter: str | None, start: float, emitter: StageEmitter
+        self,
+        cleaned: str,
+        prepared: str,
+        original: str,
+        sol_filter: str | None,
+        start: float,
+        emitter: StageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         slots = self.spec.slots
         genai_client = gcp_clients.get_genai_client(self.settings)
@@ -662,7 +768,7 @@ class ComposableRAGEngine(BaseRAGEngine):
                 conn_factory=self._alloydb_conn_factory,
             )
             cands = await helper_alloy._retrieve_candidates(
-                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k
+                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k, caller_access=caller_access
             )
             layout = ALLOYDB_LAYOUT_SOURCE
         else:
@@ -673,10 +779,15 @@ class ComposableRAGEngine(BaseRAGEngine):
                 vvs2_client=self._vvs2_client,
             )
             cands = await helper_vvs._retrieve_candidates(
-                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k
+                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k, caller_access=caller_access
             )
             layout = VVS2_LAYOUT_SOURCE
 
+        if not cands and caller_access is not None and caller_access.is_restricted:
+            return await self._acl_zero_result(
+                cleaned=cleaned, caller_access=caller_access, emb_tokens=emb_tokens,
+                base_cost=0.0, layout=layout, start=start, emitter=emitter,
+            )
         rank_cost = 0.0
         reranked_flag = False
         if slots.reranker == "vertex_ranking_api":
@@ -699,20 +810,36 @@ class ComposableRAGEngine(BaseRAGEngine):
         )
 
     async def _run_managed_single_pass(
-        self, cleaned: str, prepared: str, original: str, sol_filter: str | None, start: float, emitter: StageEmitter
+        self,
+        cleaned: str,
+        prepared: str,
+        original: str,
+        sol_filter: str | None,
+        start: float,
+        emitter: StageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         slots = self.spec.slots
         if self.spec.index_profile == "vertex_ai_search":
             is_upload_scope(sol_filter)
             cfg = replace(self.settings, vais_page_size=slots.candidate_k, vais_summary_result_count=slots.top_k)
             helper = ManagedVertexSearchEngine(settings=cfg, synthesis_model=self.synthesis_model, client=self._vais_client)
-            outcome = await helper._retrieve(PreparedQuery(original, prepared, ()), emitter, solicitation_filter=sol_filter)
+            outcome = await helper._retrieve(
+                PreparedQuery(original, prepared, ()), emitter, solicitation_filter=sol_filter, caller_access=caller_access
+            )
+            if not outcome.hits and caller_access is not None and caller_access.is_restricted:
+                return await self._acl_zero_result(
+                    cleaned=cleaned, caller_access=caller_access, emb_tokens=0,
+                    base_cost=vais_query_cost_usd(searches=1, summary_queries=0),
+                    layout=VAIS_LAYOUT_SOURCE, start=start, emitter=emitter,
+                )
             if self.synthesis_model.provider == PROVIDER_VERTEX_AI_SEARCH:
                 answer, usage, cites, _ = await helper._synthesize_summary(outcome, emitter)
                 ctx_chunks = segment_chunks(helper._context_hits(outcome))
                 return EngineResult(
                     engine_id=self.engine_id, engine_label=self.engine_label, answer=answer,
-                    citations=self.chunks_to_citations(cites, max_citations=min(len(cites), 50)), retrieved_chunks=ctx_chunks,
+                    citations=self.chunks_to_citations(cites, max_citations=min(len(cites), 50)) if cites else [], retrieved_chunks=ctx_chunks,
                     agent_steps=[], latency_ms=max(1, int((time.perf_counter() - start) * 1000)), cost_usd=helper._cost(usage),
                     stage_log=self.stage_log_of(emitter), usage=usage,
                     flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=VAIS_LAYOUT_SOURCE),
@@ -721,6 +848,15 @@ class ComposableRAGEngine(BaseRAGEngine):
             base_cost = vais_query_cost_usd(searches=1, summary_queries=0)
             layout = VAIS_LAYOUT_SOURCE
         else:
+            if caller_access is not None and caller_access.is_restricted:
+                async with self.stage(
+                    emitter, "retrieve", label="Vertex AI RAG Engine (:retrieveContexts)", service="Vertex AI RAG Engine",
+                    request={"query": prepared, **acl_stage_metadata("rag_engine", caller_access)},
+                ):
+                    raise AclEnforcementUnsupportedError(
+                        "Vertex AI RAG Engine enforces IAM at the RagCorpus boundary, not per-document chunk ACLs "
+                        f"(cannot safely restrict persona '{caller_access.persona_id}' inside a shared corpus)."
+                    )
             cfg = replace(self.settings, rag_engine_top_k=slots.candidate_k)
             helper_rag = RagEngine(settings=cfg, synthesis_model=self.synthesis_model, client=self._rag_client)
             hits, res, file_ids, corpus_label = await helper_rag._retrieve(
@@ -771,10 +907,13 @@ class ComposableRAGEngine(BaseRAGEngine):
         genai_client: Any,
         bq_client: Any,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> MultimodalSearch:
         """Retriever entrypoint used by ADK ``search_procurement_corpus`` — honors ``spec`` retrieval + reranker slots."""
         prepared, original, _ = self._transform_query_local(query)
-        cands, emb_tokens = await self._retrieve_bq(prepared, original, solicitation_filter, genai_client, bq_client, emitter)
+        cands, emb_tokens = await self._retrieve_bq(
+            prepared, original, solicitation_filter, genai_client, bq_client, emitter, caller_access=caller_access
+        )
         kept = [c for c in cands if not element_types or c.chunk.element_type in element_types]
         if self.spec.slots.reranker == "vertex_ranking_api" and kept:
             ranked = await self._rerank(original, kept, emitter)
@@ -800,7 +939,13 @@ class ComposableRAGEngine(BaseRAGEngine):
         )
 
     async def _run_adk_agent(
-        self, cleaned: str, sol_filter: str | None, start: float, emitter: BaseStageEmitter
+        self,
+        cleaned: str,
+        sol_filter: str | None,
+        start: float,
+        emitter: BaseStageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         upload_scope: str | None = None
         if sol_filter:
@@ -845,7 +990,7 @@ class ComposableRAGEngine(BaseRAGEngine):
         deps = ToolDeps(
             settings=self.settings, retriever=retriever, genai_client=gcp_clients.get_genai_client(self.settings),
             bq_client=gcp_clients.get_bigquery_client(self.settings), ledger=ledger, upload_scope=upload_scope,
-            tier_profile=self.spec.index_profile,
+            tier_profile=self.spec.index_profile, caller_access=caller_access,
         )
         message = user_message(l3, upload_scope=upload_scope)
         limits = AgentLimits(
@@ -883,7 +1028,11 @@ class ComposableRAGEngine(BaseRAGEngine):
                     "tokens_screened": blocked_exc.tokens,
                 }
             else:
-                cites: ResolvedCitations = resolve_citations(outcome.final_text, ledger)
+                cites: ResolvedCitations = resolve_citations(
+                    outcome.final_text,
+                    ledger,
+                    allow_empty_abstention=bool(deps.caller_access and deps.caller_access.is_restricted),
+                )
                 ctx.payload = {
                     "turns": len(outcome.turns), "agent_turn_events": outcome.agent_turn_events,
                     "tool_calls": len(ledger.tool_records), "tool_calls_by_name": _tool_calls_by_name(ledger),
@@ -953,7 +1102,9 @@ class ComposableRAGEngine(BaseRAGEngine):
             AgentStep(step_number=i, tool_name=r.tool_name, tool_args=r.args, result_summary=r.summary, latency_ms=r.duration_ms)
             for i, r in enumerate(ledger.tool_records, start=1)
         ]
-        citations: list[Citation] = [] if blocked_out else self.chunks_to_citations(list(cites.chunks), max_citations=len(cites.chunks))
+        citations: list[Citation] = (
+            [] if (blocked_out or not cites.chunks) else self.chunks_to_citations(list(cites.chunks), max_citations=len(cites.chunks))
+        )
         kept_chunks = [] if blocked_out else list(ledger.chunks[:MAX_JUDGE_CHUNKS])
         return EngineResult(
             engine_id=self.engine_id, engine_label=self.engine_label, answer=final_answer, citations=citations,
@@ -976,7 +1127,13 @@ class ComposableRAGEngine(BaseRAGEngine):
         )
 
     async def run_query(
-        self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter
+        self,
+        query: str,
+        *,
+        question_id: str | None,
+        solicitation_filter: str | None,
+        emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """Execute ``self.spec`` across all configured query slots with real ``StageEmitter`` telemetry."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
@@ -986,18 +1143,29 @@ class ComposableRAGEngine(BaseRAGEngine):
         if self.spec.slots.reasoning_mode == "adk_agent":
             if not isinstance(emitter, BaseStageEmitter):
                 raise TypeError("ADK agent mode requires a BaseStageEmitter")
-            return await self._run_adk_agent(cleaned, solicitation_filter, time.perf_counter(), emitter)
+            return await self._run_adk_agent(cleaned, solicitation_filter, time.perf_counter(), emitter, caller_access=caller_access)
 
         start = time.perf_counter()
         prepared, original, _ = await self._run_query_prep(cleaned, emitter)
         if self.spec.index_profile in SCANN_INDEX_PROFILES:
-            return await self._run_scann_single_pass(cleaned, prepared, original, solicitation_filter, start, emitter)
+            return await self._run_scann_single_pass(
+                cleaned, prepared, original, solicitation_filter, start, emitter, caller_access=caller_access
+            )
         if self.spec.index_profile not in BQ_INDEX_PROFILES:
-            return await self._run_managed_single_pass(cleaned, prepared, original, solicitation_filter, start, emitter)
+            return await self._run_managed_single_pass(
+                cleaned, prepared, original, solicitation_filter, start, emitter, caller_access=caller_access
+            )
 
         genai_client = gcp_clients.get_genai_client(self.settings)
         bq_client = gcp_clients.get_bigquery_client(self.settings)
-        cands, emb_tokens = await self._retrieve_bq(prepared, original, solicitation_filter, genai_client, bq_client, emitter)
+        cands, emb_tokens = await self._retrieve_bq(
+            prepared, original, solicitation_filter, genai_client, bq_client, emitter, caller_access=caller_access
+        )
+        if not cands and caller_access is not None and caller_access.is_restricted:
+            return await self._acl_zero_result(
+                cleaned=cleaned, caller_access=caller_access, emb_tokens=emb_tokens,
+                base_cost=0.0, layout="pymupdf", start=start, emitter=emitter,
+            )
         rank_cost = 0.0
         reranked_flag = False
         if self.spec.slots.reranker == "vertex_ranking_api":

@@ -45,18 +45,35 @@ export function dpiForZoom(zoom: ZoomLevel): number {
   return Math.min(MAX_DPI, Math.round((BASE_DPI * zoom) / 100));
 }
 
-function docParams(c: Pick<Citation, "solicitation_id" | "doc_name">, page: number): URLSearchParams {
-  return new URLSearchParams({ solicitation_id: c.solicitation_id, doc_name: c.doc_name, page: String(page) });
+function docParams(
+  c: Pick<Citation, "solicitation_id" | "doc_name">,
+  page: number,
+  persona?: string | null
+): URLSearchParams {
+  const p = new URLSearchParams({ solicitation_id: c.solicitation_id, doc_name: c.doc_name, page: String(page) });
+  if (persona && persona !== "all_access") {
+    p.set("persona", persona);
+  }
+  return p;
 }
 
-export function pageImageUrl(c: Pick<Citation, "solicitation_id" | "doc_name">, page: number, dpi: number): string {
-  const p = docParams(c, page);
+export function pageImageUrl(
+  c: Pick<Citation, "solicitation_id" | "doc_name">,
+  page: number,
+  dpi: number,
+  persona?: string | null
+): string {
+  const p = docParams(c, page, persona);
   p.set("dpi", String(dpi));
   return `${DOCUMENTS_BASE}/page?${p.toString()}`;
 }
 
-export function highlightsUrl(c: Pick<Citation, "solicitation_id" | "doc_name" | "excerpt">, page: number): string {
-  const p = docParams(c, page);
+export function highlightsUrl(
+  c: Pick<Citation, "solicitation_id" | "doc_name" | "excerpt">,
+  page: number,
+  persona?: string | null
+): string {
+  const p = docParams(c, page, persona);
   p.set("text", c.excerpt.trim().slice(0, MAX_HIGHLIGHT_TEXT));
   return `${DOCUMENTS_BASE}/highlights?${p.toString()}`;
 }

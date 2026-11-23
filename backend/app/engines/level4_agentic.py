@@ -21,6 +21,7 @@ import re
 import time
 from typing import Any
 
+from app.core.acl import CallerAccessContext, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
 from app.core.models import AgentStep, Citation, DocumentChunk, EngineFlags, EngineResult, TokenUsage
@@ -61,7 +62,12 @@ class ResolvedCitations:
     source: str  # "cited_chunk_ids_line" | "inline_chunk_ids"
 
 
-def resolve_citations(final_text: str, ledger: AgentLedger) -> ResolvedCitations:
+def resolve_citations(
+    final_text: str,
+    ledger: AgentLedger,
+    *,
+    allow_empty_abstention: bool = False,
+) -> ResolvedCitations:
     """Citations = chunk ids the agent lists that a tool really returned this run (others are rejected, reported)."""
     matches = list(_CITED_LINE_RE.finditer(final_text))
     if matches:
@@ -74,12 +80,15 @@ def resolve_citations(final_text: str, ledger: AgentLedger) -> ResolvedCitations
     listed = list(dict.fromkeys(listed))
     valid = tuple(ledger.chunk(i) for i in listed if ledger.chunk(i) is not None)
     rejected = tuple(i for i in listed if ledger.chunk(i) is None)
+    if not answer:
+        raise AgentProtocolError("final answer is empty after removing the CITED_CHUNK_IDS line")
     if not valid:
+        normalized_listed = [item.lower() for item in listed]
+        if allow_empty_abstention and (not normalized_listed or all(item in {"none", "n/a", "null", "[]"} for item in normalized_listed)):
+            return ResolvedCitations(answer=answer, chunks=(), rejected_ids=(), source="acl_abstention")
         raise AgentProtocolError(
             f"final answer cites no chunk returned by a tool this run (listed: {listed[:10]}; source: {source})"
         )
-    if not answer:
-        raise AgentProtocolError("final answer is empty after removing the CITED_CHUNK_IDS line")
     return ResolvedCitations(answer=answer, chunks=valid[:MAX_CITATIONS], rejected_ids=rejected, source=source)
 
 
@@ -199,14 +208,24 @@ class Level4AgenticEngine(BaseRAGEngine):
     async def _agent_turn(self, prepared: L3PreparedQuery, deps: ToolDeps, emitter: BaseStageEmitter, deadline: float) -> tuple[AgentOutcome, ResolvedCitations]:
         message = user_message(prepared, upload_scope=deps.upload_scope)
         limits = self.limits(deadline - time.monotonic())
+        req = self._agent_request(message, limits)
+        if deps.caller_access is not None and deps.caller_access.is_restricted:
+            req.update(acl_stage_metadata(self.engine_id, deps.caller_access))
         async with self.stage(
             emitter, "agent_turn", label="ADK agent loop (tools)", service=f"Google ADK · Vertex AI · {self.synthesis_model.label}",
-            request=self._agent_request(message, limits),
+            request=req,
         ) as ctx:
             agent = build_agent(self.synthesis_model, self.settings, build_tools(deps))
             outcome = await run_agent(agent, message, limits=limits, ledger=deps.ledger, emitter=emitter)
-            cites = resolve_citations(outcome.final_text, deps.ledger)
-            ctx.payload = self._agent_payload(outcome, deps.ledger, cites)
+            cites = resolve_citations(
+                outcome.final_text,
+                deps.ledger,
+                allow_empty_abstention=bool(deps.caller_access and deps.caller_access.is_restricted),
+            )
+            payload = self._agent_payload(outcome, deps.ledger, cites)
+            if deps.caller_access is not None and deps.caller_access.is_restricted:
+                payload.update(acl_stage_metadata(self.engine_id, deps.caller_access))
+            ctx.payload = payload
         return outcome, cites
 
     async def _synthesize(self, outcome: AgentOutcome, answer: str, emitter: StageEmitter) -> TokenUsage:
@@ -231,7 +250,9 @@ class Level4AgenticEngine(BaseRAGEngine):
                            embedding_tokens=ledger.usage.embedding_tokens, model=usage.model, embedding_model=usage.embedding_model)
         steps = [AgentStep(step_number=i, tool_name=r.tool_name, tool_args=r.args, result_summary=r.summary, latency_ms=r.duration_ms)
                  for i, r in enumerate(ledger.tool_records, start=1)]
-        citations: list[Citation] = self.chunks_to_citations(list(cites.chunks), max_citations=len(cites.chunks))
+        citations: list[Citation] = (
+            self.chunks_to_citations(list(cites.chunks), max_citations=len(cites.chunks)) if cites.chunks else []
+        )
         return EngineResult(
             engine_id=self.engine_id, engine_label=self.engine_label, answer=cites.answer, citations=citations,
             retrieved_chunks=list(ledger.chunks[:MAX_JUDGE_CHUNKS]), agent_steps=steps,
@@ -241,7 +262,15 @@ class Level4AgenticEngine(BaseRAGEngine):
             flags=EngineFlags(reranker_used=ledger.usage.rank_billed_counts > 0, adk_runner_used=True, layout_source=_layout_source(ledger.chunks)),
         )
 
-    async def run_query(self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter) -> EngineResult:
+    async def run_query(
+        self,
+        query: str,
+        *,
+        question_id: str | None,
+        solicitation_filter: str | None,
+        emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
+    ) -> EngineResult:
         """prep → ADK agent loop (agent_turn events live) → final response; live/record only."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
         if not self.settings.is_live:
@@ -255,8 +284,15 @@ class Level4AgenticEngine(BaseRAGEngine):
             raise TypeError("Level 8 needs a BaseStageEmitter (agent_turn events)")
         start, deadline = time.perf_counter(), time.monotonic() + self.settings.query_timeout_seconds - DEADLINE_MARGIN_SECONDS
         ledger = AgentLedger(run_id=emitter.run_id)
-        deps = ToolDeps(settings=self.settings, retriever=self._retriever, genai_client=get_genai_client(self.settings),
-                        bq_client=get_bigquery_client(self.settings), ledger=ledger, upload_scope=upload_scope)
+        deps = ToolDeps(
+            settings=self.settings,
+            retriever=self._retriever,
+            genai_client=get_genai_client(self.settings),
+            bq_client=get_bigquery_client(self.settings),
+            ledger=ledger,
+            upload_scope=upload_scope,
+            caller_access=caller_access,
+        )
         prepared = await self._query_prep(cleaned, emitter, upload_scope=upload_scope)
         outcome, cites = await self._agent_turn(prepared, deps, emitter, deadline)
         usage = await self._synthesize(outcome, cites.answer, emitter)

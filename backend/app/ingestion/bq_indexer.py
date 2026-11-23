@@ -6,8 +6,12 @@ import re
 
 _SQL_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 _SEARCH_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9]+(?:[-.][A-Za-z0-9]+)*")
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 _MAX_SEARCH_TOKENS = 64
 _VALID_EMBEDDING_COLUMNS = ("embedding", "embedding_multimodal")
+ACL_PREDICATE_SQL = (
+    " AND EXISTS(SELECT 1 FROM UNNEST(allowed_groups) AS acl_g WHERE acl_g IN UNNEST(@caller_groups))"
+)
 
 
 def sanitize_search_query(query: str) -> str:
@@ -69,14 +73,16 @@ CREATE TABLE IF NOT EXISTS `{fqn}` (
   layout_source STRING,
   embedding ARRAY<FLOAT64>,
   embedding_multimodal ARRAY<FLOAT64>,
-  bbox_source STRING
+  bbox_source STRING,
+  allowed_groups ARRAY<STRING>
 )
 CLUSTER BY tier_profile, solicitation_id;
 
--- 1a. Level 3 columns on tables created before Phase 3: added in place (existing rows keep NULL).
+-- 1a. Columns added after initial deploy (Phase 3 multimodal + v1.6.3 document ACLs): added in place.
 ALTER TABLE `{fqn}`
   ADD COLUMN IF NOT EXISTS embedding_multimodal ARRAY<FLOAT64>,
-  ADD COLUMN IF NOT EXISTS bbox_source STRING;
+  ADD COLUMN IF NOT EXISTS bbox_source STRING,
+  ADD COLUMN IF NOT EXISTS allowed_groups ARRAY<STRING>;
 
 -- 1b. Ingestion provenance: one row per visible ingestion job (spec §5).
 CREATE TABLE IF NOT EXISTS `{proj}.{dataset}.ingest_runs` (
@@ -232,13 +238,14 @@ def build_hybrid_rrf_sql(
     tier_profile: str = "hybrid",
     vector_k: int = 50,
     lexical_k: int = 50,
+    include_acl_filter: bool = False,
 ) -> str:
     """One parameterized statement: VECTOR_SEARCH (top ``vector_k``) FULL OUTER JOIN a SEARCH() lexical CTE (top
     ``lexical_k``), fused by RRF ``1/(rrf_k + vector_rank) + 1/(rrf_k + lexical_rank)``, top ``top_k`` by rrf_score.
 
     User input only enters through parameters: ``@query_embedding`` (ARRAY<FLOAT64>), ``@lexical_query`` (STRING,
-    re-sanitized to ``[a-zA-Z0-9 ]`` in SQL before SEARCH()), ``@lexical_terms`` (ARRAY<STRING>) and optionally
-    ``@solicitation_id``. Identifiers are validated; ``tier_profile`` is checked against ``HYBRID_TIERS``.
+    re-sanitized to ``[a-zA-Z0-9 ]`` in SQL before SEARCH()), ``@lexical_terms`` (ARRAY<STRING>), optionally
+    ``@solicitation_id``, and optionally ``@caller_groups`` (ARRAY<STRING>).
     """
     proj, dataset, table = _fqn(project_id, dataset_id, table_id)
     for name, value, hi in (("rrf_k", rrf_k, 1000), ("top_k", top_k, 500), ("vector_k", vector_k, 500), ("lexical_k", lexical_k, 500)):
@@ -254,7 +261,8 @@ def build_hybrid_rrf_sql(
         if include_solicitation_filter
         else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
     )
-    where = f"tier_profile = '{tier_profile}'{scope_clause}"
+    acl_clause = ACL_PREDICATE_SQL if include_acl_filter else ""
+    where = f"tier_profile = '{tier_profile}'{scope_clause}{acl_clause}"
     return _HYBRID_SQL_TEMPLATE.format(
         fqn=fqn, where=where, tier=tier_profile, col=embedding_column, rrf_k=rrf_k, top_k=top_k, vector_k=vector_k, lexical_k=lexical_k
     )
@@ -348,6 +356,7 @@ def build_lexical_search_sql(
     top_k: int = 50,
     include_solicitation_filter: bool = False,
     tier_profile: str = "hybrid",
+    include_acl_filter: bool = False,
 ) -> str:
     """Parameterized BigQuery SEARCH() + exact-term lexical ranking statement (zero embedding vector)."""
     proj, dataset, table = _fqn(project_id, dataset_id, table_id)
@@ -361,7 +370,8 @@ def build_lexical_search_sql(
         if include_solicitation_filter
         else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
     )
-    where = f"tier_profile = '{tier_profile}'{scope_clause}"
+    acl_clause = ACL_PREDICATE_SQL if include_acl_filter else ""
+    where = f"tier_profile = '{tier_profile}'{scope_clause}{acl_clause}"
     return f"""WITH lexical_scored AS (
   SELECT
     chunk_id,
@@ -417,24 +427,26 @@ def build_amendment_lookup_sql(
     *,
     limit: int = AMENDMENT_LOOKUP_LIMIT,
     tier_profile: str = "multimodal",
+    include_acl_filter: bool = False,
 ) -> str:
     """Level 4 ``check_amendments``: AMENDMENT rows of ``tier_profile`` whose comma-separated ``amends_section`` names
     ``@section_id`` (exact, or a parent/child clause such as SEC-4.2 ↔ SEC-4.2.1), latest amendment first.
 
-    User input only enters through ``@solicitation_id`` and ``@section_id`` (STRING parameters); identifiers are
-    validated; ``limit`` is bounded."""
+    User input only enters through ``@solicitation_id``, ``@section_id``, and optional ``@caller_groups``.
+    """
     proj, dataset, table = _fqn(project_id, dataset_id, table_id)
     if not isinstance(limit, int) or isinstance(limit, bool) or not (1 <= limit <= 20):
         raise ValueError("limit must be an integer between 1 and 20")
     if tier_profile not in BQ_TIERS:
         raise ValueError(f"tier_profile must be one of {BQ_TIERS}, got '{tier_profile}'")
+    acl_clause = f"\n  {ACL_PREDICATE_SQL.lstrip()}" if include_acl_filter else ""
     return f"""SELECT
   chunk_id, solicitation_id, doc_name, doc_type, element_type, section_id, amendment_number,
   effective_date, amends_section, page_number, bbox, content, layout_source, bbox_source
 FROM `{proj}.{dataset}.{table}`
 WHERE tier_profile = '{tier_profile}'
   AND solicitation_id = @solicitation_id
-  AND amendment_number > 0
+  AND amendment_number > 0{acl_clause}
   AND EXISTS (
     SELECT 1 FROM UNNEST(SPLIT(IFNULL(amends_section, ''), ',')) AS target
     WHERE TRIM(target) != ''
@@ -444,3 +456,57 @@ WHERE tier_profile = '{tier_profile}'
   )
 ORDER BY amendment_number DESC, effective_date DESC, LENGTH(content) DESC, chunk_id
 LIMIT {limit}"""
+
+
+def build_row_access_policy_ddl(
+    project_id: str,
+    dataset_id: str,
+    table_id: str = "document_chunks_v3",
+    *,
+    policy_name: str,
+    group_email: str,
+    allowed_group: str,
+) -> str:
+    """Build a real BigQuery ``CREATE OR REPLACE ROW ACCESS POLICY`` DDL statement (validated identifiers only)."""
+    from app.core.acl import VALID_ACL_GROUPS, AclValidationError
+
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    pname = _validate_identifier(policy_name, "policy_name")
+    email = str(group_email or "").strip()
+    if not _EMAIL_RE.fullmatch(email):
+        raise ValueError(f"group_email must be a valid email address, got {group_email!r}")
+    if allowed_group not in VALID_ACL_GROUPS:
+        raise AclValidationError(f"allowed_group must be one of {list(VALID_ACL_GROUPS)}, got {allowed_group!r}")
+    return (
+        f"CREATE OR REPLACE ROW ACCESS POLICY `{pname}`\n"
+        f"ON `{proj}.{dataset}.{table}`\n"
+        f"GRANT TO ('group:{email}')\n"
+        f"FILTER USING ('{allowed_group}' IN UNNEST(allowed_groups));\n"
+    )
+
+
+def build_acl_backfill_sql(
+    project_id: str,
+    dataset_id: str,
+    table_id: str = "document_chunks_v3",
+) -> str:
+    """Idempotent SQL UPDATE populating ``allowed_groups`` on existing corpus rows ($0 re-ingest cost).
+
+    Matches ``app.core.acl.allowed_groups_for_doc`` deterministically for all 45 corpus PDFs while
+    leaving upload workspaces (``upl_*``) tagged with ``['corp_all', 'exec_admin']``.
+    """
+    proj, dataset, table = _fqn(project_id, dataset_id, table_id)
+    return f"""UPDATE `{proj}.{dataset}.{table}`
+SET allowed_groups = CASE
+  WHEN STARTS_WITH(solicitation_id, 'upl_') THEN ['corp_all', 'exec_admin']
+  WHEN NOT REGEXP_CONTAINS(doc_name, r'^[0-9]{{2}}_') THEN ['legal_contracts', 'exec_admin']
+  WHEN LOWER(doc_name) LIKE '%master_services_agreement%' OR LOWER(doc_name) LIKE '%_msa%' OR UPPER(doc_type) = 'MSA'
+    THEN ['legal_contracts', 'exec_admin']
+  WHEN LOWER(doc_name) LIKE '%soc2%' OR LOWER(doc_name) LIKE '%compliance%' OR LOWER(doc_name) LIKE '%incident_response%'
+    THEN ['security_soc2', 'exec_admin']
+  WHEN LOWER(doc_name) LIKE '%pricing%' OR LOWER(doc_name) LIKE '%clin%' OR LOWER(doc_name) LIKE '%amendment_0001%'
+       OR LOWER(doc_name) LIKE '%amendments_and_addenda%' OR UPPER(doc_type) = 'PRICING_CLIN'
+    THEN ['procurement_pricing', 'exec_admin']
+  ELSE ['corp_all', 'exec_admin']
+END
+WHERE allowed_groups IS NULL OR ARRAY_LENGTH(allowed_groups) = 0;"""

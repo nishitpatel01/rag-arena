@@ -1,5 +1,6 @@
 import React from "react";
 import { Pill } from "../../components/ui/Pill";
+import { personaLabel } from "../acl/aclModel";
 import type { StreamState } from "../levels/model";
 
 export interface RunStatusPillsProps {
@@ -22,6 +23,16 @@ export const RunStatusPills: React.FC<RunStatusPillsProps> = ({ state, isStreami
       </Pill>
     )}
     {state.questionId && <Pill tone="neutral" mono>{state.questionId}</Pill>}
+    {state.aclRestricted && state.accessPersona && (
+      <Pill
+        tone="warn"
+        mono
+        data-testid="acl-run-pill"
+        title={`Row-level security active: ${state.accessPersona} (${state.callerGroups.join(", ")})`}
+      >
+        ACL: {personaLabel(state.accessPersona)} · {state.callerGroups.join(", ")}
+      </Pill>
+    )}
     {state.interrupted && (
       <Pill tone="err" title="The SSE stream ended without battle_complete; running stages were marked failed.">
         stream interrupted · {state.interrupted.reason}

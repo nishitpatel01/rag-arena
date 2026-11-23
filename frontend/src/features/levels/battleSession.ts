@@ -19,6 +19,8 @@ export interface BattleRunParams {
   readonly judgeModel?: string | null;
   /** Optional replay pacing multiplier (`1.0`..`100.0`); omitted when `null` (server honors only in `DEMO_MODE=replay`). */
   readonly replaySpeed?: number | null;
+  /** Optional enterprise access persona ID (`all_access` omitted; restricted narrows server-side ACL groups). */
+  readonly accessPersona?: string | null;
 }
 
 /** Transport callbacks; the frame is an already-parsed SSE `data:` JSON object. */

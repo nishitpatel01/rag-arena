@@ -27,7 +27,17 @@ from starlette.routing import Route
 
 from app.api.query_runs_reader import QueryRunsReadError, leaderboard_from_query_runs
 from app.api.uploads_api import upload_scope_error
+from app.core.acl import (
+    ARCHITECTURE_ACL_CAPABILITIES,
+    AclValidationError,
+    CallerAccessContext,
+    acl_recording_question_id,
+    corpus_acl_summary,
+    list_acl_personas,
+    resolve_caller_access,
+)
 from app.core.auth import AuthError, resolve_caller_identity
+from app.ingestion.jobs import DEFAULT_CORPUS_DIR, discover_corpus_docs
 from app.ingestion.uploads import owner_key
 from app.api.query_runs import QueryRunWriter, build_query_run_row, run_cost_usd, write_query_run_or_warn
 from app.core.config import ArenaSettings, get_settings
@@ -242,6 +252,7 @@ async def _maybe_record(
     models: RunModels | None = None,
     solicitation_filter: str | None = None,
     pipeline_spec: PipelineSpec | None = None,
+    caller_access: CallerAccessContext | None = None,
 ) -> None:
     """DEMO_MODE=record: persist the run under data/recordings/<engine>/<synthesis>__<judge>/<question_id>.json."""
     if settings.demo_mode != "record":
@@ -270,9 +281,10 @@ async def _maybe_record(
     if not question_id:
         await queue.put({"event": "stream_warning", "run_id": run_id, "message": f"record mode: no question_id, {emit_key} run not recorded", "ts": utc_now_iso()})
         return
+    rec_qid = acl_recording_question_id(question_id, caller_access)
     recording = build_recording(
-        settings=settings, engine_id=engine_id, question_id=question_id, query=query, run_id=run_id,
-        events=emitter.events, result=result, evaluation=outcome, models=models,
+        settings=settings, engine_id=engine_id, question_id=rec_qid, query=query, run_id=run_id,
+        events=emitter.events, result=result, evaluation=outcome, models=models, caller_access=caller_access,
     )
     path = await asyncio.to_thread(record_run, recording_store_for(settings), recording)
     await queue.put({"event": "recording_saved", "run_id": run_id, "engine": emit_key, "path": str(path), "ts": utc_now_iso()})
@@ -291,6 +303,7 @@ async def _run_single_engine_worker(
     *,
     stream_key: str | None = None,
     pipeline_spec: PipelineSpec | None = None,
+    caller_access: CallerAccessContext | None = None,
 ) -> bool:
     """Run one engine + judge with a bounded timeout; forward emitter events; return True on success."""
     emit_key = stream_key or engine.engine_id
@@ -298,15 +311,27 @@ async def _run_single_engine_worker(
     timeout = float(settings.query_timeout_seconds)
     started_at = utc_now_iso()
     try:
-        result = await asyncio.wait_for(
-            engine.run_query(query, question_id=question_id, solicitation_filter=solicitation_filter, emitter=emitter),
-            timeout=timeout,
-        )
+        if caller_access is not None and caller_access.is_restricted:
+            result = await asyncio.wait_for(
+                engine.run_query(
+                    query,
+                    question_id=question_id,
+                    solicitation_filter=solicitation_filter,
+                    emitter=emitter,
+                    caller_access=caller_access,
+                ),
+                timeout=timeout,
+            )
+        else:
+            result = await asyncio.wait_for(
+                engine.run_query(query, question_id=question_id, solicitation_filter=solicitation_filter, emitter=emitter),
+                timeout=timeout,
+            )
         await queue.put(_answer_complete_event(run_id, result, stream_key=emit_key))
         outcome = await asyncio.wait_for(
             run_evaluation(
                 query, result, question_id=question_id, settings=settings, emitter=emitter, models=models,
-                solicitation_filter=solicitation_filter,
+                solicitation_filter=solicitation_filter, caller_access=caller_access,
             ),
             timeout=timeout,
         )
@@ -314,7 +339,7 @@ async def _run_single_engine_worker(
         await _maybe_record(
             settings, run_id=run_id, engine_id=engine.engine_id, stream_key=emit_key, question_id=question_id,
             query=query, emitter=emitter, result=result, outcome=outcome, queue=queue, models=models,
-            solicitation_filter=solicitation_filter, pipeline_spec=pipeline_spec,
+            solicitation_filter=solicitation_filter, pipeline_spec=pipeline_spec, caller_access=caller_access,
         )
     except ReplayUnavailableError as exc:
         await queue.put(_engine_error_event(run_id, emit_key, exc, _last_failed_stage(emitter)))
@@ -347,6 +372,7 @@ async def _stream_battle_events(
     *,
     models_by_key: dict[str, RunModels] | None = None,
     specs_by_key: dict[str, PipelineSpec] | None = None,
+    caller_access: CallerAccessContext | None = None,
 ) -> AsyncIterator[str]:
     """Run selected engines concurrently and forward their events as SSE frames (bounded by MAX_SSE_FRAMES)."""
     if not query.strip() or not selected_engines:
@@ -354,12 +380,15 @@ async def _stream_battle_events(
     run_id = f"run_{uuid.uuid4().hex[:12]}"
     queue: asyncio.Queue = asyncio.Queue(maxsize=BATTLE_SSE_QUEUE_MAXSIZE)
     synthesis_id, judge_id = models.pair if models is not None else default_selection_ids(settings)
-    yield _format_sse_event(
-        {
-            "event": "run_started", "run_id": run_id, "engines": list(selected_engines), "demo_mode": settings.demo_mode,
-            "question_id": question_id, "synthesis_model": synthesis_id, "judge_model": judge_id, "ts": utc_now_iso(),
-        }
-    )
+    start_frame: dict[str, Any] = {
+        "event": "run_started", "run_id": run_id, "engines": list(selected_engines), "demo_mode": settings.demo_mode,
+        "question_id": question_id, "synthesis_model": synthesis_id, "judge_model": judge_id, "ts": utc_now_iso(),
+    }
+    if caller_access is not None:
+        start_frame["access_persona"] = caller_access.persona_id
+        start_frame["caller_groups"] = list(caller_access.effective_groups)
+        start_frame["acl_restricted"] = caller_access.is_restricted
+    yield _format_sse_event(start_frame)
     tasks = [
         asyncio.create_task(
             _run_single_engine_worker(
@@ -374,6 +403,7 @@ async def _stream_battle_events(
                 models_by_key[eng_id] if models_by_key and eng_id in models_by_key else models,
                 stream_key=eng_id,
                 pipeline_spec=specs_by_key.get(eng_id) if specs_by_key else None,
+                caller_access=caller_access,
             )
         )
         for eng_id in selected_engines[:_MAX_ENGINES_PER_BATTLE]
@@ -724,6 +754,8 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
             else settings
         )
         models = _resolve_run_models(body, run_settings)
+        raw_persona = body.get("access_persona")
+        caller_access = resolve_caller_access(raw_persona if raw_persona is not None else None)
         if body.get("pipelines") is not None:
             (
                 query, q_id, selected_engines, sol_filter,
@@ -733,7 +765,7 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
             query, q_id, selected_engines, sol_filter = _validate_battle_payload(body, _enabled_placeholder(run_settings))
             registry = get_engine_registry(run_settings, models=models, level_ids=tuple(selected_engines))
             scope_levels = selected_engines
-    except (PipelineSpecError, ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
+    except (AclValidationError, PipelineSpecError, ModelSelectionError, VerificationFileError, ValueError, TypeError) as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     if sol_filter and sol_filter.startswith("upl_"):
         scope_error = await upload_scope_error(request, sol_filter, scope_levels)
@@ -744,7 +776,7 @@ async def battle_stream_endpoint(request: Request) -> JSONResponse | StreamingRe
         query=query, question_id=q_id, selected_engines=selected_engines,
         solicitation_filter=sol_filter, registry=registry, settings=run_settings,
         query_run_writer=getattr(request.app.state, "query_run_writer", None), models=models,
-        models_by_key=models_by_key, specs_by_key=specs_by_key,
+        models_by_key=models_by_key, specs_by_key=specs_by_key, caller_access=caller_access,
     )
     return StreamingResponse(
         event_generator,
@@ -848,11 +880,35 @@ async def ingest_status_endpoint(request: Request) -> JSONResponse:
     return JSONResponse(await _ingest_runner(request).status(viewer_owner=viewer))
 
 
+async def acl_personas_endpoint(request: Request) -> JSONResponse:
+    """GET /api/v1/acl/personas: enterprise access personas, honest per-architecture ACL capabilities & replay demos."""
+    settings = _settings_of(request)
+    corpus_dir = getattr(request.app.state, "corpus_dir", None)
+    root = corpus_dir if isinstance(corpus_dir, Path) else DEFAULT_CORPUS_DIR
+    try:
+        docs = discover_corpus_docs(root)
+        summary = corpus_acl_summary([d.path.name for d in docs])
+    except FileNotFoundError:
+        summary = {"total_docs": 0, "authorized_by_group": {}, "authorized_by_persona": {}}
+    demos = recording_store_for(settings).recorded_acl_demos()
+    return JSONResponse(
+        {
+            "demo_mode": settings.demo_mode,
+            "default_persona": "all_access",
+            "personas": [p.to_dict() for p in list_acl_personas()],
+            "architecture_capabilities": {lid: cap.to_dict() for lid, cap in ARCHITECTURE_ACL_CAPABILITIES.items()},
+            "corpus_summary": summary,
+            "recorded_acl_demos": demos,
+        }
+    )
+
+
 def get_api_routes() -> list[Route]:
     """Return the Starlette Route table for The RAG Arena v1 API."""
     routes = [
         Route("/api/v1/health", endpoint=health_endpoint, methods=["GET"]),
         Route("/api/v1/releases", endpoint=releases_endpoint, methods=["GET"]),
+        Route("/api/v1/acl/personas", endpoint=acl_personas_endpoint, methods=["GET"]),
         Route("/api/v1/benchmarks", endpoint=benchmarks_endpoint, methods=["GET"]),
         Route("/api/v1/levels", endpoint=levels_endpoint, methods=["GET"]),
         Route("/api/v1/pipelines/presets", endpoint=pipelines_presets_endpoint, methods=["GET"]),

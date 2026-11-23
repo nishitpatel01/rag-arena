@@ -33,6 +33,7 @@ COMPLIANCE_POSTURE_OPTIONS: tuple[str, ...] = (
     "standard_serverless",
     "managed_turnkey",
     "cmek_vpc",
+    "strict_document_acls",
 )
 DOC_COMPLEXITY_OPTIONS: tuple[str, ...] = (
     "plain_text",
@@ -255,6 +256,20 @@ ENTERPRISE_SCENARIO_PRESETS: tuple[ScenarioPreset, ...] = (
             latency_sla="sub_second_retrieval",
             compliance_posture="cmek_vpc",
             doc_complexity="plain_text",
+            synthesis_model="gemini-4-hydrogen",
+        ),
+    ),
+    ScenarioPreset(
+        preset_id="enterprise_document_acls",
+        title="Strict Document ACLs & RLS",
+        subtitle="Multi-group Finance, Legal & SOC2 corpora with row-level retrieval isolation at $0/mo idle",
+        workload=TcoWorkload(
+            data_gravity="bigquery_warehouse",
+            monthly_queries=50_000,
+            corpus_pages=25_000,
+            latency_sla="interactive_rag",
+            compliance_posture="strict_document_acls",
+            doc_complexity="tables_diagrams",
             synthesis_model="gemini-4-hydrogen",
         ),
     ),
@@ -652,6 +667,22 @@ def _score_workload_fit(
         if lid == "managed_vertex":
             score -= 5
             tradeoffs.append("Default global Discovery Engine config requires regional datastore reconfiguration under strict residency.")
+    elif cp == "strict_document_acls":
+        if lid in ("level2_hybrid", "level3_multimodal", "level4_agentic", "level1_naive"):
+            score += 10
+            rationale.append("Enforces native BigQuery parameterized UNNEST(@caller_groups) & ROW ACCESS POLICY before synthesis.")
+        elif lid == "alloydb_scann":
+            score += 10
+            rationale.append("Enforces native PostgreSQL Row-Level Security (CREATE POLICY + GIN allowed_groups) inside the DB engine.")
+        elif lid == "vertex_vector_v2":
+            score += 8
+            rationale.append("Applies indexed filterFields=['allowed_groups'] $in pre-filtering on dense ScaNN and sparse RRF legs.")
+        elif lid == "managed_vertex":
+            score += 7
+            rationale.append("Supports Discovery Engine allowed_groups filter expressions and enterprise IdP aclConfig.")
+        elif lid == "rag_engine":
+            score -= 12
+            tradeoffs.append("Vertex AI RAG Engine enforces IAM at the RagCorpus boundary, not per-document chunk ACLs in a shared corpus.")
 
     # 5. Economic & corpus-scale crossover adjustments (-8 .. +10)
     if workload.monthly_queries >= 250_000:

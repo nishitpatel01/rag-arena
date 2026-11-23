@@ -19,6 +19,7 @@ from pathlib import Path
 import re
 import time
 
+from app.core.acl import CallerAccessContext, acl_recording_question_id
 from app.core.config import ArenaSettings, get_settings
 from app.core.models import EngineResult, EvalOutcome
 from app.core.models_catalog import ModelSpec, RunModels
@@ -228,6 +229,7 @@ async def run_evaluation(
     emitter: StageEmitter,
     models: RunModels | None = None,
     solicitation_filter: str | None = None,
+    caller_access: CallerAccessContext | None = None,
 ) -> EvalOutcome:
     """Emit the ``evaluate`` stage around the run's judge (live/record) or replay the recorded pair's judge."""
     if not isinstance(settings, ArenaSettings):
@@ -235,10 +237,11 @@ async def run_evaluation(
     if models is not None and not isinstance(models, RunModels):
         raise TypeError("models must be a RunModels or None")
     if settings.demo_mode == "replay":
+        lookup_qid = acl_recording_question_id(question_id, caller_access) if question_id else None
         return await replay_evaluation(
             recording_store_for(settings),
             engine_id=result.engine_id,
-            question_id=question_id,
+            question_id=lookup_qid,
             emitter=emitter,
             replay_speed=settings.replay_speed,
             pair=replay_pair(settings, models),
@@ -247,7 +250,8 @@ async def run_evaluation(
         raise ValueError(f"judge model {models.judge.id} also synthesized this answer; an LLM must not grade itself")
     judge, service = _judge_for_run(settings, models.judge if models else None)
     is_upload = isinstance(solicitation_filter, str) and solicitation_filter.startswith("upl_")
-    reference = None if is_upload else lookup_reference_answer(question_id)
+    is_restricted = bool(caller_access and caller_access.is_restricted)
+    reference = None if (is_upload or is_restricted) else lookup_reference_answer(question_id)
     handle = await emitter.started(
         "evaluate", label="LLM-as-a-judge", service=service, request=_evaluate_request(judge, settings, bool(reference))
     )

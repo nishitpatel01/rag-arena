@@ -26,6 +26,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from app.core.acl import CallerAccessContext, acl_refusal_answer, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_access_token
 from app.core.models import DocumentChunk, EngineFlags, EngineResult, TokenUsage
@@ -42,6 +43,7 @@ from app.engines.vais_search import (
     SearchOutcome,
     VaisResponseError,
     build_search_body,
+    build_vais_acl_filter,
     hit_payload,
     parse_search_response,
     redact_vais_uri,
@@ -136,19 +138,35 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
             ctx.payload = {**prepared.payload(), "sent_to": "Vertex AI Search search.query"}
         return prepared
 
-    def _search_body(self, prepared: str, *, solicitation_filter: str | None = None) -> dict[str, Any]:
+    def _search_body(
+        self,
+        prepared: str,
+        *,
+        solicitation_filter: str | None = None,
+        caller_access: CallerAccessContext | None = None,
+    ) -> dict[str, Any]:
         s = self.settings
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
+        if caller_groups:
+            filter_expr = build_vais_acl_filter(
+                caller_groups,
+                workspace_id=solicitation_filter if solicitation_filter and is_upload_scope(solicitation_filter) else None,
+            )
+        else:
+            filter_expr = workspace_filter_expr(solicitation_filter) if solicitation_filter else None
         return build_search_body(
             prepared, page_size=s.vais_page_size, max_segments=s.vais_max_segments,
             summary_result_count=min(s.vais_summary_result_count, s.vais_page_size) if self.summary_mode else None,
             summary_model_version=s.vais_summary_model_version,
-            filter_expr=workspace_filter_expr(solicitation_filter) if solicitation_filter else None,
+            filter_expr=filter_expr,
         )
 
     def _retrieve_payload(
         self, body: dict[str, Any], outcome: SearchOutcome, api_ms: int, attempts: int, res: VaisResources,
-        *, solicitation_filter: str | None = None,
+        *, solicitation_filter: str | None = None, caller_access: CallerAccessContext | None = None,
     ) -> dict[str, Any]:
+        restricted = bool(caller_access and caller_access.is_restricted)
         return {
             "api_request": body, "serving_config": res.serving_config_label, "location": res.location,
             "total_size": outcome.total_size, "rows_returned": len(outcome.hits),
@@ -159,14 +177,24 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
             "segments_returned": sum(len(h.segments) for h in outcome.hits), "attribution_token": outcome.attribution_token,
             "api_ms": api_ms, "attempts": attempts, "summary_requested": self.summary_mode,
             "solicitation_filter": solicitation_filter or "not supported (unstructured data store without filterable metadata)",
+            **(
+                {**acl_stage_metadata(self.engine_id, caller_access), "acl_access_denied": len(outcome.hits) == 0}
+                if restricted
+                else {}
+            ),
         }
 
     async def _retrieve(
-        self, prepared: PreparedQuery, emitter: StageEmitter, *, solicitation_filter: str | None = None
+        self,
+        prepared: PreparedQuery,
+        emitter: StageEmitter,
+        *,
+        solicitation_filter: str | None = None,
+        caller_access: CallerAccessContext | None = None,
     ) -> SearchOutcome:
         upload_scope = is_upload_scope(solicitation_filter)
         res = _check_resources(self.settings, upload_scope=upload_scope)
-        body = self._search_body(prepared.prepared, solicitation_filter=solicitation_filter)
+        body = self._search_body(prepared.prepared, solicitation_filter=solicitation_filter, caller_access=caller_access)
         client = self._client or build_search_client(self.settings)
         service = SEARCH_SERVICE + (" + summary" if self.summary_mode else "")
         async with self.stage(
@@ -176,7 +204,11 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
             t0 = time.perf_counter()
             doc, attempts = await self.blocking(client.request, "POST", f"{res.serving_config_path}:search", body=body)
             api_ms = max(1, int((time.perf_counter() - t0) * 1000))
-            outcome = parse_search_response(doc, summary_requested=self.summary_mode)
+            restricted = bool(caller_access and caller_access.is_restricted)
+            if restricted and not doc.get("results"):
+                outcome = SearchOutcome(hits=(), total_size=0, attribution_token=str(doc.get("attributionToken") or ""), summary=None)
+            else:
+                outcome = parse_search_response(doc, summary_requested=self.summary_mode)
             if upload_scope:
                 outside = [h.document_id for h in outcome.hits if h.solicitation_id != solicitation_filter]
                 if outside:
@@ -184,7 +216,7 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
                         f"Vertex AI Search returned document(s) outside workspace {solicitation_filter}: {outside[:5]}"
                     )
             ctx.payload = self._retrieve_payload(
-                body, outcome, api_ms, attempts, res, solicitation_filter=solicitation_filter
+                body, outcome, api_ms, attempts, res, solicitation_filter=solicitation_filter, caller_access=caller_access
             )
         return outcome
 
@@ -240,7 +272,13 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
         return round(search + (0.0 if self.summary_mode else cost_from_usage(usage, self.synthesis_model.id)), 8)
 
     async def run_query(
-        self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter
+        self,
+        query: str,
+        *,
+        question_id: str | None,
+        solicitation_filter: str | None,
+        emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """prep → search (segments [+ summary]) → summary | model synthesis; live/record only."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
@@ -249,7 +287,26 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
         is_upload_scope(solicitation_filter)
         start = time.perf_counter()
         prepared = await self._query_prep(cleaned, emitter)
-        outcome = await self._retrieve(prepared, emitter, solicitation_filter=solicitation_filter)
+        outcome = await self._retrieve(prepared, emitter, solicitation_filter=solicitation_filter, caller_access=caller_access)
+        if not outcome.hits and caller_access is not None and caller_access.is_restricted:
+            refusal = acl_refusal_answer(caller_access, cleaned)
+            async with self.stage(
+                emitter, "synthesize", label="Row-level security refusal (0 authorized results)", service="ACL Policy (local)",
+                request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.engine_id, caller_access)},
+            ) as ctx:
+                ctx.payload = {
+                    "model": self.synthesis_model.id, "answer": refusal, "prompt_tokens": 0, "output_tokens": 0,
+                    "acl_access_denied": True, **acl_stage_metadata(self.engine_id, caller_access),
+                }
+            usage = TokenUsage(model=self.synthesis_model.id)
+            return EngineResult(
+                engine_id=self.engine_id, engine_label=self.engine_label, answer=refusal,
+                citations=[], retrieved_chunks=[], agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=vais_query_cost_usd(searches=1, summary_queries=1 if self.summary_mode else 0),
+                stage_log=self.stage_log_of(emitter), usage=usage,
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=LAYOUT_SOURCE),
+            )
         if self.summary_mode:
             answer, usage, cites, _ = await self._synthesize_summary(outcome, emitter)
         else:
@@ -257,7 +314,7 @@ class ManagedVertexSearchEngine(BaseRAGEngine):
         context = segment_chunks(self._context_hits(outcome))
         return EngineResult(
             engine_id=self.engine_id, engine_label=self.engine_label, answer=answer,
-            citations=self.chunks_to_citations(cites, max_citations=min(len(cites), 50)), retrieved_chunks=context,
+            citations=self.chunks_to_citations(cites, max_citations=min(len(cites), 50)) if cites else [], retrieved_chunks=context,
             agent_steps=[], latency_ms=max(1, int((time.perf_counter() - start) * 1000)), cost_usd=self._cost(usage),
             stage_log=self.stage_log_of(emitter), usage=usage,
             flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=LAYOUT_SOURCE),

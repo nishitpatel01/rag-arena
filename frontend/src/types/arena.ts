@@ -552,6 +552,10 @@ export interface RunStartedEvent extends BaseEvent {
   /** Catalog ids of the models this run actually uses (absent on pre-picker backends/recordings). */
   readonly synthesis_model?: string | null;
   readonly judge_model?: string | null;
+  /** Identity-Aware Document ACL / RLS context active on this run (v1.6.3). */
+  readonly access_persona?: string | null;
+  readonly caller_groups?: readonly string[] | null;
+  readonly acl_restricted?: boolean;
 }
 
 /** Replay-mode frames carry `replayed: true` and the original `recorded_ts`. */
@@ -956,4 +960,57 @@ export interface ReleasesResponse {
   readonly stats: ReleasesStats;
   readonly releases: readonly ReleaseEntry[];
   readonly documents: readonly ReleaseDocument[];
+}
+
+// ---------------------------------------------------------------------------
+// Identity-Aware Document ACLs & Row-Level Security (v1.6.3)
+// ---------------------------------------------------------------------------
+
+export type AclPersonaId =
+  | "all_access"
+  | "engineering_analyst"
+  | "pricing_finance"
+  | "security_soc2"
+  | "legal_counsel";
+
+export interface AclPersona {
+  readonly persona_id: AclPersonaId | (string & {});
+  readonly label: string;
+  readonly short_label: string;
+  readonly description: string;
+  readonly groups: readonly string[];
+  readonly blocked_summary: string;
+}
+
+export interface ArchitectureAclCapability {
+  readonly level_id: LevelId | (string & {});
+  readonly supports_chunk_acl: boolean;
+  readonly enforcement_mode: string;
+  readonly mechanism_label: string;
+  readonly summary: string;
+  readonly honest_note: string;
+}
+
+export interface CorpusAclSummary {
+  readonly total_docs: number;
+  readonly authorized_by_group: Readonly<Record<string, number>>;
+  readonly authorized_by_persona: Readonly<Record<string, number>>;
+}
+
+export interface RecordedAclDemo {
+  readonly engine: string;
+  readonly synthesis_model: string;
+  readonly judge_model: string;
+  readonly question_id: string;
+  readonly access_persona: string;
+  readonly caller_groups?: readonly string[];
+}
+
+export interface AclPersonasResponse {
+  readonly demo_mode: DemoMode | string;
+  readonly default_persona: AclPersonaId | string;
+  readonly personas: readonly AclPersona[];
+  readonly architecture_capabilities: Readonly<Record<string, ArchitectureAclCapability>>;
+  readonly corpus_summary: CorpusAclSummary;
+  readonly recorded_acl_demos: readonly RecordedAclDemo[];
 }

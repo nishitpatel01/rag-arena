@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from app.core.acl import allowed_groups_for_doc
 from app.core.models import DocumentChunk
 from app.ingestion.parsers import _MAX_STREAM_MATCHES, _STREAM_PATTERN, _VALID_TIERS, parse_pdf_Fallback_or_fitz
 
@@ -91,6 +92,7 @@ def chunk_to_bigquery_row(
         "embedding": clean_embedding,
         "embedding_multimodal": mm_embedding,
         "bbox_source": chunk.bbox_source or None,
+        "allowed_groups": list(allowed_groups_for_doc(chunk.doc_name, chunk.doc_type)),
     }
 
 

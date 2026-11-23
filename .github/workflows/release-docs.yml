@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,11 +19,13 @@ concurrency:
 jobs:
   verify-docs-and-tests:
     name: Verify Release Docs, Leak Gate & Offline Suites
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -33,6 +36,7 @@ jobs:
 
       - name: Install locked backend dependencies
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install --no-cache-dir -r backend/requirements.lock pytest
 
@@ -52,6 +56,7 @@ jobs:
       - name: Run frontend offline tests & production bundle build
         working-directory: frontend
         run: |
+          set -euo pipefail
           npm ci --no-audit --no-fund
           npm test
           npm run build
@@ -59,8 +64,8 @@ jobs:
   release-please:
     name: Maintain Automated Release PR & GitHub Release
     needs: verify-docs-and-tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: write

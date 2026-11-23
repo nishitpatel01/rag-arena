@@ -65,7 +65,7 @@ test("parseTcoWorkload enforces strict bounds, enums, and rejects invalid inputs
 
   assert.equal(DATA_GRAVITY_OPTIONS.length, 4);
   assert.equal(LATENCY_SLA_OPTIONS.length, 3);
-  assert.equal(COMPLIANCE_POSTURE_OPTIONS.length, 3);
+  assert.equal(COMPLIANCE_POSTURE_OPTIONS.length, 4);
   assert.equal(DOC_COMPLEXITY_OPTIONS.length, 3);
   assert.equal(TCO_SYNTHESIS_MODELS.length, 6);
   assert.equal(DEFAULT_WORKLOAD.synthesis_model, "gemini-4-hydrogen");
@@ -169,8 +169,8 @@ test("pure TCO estimate never invents fake scores and matches GCP standing/cross
   assert.ok(highById.vertex_vector_v2.total_monthly_usd < highById.level3_multimodal.total_monthly_usd);
 });
 
-test("all 5 enterprise scenario presets select distinct non-baseline primary recommendations", () => {
-  assert.equal(ENTERPRISE_SCENARIO_PRESETS.length, 5);
+test("all 6 enterprise scenario presets select distinct non-baseline primary recommendations", () => {
+  assert.equal(ENTERPRISE_SCENARIO_PRESETS.length, 6);
   const primaries = new Set<string>();
   for (const preset of ENTERPRISE_SCENARIO_PRESETS) {
     const est = estimateEnterpriseTco(preset.workload);

@@ -33,6 +33,8 @@ import { useViewedRunInputs } from "./useViewedRunInputs";
 import { ScopeSelector } from "../uploads/ScopeSelector";
 import { uploadRunGateFor, type UploadWorkspace } from "../uploads/uploadModel";
 import { useUploadWorkspaces, type UploadWorkspacesState } from "../uploads/useUploadWorkspaces";
+import { AccessPersonaSelect } from "../acl/AccessPersonaSelect";
+import { useAccessPersona } from "../acl/aclModel";
 
 /** Two `gap-4` (16 px) column gaps in the level grid. */
 const GRID_GAPS_PX = 32;
@@ -65,6 +67,7 @@ const LevelBody: React.FC<{
   const sessionKey = `level:${level.level_id}`;
   const stream = useLevelRun(level.level_id);
   const catalogModels = useModelCatalog(level.level_id);
+  const acl = useAccessPersona();
   const { status: ingest, error: ingestError } = ingestState;
   const { maskValue } = useSafeMode();
   const { selectedStage, setSelectedStage, userPicked, setUserPicked, citation: storedCitation, setCitation, clearOwn } = useRunSelection(sessionKey, stream);
@@ -118,6 +121,7 @@ const LevelBody: React.FC<{
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
       replaySpeed: replaySpeedWireValue(demoMode) ?? null,
+      accessPersona: acl.isRestricted ? acl.personaId : null,
     });
   };
 
@@ -202,6 +206,18 @@ const LevelBody: React.FC<{
               onChange={uploadScope.setScope}
             />
           }
+          aclControl={
+            <AccessPersonaSelect
+              id={`acl-${level.level_id}`}
+              acl={acl}
+              levelId={level.level_id}
+              demoMode={demoMode}
+              disabled={stream.ownStreaming}
+            />
+          }
+          accessPersona={acl.personaId}
+          aclDemos={acl.recordedDemos}
+          aclCapabilities={acl.capabilities}
         />
       <PaneResizer label="Resize question pane" side="left" width={questionWidth} bounds={QUESTION_PANE}
         maxPx={paneMax(QUESTION_PANE, leftAvailable)} onChange={setQuestionWidth} className="-mr-3.5 ml-0.5" />
@@ -221,7 +237,7 @@ const LevelBody: React.FC<{
         <PaneResizer label="Resize document viewer" side="right" width={docWidth} bounds={DOC_PANE}
           maxPx={paneMax(DOC_PANE, rightAvailable)} onChange={setDocWidth} className="-ml-3.5 mr-0.5" />
         <Panel title="Document viewer" subtitle="Real source page of the selected citation" className="flex-1" as="aside">
-          <DocumentViewer citation={citation} onOpen={openViewer} />
+          <DocumentViewer citation={citation} onOpen={openViewer} accessPersona={acl.personaId} />
         </Panel>
       </div>
 
@@ -270,7 +286,7 @@ const LevelBody: React.FC<{
           />
         </Panel>
       )}
-      <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} retrievedChunks={timeline?.answer?.retrievedChunks} />
+      <DocumentDrawer citation={citation} open={viewerOpen} onClose={closeViewer} retrievedChunks={timeline?.answer?.retrievedChunks} accessPersona={acl.personaId} />
     </div>
     </>
   );

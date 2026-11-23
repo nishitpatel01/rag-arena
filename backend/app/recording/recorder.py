@@ -7,6 +7,7 @@ import re
 import subprocess
 from typing import Any
 
+from app.core.acl import CallerAccessContext
 from app.core.config import ArenaSettings
 from app.core.models import EngineResult, EvalOutcome
 from app.core.models_catalog import RunModels
@@ -87,6 +88,7 @@ def build_recording(
     evaluation: EvalOutcome | None,
     synthetic_dev_fixture: bool = False,
     models: RunModels | None = None,
+    caller_access: CallerAccessContext | None = None,
 ) -> Recording:
     """Assemble a Recording with the spec P3 provenance header, redacted of every identity value (spec §10).
 
@@ -121,6 +123,9 @@ def build_recording(
         "query": query,
         "run_id": run_id,
     }
+    if caller_access is not None and caller_access.is_restricted:
+        header["access_persona"] = caller_access.persona_id
+        header["caller_groups"] = list(caller_access.effective_groups)
     if synthetic_dev_fixture:
         header["synthetic_dev_fixture"] = True
         header["note"] = "SYNTHETIC development fixture generated with mocked SDK clients; not a measured live run."

@@ -207,8 +207,10 @@ class RecordingStore:
         os.replace(tmp, target)
         return target
 
-    def list_recordings(self, *, include_dev: bool = False) -> list[Recording]:
-        """Return all recordings (bounded), skipping ``_dev`` unless requested and allowed."""
+    def list_recordings(self, *, include_dev: bool = False, include_acl: bool = False) -> list[Recording]:
+        """Return all recordings (bounded), skipping ``_dev`` unless allowed and ``__acl_`` unless requested."""
+        from app.core.acl import is_acl_recording_question_id
+
         if not self.root.is_dir():
             return []
         files = sorted(self.root.rglob("*.json"))[:_MAX_LISTED_FILES]
@@ -217,8 +219,33 @@ class RecordingStore:
             is_dev = DEV_FIXTURES_DIRNAME in path.relative_to(self.root).parts
             if is_dev and not (include_dev and self.allow_dev_fixtures):
                 continue
-            out.append(self._read(path))
+            rec = self._read(path)
+            if not include_acl and is_acl_recording_question_id(rec.question_id):
+                continue
+            out.append(rec)
         return out
+
+    def recorded_acl_demos(self) -> list[dict[str, Any]]:
+        """List recorded restricted-persona ACL demos ``[{engine, synthesis_model, judge_model, question_id, access_persona}]``."""
+        from app.core.acl import ACL_RECORDING_MARKER, is_acl_recording_question_id
+
+        demos: list[dict[str, Any]] = []
+        for rec in self.list_recordings(include_dev=False, include_acl=True):
+            if not is_acl_recording_question_id(rec.question_id):
+                continue
+            base_qid, persona_id = rec.question_id.split(ACL_RECORDING_MARKER, 1)
+            synth, judge = rec.pair
+            demos.append(
+                {
+                    "engine": rec.engine,
+                    "synthesis_model": synth,
+                    "judge_model": judge,
+                    "question_id": base_qid,
+                    "access_persona": str(rec.header.get("access_persona") or persona_id),
+                    "caller_groups": list(rec.header.get("caller_groups") or []),
+                }
+            )
+        return demos
 
     def recorded_pairs(self) -> list[dict[str, Any]]:
         """``[{engine, synthesis_model, judge_model, question_ids}]`` — what replay can play (dev only if allowed)."""

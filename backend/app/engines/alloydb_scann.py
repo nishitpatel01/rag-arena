@@ -23,6 +23,7 @@ from typing import Any, Callable
 from psycopg import sql as pg_sql
 
 from app.core import gcp_clients
+from app.core.acl import CallerAccessContext, acl_refusal_answer, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_alloydb_client
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult
@@ -86,6 +87,8 @@ def build_alloydb_scann_ddl(
     scann_idx = validate_pg_identifier(f"idx_{ident[:40]}_scann", "scann_index")
     fts_idx = validate_pg_identifier(f"idx_{ident[:40]}_fts", "fts_index")
     sol_idx = validate_pg_identifier(f"idx_{ident[:40]}_tier_sol", "filter_index")
+    acl_idx = validate_pg_identifier(f"idx_{ident[:40]}_acl", "acl_index")
+    rls_policy = validate_pg_identifier(f"rls_{ident[:40]}_acl", "rls_policy")
     return (
         "CREATE EXTENSION IF NOT EXISTS vector;",
         "CREATE EXTENSION IF NOT EXISTS alloydb_scann;",
@@ -103,10 +106,19 @@ def build_alloydb_scann_ddl(
     page_number INTEGER NOT NULL DEFAULT 1,
     bbox_json JSONB,
     content TEXT NOT NULL,
+    allowed_groups TEXT[] NOT NULL DEFAULT ARRAY['corp_all', 'exec_admin'],
     embedding vector({vector_dim}) NOT NULL
 );""",
         f'CREATE INDEX IF NOT EXISTS "{sol_idx}" ON "{ident}" (tier_profile, solicitation_id);',
+        f'CREATE INDEX IF NOT EXISTS "{acl_idx}" ON "{ident}" USING GIN (allowed_groups);',
         f'CREATE INDEX IF NOT EXISTS "{fts_idx}" ON "{ident}" USING GIN (to_tsvector(\'english\', content));',
+        f'ALTER TABLE "{ident}" ENABLE ROW LEVEL SECURITY;',
+        f'DROP POLICY IF EXISTS "{rls_policy}" ON "{ident}";',
+        f"""CREATE POLICY "{rls_policy}" ON "{ident}" FOR SELECT
+USING (
+    COALESCE(current_setting('app.caller_groups', true), '') = ''
+    OR allowed_groups && string_to_array(current_setting('app.caller_groups', true), ',')
+);""",
         f'CREATE INDEX IF NOT EXISTS "{scann_idx}" ON "{ident}" USING scann (embedding cosine) WITH (num_leaves = {num_leaves});',
     )
 
@@ -119,6 +131,7 @@ def build_alloydb_hybrid_search_sql(
     candidate_k: int = 25,
     solicitation_filter: str | None = None,
     rrf_k: int = RRF_K,
+    caller_groups: tuple[str, ...] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Build parameterized PostgreSQL ScaNN cosine + GIN FTS RRF SQL and its ``%(param)s`` dictionary."""
     ident = validate_pg_identifier(table, "table")
@@ -131,6 +144,8 @@ def build_alloydb_hybrid_search_sql(
 
     has_sol = bool(solicitation_filter and solicitation_filter.strip())
     sol_clause = " AND solicitation_id = %(solicitation_id)s" if has_sol else ""
+    has_acl = bool(caller_groups)
+    acl_clause = " AND allowed_groups && %(caller_groups)s::text[]" if has_acl else ""
     quoted_tbl = f'"{ident}"'
     sql_text = f"""WITH vec_leg AS (
     SELECT
@@ -138,7 +153,7 @@ def build_alloydb_hybrid_search_sql(
         (embedding <=> %(query_vector)s::vector) AS vec_distance,
         ROW_NUMBER() OVER (ORDER BY embedding <=> %(query_vector)s::vector ASC, chunk_id ASC) AS vec_rank
     FROM {quoted_tbl}
-    WHERE tier_profile = 'hybrid'{sol_clause}
+    WHERE tier_profile = 'hybrid'{sol_clause}{acl_clause}
     ORDER BY embedding <=> %(query_vector)s::vector ASC
     LIMIT %(candidate_k)s
 ),
@@ -151,7 +166,7 @@ lex_leg AS (
             chunk_id ASC
         ) AS lex_rank
     FROM {quoted_tbl}
-    WHERE tier_profile = 'hybrid'{sol_clause}
+    WHERE tier_profile = 'hybrid'{sol_clause}{acl_clause}
       AND to_tsvector('english', content) @@ websearch_to_tsquery('english', %(query_text)s)
     LIMIT %(candidate_k)s
 ),
@@ -197,6 +212,8 @@ LIMIT %(candidate_k)s;"""
     }
     if has_sol and solicitation_filter is not None:
         params["solicitation_id"] = solicitation_filter.strip()
+    if has_acl and caller_groups is not None:
+        params["caller_groups"] = list(caller_groups)
     return sql_text, params
 
 
@@ -303,6 +320,7 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         params: dict[str, Any],
         *,
         filtered: bool,
+        caller_groups: tuple[str, ...] | None = None,
     ) -> tuple[list[dict[str, Any]], int]:
         tokens = redaction_tokens(self.settings)
         try:
@@ -316,8 +334,14 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
                                 pg_sql.Literal(SCANN_DEFAULT_LEAVES_TO_SEARCH)
                             )
                         )
-                        if filtered:
+                        if filtered or caller_groups:
                             cur.execute(pg_sql.SQL("SET LOCAL scann.satisfy_limit = 'relaxed_order';"))
+                        if caller_groups:
+                            cur.execute(
+                                pg_sql.SQL("SELECT set_config('app.caller_groups', {}, true);").format(
+                                    pg_sql.Literal(",".join(caller_groups))
+                                )
+                            )
                         cur.execute(sql_text, params)
                         cols = [col.name for col in (cur.description or [])]
                         raw_rows = cur.fetchall()
@@ -339,14 +363,18 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         emitter: StageEmitter,
         *,
         candidate_k: int | None = None,
+        caller_access: CallerAccessContext | None = None,
     ) -> list[HybridCandidate]:
         eff_k = int(candidate_k or self.settings.alloydb_candidate_k)
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
         sql_text, params = build_alloydb_hybrid_search_sql(
             table=self.settings.alloydb_table,
             query_vector=vector,
             query_text=original_query,
             candidate_k=eff_k,
             solicitation_filter=solicitation_filter,
+            caller_groups=caller_groups,
         )
         shown_params = {
             "query_vector": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]},
@@ -357,6 +385,8 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         }
         if solicitation_filter:
             shown_params["solicitation_id"] = solicitation_filter
+        if caller_groups:
+            shown_params["caller_groups"] = list(caller_groups)
         async with self.stage(
             emitter,
             "retrieve",
@@ -374,9 +404,10 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
                 sql_text,
                 params,
                 filtered=bool(solicitation_filter),
+                caller_groups=caller_groups,
             )
             candidates = _rows_to_candidates(rows, tier_profile=self.tier_profile)
-            if not candidates:
+            if not candidates and not restricted:
                 raise RuntimeError(
                     f"AlloyDB ScaNN table '{self.settings.alloydb_table}' returned 0 rows — "
                     "run scripts/ephemeral_alloydb.sh --up (or --omni) to load the corpus or use DEMO_MODE=replay"
@@ -389,6 +420,11 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
                 "rows_returned": len(candidates),
                 "db_exec_ms": db_ms,
                 "candidates": [c.summary() for c in candidates],
+                **(
+                    {**acl_stage_metadata(self.engine_id, caller_access), "acl_access_denied": len(candidates) == 0}
+                    if restricted
+                    else {}
+                ),
             }
         return candidates
 
@@ -433,8 +469,9 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         question_id: str | None,
         solicitation_filter: str | None,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
-        """Execute Level 7 live: query_prep -> embed_query -> AlloyDB ScaNN+FTS RRF -> Ranking API -> synthesize."""
+        """Execute Level 5 live: query_prep -> embed_query -> AlloyDB ScaNN+FTS RRF -> Ranking API -> synthesize."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
         if not self.settings.is_live:
             raise RuntimeError(
@@ -455,7 +492,29 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         genai_client = gcp_clients.get_genai_client(self.settings)
         prepared = await self._query_prep(cleaned, emitter)
         vector, embedding_tokens = await embed_query_stage(self, prepared.prepared, genai_client, emitter)
-        candidates = await self._retrieve_candidates(vector, prepared.original, solicitation_filter, emitter)
+        candidates = await self._retrieve_candidates(
+            vector, prepared.original, solicitation_filter, emitter, caller_access=caller_access
+        )
+        if not candidates and caller_access is not None and caller_access.is_restricted:
+            await emitter.skipped("rerank", reason=f"0 authorized rows after PostgreSQL RLS ({caller_access.persona_id})")
+            refusal = acl_refusal_answer(caller_access, cleaned)
+            async with self.stage(
+                emitter, "synthesize", label="Row-level security refusal (0 authorized rows)", service="ACL Policy (local)",
+                request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.engine_id, caller_access)},
+            ) as ctx:
+                ctx.payload = {
+                    "model": self.synthesis_model.id, "answer": refusal, "prompt_tokens": 0, "output_tokens": 0,
+                    "acl_access_denied": True, **acl_stage_metadata(self.engine_id, caller_access),
+                }
+            usage = TokenUsage(embedding_tokens=embedding_tokens, model=self.synthesis_model.id, embedding_model=self.settings.text_embedding_model)
+            return EngineResult(
+                engine_id=self.engine_id, engine_label=self.engine_label, answer=refusal,
+                citations=[], retrieved_chunks=[], agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(cost_from_usage(usage, self.synthesis_model.id), 8),
+                stage_log=self.stage_log_of(emitter), usage=usage,
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source=LAYOUT_SOURCE),
+            )
         ranked = await self._rerank(prepared.original, candidates, emitter)
         top = [replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: self.settings.rerank_top_n]]
         context_block = "\n\n".join(

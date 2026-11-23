@@ -49,6 +49,10 @@ export interface StreamState {
   readonly judgeModel: string | null;
   /** `run_started.question_id` (golden question key; null for ad-hoc questions). */
   readonly questionId: string | null;
+  /** Identity-Aware Document ACL / RLS context from `run_started` (v1.6.3). */
+  readonly accessPersona: string | null;
+  readonly callerGroups: readonly string[];
+  readonly aclRestricted: boolean;
   /** True once any frame carried `replayed: true`. */
   readonly replayed: boolean;
   readonly events: readonly TimelineEvent[];
@@ -81,6 +85,9 @@ export const INITIAL_STREAM_STATE: StreamState = {
   synthesisModel: null,
   judgeModel: null,
   questionId: null,
+  accessPersona: null,
+  callerGroups: [],
+  aclRestricted: false,
   replayed: false,
   events: [],
   timelines: {},
@@ -186,6 +193,9 @@ export function reduceStreamEvent(state: StreamState, ev: TimelineEvent): Stream
         synthesisModel: typeof ev.synthesis_model === "string" ? ev.synthesis_model : null,
         judgeModel: typeof ev.judge_model === "string" ? ev.judge_model : null,
         questionId: typeof ev.question_id === "string" && ev.question_id.length > 0 ? ev.question_id : null,
+        accessPersona: typeof ev.access_persona === "string" && ev.access_persona.length > 0 ? ev.access_persona : null,
+        callerGroups: Array.isArray(ev.caller_groups) ? ev.caller_groups.filter((g): g is string => typeof g === "string") : [],
+        aclRestricted: ev.acl_restricted === true,
         timelines: Object.fromEntries(ev.engines.map((e) => [e, state.timelines[e] ?? emptyTimeline(e)])),
       };
     case "job_started":

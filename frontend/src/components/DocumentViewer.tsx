@@ -12,11 +12,13 @@ export interface DocumentViewerProps {
   readonly citation: Citation | null;
   /** Opens the full slide-over viewer for the selected citation. */
   readonly onOpen: () => void;
+  /** Optional active Document ACL persona forwarded to `/api/v1/documents/*`. */
+  readonly accessPersona?: string | null;
 }
 
 /** Side-panel summary of the selected citation: real page thumbnail with highlights + "Open viewer". */
-export const DocumentViewer: React.FC<DocumentViewerProps> = ({ citation, onOpen }) => {
-  const hl = useCitationHighlights(citation);
+export const DocumentViewer: React.FC<DocumentViewerProps> = ({ citation, onOpen, accessPersona = null }) => {
+  const hl = useCitationHighlights(citation, accessPersona);
   if (!citation) {
     return (
       <EmptyState
@@ -53,7 +55,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({ citation, onOpen
       >
         <PageCanvas
           compact
-          imageUrl={pageImageUrl(citation, citation.page_number, THUMB_DPI)}
+          imageUrl={pageImageUrl(citation, citation.page_number, THUMB_DPI, accessPersona)}
           alt={`Thumbnail of ${citation.doc_name} page ${citation.page_number}`}
           aspectHint={hl.data ? hl.data.page_width / hl.data.page_height : null}
           source={source}

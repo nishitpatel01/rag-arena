@@ -3,6 +3,7 @@
  */
 
 import type {
+  AclPersonasResponse,
   BenchmarksResponse,
   HealthResponse,
   IngestJobCreated,
@@ -113,6 +114,7 @@ const fetchIngestStatusSingleFlight = createSingleFlight(() =>
 export const api = {
   health: (): Promise<HealthResponse> => requestJson<HealthResponse>("/health", {}, BOOTSTRAP_TIMEOUT_MS),
   releases: (): Promise<ReleasesResponse> => requestJson<ReleasesResponse>("/releases", {}, BOOTSTRAP_TIMEOUT_MS),
+  aclPersonas: (): Promise<AclPersonasResponse> => requestJson<AclPersonasResponse>("/acl/personas", {}, BOOTSTRAP_TIMEOUT_MS),
   levels: (): Promise<LevelsResponse> => requestJson<LevelsResponse>("/levels", {}, BOOTSTRAP_TIMEOUT_MS),
   pipelinesPresets: (): Promise<PipelinesPresetsResponse> =>
     requestJson<PipelinesPresetsResponse>("/pipelines/presets", {}, BOOTSTRAP_TIMEOUT_MS),

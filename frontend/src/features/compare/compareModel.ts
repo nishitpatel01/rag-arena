@@ -7,8 +7,16 @@
  * Score is never computed client-side — a level without a server score is shown unscored, not ranked.
  */
 
-import type { LeaderboardResponse, LevelDescriptor, ModelsResponse, ScoreBreakdown } from "../../types/arena";
+import type {
+  ArchitectureAclCapability,
+  LeaderboardResponse,
+  LevelDescriptor,
+  ModelsResponse,
+  RecordedAclDemo,
+  ScoreBreakdown,
+} from "../../types/arena";
 import { leaderboardRows } from "../../pages/leaderboardModel";
+import { aclReplayBlockedReason, isPersonaRestricted } from "../acl/aclModel";
 import type { StreamState } from "../levels/model";
 import { findModel, modelLabel, validateSelection, type ModelSelection } from "../levels/modelSelection";
 
@@ -56,12 +64,19 @@ function replayReason(catalog: ModelsResponse, sel: ModelSelection, levelId: str
   return recorded ? null : `no recording for this pair (${modelLabel(catalog, sel.synthesis)} · judge ${modelLabel(catalog, sel.judge)}) and ${q}`;
 }
 
-/** Enabled levels in ladder order, each with the reason it cannot run (catalog rules → Level 4 → replay). */
+export interface CompareAclOptions {
+  readonly personaId: string | null;
+  readonly demos: readonly RecordedAclDemo[];
+  readonly capabilities?: Readonly<Record<string, ArchitectureAclCapability>>;
+}
+
+/** Enabled levels in ladder order, each with the reason it cannot run (catalog rules → Level 4 → ACL/replay). */
 export function levelChoices(
   levels: readonly LevelDescriptor[],
   catalog: ModelsResponse | null,
   sel: ModelSelection | null,
-  questionId: string
+  questionId: string,
+  acl?: CompareAclOptions | null
 ): LevelChoice[] {
   return [...levels]
     .filter((l) => l.enabled && !l.dev_fixture)
@@ -70,7 +85,23 @@ export function levelChoices(
     .map((l) => {
       const base = { levelId: l.level_id, label: levelName(l.label), short: shortLabel(l.order), order: l.order };
       if (!catalog || !sel) return { ...base, disabledReason: "model catalog not loaded" };
-      const reason = validateSelection(catalog, sel, l.level_id) ?? level4Reason(catalog, sel, l.level_id) ?? replayReason(catalog, sel, l.level_id, questionId);
+      const restricted = acl && isPersonaRestricted(acl.personaId);
+      const aclReason = restricted
+        ? aclReplayBlockedReason({
+            demoMode: catalog.demo_mode,
+            levelId: l.level_id,
+            personaId: acl.personaId,
+            questionId,
+            synthesisModel: sel.synthesis,
+            judgeModel: sel.judge,
+            demos: acl.demos,
+            capabilities: acl.capabilities,
+          })
+        : null;
+      const reason =
+        validateSelection(catalog, sel, l.level_id) ??
+        level4Reason(catalog, sel, l.level_id) ??
+        (restricted ? aclReason : replayReason(catalog, sel, l.level_id, questionId));
       return { ...base, disabledReason: reason };
     });
 }

@@ -28,6 +28,7 @@ export interface CompareQuestionFieldsProps {
   readonly onChange: (next: QuestionValue) => void;
   readonly disabled: boolean;
   readonly scopeControl?: React.ReactNode;
+  readonly aclControl?: React.ReactNode;
   readonly uploadScopeId?: string | null;
   readonly demoMode?: string | null;
 }
@@ -61,6 +62,7 @@ export const CompareQuestionFields: React.FC<CompareQuestionFieldsProps> = ({
   onChange,
   disabled,
   scopeControl = null,
+  aclControl = null,
   uploadScopeId = null,
   demoMode: explicitDemoMode,
 }) => {
@@ -147,6 +149,7 @@ export const CompareQuestionFields: React.FC<CompareQuestionFieldsProps> = ({
   return (
     <div className="flex flex-col gap-3">
       {scopeControl}
+      {aclControl}
       {!uploadMode && (
         <div className="flex flex-col gap-1.5" data-print-hide="true">
           <div className="flex flex-wrap items-center justify-between gap-1">

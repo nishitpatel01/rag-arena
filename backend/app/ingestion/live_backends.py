@@ -61,7 +61,7 @@ _CHUNK_SCHEMA: tuple[tuple[str, str, str], ...] = (
     ("effective_date", "DATE", "NULLABLE"), ("amends_section", "STRING", "NULLABLE"), ("page_number", "INT64", "REQUIRED"),
     ("bbox", "STRUCT", "NULLABLE"), ("content", "STRING", "REQUIRED"), ("layout_source", "STRING", "NULLABLE"),
     ("embedding", "FLOAT64", "REPEATED"), ("embedding_multimodal", "FLOAT64", "REPEATED"),
-    ("bbox_source", "STRING", "NULLABLE"),
+    ("bbox_source", "STRING", "NULLABLE"), ("allowed_groups", "STRING", "REPEATED"),
 )
 _INGEST_RUN_SCHEMA: tuple[tuple[str, str, str], ...] = (
     ("run_id", "STRING", "REQUIRED"), ("level", "STRING", "REQUIRED"), ("tier_profile", "STRING", "REQUIRED"),
@@ -502,9 +502,20 @@ def _validate_chunk_rows(rows: list[dict[str, Any]]) -> tuple[str, str]:
         raise ValueError(f"Invalid tier_profile {tier!r}; expected one of {_VALID_TIERS}")
     staging_table_name(str(run_id))
     expected = {name for name, _, _ in _CHUNK_SCHEMA}
+    optional = {"allowed_groups"}
+    required_keys = expected - optional
     for idx, row in enumerate(rows):
-        if set(row) != expected:
-            raise ValueError(f"rows[{idx}] keys differ from the chunk schema: {sorted(set(row) ^ expected)}")
+        keys = set(row)
+        missing = required_keys - keys
+        extra = keys - expected
+        if missing or extra:
+            raise ValueError(f"rows[{idx}] keys differ from the chunk schema: {sorted(missing | extra)}")
+        if "allowed_groups" not in row:
+            from app.core.acl import allowed_groups_for_doc
+
+            row["allowed_groups"] = list(
+                allowed_groups_for_doc(str(row.get("doc_name") or ""), str(row.get("doc_type") or ""))
+            )
     return str(tier), str(run_id)
 
 

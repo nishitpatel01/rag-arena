@@ -25,10 +25,13 @@ const boxText = (b: { x0: number; y0: number; x1: number; y1: number }): string 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Highlights for a citation's cited page (cached per URL); error text is surfaced verbatim. */
-export function useCitationHighlights(citation: Citation | null): { readonly data: HighlightResponse | null; readonly error: string | null } {
+export function useCitationHighlights(
+  citation: Citation | null,
+  accessPersona: string | null = null
+): { readonly data: HighlightResponse | null; readonly error: string | null } {
   const [data, setData] = useState<HighlightResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const url = citation ? highlightsUrl(citation, citation.page_number) : null;
+  const url = citation ? highlightsUrl(citation, citation.page_number, accessPersona) : null;
   useEffect(() => {
     setData(null);
     setError(null);
@@ -52,12 +55,28 @@ export interface DocumentDrawerProps {
   readonly onClose: () => void;
   /** `answer_complete.retrieved_chunks` of the run: full chunk text for the diagram transcription box. */
   readonly retrievedChunks?: readonly RetrievedChunkText[];
+  /** Optional active Document ACL persona forwarded to `/api/v1/documents/*`. */
+  readonly accessPersona?: string | null;
 }
 
 /** Right-side slide-over dialog with the real cited page, honest highlight provenance, page nav and zoom. */
-export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({ citation, open, onClose, retrievedChunks }) => {
+export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
+  citation,
+  open,
+  onClose,
+  retrievedChunks,
+  accessPersona = null,
+}) => {
   if (!open || !citation) return null;
-  return <DrawerBody key={citation.chunk_id} citation={citation} onClose={onClose} retrievedChunks={retrievedChunks} />;
+  return (
+    <DrawerBody
+      key={citation.chunk_id}
+      citation={citation}
+      onClose={onClose}
+      retrievedChunks={retrievedChunks}
+      accessPersona={accessPersona}
+    />
+  );
 };
 
 function useFocusTrap(ref: React.RefObject<HTMLElement>, onClose: () => void): void {
@@ -95,17 +114,18 @@ function useFocusTrap(ref: React.RefObject<HTMLElement>, onClose: () => void): v
   }, [ref, onClose]);
 }
 
-const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () => void; readonly retrievedChunks?: readonly RetrievedChunkText[] }> = ({
-  citation,
-  onClose,
-  retrievedChunks,
-}) => {
+const DrawerBody: React.FC<{
+  readonly citation: Citation;
+  readonly onClose: () => void;
+  readonly retrievedChunks?: readonly RetrievedChunkText[];
+  readonly accessPersona: string | null;
+}> = ({ citation, onClose, retrievedChunks, accessPersona }) => {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(citation.page_number);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [zoom, setZoom] = useState<ZoomLevel>(100);
-  const hl = useCitationHighlights(citation);
+  const hl = useCitationHighlights(citation, accessPersona);
   const { mask } = useSafeMode();
   useFocusTrap(panelRef, onClose);
 
@@ -218,7 +238,7 @@ const DrawerBody: React.FC<{ readonly citation: Citation; readonly onClose: () =
             <div className="min-w-0 overflow-x-auto pt-5">
               <div style={{ width: `${zoom}%` }} className="min-w-full">
                 <PageCanvas
-                  imageUrl={pageImageUrl(citation, page, dpiForZoom(zoom))}
+                  imageUrl={pageImageUrl(citation, page, dpiForZoom(zoom), accessPersona)}
                   alt={`${citation.doc_name} page ${page} (rendered from the local corpus)`}
                   aspectHint={aspect}
                   source={source}

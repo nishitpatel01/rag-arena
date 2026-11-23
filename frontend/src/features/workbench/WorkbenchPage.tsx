@@ -38,6 +38,8 @@ import { useModelCatalog } from "../levels/useModelCatalog";
 import { ScopeSelector } from "../uploads/ScopeSelector";
 import { uploadRunGateFor } from "../uploads/uploadModel";
 import { useUploadWorkspaces, type UploadWorkspacesState } from "../uploads/useUploadWorkspaces";
+import { AccessPersonaSelect } from "../acl/AccessPersonaSelect";
+import { useAccessPersona } from "../acl/aclModel";
 import {
   WORKBENCH_SESSION,
   WORKBENCH_SLOT_ID,
@@ -193,6 +195,7 @@ export const WorkbenchPage: React.FC = () => {
   const levelIngest = useLevelIngest(backingLevelId);
   const stream = useBattleStream(WORKBENCH_SESSION);
   const models = useModelCatalog(null);
+  const acl = useAccessPersona();
 
   // Auto-coerce model selection when changing recipe slots invalidates a restricted pseudo-model.
   useEffect(() => {
@@ -266,6 +269,7 @@ export const WorkbenchPage: React.FC = () => {
       synthesisModel: runModels?.synthesis ?? null,
       judgeModel: runModels?.judge ?? null,
       replaySpeed: replaySpeedWireValue(health?.demo_mode ?? null) ?? null,
+      accessPersona: acl.isRestricted ? acl.personaId : null,
     });
   };
 
@@ -310,6 +314,11 @@ export const WorkbenchPage: React.FC = () => {
           {guardrailActive && (
             <Pill tone="ok" mono data-testid="workbench-header-guardrail-pill">
               Guardrail · Model Armor
+            </Pill>
+          )}
+          {acl.isRestricted && (
+            <Pill tone="warn" mono data-testid="workbench-header-acl-pill">
+              ACL · {acl.persona.short_label}
             </Pill>
           )}
           <BackingCorpusPill
@@ -424,6 +433,18 @@ export const WorkbenchPage: React.FC = () => {
                   onChange={uploadScope.setScope}
                 />
               }
+              aclControl={
+                <AccessPersonaSelect
+                  id="acl-workbench"
+                  acl={acl}
+                  levelId={backingLevelId}
+                  demoMode={health?.demo_mode ?? null}
+                  disabled={stream.isStreaming}
+                />
+              }
+              accessPersona={acl.personaId}
+              aclDemos={acl.recordedDemos}
+              aclCapabilities={acl.capabilities}
             />
             {gate.note && (
               <p className={`mt-2 text-xs ${gate.tone === "err" ? "text-err" : gate.tone === "warn" ? "text-clay" : "text-slate"}`} role="status">
@@ -472,7 +493,7 @@ export const WorkbenchPage: React.FC = () => {
             className="-ml-3.5 mr-0.5"
           />
           <Panel title="Document viewer" subtitle="Real source page of the selected citation" className="flex-1" as="aside">
-            <DocumentViewer citation={citation} onOpen={() => setViewerOpen(true)} />
+            <DocumentViewer citation={citation} onOpen={() => setViewerOpen(true)} accessPersona={acl.personaId} />
           </Panel>
         </div>
 
@@ -511,6 +532,7 @@ export const WorkbenchPage: React.FC = () => {
           open={viewerOpen}
           onClose={() => setViewerOpen(false)}
           retrievedChunks={timeline?.answer?.retrievedChunks}
+          accessPersona={acl.personaId}
         />
       </div>
     </div>

@@ -21,6 +21,7 @@ import zlib
 
 import httpx
 
+from app.core.acl import allowed_groups_for_doc
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_access_token
 from app.recording.redaction import redact_text, redaction_tokens
@@ -193,6 +194,7 @@ def collection_body(*, display_name: str, vector_dim: int = 3072) -> dict[str, A
                 "page_number": {"type": "integer"},
                 "amendment_number": {"type": "integer"},
                 "bbox_json": {"type": "string"},
+                "allowed_groups": {"type": "array", "items": {"type": "string"}},
             },
         },
         "vectorSchema": {
@@ -211,7 +213,7 @@ def dense_scann_index_body(*, display_name: str) -> dict[str, Any]:
         "indexField": "dense_embedding",
         "distanceMetric": "COSINE_DISTANCE",
         "denseScann": {"featureNormType": "UNIT_L2_NORM"},
-        "filterFields": ["solicitation_id"],
+        "filterFields": ["solicitation_id", "allowed_groups"],
         "dedicatedInfrastructure": {
             "mode": "PERFORMANCE_OPTIMIZED",
             "autoscalingSpec": {"minReplicaCount": 1, "maxReplicaCount": 2},
@@ -238,10 +240,18 @@ def data_object_request(
     sparse = build_sparse_token_embedding(sparse_text)
     bbox = chunk_row.get("bbox")
     bbox_json = json.dumps(bbox, separators=(",", ":")) if isinstance(bbox, dict) else str(chunk_row.get("bbox_json") or "")
+    doc_name = str(chunk_row.get("doc_name") or "")
+    doc_type = str(chunk_row.get("doc_type") or "SOLICITATION")
+    raw_groups = chunk_row.get("allowed_groups")
+    groups = (
+        [str(g) for g in raw_groups if isinstance(g, str) and g.strip()]
+        if isinstance(raw_groups, (list, tuple)) and raw_groups
+        else list(allowed_groups_for_doc(doc_name, doc_type))
+    )
     data: dict[str, Any] = {
         "chunk_id": cid,
-        "doc_name": str(chunk_row.get("doc_name") or ""),
-        "doc_type": str(chunk_row.get("doc_type") or "SOLICITATION"),
+        "doc_name": doc_name,
+        "doc_type": doc_type,
         "solicitation_id": str(chunk_row.get("solicitation_id") or ""),
         "section_id": str(chunk_row.get("section_id") or ""),
         "content": content,
@@ -251,6 +261,7 @@ def data_object_request(
         "page_number": int(chunk_row.get("page_number") or 1),
         "amendment_number": int(chunk_row.get("amendment_number") or 0),
         "bbox_json": bbox_json,
+        "allowed_groups": groups,
     }
     vectors: dict[str, Any] = {
         "dense_embedding": {"dense": {"values": [float(v) for v in dense_embedding]}},
@@ -271,13 +282,23 @@ def batch_search_body(
     top_k: int,
     solicitation_filter: str | None = None,
     index_name: str | None = None,
+    caller_groups: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Build ``BatchSearchDataObjectsRequest`` fusing dense ScaNN + sparse token search via server-side RRF."""
     if not query_vector:
         raise ValueError("query_vector must be non-empty")
     if not isinstance(top_k, int) or isinstance(top_k, bool) or not 1 <= top_k <= 100:
         raise ValueError("top_k must be an integer in [1, 100]")
-    flt = {"solicitation_id": {"$eq": solicitation_filter.strip()}} if solicitation_filter and solicitation_filter.strip() else None
+    clauses: list[dict[str, Any]] = []
+    if solicitation_filter and solicitation_filter.strip():
+        clauses.append({"solicitation_id": {"$eq": solicitation_filter.strip()}})
+    if caller_groups:
+        clauses.append({"allowed_groups": {"$in": list(caller_groups)}})
+    flt: dict[str, Any] | None = None
+    if len(clauses) == 1:
+        flt = clauses[0]
+    elif len(clauses) > 1:
+        flt = {"$and": clauses}
 
     dense_leg: dict[str, Any] = {
         "searchField": "dense_embedding",

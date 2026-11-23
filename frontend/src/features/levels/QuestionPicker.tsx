@@ -1,13 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, RotateCcw, Square } from "lucide-react";
-import type { BenchmarkQuestion, PipelinePresetEntry, PipelineSpec } from "../../types/arena";
+import type {
+  ArchitectureAclCapability,
+  BenchmarkQuestion,
+  PipelinePresetEntry,
+  PipelineSpec,
+  RecordedAclDemo,
+} from "../../types/arena";
 import { useAppData } from "../../app/AppDataProvider";
 import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import { QUESTION_ID_ERROR, QUESTION_ID_PATTERN, validateQueryInput } from "../../lib/validation";
 import { Button } from "../../components/ui/Button";
 import { Pill } from "../../components/ui/Pill";
+import { aclReplayBlockedReason, isPersonaRestricted } from "../acl/aclModel";
 import type { RunGate } from "../ingest/ingestStatus";
 import {
   GOLDEN_BADGE_LABEL,
@@ -46,6 +53,10 @@ export interface QuestionPickerProps {
   /** "clear" while a Compare run is shown: the button only hides it on this page. */
   readonly resetMode?: "reset" | "clear";
   readonly scopeControl?: React.ReactNode;
+  readonly aclControl?: React.ReactNode;
+  readonly accessPersona?: string | null;
+  readonly aclDemos?: readonly RecordedAclDemo[];
+  readonly aclCapabilities?: Readonly<Record<string, ArchitectureAclCapability>>;
   readonly uploadScopeId?: string | null;
   /** Optional Composable `PipelineSpec` (Workbench): switches validation & replay gate to recipe rules. */
   readonly spec?: PipelineSpec | null;
@@ -89,6 +100,10 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
   viewing = null,
   resetMode = "reset",
   scopeControl = null,
+  aclControl = null,
+  accessPersona = null,
+  aclDemos = [],
+  aclCapabilities,
   uploadScopeId = null,
   spec = null,
   presets,
@@ -200,14 +215,37 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
         : validateSelection(catalog, selection, levelId)
       : null;
   // DEV `?mock=1` plays a local fixture (never the backend), so the replay-recording gate does not apply.
-  const replay =
+  const baseReplay =
     !uploadMode && catalog && selection && !mockRequested
       ? spec
         ? workbenchReplayGate(catalog, spec, questionId, selection, presets)
         : replayGate(catalog, levelId, questionId, selection)
       : null;
+  const aclBlocked =
+    !uploadMode && !mockRequested && isPersonaRestricted(accessPersona)
+      ? aclReplayBlockedReason({
+          demoMode: isReplayMode ? "replay" : effectiveDemoMode,
+          levelId,
+          personaId: accessPersona,
+          questionId,
+          synthesisModel: selection?.synthesis ?? null,
+          judgeModel: selection?.judge ?? null,
+          demos: aclDemos,
+          capabilities: aclCapabilities,
+        })
+      : null;
+  const replay =
+    baseReplay && isPersonaRestricted(accessPersona) && isReplayMode
+      ? { ...baseReplay, blockedReason: aclBlocked }
+      : baseReplay;
   const disabled =
-    isStreaming || validation !== null || idError !== null || gate.blocked || modelError !== null || Boolean(replay?.blockedReason);
+    isStreaming ||
+    validation !== null ||
+    idError !== null ||
+    gate.blocked ||
+    modelError !== null ||
+    Boolean(replay?.blockedReason) ||
+    Boolean(!isReplayMode && aclBlocked);
   const runModels = catalog && selection ? selection : null;
 
   return (
@@ -219,6 +257,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({
       }}
     >
       {scopeControl}
+      {aclControl}
       {!uploadMode && (
         <div className="flex flex-col gap-1.5" data-print-hide="true">
           <div className="flex flex-wrap items-center justify-between gap-1">

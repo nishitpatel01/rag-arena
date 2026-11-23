@@ -2,9 +2,9 @@
 
 **Eight RAG architectures, one procurement corpus (or your own PDFs), every stage measured live — pick the right architecture with evidence, not demos.**
 
-![Release v1.6.2](https://img.shields.io/badge/release-v1.6.2-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 510 passed](https://img.shields.io/badge/backend%20tests-510%20passed-brightgreen.svg) ![Frontend tests: 231 passed](https://img.shields.io/badge/frontend%20tests-231%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Model%20Armor%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
+![Release v1.6.3](https://img.shields.io/badge/release-v1.6.3-informational.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg) ![Node 20+](https://img.shields.io/badge/node-20%2B-339933.svg) ![Backend tests: 518 passed](https://img.shields.io/badge/backend%20tests-518%20passed-brightgreen.svg) ![Frontend tests: 238 passed](https://img.shields.io/badge/frontend%20tests-238%20passed-brightgreen.svg) ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Vertex%20AI%20%C2%B7%20BigQuery%20%C2%B7%20AlloyDB%20%C2%B7%20Model%20Armor%20%C2%B7%20ADK%20%C2%B7%20Cloud%20Run-4285F4.svg)
 
-**Release:** v1.6.2 (2026-11-19, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight architectures in customer complexity order (Levels 1–4 & 7–8 standing live + Levels 5–6 ephemeral ScaNN benchmarks at $0/mo idle), Use-Case Architecture Advisor & TCO Calculator (`/`), Gemini 4 + Claude Global Model Selector & Pair Recommender (`183` recorded runs incl. `48/48` `gemini-4-hydrogen`), Model Armor Guardrails & Composable Workbench (`/workbench`), Controlled Ablation Lab & Executive Export (`/compare`), Vertex AI GenAI Eval & Split Cost (`/leaderboard`), Releases & Docs (`/releases`), private PDF uploads, and Cloud Run live.
+**Release:** v1.6.3 (2026-11-20, see [CHANGELOG.md](CHANGELOG.md)) · **Status:** all eight architectures in customer complexity order (Levels 1–4 & 7–8 standing live + Levels 5–6 ephemeral ScaNN benchmarks at $0/mo idle), Identity-Aware Document ACLs & Row-Level Security (`5` personas, native BigQuery/AlloyDB/VVS2/VAIS pre-filtering + honest RagCorpus corpus-boundary fail-closed + `6` isolated ACL refusal replay demos), Use-Case Architecture Advisor & TCO Calculator (`/`), Gemini 4 + Claude Global Model Selector (`183` baseline recorded runs incl. `48/48` `gemini-4-hydrogen`), Model Armor Guardrails & Composable Workbench (`/workbench`), Controlled Ablation Lab & Executive Export (`/compare`), Vertex AI GenAI Eval & Split Cost (`/leaderboard`), Releases & Docs (`/releases`), private PDF uploads, and Cloud Run live.
 
 ## The problem
 
@@ -292,34 +292,35 @@ Choices: `REGION` (`us-central1`); `ACCESS_MODE=iap` (only `IAP_MEMBERS`) or `pu
 | `GET /api/v1/health` · `GET /api/v1/releases` · `GET /api/v1/levels` · `GET /api/v1/models` | Mode, version & `.env` identity; compiled changelog + docs; Order A level descriptors; catalog + `recorded_pairs` |
 | `GET /api/v1/pipelines/presets` · `POST /api/v1/pipelines/validate` | Level 1–8 `PipelineSpec` presets (`pipe_<12hex>`); cross-slot validation + dynamic diagram descriptor |
 | `GET /api/v1/benchmarks` · `GET /api/v1/leaderboard?scope=golden\|uploads` · `GET\|POST /api/v1/tco/{defaults,estimate}` | Golden benchmark (8 questions); split Engine/Judge leaderboard; deterministic monthly GCP TCO & workload-fit advisor |
-| `POST /api/v1/battle/stream` | Run: `{query, question_id?, engines?, pipelines?, solicitation_filter?, synthesis_model?, judge_model?, replay_speed?}` → SSE |
+| `POST /api/v1/battle/stream` | Run: `{query, question_id?, engines?, pipelines?, solicitation_filter?, synthesis_model?, judge_model?, replay_speed?, access_persona?}` → SSE |
+| `GET /api/v1/acl/personas` | Access personas (`5`), deterministic 45-PDF group visibility summary, per-architecture RLS capabilities, and recorded ACL demos |
 | `POST /api/v1/ingest/jobs` · `GET …/jobs/{id}` · `GET …/jobs/{id}/stream` · `GET /api/v1/ingest/status` | Benchmark ingestion jobs, live counts, index states, and owner-scoped `active_jobs` |
 | `GET\|POST /api/v1/uploads/bucket` · `GET\|POST /api/v1/uploads` · `GET\|DELETE /api/v1/uploads/{id}` | Private upload bucket check/create; owner-isolated upload workspaces and synchronous cleanup |
 | `POST …/uploads/{id}/files` · `POST …/files/{fid}/finalize` · `GET …/estimate` · `POST …/ingest` | Direct-to-GCS resumable session URI, PDF safety validation, L7 cost estimate, scoped ingest |
-| `GET /api/v1/documents/page` · `GET /api/v1/documents/highlights` | Corpus or owner-checked uploaded PDF page PNG and excerpt highlight rectangles |
+| `GET /api/v1/documents/page` · `GET /api/v1/documents/highlights` | Corpus or owner-checked uploaded PDF page PNG and excerpt highlights (server-side `403 acl_forbidden` on unauthorized `?persona=`) |
 
 Run streams are `data: {json}\n\n` frames bounded by `MAX_SSE_FRAMES` (600). Events and payloads: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#23-sse-protocol).
 
 ## Quality & tests
 
-All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0, Model Armor, Vertex GenAI Eval and ADK). Measured 2026-11-19:
+All tests run offline (fakes for Vertex AI, BigQuery, Cloud Storage, Document AI, Vertex AI Search, Vertex AI RAG Engine, AlloyDB, Vertex AI Vector Search 2.0, Model Armor, Vertex GenAI Eval and ADK). Measured 2026-11-20:
 
 | Suite | Checks | What it guards |
 | :-- | --: | :-- |
-| **Backend total** (`pytest`, 54 files) | **510 passed** | engines (L1–L8), model recommender, TCO advisor, Model Armor, Vertex GenAI Eval, workbench, `/releases`, uploads, IAP/CSP |
-| `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 2 · 3 | no API-layer stage pacing; AST scan of `engines/**` against swallowed errors/fallbacks |
+| **Backend total** (`pytest`, 55 files) | **518 passed** | engines (L1–L8), Document ACLs & RLS, model recommender, TCO advisor, Model Armor, Vertex GenAI Eval, workbench, `/releases`, uploads, IAP/CSP |
+| `test_v163_document_acls.py` · `test_routes_no_timers.py` · `test_no_silent_fallbacks.py` | 8 · 2 · 3 | 45-PDF ACL partition, narrowing-only access, SQL/RLS/VVS2/VAIS filters, ADK closure-pinning, `403` viewer guard, zero-timer/fallback AST checks |
 | `test_recording_redaction.py` · `test_recording_roundtrip.py` | 3 · 6 | `${…}` redaction incl. `${UPLOAD_BUCKET}`, `${MODEL_ARMOR_TEMPLATE_ID}`, `${ALLOYDB_DSN}` and project numbers; replay fidelity |
-| `test_tco_calculator.py` · `test_model_recommender.py` · `test_model_armor.py` | 6 · 3 · 8 | bounded TCO & crossover math, cross-family model pair recommender, Model Armor REST v1 screening/fail-loud |
+| `test_tco_calculator.py` · `test_model_recommender.py` · `test_model_armor.py` | 6 · 3 · 8 | bounded TCO & `strict_document_acls` posture, cross-family model pair recommender, Model Armor REST v1 screening/fail-loud |
 | `test_vertex_genai_eval.py` · `test_uploads*.py` · `test_auth_and_headers.py` | 9 · 24 · 7 | Vertex `:evaluateInstances` & split cost, bucket privacy, IDOR/replay `404`, ES256 IAP JWT, CSP/headers, `Dockerfile` check |
-| `test_rag_engine*.py` · `test_alloydb_scann_engine.py` · `test_vvs2_engine.py` | 19 · 3 · 4 | `:retrieveContexts` + `VertexRagStore`, AlloyDB ScaNN + GIN RRF SQL, VVS2 `batchSearch` + dedicated ScaNN schema |
+| `test_rag_engine*.py` · `test_alloydb_scann_engine.py` · `test_vvs2_engine.py` | 19 · 3 · 4 | `:retrieveContexts` + `VertexRagStore`, AlloyDB ScaNN + PostgreSQL RLS + GIN RRF SQL, VVS2 `batchSearch` + `filterFields` schema |
 | `test_pipeline_spec.py` · `test_composable_engine.py` · `test_releases_docs.py` | 10 · 8 · 6 | `PipelineSpec` cross-slot validation, `pipe_<12hex>` IDs, `/api/v1/releases` manifest, 6-way version sync |
 | `test_publish_manifest.py` · `test_cloudrun_deploy.py` | 5 · 23 | tracked-repo + `frontend/dist` leak scan; SPA/API routing, deploy plan, public-registry lockfiles |
-| **Frontend total** (`npm test`, 28 suites) | **231 passed** | TCO wizard, model recommender, WCAG AA tokens, nav menu, responsive SVG, Model Armor, split cost, packs, brief export, safe mode |
+| **Frontend total** (`npm test`, 29 suites) | **238 passed** | Document ACL switcher & RagCorpus warning, TCO wizard, model recommender, WCAG AA tokens, nav menu, responsive SVG, Model Armor, split cost, packs, brief export |
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 510 passed
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q            # 518 passed
 PYTHONPATH=backend .venv/bin/python scripts/build_docs_manifest.py --check
-cd frontend && npm test && npm run build                        # 231 pass across 28 suites + tsc/vite
+cd frontend && npm test && npm run build                        # 238 pass across 29 suites + tsc/vite
 ```
 
 ## Repository layout
@@ -327,23 +328,23 @@ cd frontend && npm test && npm run build                        # 231 pass acros
 ```text
 rag-arena/
 ├── backend/
-│   ├── app/                 api/ · core/ · engines/ (L1–L8 + composable + ADK) · evaluation/ · ingestion/ · recording/
-│   └── tests/               510 offline tests + fakes (54 files)
+│   ├── app/                 api/ · core/ (acl, tco, model_armor, ...) · engines/ (L1–L8 + composable + ADK) · evaluation/ · ingestion/ · recording/
+│   └── tests/               518 offline tests + fakes (55 files)
 ├── frontend/
-│   ├── src/                 app/ · features/ (wizard/ models/ levels/ workbench/ compare/ export/ packs/ releases/ ingest/ uploads/) · components/ · lib/ · pages/ · theme/ styles/ types/
-│   └── tests/               28 offline test suites (231 checks)
-├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (183 runs)
+│   ├── src/                 app/ · features/ (acl/ wizard/ models/ levels/ workbench/ compare/ export/ packs/ releases/ ingest/ uploads/) · components/ · lib/ · pages/ · theme/ styles/ types/
+│   └── tests/               29 offline test suites (238 checks)
+├── data/                    sample_docs/ (45 PDFs) · golden_benchmarks/ (8 questions) · recordings/ (183 baseline + 6 ACL demo runs)
 ├── deploy/ · infra/         Cloud Run env template (real file git-ignored) · Terraform (main.tf)
 ├── scripts/                 bootstrap, provisioning, live & ScaNN benchmark recorders, docs manifest check, deploy/teardown
 ├── .github/workflows/       release-docs.yml (CI test/leak gate + automated release-please PRs)
-├── docs/                    ARCHITECTURE, SETUP_GUIDE, audits, screenshots (12 v1.6.2 safe-mode PNGs)
+├── docs/                    ARCHITECTURE, SETUP_GUIDE, audits, screenshots (12 safe-mode PNGs)
 └── Dockerfile · docker-compose.yml · release-please-config.json · .env.example · LICENSE (MIT)
 ```
 
 ## Security & leak hygiene
 
 - **Identity only from git-ignored `.env` / `deploy/cloudrun.env`**; code defaults are empty, recorder redacts project IDs, project numbers, corpus/upload buckets, `RAG_ENGINE_CORPUS_ID`, `ALLOYDB_DSN`, and `VVS2_COLLECTION` to `${…}` placeholders, and **Safe mode** (`?safe=1` or header toggle) masks them in the UI.
-- **Private uploads**: IAP owner isolation (SHA-256), Origin-bound resumable GCS sessions, server-side PDF active-content rejection, PNG-only page rendering, parameterized SQL, closure-pinned ADK tool scopes, isolated VAIS/RAG Engine upload stores, and zero upload routes on replay.
+- **Document ACLs & private uploads**: narrowing-only persona group resolution (`ceiling ∩ persona`), store-native pre-synthesis RLS/filtering (parameterized SQL/filter arrays, zero string interpolation, closure-pinned ADK tools, `403 acl_forbidden` viewer checks, honest fail-closed `RagCorpus`), IAP owner isolation (SHA-256), Origin-bound resumable GCS sessions, server-side PDF active-content rejection, PNG-only page rendering, and zero upload routes on replay.
 - **Cloud Run**: least-privilege service account, no key files, Cloud Build upload leak scan before every build, and explicit bounds/timeouts on every loop, retry, poll and request.
 
 ## Roadmap
@@ -359,6 +360,7 @@ rag-arena/
 | `v1.6.0` | P0 Security, Data Correctness & Terraform Parity (ES256 IAP JWT verification, CSP/headers, >30p upload lift, ScaNN SQL honesty, bounded SSE, v3 Terraform parity) | ✅ live |
 | `v1.6.1` | Enterprise Showcase (Order A 1→8 progression, Use-Case Wizard & TCO Calculator, Model Armor Guardrails, Vertex GenAI Eval + Split Engine/Judge Cost, Industry Packs, Executive Brief Export, Replay Speed) | ✅ live |
 | `v1.6.2` | Gemini 4 Hydrogen Replay Refresh (`183` recordings), Multimodal & ADK Engine Fixes, Single-Row `"Architectures ▾"` Nav, Responsive Workbench Fit, WCAG AA Contrast, Route Code-Splitting, Model Armor IAM Parity | ✅ live |
+| `v1.6.3` | Identity-Aware Document ACLs & Row-Level Security (`5` personas, BigQuery/AlloyDB/VVS2/VAIS native RLS pre-filtering, ADK closure-pinning, `403` viewer guard, honest `RagCorpus` fail-closed, `6` isolated ACL refusal replay demos, Overview `strict_document_acls` TCO preset) | ✅ ready |
 
 ## License
 

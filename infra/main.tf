@@ -225,7 +225,8 @@ resource "google_bigquery_table" "document_chunks" {
     { name = "layout_source", type = "STRING", mode = "NULLABLE" },
     { name = "embedding", type = "FLOAT64", mode = "REPEATED" },
     { name = "embedding_multimodal", type = "FLOAT64", mode = "REPEATED" },
-    { name = "bbox_source", type = "STRING", mode = "NULLABLE" }
+    { name = "bbox_source", type = "STRING", mode = "NULLABLE" },
+    { name = "allowed_groups", type = "STRING", mode = "REPEATED" }
   ])
 }
 

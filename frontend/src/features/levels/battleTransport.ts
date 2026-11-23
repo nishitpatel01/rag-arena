@@ -23,6 +23,9 @@ export const sseTransport: OpenTransport = (params, cb) => {
       ...(params.synthesisModel ? { synthesis_model: params.synthesisModel } : {}),
       ...(params.judgeModel ? { judge_model: params.judgeModel } : {}),
       ...(replaySpeed !== undefined ? { replay_speed: replaySpeed } : {}),
+      ...(params.accessPersona && params.accessPersona !== "all_access"
+        ? { access_persona: params.accessPersona }
+        : {}),
     },
     onFrame: (frame: SseFrame) => cb.onFrame(frame),
     onError: cb.onError,

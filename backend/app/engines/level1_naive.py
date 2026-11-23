@@ -11,6 +11,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from app.core.acl import CallerAccessContext, acl_refusal_answer, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
@@ -19,7 +20,7 @@ from app.core.pricing import cost_from_usage
 from app.core.telemetry import StageEmitter
 from app.engines.base import BaseRAGEngine
 from app.engines.common_stages import embed_query_stage, synthesize_stage
-from app.ingestion.bq_indexer import _validate_identifier
+from app.ingestion.bq_indexer import ACL_PREDICATE_SQL, _validate_identifier
 
 _TOP_K = 5
 _EMBEDDING_PREVIEW_DIMS = 4
@@ -35,6 +36,7 @@ def build_vector_search_sql(
     *,
     tier_profile: str = "naive",
     embedding_column: str = "embedding",
+    include_acl_filter: bool = False,
 ) -> str:
     """Build parameterized BigQuery VECTOR_SEARCH SQL for pre-filtered dense COSINE retrieval."""
     proj = _validate_identifier(project_id, "project_id")
@@ -53,7 +55,8 @@ def build_vector_search_sql(
         if include_solicitation_filter
         else " AND NOT STARTS_WITH(solicitation_id, 'upl_')"
     )
-    base_subquery = f"(SELECT * FROM `{fqn}` WHERE tier_profile = '{tier_profile}'{sol_predicate})"
+    acl_predicate = ACL_PREDICATE_SQL if include_acl_filter else ""
+    base_subquery = f"(SELECT * FROM `{fqn}` WHERE tier_profile = '{tier_profile}'{sol_predicate}{acl_predicate})"
     return f"""SELECT
   base.chunk_id,
   base.solicitation_id,
@@ -124,6 +127,8 @@ def _run_vector_search_job(
     embedding_vec: list[float],
     solicitation_filter: str | None,
     timeout_seconds: int,
+    *,
+    caller_groups: tuple[str, ...] | None = None,
 ) -> tuple[list[Any], dict[str, Any]]:
     """Execute the VECTOR_SEARCH query in a worker thread; return rows and measured job statistics."""
     from google.cloud import bigquery
@@ -131,6 +136,8 @@ def _run_vector_search_job(
     params: list[Any] = [bigquery.ArrayQueryParameter("query_embedding", "FLOAT64", embedding_vec)]
     if solicitation_filter:
         params.append(bigquery.ScalarQueryParameter("solicitation_id", "STRING", solicitation_filter.strip()))
+    if caller_groups:
+        params.append(bigquery.ArrayQueryParameter("caller_groups", "STRING", list(caller_groups)))
     job = bq_client.query(sql, job_config=bigquery.QueryJobConfig(query_parameters=params))
     rows = list(job.result(timeout=timeout_seconds))
     stats = {
@@ -172,20 +179,31 @@ class Level1NaiveEngine(BaseRAGEngine):
         return await embed_query_stage(self, prepared, genai_client, emitter)
 
     async def _retrieve(
-        self, vector: list[float], solicitation_filter: str | None, bq_client: Any, emitter: StageEmitter
+        self,
+        vector: list[float],
+        solicitation_filter: str | None,
+        bq_client: Any,
+        emitter: StageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> list[DocumentChunk]:
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
         sql = build_vector_search_sql(
             project_id=self.settings.gcp_project_id,
             dataset_id=self.settings.bq_dataset,
             table_id=self.settings.bq_table,
             top_k=_TOP_K,
             include_solicitation_filter=bool(solicitation_filter),
+            include_acl_filter=restricted,
         )
         params: dict[str, Any] = {
             "query_embedding": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]},
         }
         if solicitation_filter:
             params["solicitation_id"] = solicitation_filter
+        if caller_groups:
+            params["caller_groups"] = list(caller_groups)
         async with self.stage(
             emitter,
             "retrieve",
@@ -193,9 +211,20 @@ class Level1NaiveEngine(BaseRAGEngine):
             service="BigQuery",
             request={"sql": sql, "params": params, "top_k": _TOP_K},
         ) as ctx:
-            rows, stats = await self.blocking(
-                _run_vector_search_job, bq_client, sql, vector, solicitation_filter, self.settings.query_timeout_seconds
-            )
+            if caller_groups:
+                rows, stats = await self.blocking(
+                    _run_vector_search_job,
+                    bq_client,
+                    sql,
+                    vector,
+                    solicitation_filter,
+                    self.settings.query_timeout_seconds,
+                    caller_groups=caller_groups,
+                )
+            else:
+                rows, stats = await self.blocking(
+                    _run_vector_search_job, bq_client, sql, vector, solicitation_filter, self.settings.query_timeout_seconds
+                )
             chunks = [_row_to_document_chunk(r) for r in rows[:_TOP_K]]
             ctx.payload = {
                 "sql": sql,
@@ -205,6 +234,11 @@ class Level1NaiveEngine(BaseRAGEngine):
                 "scores": [c.score for c in chunks],
                 "chunk_ids": [c.chunk_id for c in chunks],
                 **stats,
+                **(
+                    {**acl_stage_metadata(self.engine_id, caller_access), "acl_access_denied": len(chunks) == 0}
+                    if restricted
+                    else {}
+                ),
             }
         return chunks
 
@@ -226,6 +260,7 @@ class Level1NaiveEngine(BaseRAGEngine):
         question_id: str | None,
         solicitation_filter: str | None,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """Execute Level 1 live: prep → embed → VECTOR_SEARCH → synthesize, emitting each stage as it runs."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
@@ -241,7 +276,42 @@ class Level1NaiveEngine(BaseRAGEngine):
 
         prepared = await self._query_prep(cleaned, emitter)
         vector, embedding_tokens = await self._embed_query(prepared, genai_client, emitter)
-        chunks = await self._retrieve(vector, solicitation_filter, bq_client, emitter)
+        chunks = await self._retrieve(vector, solicitation_filter, bq_client, emitter, caller_access=caller_access)
+        if not chunks and caller_access is not None and caller_access.is_restricted:
+            refusal = acl_refusal_answer(caller_access, cleaned)
+            async with self.stage(
+                emitter,
+                "synthesize",
+                label="Row-level security refusal (0 authorized chunks)",
+                service="ACL Policy (local)",
+                request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.engine_id, caller_access)},
+            ) as ctx:
+                ctx.payload = {
+                    "model": self.synthesis_model.id,
+                    "answer": refusal,
+                    "prompt_tokens": 0,
+                    "output_tokens": 0,
+                    "acl_access_denied": True,
+                    **acl_stage_metadata(self.engine_id, caller_access),
+                }
+            usage = TokenUsage(
+                embedding_tokens=embedding_tokens,
+                model=self.synthesis_model.id,
+                embedding_model=self.settings.text_embedding_model,
+            )
+            return EngineResult(
+                engine_id=self.engine_id,
+                engine_label=self.engine_label,
+                answer=refusal,
+                citations=[],
+                retrieved_chunks=[],
+                agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=cost_from_usage(usage, self.synthesis_model.id),
+                stage_log=self.stage_log_of(emitter),
+                usage=usage,
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source="pymupdf"),
+            )
         answer, usage = await self._synthesize(cleaned, chunks, emitter, embedding_tokens)
 
         return EngineResult(

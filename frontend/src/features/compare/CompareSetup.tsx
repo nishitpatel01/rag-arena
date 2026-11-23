@@ -29,6 +29,7 @@ export interface CompareSetupProps {
   readonly onReset: () => void;
   readonly canReset: boolean;
   readonly scopeControl?: React.ReactNode;
+  readonly aclControl?: React.ReactNode;
   readonly uploadScopeId?: string | null;
 }
 
@@ -56,6 +57,7 @@ export const CompareSetup: React.FC<CompareSetupProps> = (p) => {
         onChange={p.onQuestion}
         disabled={p.isStreaming}
         scopeControl={p.scopeControl}
+        aclControl={p.aclControl}
         uploadScopeId={p.uploadScopeId}
       />
       <ModelPicker catalog={catalog} loading={p.models.loading} error={p.models.error} selection={selection}

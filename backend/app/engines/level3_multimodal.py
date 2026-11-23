@@ -23,6 +23,7 @@ import re
 import time
 from typing import Any
 
+from app.core.acl import CallerAccessContext, acl_refusal_answer, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_bigquery_client, get_genai_client
 from app.core.models import DocumentChunk, EngineFlags, EngineResult, StageRecord, TokenUsage
@@ -280,11 +281,20 @@ class Level3MultimodalEngine(Level2HybridEngine):
             ctx.payload = prepared.payload()
         return prepared
 
-    def _retrieve_request(self, vector: list[float], terms: tuple[str, ...], solicitation_filter: str | None) -> tuple[str, dict[str, Any]]:
+    def _retrieve_request(
+        self,
+        vector: list[float],
+        terms: tuple[str, ...],
+        solicitation_filter: str | None,
+        *,
+        caller_access: CallerAccessContext | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        restricted = bool(caller_access and caller_access.is_restricted)
         sql = build_hybrid_rrf_sql(
             self.settings.gcp_project_id, self.settings.bq_dataset, self.settings.bq_table, rrf_k=RRF_K,
             top_k=self.settings.hybrid_candidate_k, include_solicitation_filter=bool(solicitation_filter),
             embedding_column=EMBEDDING_COLUMN, tier_profile=self.tier_profile, vector_k=VECTOR_K, lexical_k=LEXICAL_K,
+            include_acl_filter=restricted,
         )
         params: dict[str, Any] = {
             "query_embedding": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]},
@@ -292,27 +302,53 @@ class Level3MultimodalEngine(Level2HybridEngine):
         }
         if solicitation_filter:
             params["solicitation_id"] = solicitation_filter
+        if restricted and caller_access is not None:
+            params["caller_groups"] = list(caller_access.effective_groups)
         return sql, params
 
     async def _retrieve(
-        self, vector: list[float], original_query: str, solicitation_filter: str | None, bq_client: Any, emitter: StageEmitter
+        self,
+        vector: list[float],
+        original_query: str,
+        solicitation_filter: str | None,
+        bq_client: Any,
+        emitter: StageEmitter,
+        *,
+        caller_access: CallerAccessContext | None = None,
     ) -> list[HybridCandidate]:
+        restricted = bool(caller_access and caller_access.is_restricted)
+        caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
         terms = build_lexical_terms(original_query)
-        sql, params = self._retrieve_request(vector, terms, solicitation_filter)
+        sql, params = self._retrieve_request(vector, terms, solicitation_filter, caller_access=caller_access)
         k = self.settings.hybrid_candidate_k
         async with self.stage(
             emitter, "retrieve", label="BigQuery VECTOR_SEARCH(embedding_multimodal) + SEARCH() → RRF", service="BigQuery",
             request={"sql": sql, "params": params, "candidate_k": k, "embedding_column": EMBEDDING_COLUMN,
                      "tier_profile": self.tier_profile, "pre_filter": {"solicitation_id": solicitation_filter}},
         ) as ctx:
-            rows, stats = await self.blocking(
-                run_hybrid_query_job, bq_client, sql, vector, terms, solicitation_filter, self.settings.query_timeout_seconds
-            )
+            if caller_groups:
+                rows, stats = await self.blocking(
+                    run_hybrid_query_job,
+                    bq_client,
+                    sql,
+                    vector,
+                    terms,
+                    solicitation_filter,
+                    self.settings.query_timeout_seconds,
+                    caller_groups=caller_groups,
+                )
+            else:
+                rows, stats = await self.blocking(
+                    run_hybrid_query_job, bq_client, sql, vector, terms, solicitation_filter, self.settings.query_timeout_seconds
+                )
             raw_candidates = [row_to_l3_candidate(r, idx) for idx, r in enumerate(rows[:k], start=1)]
-            if not raw_candidates:
+            if not raw_candidates and not restricted:
                 raise RuntimeError("multimodal retrieval returned 0 rows for tier 'multimodal' — run the Level 7 ingestion job")
             candidates, deduped_stubs = dedupe_heading_stubs(raw_candidates)
-            ctx.payload = self._retrieve_payload(rows, candidates, stats, deduped_heading_stubs=deduped_stubs)
+            payload = self._retrieve_payload(rows, candidates, stats, deduped_heading_stubs=deduped_stubs)
+            if restricted:
+                payload.update({**acl_stage_metadata(self.engine_id, caller_access), "acl_access_denied": len(candidates) == 0})
+            ctx.payload = payload
         return candidates
 
     def _retrieve_payload(
@@ -349,6 +385,7 @@ class Level3MultimodalEngine(Level2HybridEngine):
         genai_client: Any,
         bq_client: Any,
         emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> MultimodalSearch:
         """The Level 3 retrieval pipeline without synthesis (Level 4 ``search_procurement_corpus`` tool body).
 
@@ -359,7 +396,9 @@ class Level3MultimodalEngine(Level2HybridEngine):
         vector, embedding_tokens = await embed_query_stage(
             self, prepared.base.prepared, genai_client, emitter, model=self.settings.multimodal_embedding_model
         )
-        candidates = await self._retrieve(vector, prepared.base.original, solicitation_filter, bq_client, emitter)
+        candidates = await self._retrieve(
+            vector, prepared.base.original, solicitation_filter, bq_client, emitter, caller_access=caller_access
+        )
         kept = [c for c in candidates if not element_types or c.chunk.element_type in element_types]
         ranked: list[RerankedCandidate] = await self._rerank(prepared.base.original, kept, emitter) if kept else []
         top = tuple(replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: self.settings.rerank_top_n])
@@ -379,7 +418,13 @@ class Level3MultimodalEngine(Level2HybridEngine):
         )
 
     async def run_query(
-        self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter
+        self,
+        query: str,
+        *,
+        question_id: str | None,
+        solicitation_filter: str | None,
+        emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """Execute Level 3 live: prep → multimodal embed → RRF(embedding_multimodal) → rerank → authority synthesis."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
@@ -394,7 +439,45 @@ class Level3MultimodalEngine(Level2HybridEngine):
         vector, embedding_tokens = await embed_query_stage(
             self, prepared.base.prepared, genai_client, emitter, model=self.settings.multimodal_embedding_model
         )
-        candidates = await self._retrieve(vector, prepared.base.original, solicitation_filter, bq_client, emitter)
+        candidates = await self._retrieve(
+            vector, prepared.base.original, solicitation_filter, bq_client, emitter, caller_access=caller_access
+        )
+        if not candidates and caller_access is not None and caller_access.is_restricted:
+            await emitter.skipped("rerank", reason=f"0 authorized chunks after BigQuery RLS ({caller_access.persona_id})")
+            refusal = acl_refusal_answer(caller_access, cleaned)
+            async with self.stage(
+                emitter,
+                "synthesize",
+                label="Row-level security refusal (0 authorized chunks)",
+                service="ACL Policy (local)",
+                request={"query": cleaned, "context_chunks": 0, **acl_stage_metadata(self.engine_id, caller_access)},
+            ) as ctx:
+                ctx.payload = {
+                    "model": self.synthesis_model.id,
+                    "answer": refusal,
+                    "prompt_tokens": 0,
+                    "output_tokens": 0,
+                    "acl_access_denied": True,
+                    **acl_stage_metadata(self.engine_id, caller_access),
+                }
+            usage = TokenUsage(
+                embedding_tokens=embedding_tokens,
+                model=self.synthesis_model.id,
+                embedding_model=self.settings.multimodal_embedding_model,
+            )
+            return EngineResult(
+                engine_id=self.engine_id,
+                engine_label=self.engine_label,
+                answer=refusal,
+                citations=[],
+                retrieved_chunks=[],
+                agent_steps=[],
+                latency_ms=max(1, int((time.perf_counter() - start) * 1000)),
+                cost_usd=round(cost_from_usage(usage, self.synthesis_model.id), 8),
+                stage_log=self.stage_log_of(emitter),
+                usage=usage,
+                flags=EngineFlags(reranker_used=False, adk_runner_used=False, layout_source="documentai_layout"),
+            )
         ranked: list[RerankedCandidate] = await self._rerank(prepared.base.original, candidates, emitter)
         top = [replace(r.candidate.chunk, score=round(r.rerank_score, 4)) for r in ranked[: self.settings.rerank_top_n]]
         answer, usage = await self._synthesize_l3(cleaned, top, emitter, embedding_tokens)

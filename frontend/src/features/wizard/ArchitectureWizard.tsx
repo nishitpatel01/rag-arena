@@ -292,7 +292,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
           <div
             role="group"
             aria-label="Enterprise scenario presets"
-            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
           >
             {ENTERPRISE_SCENARIO_PRESETS.map((preset) => {
               const selected = workloadsEqual(workload, preset.workload);
@@ -646,6 +646,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
                   label="4. Security, Compliance & Ops Posture"
                   value={workload.compliance_posture}
                   options={COMPLIANCE_POSTURE_CHOICES}
+                  columnsClass="grid-cols-1 sm:grid-cols-2"
                   onSelect={(compliance_posture) => onChange({ ...workload, compliance_posture })}
                 />
               </div>

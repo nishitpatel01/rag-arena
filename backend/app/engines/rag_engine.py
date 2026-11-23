@@ -28,6 +28,7 @@ from typing import Any
 
 from google.genai import types
 
+from app.core.acl import AclEnforcementUnsupportedError, CallerAccessContext, acl_stage_metadata
 from app.core.config import ArenaSettings
 from app.core.gcp_clients import get_access_token, get_genai_client
 from app.core.models import BoundingBox, DocumentChunk, EngineFlags, EngineResult, TokenUsage
@@ -473,7 +474,13 @@ class RagEngine(BaseRAGEngine):
         return answer, usage, base_spec.id
 
     async def run_query(
-        self, query: str, *, question_id: str | None, solicitation_filter: str | None, emitter: StageEmitter
+        self,
+        query: str,
+        *,
+        question_id: str | None,
+        solicitation_filter: str | None,
+        emitter: StageEmitter,
+        caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         """query_prep → :retrieveContexts → (catalog LLM | VertexRagStore grounded Gemini); live/record only."""
         cleaned = self.validate_query_inputs(query, solicitation_filter)
@@ -481,6 +488,19 @@ class RagEngine(BaseRAGEngine):
             raise RuntimeError("RagEngine only runs in DEMO_MODE=live|record; replay is served by ReplayRAGEngine")
         start = time.perf_counter()
         prepared = await self._query_prep(cleaned, emitter)
+        if caller_access is not None and caller_access.is_restricted:
+            async with self.stage(
+                emitter,
+                "retrieve",
+                label="Vertex AI RAG Engine (:retrieveContexts)",
+                service=RETRIEVE_SERVICE,
+                request={"query": prepared.prepared, **acl_stage_metadata(self.engine_id, caller_access)},
+            ):
+                raise AclEnforcementUnsupportedError(
+                    "Vertex AI RAG Engine enforces IAM at the RagCorpus boundary, not per-document chunk ACLs "
+                    f"(cannot safely restrict persona '{caller_access.persona_id}' inside a shared corpus; "
+                    "isolate sensitive groups into dedicated corpora or use BigQuery / AlloyDB / VAIS / VVS2)."
+                )
         hits, res, file_ids, corpus_label = await self._retrieve(
             prepared, emitter, solicitation_filter=solicitation_filter
         )

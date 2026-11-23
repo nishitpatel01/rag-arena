@@ -371,8 +371,22 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
   `VECTOR_SEARCH`, lexical `SEARCH()`, or `hybrid_rrf`; Vertex AI Search segments; RAG Engine `:retrieveContexts`;
   AlloyDB ScaNN + GIN RRF; or Vector Search 2.0 `batchSearchDataObjects`) → optional Discovery Engine
   `RankingClient.rank` (`rerank`) → `context_order` → `synthesize` (or `agent_turn` + `synthesize` with closure-pinned
-  `upload_scope` when `adk_agent` is selected). `POST /api/v1/battle/stream` accepts `pipelines[]` (`1..4` recipes with
+  `upload_scope` and `caller_access` when `adk_agent` is selected). `POST /api/v1/battle/stream` accepts `pipelines[]` (`1..4` recipes with
   per-slot `slot_id`, `label`, and optional `synthesis_model` override).
+
+### 3j. Identity-Aware Document ACLs & Row-Level Security (`v1.6.3` — `core/acl.py`)
+
+Enterprise corpora mix public solicitations with restricted commercial rate schedules, SOC2 incident matrices, and legal contracts. `v1.6.3` enforces store-native pre-synthesis document ACLs across all stores at `$0/mo` standing idle:
+
+- **Strict narrowing-only access (`core/acl.py`)**: 5 allow-listed personas (`all_access`, `engineering_analyst`, `pricing_finance`, `security_soc2`, `legal_counsel`) intersect against the caller's server-derived group ceiling (`ceiling_groups ∩ persona.groups`). Unknown persona IDs fail closed (`HTTP 400`).
+- **Deterministic 45-PDF group classification**: `allowed_groups_for_doc` maps every PDF in `O(1)` to `corp_all` (10 base RFPs/SOWs/exhibits/Q&A), `procurement_pricing` (5 CLIN schedules & rate amendments), `security_soc2` (2 SOC2/IR matrices), or `legal_contracts` (28 MSA + CUAD agreements), always granting `exec_admin`.
+- **Native store enforcement before rerank & synthesis**:
+  - **BigQuery (Levels 3, 4, 7, 8)**: `allowed_groups ARRAY<STRING>` on `document_chunks_v3` (plus Terraform schema and optional `CREATE OR REPLACE ROW ACCESS POLICY` DDL) filtered inside `VECTOR_SEARCH`, `SEARCH()`, and `check_amendments` via parameterized `EXISTS(SELECT 1 FROM UNNEST(allowed_groups) AS g WHERE g IN UNNEST(@caller_groups))`. Level 8 ADK closure-pins `caller_access` inside `ToolDeps` so prompt-injected PDFs cannot widen scope.
+  - **AlloyDB ScaNN (Level 5)**: `allowed_groups TEXT[]` with GIN index, PostgreSQL `ENABLE ROW LEVEL SECURITY` / `CREATE POLICY`, transaction-local `set_config('app.caller_groups', ..., true)`, and parameterized `allowed_groups && %(caller_groups)s::text[]` on both ScaNN ANN and GIN FTS legs.
+  - **Vector Search 2.0 (Level 6)**: indexed `filterFields: ["allowed_groups"]` with `{"allowed_groups": {"$in": [...]}}` on both dense ScaNN and sparse RRF legs.
+  - **Vertex AI Search (Level 1)**: allow-listed Discovery Engine filter expression `allowed_groups: ANY(...)`.
+  - **Vertex AI RAG Engine (Level 2 — honest capability boundary)**: `RagCorpus` enforces IAM at the corpus boundary rather than per-document chunk ACLs inside a shared corpus; restricted personas fail closed (`AclEnforcementUnsupportedError`) and display a corpus-boundary warning in the UI and Overview TCO advisor (`strict_document_acls`).
+- **Document viewer & replay isolation**: `/api/v1/documents/{page,highlights}` checks `is_doc_authorized(..., caller_access)` server-side (`HTTP 403 acl_forbidden` on unauthorized PDFs). Restricted ACL demo recordings save as `<question_id>__acl_<persona>.json` and are excluded from `RecordingStore.list_recordings(include_acl=False)` so the `183`-run baseline leaderboard stays strictly clean.
 
 ---
 
@@ -482,6 +496,7 @@ CREATE TABLE IF NOT EXISTS `<project>.rag_arena.<BQ_TABLE>` (
   effective_date DATE, amends_section STRING, page_number INT64 NOT NULL,
   bbox STRUCT<page INT64, x0 FLOAT64, y0 FLOAT64, x1 FLOAT64, y1 FLOAT64>,
   content STRING NOT NULL, layout_source STRING,
+  allowed_groups ARRAY<STRING>,
   embedding ARRAY<FLOAT64>, embedding_multimodal ARRAY<FLOAT64>
 ) CLUSTER BY tier_profile, solicitation_id;
 

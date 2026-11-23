@@ -20,6 +20,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from app.api.uploads_api import _owned_manifest, _services as _upload_services
+from app.core.acl import AclValidationError, is_doc_authorized, resolve_caller_access
 from app.ingestion.jobs import DEFAULT_CORPUS_DIR, discover_corpus_docs
 from app.ingestion.parsers import _import_pymupdf
 from app.ingestion.uploads import UploadStoreError
@@ -47,11 +48,12 @@ _HIGHLIGHT_METHOD = "pymupdf.search_for"
 
 
 class DocumentRequestError(ValueError):
-    """Client error carrying the HTTP status to return (400/404/413)."""
+    """Client error carrying the HTTP status to return (400/403/404/413)."""
 
-    def __init__(self, status: int, message: str) -> None:
+    def __init__(self, status: int, message: str, *, code: str | None = None) -> None:
         super().__init__(message)
         self.status = status
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -248,7 +250,28 @@ def _highlight_body(w: float, h: float, page_count: int, rects: list[dict[str, f
 
 
 def _error(exc: DocumentRequestError) -> JSONResponse:
-    return JSONResponse({"error": str(exc)}, status_code=exc.status)
+    body: dict[str, Any] = {"error": str(exc)}
+    if exc.code:
+        body["code"] = exc.code
+    return JSONResponse(body, status_code=exc.status)
+
+
+def _check_corpus_document_acl(request: Request, req: PageRequest) -> None:
+    """Enforce server-side document ACLs on corpus PDF page and highlight fetches (closes direct URL bypass)."""
+    raw_persona = request.query_params.get("persona")
+    if not raw_persona:
+        return
+    try:
+        access = resolve_caller_access(raw_persona)
+    except AclValidationError as exc:
+        raise DocumentRequestError(400, str(exc)) from exc
+    if not is_doc_authorized(req.doc_name, access):
+        raise DocumentRequestError(
+            403,
+            f"Access denied: document '{req.doc_name}' is restricted for persona '{access.label}' "
+            f"(authorized groups: {', '.join(access.effective_groups)})",
+            code="acl_forbidden",
+        )
 
 
 def _run_on_uploaded_pdf(
@@ -273,6 +296,7 @@ async def _execute_document_action(request: Request, action: Callable[[PageReque
     sol = _required_name(params, "solicitation_id")
     if not sol.startswith("upl_"):
         req = resolve_page_request(request)
+        _check_corpus_document_acl(request, req)
         return await asyncio.wait_for(asyncio.to_thread(action, req), timeout=_RENDER_TIMEOUT_SECONDS)
     doc_name = _required_name(params, "doc_name")
     page = _int_param(params, "page", None)

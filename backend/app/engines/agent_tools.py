@@ -22,6 +22,7 @@ from typing import Any, Awaitable, Callable, Optional
 
 from google.adk.tools.tool_context import ToolContext
 
+from app.core.acl import CallerAccessContext
 from app.core.config import ArenaSettings
 from app.core.models import DocumentChunk
 from app.core.telemetry import NullStageEmitter
@@ -68,6 +69,7 @@ class ToolDeps:
     ledger: AgentLedger
     upload_scope: str | None = None
     tier_profile: str = "multimodal"
+    caller_access: CallerAccessContext | None = None
     sequence: list[int] = field(default_factory=lambda: [0])  # per-run call counter (ids when ADK gives none)
 
     def __post_init__(self) -> None:
@@ -148,9 +150,20 @@ def _search_summary(found: MultimodalSearch) -> str:
 async def run_search(deps: ToolDeps, query: Any, solicitation_id: Any, element_types: Any) -> ToolOutput:
     q, sol, types_ = validate_search_args(query, solicitation_id, element_types, upload_scope=deps.upload_scope)
     emitter = NullStageEmitter(run_id=f"{deps.ledger.run_id}_search{deps.sequence[0]}", engine="level3_multimodal")
-    found = await deps.retriever.search_multimodal(
-        q, solicitation_filter=sol, element_types=types_, genai_client=deps.genai_client, bq_client=deps.bq_client, emitter=emitter
-    )
+    if deps.caller_access is not None and deps.caller_access.is_restricted:
+        found = await deps.retriever.search_multimodal(
+            q,
+            solicitation_filter=sol,
+            element_types=types_,
+            genai_client=deps.genai_client,
+            bq_client=deps.bq_client,
+            emitter=emitter,
+            caller_access=deps.caller_access,
+        )
+    else:
+        found = await deps.retriever.search_multimodal(
+            q, solicitation_filter=sol, element_types=types_, genai_client=deps.genai_client, bq_client=deps.bq_client, emitter=emitter
+        )
     retrieve = found.stage_payload("retrieve")
     deps.ledger.add_usage(
         embedding_tokens=found.embedding_tokens, rank_counts=found.rank_billed_counts,
@@ -202,14 +215,24 @@ def amendment_row_to_chunk(row: Any, *, tier_profile: str = "multimodal") -> Doc
     )
 
 
-def run_amendment_query(bq_client: Any, sql: str, solicitation_id: str, section_id: str, timeout_seconds: int) -> tuple[list[Any], dict[str, Any]]:
+def run_amendment_query(
+    bq_client: Any,
+    sql: str,
+    solicitation_id: str,
+    section_id: str,
+    timeout_seconds: int,
+    *,
+    caller_groups: tuple[str, ...] | None = None,
+) -> tuple[list[Any], dict[str, Any]]:
     """Execute the parameterized amendment lookup (worker thread); rows + measured job statistics."""
     from google.cloud import bigquery
 
-    params = [
+    params: list[Any] = [
         bigquery.ScalarQueryParameter("solicitation_id", "STRING", solicitation_id),
         bigquery.ScalarQueryParameter("section_id", "STRING", section_id),
     ]
+    if caller_groups:
+        params.append(bigquery.ArrayQueryParameter("caller_groups", "STRING", list(caller_groups)))
     job = bq_client.query(sql, job_config=bigquery.QueryJobConfig(query_parameters=params))
     rows = list(job.result(timeout=timeout_seconds))
     return rows, {
@@ -229,8 +252,27 @@ def _amendment_view(chunk: DocumentChunk) -> dict[str, Any]:
 async def run_check_amendments(deps: ToolDeps, solicitation_id: Any, section_or_clin_id: Any) -> ToolOutput:
     sol, section = validate_amendment_args(solicitation_id, section_or_clin_id, upload_scope=deps.upload_scope)
     s = deps.settings
-    sql = build_amendment_lookup_sql(s.gcp_project_id, s.bq_dataset, s.bq_table, tier_profile=deps.tier_profile)
-    rows, stats = await asyncio.to_thread(run_amendment_query, deps.bq_client, sql, sol, section, s.query_timeout_seconds)
+    restricted = bool(deps.caller_access and deps.caller_access.is_restricted)
+    caller_groups = deps.caller_access.effective_groups if restricted and deps.caller_access is not None else None
+    sql = build_amendment_lookup_sql(
+        s.gcp_project_id,
+        s.bq_dataset,
+        s.bq_table,
+        tier_profile=deps.tier_profile,
+        include_acl_filter=restricted,
+    )
+    if caller_groups:
+        rows, stats = await asyncio.to_thread(
+            run_amendment_query,
+            deps.bq_client,
+            sql,
+            sol,
+            section,
+            s.query_timeout_seconds,
+            caller_groups=caller_groups,
+        )
+    else:
+        rows, stats = await asyncio.to_thread(run_amendment_query, deps.bq_client, sql, sol, section, s.query_timeout_seconds)
     chunks = [amendment_row_to_chunk(r, tier_profile=deps.tier_profile) for r in rows]
     deps.ledger.add_usage(bq_bytes=stats["bytes_processed"], bq_jobs=1)
     ids = deps.ledger.register_chunks(chunks)

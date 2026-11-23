@@ -17,6 +17,7 @@ from pathlib import PurePosixPath
 import re
 from typing import Any
 
+from app.core.acl import VALID_ACL_GROUPS, AclValidationError
 from app.core.models import BoundingBox, DocumentChunk
 
 LAYOUT_SOURCE = "vertex_ai_search"
@@ -69,6 +70,30 @@ class SearchOutcome:
     total_size: int
     attribution_token: str
     summary: SummaryOutcome | None
+
+
+def build_vais_acl_filter(
+    caller_groups: tuple[str, ...] | None,
+    *,
+    workspace_id: str | None = None,
+) -> str | None:
+    """Build an allow-listed Discovery Engine filter expression combining optional workspace_id and allowed_groups."""
+    parts: list[str] = []
+    if workspace_id is not None and workspace_id.strip():
+        ws = workspace_id.strip()
+        if not _UPLOAD_WS_RE.fullmatch(ws):
+            raise ValueError(f"workspace_id must match {_UPLOAD_WS_RE.pattern}, got {workspace_id!r}")
+        parts.append(f'workspace_id: ANY("{ws}")')
+    if caller_groups:
+        validated: list[str] = []
+        for g in caller_groups:
+            if not isinstance(g, str) or g not in VALID_ACL_GROUPS:
+                raise AclValidationError(f"Invalid VAIS ACL group {g!r}; allowed: {list(VALID_ACL_GROUPS)}")
+            if g not in validated:
+                validated.append(g)
+        quoted = ", ".join(f'"{g}"' for g in validated)
+        parts.append(f"allowed_groups: ANY({quoted})")
+    return " AND ".join(parts) if parts else None
 
 
 def build_search_body(

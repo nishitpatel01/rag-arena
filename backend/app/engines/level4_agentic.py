@@ -148,7 +148,7 @@ class Level4AgenticEngine(BaseRAGEngine):
     """Level 4: Google ADK agent (Gemini) choosing among four real-data tools."""
 
     engine_id: str = "level4_agentic"
-    engine_label: str = "Level 8: Agentic RAG (Google ADK)"
+    engine_label: str = "Level 10: Agentic RAG (Google ADK)"
     tier_profile: str = "multimodal"
     stages: tuple[str, ...] = ("query_prep", "agent_turn", "synthesize", "evaluate")
 

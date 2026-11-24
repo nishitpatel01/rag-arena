@@ -77,7 +77,7 @@ class _RoutedBQ(FakeBigQueryClient):
         self.fail_amendments = fail_amendments
 
     def query(self, sql: str, job_config: Any = None) -> Any:
-        if "UNNEST(SPLIT" in sql:
+        if "UNNEST(SPLIT" in sql or "GRAPH_TABLE" in sql:
             self.queries.append((sql, job_config))
             if self.fail_amendments:
                 raise RuntimeError("403 Access Denied: BigQuery fake failure")

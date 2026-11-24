@@ -41,10 +41,12 @@ _LEVEL_ROUTE_LABELS: dict[str, str] = {
     "rag_engine": "2 · RAG Engine",
     "level1_naive": "3 · BQ Vector",
     "level2_hybrid": "4 · BQ Hybrid",
-    "alloydb_scann": "5 · AlloyDB ScaNN",
-    "vertex_vector_v2": "6 · Vector Search 2.0",
-    "level3_multimodal": "7 · Multimodal",
-    "level4_agentic": "8 · Agentic ADK",
+    "cloudsql_pgvector": "5 · Cloud SQL pgvector",
+    "alloydb_scann": "6 · AlloyDB ScaNN",
+    "vertex_vector_v2": "7 · Vector Search 2.0",
+    "level3_multimodal": "8 · Multimodal",
+    "bigquery_graphrag": "9 · BQ GraphRAG (GQL)",
+    "level4_agentic": "10 · Agentic ADK",
 }
 _STATIC_ROUTE_TOKENS: tuple[tuple[str, str, str], ...] = (
     ("/workbench", "/workbench", "Workbench"),

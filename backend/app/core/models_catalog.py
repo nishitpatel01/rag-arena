@@ -55,6 +55,7 @@ _MAX_REASON_CHARS = 600
 
 # (id, label, provider) — selectable LLM catalog on Vertex AI (active Gemini 4 & Claude first; legacy/gated last).
 CATALOG_ENTRIES: tuple[tuple[str, str, str], ...] = (
+    ("gemini-4-neon", "Gemini 4 Neon", PROVIDER_VERTEX_GEMINI),
     ("gemini-4-hydrogen", "Gemini 4 Hydrogen", PROVIDER_VERTEX_GEMINI),
     ("gemini-4-carbon", "Gemini 4 Carbon", PROVIDER_VERTEX_GEMINI),
     ("gemini-4-argon", "Gemini 4 Argon", PROVIDER_VERTEX_GEMINI),

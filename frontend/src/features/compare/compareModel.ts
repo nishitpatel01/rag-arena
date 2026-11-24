@@ -22,7 +22,7 @@ import { findModel, modelLabel, validateSelection, type ModelSelection } from ".
 
 export const LEVEL4_ENGINE = "level4_agentic";
 export const GEMINI_PROVIDER = "vertex_gemini";
-export const MAX_COMPARE_LEVELS = 8;
+export const MAX_COMPARE_LEVELS = 10;
 
 export interface LevelChoice {
   readonly levelId: string;
@@ -50,7 +50,7 @@ function level4Reason(catalog: ModelsResponse, sel: ModelSelection, levelId: str
   if (levelId !== LEVEL4_ENGINE) return null;
   const synth = findModel(catalog, sel.synthesis);
   if (!synth || synth.provider === GEMINI_PROVIDER) return null;
-  return `Level 8 (ADK agent) requires a Gemini synthesis model; ${synth.label} is not Gemini.`;
+  return `Level 10 (ADK agent) requires a Gemini synthesis model; ${synth.label} is not Gemini.`;
 }
 
 /** Replay plays recordings only: the (engine, synthesis, judge) recording must contain the question. */

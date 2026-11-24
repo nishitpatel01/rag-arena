@@ -1,9 +1,9 @@
 # The RAG Arena — System Architecture
 
-This document describes the architecture **as implemented** in `v1.5.0` with Levels 1–8 (`DEFAULT_ENABLED_LEVELS` in
-`replay`; Levels 1–6 standing in `live`/`record` via `DEFAULT_LIVE_LEVELS` plus ephemeral Levels 7–8 ScaNN benchmarks),
-the Composable RAG Workbench (`/workbench`), Controlled Ablation + Retrieval Diff Inspector (`/compare`), private
-user PDF uploads, and the in-app Releases & Documentation hub (`/releases`, kept updated on push via `release-please`)
+This document describes the architecture **as implemented** in `v1.6.4` with **10 architectures** in Order A (`DEFAULT_ENABLED_LEVELS` in
+`replay`; 7 standing `$0/mo`-idle levels in `live`/`record` via `DEFAULT_LIVE_LEVELS`, plus 3 ephemeral DB/ANN benchmarks — Cloud SQL `pgvector`, AlloyDB `ScaNN`, and Vertex AI Vector Search 2.0 — torn down to `$0/mo` idle),
+the Composable RAG Workbench (`/workbench` with ADK unlocked across all 9 stores and dense-only ablation), Controlled Ablation + Retrieval Diff Inspector (`/compare`), Identity-Aware Document ACLs & Row-Level Security (`v1.6.3`), private
+user PDF uploads, and the in-app Releases & Documentation hub (`/releases`)
 live. The product rule behind every decision: **nothing is shown that was not measured** (principles P1–P6 in
 [§0](#0-design-principles-v3)).
 
@@ -374,19 +374,25 @@ excerpt highlighted on it — raw uploaded PDF bytes are never served back to th
   `upload_scope` and `caller_access` when `adk_agent` is selected). `POST /api/v1/battle/stream` accepts `pipelines[]` (`1..4` recipes with
   per-slot `slot_id`, `label`, and optional `synthesis_model` override).
 
-### 3j. Identity-Aware Document ACLs & Row-Level Security (`v1.6.3` — `core/acl.py`)
+### 3j. Identity-Aware Document ACLs & Row-Level Security (`v1.6.3`–`v1.6.4` — `core/acl.py`)
 
-Enterprise corpora mix public solicitations with restricted commercial rate schedules, SOC2 incident matrices, and legal contracts. `v1.6.3` enforces store-native pre-synthesis document ACLs across all stores at `$0/mo` standing idle:
+Enterprise corpora mix public solicitations with restricted commercial rate schedules, SOC2 incident matrices, and legal contracts. `v1.6.3`–`v1.6.4` enforces store-native pre-synthesis document ACLs across all 10 architectures at `$0/mo` standing idle:
 
 - **Strict narrowing-only access (`core/acl.py`)**: 5 allow-listed personas (`all_access`, `engineering_analyst`, `pricing_finance`, `security_soc2`, `legal_counsel`) intersect against the caller's server-derived group ceiling (`ceiling_groups ∩ persona.groups`). Unknown persona IDs fail closed (`HTTP 400`).
 - **Deterministic 45-PDF group classification**: `allowed_groups_for_doc` maps every PDF in `O(1)` to `corp_all` (10 base RFPs/SOWs/exhibits/Q&A), `procurement_pricing` (5 CLIN schedules & rate amendments), `security_soc2` (2 SOC2/IR matrices), or `legal_contracts` (28 MSA + CUAD agreements), always granting `exec_admin`.
 - **Native store enforcement before rerank & synthesis**:
-  - **BigQuery (Levels 3, 4, 7, 8)**: `allowed_groups ARRAY<STRING>` on `document_chunks_v3` (plus Terraform schema and optional `CREATE OR REPLACE ROW ACCESS POLICY` DDL) filtered inside `VECTOR_SEARCH`, `SEARCH()`, and `check_amendments` via parameterized `EXISTS(SELECT 1 FROM UNNEST(allowed_groups) AS g WHERE g IN UNNEST(@caller_groups))`. Level 8 ADK closure-pins `caller_access` inside `ToolDeps` so prompt-injected PDFs cannot widen scope.
-  - **AlloyDB ScaNN (Level 5)**: `allowed_groups TEXT[]` with GIN index, PostgreSQL `ENABLE ROW LEVEL SECURITY` / `CREATE POLICY`, transaction-local `set_config('app.caller_groups', ..., true)`, and parameterized `allowed_groups && %(caller_groups)s::text[]` on both ScaNN ANN and GIN FTS legs.
-  - **Vector Search 2.0 (Level 6)**: indexed `filterFields: ["allowed_groups"]` with `{"allowed_groups": {"$in": [...]}}` on both dense ScaNN and sparse RRF legs.
+  - **BigQuery (Levels 3, 4, 8, 9, 10)**: `allowed_groups ARRAY<STRING>` on `document_chunks_v3` (plus Terraform schema and optional `CREATE OR REPLACE ROW ACCESS POLICY` DDL) filtered inside `VECTOR_SEARCH`, `SEARCH()`, ISO GQL `GRAPH_TABLE` expansion (`bigquery_graphrag`), and `check_amendments` via parameterized `EXISTS(SELECT 1 FROM UNNEST(allowed_groups) AS g WHERE g IN UNNEST(@caller_groups))`. Level 10 ADK closure-pins `caller_access` inside `ToolDeps` so prompt-injected PDFs cannot widen scope.
+  - **Cloud SQL `pgvector` (Level 5) & AlloyDB ScaNN (Level 6)**: `allowed_groups TEXT[]` with GIN index, PostgreSQL `ENABLE ROW LEVEL SECURITY` / `CREATE POLICY`, transaction-local `set_config('app.caller_groups', ..., true)`, and parameterized `allowed_groups && %(caller_groups)s::text[]` on both vector ANN (`halfvec` HNSW with `hnsw.iterative_scan = 'relaxed_order'` on Cloud SQL; `alloydb_scann` on AlloyDB) and GIN FTS legs.
+  - **Vector Search 2.0 (Level 7)**: indexed `filterFields: ["allowed_groups"]` with `{"allowed_groups": {"$in": [...]}}` on both dense ScaNN and sparse RRF legs.
   - **Vertex AI Search (Level 1)**: allow-listed Discovery Engine filter expression `allowed_groups: ANY(...)`.
   - **Vertex AI RAG Engine (Level 2 — honest capability boundary)**: `RagCorpus` enforces IAM at the corpus boundary rather than per-document chunk ACLs inside a shared corpus; restricted personas fail closed (`AclEnforcementUnsupportedError`) and display a corpus-boundary warning in the UI and Overview TCO advisor (`strict_document_acls`).
-- **Document viewer & replay isolation**: `/api/v1/documents/{page,highlights}` checks `is_doc_authorized(..., caller_access)` server-side (`HTTP 403 acl_forbidden` on unauthorized PDFs). Restricted ACL demo recordings save as `<question_id>__acl_<persona>.json` and are excluded from `RecordingStore.list_recordings(include_acl=False)` so the `183`-run baseline leaderboard stays strictly clean.
+- **Document viewer & replay isolation**: `/api/v1/documents/{page,highlights}` checks `is_doc_authorized(..., caller_access)` server-side (`HTTP 403 acl_forbidden` on unauthorized PDFs). Restricted ACL demo recordings save as `<question_id>__acl_<persona>.json` and are excluded from `RecordingStore.list_recordings(include_acl=False)` so the `199`-run baseline leaderboard stays strictly clean.
+
+### 3k. Level 5 Cloud SQL `pgvector 0.8.5` & Level 9 BigQuery GraphRAG (`v1.6.4`)
+
+- **Level 5 (`cloudsql_pgvector`, `engines/cloudsql_pgvector.py`, `scripts/ephemeral_cloudsql.sh`)**: Ephemeral Cloud SQL PostgreSQL 16 Enterprise (`db-custom-2-8192`) reached over loopback `127.0.0.1` `cloud-sql-proxy`. Stores `3072-d` `gemini-embedding-2` vectors in `halfvec(3072)` (`halfvec_cosine_ops` HNSW, overcoming `vector`'s 2,000-d HNSW ceiling with `$0` re-embedding), sets `hnsw.ef_search = 40` and `hnsw.iterative_scan = 'relaxed_order'` when filtered/RLS, fuses HNSW cosine + PostgreSQL GIN `tsvector` FTS via in-DB RRF (`k = 60`), reranks via Discovery Engine, and tears down cleanly to `0` residual instances (`$0/mo` idle). Supports dense-only (`vector_cosine`) ablation in Workbench alongside AlloyDB ScaNN and Vector Search 2.0.
+- **Level 9 (`bigquery_graphrag`, `engines/bigquery_graphrag.py`, `ingestion/bq_graph.py`, `scripts/provision_bq_graph.py`)**: Standing `$0/mo` BigQuery Property Graph (`procurement_graph`) over 5 SQL-derived node/edge tables (`graph_contract_docs`, `graph_contract_sections`, `graph_defines_section_edges`, `graph_amends_section_edges`, `graph_supersedes_doc_edges`). Adds a parameterized ISO GQL `GRAPH_TABLE` stage (`graph_expand`) traversing 1..3-hop `SUPERSEDES_DOC` and `AMENDS_SECTION` paths with `QUALIFY` chunk deduplication and BigQuery RLS ahead of reranking and synthesis. Level 10 ADK (`agent_tools.py`) can also run `check_amendments` over `procurement_graph` via `build_graph_amendment_lookup_gql`.
+- **Workbench ADK & Restricted-Org Infrastructure (`pipeline_spec.py`, `infra/main.tf`, `scripts/deploy_cloudrun.sh`)**: `adk_agent` reasoning is unlocked across all 9 Workbench index profiles (keeping `check_amendments` BigQuery-only). Terraform and `deploy_cloudrun.sh` support pre-provisioned service accounts (`create_service_accounts=false` + `existing_{live,replay}_sa_email`), Direct VPC Egress (`vpc_network`/`vpc_subnetwork`/`vpc_egress`), private replay (`replay_public_invoker=false`), CMEK keys, and private Cloud Build worker pools.
 
 ---
 

@@ -9,6 +9,7 @@ export const STAGE_LABELS: Record<string, string> = {
   query_prep: "Prep",
   embed_query: "Embed",
   retrieve: "Retrieve",
+  graph_expand: "Graph GQL",
   rerank: "Rerank",
   guardrail_in: "Armor In",
   agent_turn: "Agent",

@@ -113,7 +113,7 @@ def test_releases_api_endpoint_serves_real_repo_docs_and_no_store_header() -> No
 
     assert body["app_version"] == ArenaSettings().app_version
     assert body["demo_mode"] == "replay"
-    assert body["stats"]["architecture_count"] == 8
+    assert body["stats"]["architecture_count"] == 10
     assert body["stats"]["total_recordings"] >= 135
     versions = [r["version"] for r in body["releases"]]
     assert versions[0] == ArenaSettings().app_version

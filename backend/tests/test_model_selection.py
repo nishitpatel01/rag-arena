@@ -55,6 +55,7 @@ _QID = "q_exact_clin_lookup"
 _QUERY = "What is the base hourly rate for CLIN-0004-AB?"
 _CLAUDE_ANSWER = "CLIN-0004-AB is billed at $210.00/hr in the base period [04_Pricing_Schedule_CLINs.pdf p.2]."
 _FABLE_DOWN = {
+    "gemini-4-neon": True,
     "gemini-4-hydrogen": True,
     "gemini-4-carbon": True,
     "gemini-4-argon": True,
@@ -114,6 +115,7 @@ def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() 
     assert judge_only == ["vertex-genai-eval"]
     assert pseudo_ids == ["vertex-ai-search-summary", "vertex-rag-engine-grounded"]
     assert [m.id for m in llms] == [
+        "gemini-4-neon",
         "gemini-4-hydrogen",
         "gemini-4-carbon",
         "gemini-4-argon",
@@ -124,6 +126,7 @@ def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() 
         "claude-fable-5-1",
     ]
     assert [m.label for m in llms] == [
+        "Gemini 4 Neon",
         "Gemini 4 Hydrogen",
         "Gemini 4 Carbon",
         "Gemini 4 Argon",
@@ -134,6 +137,7 @@ def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() 
         "Claude Fable 5.1",
     ]
     assert [m.provider for m in llms] == [
+        "vertex_gemini",
         "vertex_gemini",
         "vertex_gemini",
         "vertex_gemini",
@@ -148,6 +152,7 @@ def test_catalog_has_the_four_owner_models_with_prices_sources_and_both_roles() 
         assert spec.roles == ("synthesis", "judge") and spec.location == "global" and spec.available
         assert spec.price_source.startswith("https://cloud.google.com/vertex-ai/") and spec.price_as_of
         assert spec.input_usd_per_1m == PRICE_TABLE[spec.id].input_usd_per_1m > 0
+    assert (catalog.get("gemini-4-neon").input_usd_per_1m, catalog.get("gemini-4-neon").output_usd_per_1m) == (3.0, 15.0)
     assert (catalog.get("gemini-4-hydrogen").input_usd_per_1m, catalog.get("gemini-4-hydrogen").output_usd_per_1m) == (1.5, 7.5)
     assert (catalog.get("gemini-4-carbon").input_usd_per_1m, catalog.get("gemini-4-carbon").output_usd_per_1m) == (2.0, 10.0)
     assert (catalog.get("claude-sonnet-4-6").input_usd_per_1m, catalog.get("claude-sonnet-4-6").output_usd_per_1m) == (3.0, 15.0)
@@ -181,6 +186,7 @@ def test_model_location_override_comes_from_the_environment() -> None:
 def test_committed_verification_file_is_identity_free_and_well_formed() -> None:
     doc = json.loads((_PROJECT_ROOT / "data" / "model_verification.json").read_text(encoding="utf-8"))
     assert {e["id"] for e in doc["models"]} == {
+        "gemini-4-neon",
         "gemini-4-hydrogen",
         "gemini-4-carbon",
         "gemini-4-argon",
@@ -225,7 +231,7 @@ def test_models_endpoint_shape_defaults_and_recorded_pairs() -> None:
     body = TestClient(create_app(settings=settings)).get("/api/v1/models").json()
     assert set(body) == {"models", "defaults", "demo_mode", "recorded_pairs", "recommended_pairs"}
     assert body["defaults"] == {"synthesis_model": "gemini-4-argon", "judge_model": "claude-opus-5-5"}
-    assert body["demo_mode"] == "replay" and len(body["models"]) == 11
+    assert body["demo_mode"] == "replay" and len(body["models"]) == 12
     assert len(body["recommended_pairs"]) == 4
     keys = {"id", "label", "provider", "location", "roles", "input_usd_per_1m", "output_usd_per_1m", "price_source",
             "price_as_of", "available", "unavailable_reason", "verified_at", "allowed_levels", "usd_per_1k_requests", "legacy"}
@@ -464,6 +470,7 @@ def test_verify_script_records_redacted_failures_without_raising() -> None:
     ):
         all_doc = module.verify_all(settings)
     assert [e["id"] for e in all_doc["models"]] == [
+        "gemini-4-neon",
         "gemini-4-hydrogen",
         "gemini-4-carbon",
         "gemini-4-argon",

@@ -17,6 +17,7 @@ _RANK_CLIENTS: dict[str, Any] = {}
 _SEARCH_CLIENTS: dict[str, Any] = {}
 _VVS2_CLIENTS: dict[tuple[str, str], Any] = {}
 _ALLOYDB_POOLS: dict[str, Any] = {}
+_CLOUDSQL_POOLS: dict[str, Any] = {}
 _ADC_CREDENTIALS: dict[str, Any] = {}
 _CRED_REFRESH_LOCKS: dict[str, threading.Lock] = {}
 _CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
@@ -58,6 +59,7 @@ def clear_client_cache() -> None:
         _SEARCH_CLIENTS.clear()
         _VVS2_CLIENTS.clear()
         _ALLOYDB_POOLS.clear()
+        _CLOUDSQL_POOLS.clear()
         _ADC_CREDENTIALS.clear()
         _CRED_REFRESH_LOCKS.clear()
 
@@ -231,4 +233,30 @@ def get_alloydb_client(settings: ArenaSettings) -> Any:
         _evict_if_full(_ALLOYDB_POOLS)
         conn = psycopg.connect(dsn, connect_timeout=connect_timeout)
         _ALLOYDB_POOLS[dsn] = conn
+        return conn
+
+
+def get_cloudsql_client(settings: ArenaSettings) -> Any:
+    """Return a cached Cloud SQL PostgreSQL connection configured via ``settings.cloudsql_dsn``."""
+    _ensure_live_settings(settings)
+    dsn = settings.cloudsql_dsn.strip()
+    if not dsn:
+        raise RuntimeError(
+            "CLOUDSQL_DSN is not configured — run scripts/ephemeral_cloudsql.sh --up "
+            "or use DEMO_MODE=replay"
+        )
+    connect_timeout = max(2, min(15, int(getattr(settings, "cloudsql_timeout_seconds", 30))))
+    with _CLIENT_LOCK:
+        cached = _CLOUDSQL_POOLS.get(dsn)
+        if cached is not None and not getattr(cached, "closed", False):
+            return cached
+        _CLOUDSQL_POOLS.pop(dsn, None)
+        try:
+            import psycopg  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise RuntimeError("psycopg is required for live Cloud SQL pgvector execution") from exc
+
+        _evict_if_full(_CLOUDSQL_POOLS)
+        conn = psycopg.connect(dsn, connect_timeout=connect_timeout)
+        _CLOUDSQL_POOLS[dsn] = conn
         return conn

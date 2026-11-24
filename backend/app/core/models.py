@@ -184,10 +184,12 @@ class TokenUsage(_SerializableMixin):
 
 _VALID_LAYOUT_SOURCES: tuple[str, ...] = (
     "", "pymupdf", "pdf_stream_regex", "documentai_layout", "gemini_vision", "documentai_layout+gemini_vision",
-    "vertex_ai_search",  # Level 5: parsing/chunking managed inside Vertex AI Search (digital parser)
-    "vertex_ai_rag_engine",  # Level 6: parsing/chunking managed inside Vertex AI RAG Engine (RagCorpus)
-    "alloydb_scann",  # Level 7: lineage chunks indexed in AlloyDB for PostgreSQL + ScaNN
-    "vertex_vector_v2",  # Level 8: lineage chunks indexed in Vertex AI Vector Search 2.0
+    "vertex_ai_search",  # Level 1: parsing/chunking managed inside Vertex AI Search (digital parser)
+    "vertex_ai_rag_engine",  # Level 2: parsing/chunking managed inside Vertex AI RAG Engine (RagCorpus)
+    "cloudsql_pgvector",  # Level 5: lineage chunks indexed in Cloud SQL PostgreSQL 16 + pgvector 0.8.5
+    "alloydb_scann",  # Level 6: lineage chunks indexed in AlloyDB for PostgreSQL + ScaNN
+    "vertex_vector_v2",  # Level 7: lineage chunks indexed in Vertex AI Vector Search 2.0
+    "bigquery_graphrag",  # Level 9: multimodal lineage chunks expanded via BigQuery Property Graph ISO GQL
 )
 
 

@@ -85,21 +85,30 @@ export const INDEX_PROFILES: readonly IndexProfile[] = [
   "rag_engine",
   "naive",
   "hybrid",
+  "cloudsql_pgvector",
   "alloydb_scann",
   "vertex_vector_v2",
   "multimodal",
+  "bigquery_graphrag",
 ] as const;
 
-export const BQ_INDEX_PROFILES: readonly IndexProfile[] = ["naive", "hybrid", "multimodal"] as const;
+export const BQ_INDEX_PROFILES: readonly IndexProfile[] = ["naive", "hybrid", "multimodal", "bigquery_graphrag"] as const;
 export const MANAGED_INDEX_PROFILES: readonly IndexProfile[] = ["vertex_ai_search", "rag_engine"] as const;
-export const SCANN_INDEX_PROFILES: readonly IndexProfile[] = ["alloydb_scann", "vertex_vector_v2"] as const;
+export const SCANN_INDEX_PROFILES: readonly IndexProfile[] = [
+  "cloudsql_pgvector",
+  "alloydb_scann",
+  "vertex_vector_v2",
+] as const;
+export const SCANN_RETRIEVAL_MODES: readonly RetrievalMode[] = ["hybrid_rrf", "vector_cosine"] as const;
 
 export const BACKING_LEVEL_BY_PROFILE: Readonly<Record<IndexProfile, LevelId>> = {
   naive: "level1_naive",
   hybrid: "level2_hybrid",
   multimodal: "level3_multimodal",
+  bigquery_graphrag: "bigquery_graphrag",
   vertex_ai_search: "managed_vertex",
   rag_engine: "rag_engine",
+  cloudsql_pgvector: "cloudsql_pgvector",
   alloydb_scann: "alloydb_scann",
   vertex_vector_v2: "vertex_vector_v2",
 };
@@ -108,8 +117,10 @@ export const PROFILE_LABELS: Readonly<Record<IndexProfile, string>> = {
   naive: "BigQuery · Naive chunks",
   hybrid: "BigQuery · Lineage chunks",
   multimodal: "BigQuery · DocAI + Vision multimodal",
+  bigquery_graphrag: "BigQuery · Property Graph (ISO GQL)",
   vertex_ai_search: "Vertex AI Search · Extractive segments",
   rag_engine: "Vertex AI RAG Engine · RagCorpus",
+  cloudsql_pgvector: "Cloud SQL PostgreSQL · pgvector HNSW + GIN",
   alloydb_scann: "AlloyDB PostgreSQL · ScaNN + GIN FTS",
   vertex_vector_v2: "Vertex AI Vector Search 2.0 · ScaNN + Sparse RRF",
 };
@@ -118,8 +129,10 @@ export const MAX_CANDIDATE_K_BY_PROFILE: Readonly<Record<IndexProfile, number>> 
   naive: 100,
   hybrid: 100,
   multimodal: 100,
+  bigquery_graphrag: 100,
   rag_engine: 50,
   vertex_ai_search: 20,
+  cloudsql_pgvector: 100,
   alloydb_scann: 100,
   vertex_vector_v2: 100,
 };
@@ -150,7 +163,7 @@ export const QUERY_TRANSFORM_LABELS: Readonly<Record<QueryTransform, string>> = 
 };
 
 export const RETRIEVAL_MODE_LABELS: Readonly<Record<RetrievalMode, string>> = {
-  vector_cosine: "Dense Vector (BigQuery VECTOR_SEARCH)",
+  vector_cosine: "Dense Vector Only (cosine ANN / VECTOR_SEARCH)",
   lexical_bm25: "Lexical Keyword (BigQuery SEARCH)",
   hybrid_rrf: "Hybrid Vector + Lexical → RRF",
   managed_retrieval: "Managed Service Retriever",
@@ -168,12 +181,12 @@ export const CONTEXT_ORDER_LABELS: Readonly<Record<ContextOrder, string>> = {
 
 export const REASONING_MODE_LABELS: Readonly<Record<ReasoningMode, string>> = {
   single_pass: "Single-pass retrieve → synthesize",
-  adk_agent: "Multi-step Google ADK agent loop",
+  adk_agent: "Multi-step Google ADK agent loop (any store)",
 };
 
 export const AGENT_TOOL_LABELS: Readonly<Record<CanonicalAgentTool, string>> = {
   search_procurement_corpus: "search_procurement_corpus (required)",
-  check_amendments: "check_amendments (SQL lineage lookup)",
+  check_amendments: "check_amendments (BQ Property Graph GQL / SQL)",
   calculate_contract_pricing: "calculate_contract_pricing (AST math)",
   verify_citations: "verify_citations (claim grounding check)",
 };
@@ -288,6 +301,20 @@ export function defaultPresetSpec(levelId: LevelId, presets?: readonly PipelineP
           agent_tools: [],
         },
       };
+    case "cloudsql_pgvector":
+      return {
+        index_profile: "cloudsql_pgvector",
+        slots: {
+          query_transform: "acronym",
+          retrieval_mode: "hybrid_rrf",
+          candidate_k: 25,
+          top_k: 5,
+          reranker: "vertex_ranking_api",
+          context_order: "score_order",
+          reasoning_mode: "single_pass",
+          agent_tools: [],
+        },
+      };
     case "alloydb_scann":
       return {
         index_profile: "alloydb_scann",
@@ -312,6 +339,20 @@ export function defaultPresetSpec(levelId: LevelId, presets?: readonly PipelineP
           top_k: 5,
           reranker: "vertex_ranking_api",
           context_order: "score_order",
+          reasoning_mode: "single_pass",
+          agent_tools: [],
+        },
+      };
+    case "bigquery_graphrag":
+      return {
+        index_profile: "bigquery_graphrag",
+        slots: {
+          query_transform: "acronym_plus_intent",
+          retrieval_mode: "hybrid_rrf",
+          candidate_k: 50,
+          top_k: 5,
+          reranker: "vertex_ranking_api",
+          context_order: "authority_amendment_first",
           reasoning_mode: "single_pass",
           agent_tools: [],
         },
@@ -388,9 +429,11 @@ export function coerceSpec(raw: PipelineSpec): PipelineSpec {
         ? "vector_cosine"
         : "hybrid_rrf"
     : scann
-      ? "hybrid_rrf"
+      ? SCANN_RETRIEVAL_MODES.includes(raw.slots.retrieval_mode)
+        ? raw.slots.retrieval_mode
+        : "hybrid_rrf"
       : "managed_retrieval";
-  const reasoningMode: ReasoningMode = bq && raw.slots.reasoning_mode === "adk_agent" ? "adk_agent" : "single_pass";
+  const reasoningMode: ReasoningMode = raw.slots.reasoning_mode === "adk_agent" ? "adk_agent" : "single_pass";
   const reranker: RerankerKind = RERANKERS.includes(raw.slots.reranker) ? raw.slots.reranker : "none";
   const queryTransform: QueryTransform = QUERY_TRANSFORMS.includes(raw.slots.query_transform)
     ? raw.slots.query_transform
@@ -398,12 +441,16 @@ export function coerceSpec(raw: PipelineSpec): PipelineSpec {
   const contextOrder: ContextOrder = CONTEXT_ORDERS.includes(raw.slots.context_order)
     ? raw.slots.context_order
     : "score_order";
-  const agentTools =
-    reasoningMode === "adk_agent"
-      ? raw.slots.agent_tools.length === 0
-        ? [...CANONICAL_AGENT_TOOLS]
-        : canonicalTools(raw.slots.agent_tools, "adk_agent")
-      : [];
+  const defaultTools: CanonicalAgentTool[] = bq
+    ? [...CANONICAL_AGENT_TOOLS]
+    : CANONICAL_AGENT_TOOLS.filter((t) => t !== "check_amendments");
+  const rawTools =
+    raw.slots.agent_tools.length === 0
+      ? defaultTools
+      : bq
+        ? raw.slots.agent_tools
+        : raw.slots.agent_tools.filter((t) => t !== "check_amendments");
+  const agentTools = reasoningMode === "adk_agent" ? canonicalTools(rawTools, "adk_agent") : [];
 
   const guardrail: GuardrailMode = effectiveGuardrail(raw);
 
@@ -464,18 +511,18 @@ export function validatePipelineSpec(spec: PipelineSpec): string | null {
   if (isBqProfile(spec.index_profile) && !BQ_RETRIEVAL_MODES.includes(s.retrieval_mode)) {
     return `BigQuery index_profile "${spec.index_profile}" requires retrieval_mode in ${BQ_RETRIEVAL_MODES.join(", ")}.`;
   }
-  if (isScannProfile(spec.index_profile) && s.retrieval_mode !== "hybrid_rrf") {
-    return `ScaNN index_profile "${spec.index_profile}" requires retrieval_mode "hybrid_rrf".`;
+  if (isScannProfile(spec.index_profile) && !SCANN_RETRIEVAL_MODES.includes(s.retrieval_mode)) {
+    return `Operational/ANN index_profile "${spec.index_profile}" requires retrieval_mode in ${SCANN_RETRIEVAL_MODES.join(", ")}.`;
   }
   if (!isBqProfile(spec.index_profile) && !isScannProfile(spec.index_profile) && s.retrieval_mode !== "managed_retrieval") {
     return `Managed index_profile "${spec.index_profile}" requires retrieval_mode "managed_retrieval".`;
   }
   if (s.reasoning_mode === "adk_agent") {
-    if (!isBqProfile(spec.index_profile)) {
-      return `reasoning_mode "adk_agent" requires a BigQuery index_profile (${BQ_INDEX_PROFILES.join(", ")}).`;
-    }
     if (!s.agent_tools.includes("search_procurement_corpus")) {
       return `reasoning_mode "adk_agent" requires "search_procurement_corpus" in agent_tools.`;
+    }
+    if (!isBqProfile(spec.index_profile) && s.agent_tools.includes("check_amendments")) {
+      return `agent tool "check_amendments" requires a BigQuery index_profile (${BQ_INDEX_PROFILES.join(", ")}).`;
     }
   } else if (s.agent_tools.length > 0) {
     return `agent_tools must be empty when reasoning_mode is "single_pass".`;
@@ -499,6 +546,7 @@ export function activeQueryStages(spec: PipelineSpec): readonly string[] {
     stages.push("embed_query");
   }
   stages.push("retrieve");
+  if (spec.index_profile === "bigquery_graphrag") stages.push("graph_expand");
   if (spec.slots.reranker === "vertex_ranking_api") stages.push("rerank");
   if (armored) stages.push("guardrail_in");
   stages.push("synthesize");
@@ -662,7 +710,7 @@ export function workbenchReplayGate(
   return {
     replay: true,
     pairs: [],
-    blockedReason: "Custom component recipes require Live mode — pick one of the 8 Level Presets above to play recorded runs.",
+    blockedReason: "Custom component recipes require Live mode — pick one of the 10 Level Presets above to play recorded runs.",
   };
 }
 
@@ -761,9 +809,10 @@ function singlePassRetrievalGraph(spec: PipelineSpec): {
   const nodes: ArchNode[] = [];
   const edges: ArchEdge[] = [];
   if (isBqProfile(spec.index_profile)) {
+    const tierLabel = spec.index_profile === "bigquery_graphrag" ? "multimodal" : spec.index_profile;
     const bq: ArchNode = {
       id: "bq",
-      label: `document_chunks (tier ${spec.index_profile})`,
+      label: `document_chunks (tier ${tierLabel})`,
       service: bqServiceLabel(spec),
       kind: "store",
       col: 2,
@@ -772,7 +821,7 @@ function singlePassRetrievalGraph(spec: PipelineSpec): {
     };
     if (spec.slots.retrieval_mode === "vector_cosine" || spec.slots.retrieval_mode === "hybrid_rrf") {
       const embSvc =
-        spec.index_profile === "multimodal"
+        spec.index_profile === "multimodal" || spec.index_profile === "bigquery_graphrag"
           ? "Vertex AI · gemini-embedding-2 (multimodal)"
           : "Vertex AI · gemini-embedding-2";
       nodes.push({ id: "embed", label: "Query embedding", service: embSvc, kind: "model", col: 1, row: 0, stage_ids: ["embed_query"] });
@@ -782,30 +831,88 @@ function singlePassRetrievalGraph(spec: PipelineSpec): {
       edges.push({ from: "user", to: "bq", label: "lexical terms" });
     }
     nodes.push(bq);
+    if (spec.index_profile === "bigquery_graphrag") {
+      nodes.push({
+        id: "graph",
+        label: "Property Graph (ISO GQL)",
+        service: "BigQuery GRAPH_TABLE · procurement_graph",
+        kind: "index",
+        col: 2,
+        row: 0,
+        stage_ids: ["graph_expand"],
+      });
+      edges.push({ from: "bq", to: "graph", label: "seed docs & sections" });
+      return { nodes, edges, outId: "graph" };
+    }
     return { nodes, edges, outId: "bq" };
   }
-  if (spec.index_profile === "alloydb_scann") {
+  if (spec.index_profile === "cloudsql_pgvector") {
+    const dense = spec.slots.retrieval_mode === "vector_cosine";
     nodes.push(
       { id: "embed", label: "Query embedding", service: "Vertex AI · gemini-embedding-2", kind: "model", col: 1, row: 0, stage_ids: ["embed_query"] },
-      { id: "alloydb", label: "AlloyDB ScaNN + GIN FTS", service: `AlloyDB for PostgreSQL · ScaNN RRF (top-${spec.slots.candidate_k})`, kind: "store", col: 2, row: 1, stage_ids: ["retrieve"] },
+      {
+        id: "cloudsql",
+        label: dense ? "Cloud SQL pgvector HNSW" : "Cloud SQL pgvector + GIN FTS",
+        service: dense
+          ? `Cloud SQL PostgreSQL 16 · halfvec HNSW (top-${spec.slots.candidate_k})`
+          : `Cloud SQL PostgreSQL 16 · pgvector 0.8.5 RRF (top-${spec.slots.candidate_k})`,
+        kind: "store",
+        col: 2,
+        row: 1,
+        stage_ids: ["retrieve"],
+      },
+    );
+    edges.push(
+      { from: "user", to: "embed", label: "prepared query" },
+      { from: "embed", to: "cloudsql", label: "3072-d halfvec" },
+    );
+    if (!dense) edges.push({ from: "user", to: "cloudsql", label: "tsquery terms" });
+    return { nodes, edges, outId: "cloudsql" };
+  }
+  if (spec.index_profile === "alloydb_scann") {
+    const dense = spec.slots.retrieval_mode === "vector_cosine";
+    nodes.push(
+      { id: "embed", label: "Query embedding", service: "Vertex AI · gemini-embedding-2", kind: "model", col: 1, row: 0, stage_ids: ["embed_query"] },
+      {
+        id: "alloydb",
+        label: dense ? "AlloyDB ScaNN (Dense)" : "AlloyDB ScaNN + GIN FTS",
+        service: dense
+          ? `AlloyDB for PostgreSQL · ScaNN cosine (top-${spec.slots.candidate_k})`
+          : `AlloyDB for PostgreSQL · ScaNN RRF (top-${spec.slots.candidate_k})`,
+        kind: "store",
+        col: 2,
+        row: 1,
+        stage_ids: ["retrieve"],
+      },
     );
     edges.push(
       { from: "user", to: "embed", label: "prepared query" },
       { from: "embed", to: "alloydb", label: "3072-d vector" },
-      { from: "user", to: "alloydb", label: "tsquery terms" },
     );
+    if (!dense) edges.push({ from: "user", to: "alloydb", label: "tsquery terms" });
     return { nodes, edges, outId: "alloydb" };
   }
   if (spec.index_profile === "vertex_vector_v2") {
+    const dense = spec.slots.retrieval_mode === "vector_cosine";
     nodes.push(
       { id: "embed", label: "Query embedding", service: "Vertex AI · gemini-embedding-2", kind: "model", col: 1, row: 0, stage_ids: ["embed_query"] },
-      { id: "vvs2", label: "Vector Search 2.0 Collection", service: `dataObjects:batchSearch · ScaNN + Sparse RRF (top-${spec.slots.candidate_k})`, kind: "store", col: 2, row: 1, stage_ids: ["retrieve"] },
+      {
+        id: "vvs2",
+        label: dense ? "Vector Search 2.0 (Dense)" : "Vector Search 2.0 Collection",
+        service: dense
+          ? `dataObjects:batchSearch · Dense ScaNN (top-${spec.slots.candidate_k})`
+          : `dataObjects:batchSearch · ScaNN + Sparse RRF (top-${spec.slots.candidate_k})`,
+        kind: "store",
+        col: 2,
+        row: 1,
+        stage_ids: ["retrieve"],
+      },
     );
     edges.push(
       { from: "user", to: "embed", label: "prepared query" },
       { from: "embed", to: "vvs2", label: "3072-d vector" },
-      { from: "user", to: "vvs2", label: "sparse tokens" },
     );
+    if (!dense) edges.push({ from: "user", to: "vvs2", label: "sparse tokens" });
     return { nodes, edges, outId: "vvs2" };
   }
   if (spec.index_profile === "vertex_ai_search") {
@@ -845,12 +952,49 @@ function modelArmorNode(col: number, row: number): ArchNode {
   };
 }
 
+function agentStoreMeta(spec: PipelineSpec): { readonly id: string; readonly label: string; readonly service: string } {
+  const k = spec.slots.candidate_k;
+  const dense = spec.slots.retrieval_mode === "vector_cosine";
+  switch (spec.index_profile) {
+    case "cloudsql_pgvector":
+      return {
+        id: "cloudsql",
+        label: dense ? "Cloud SQL pgvector HNSW" : "Cloud SQL pgvector + GIN FTS",
+        service: dense ? `Cloud SQL PG16 · halfvec HNSW (top-${k})` : `Cloud SQL PG16 · pgvector 0.8.5 RRF (top-${k})`,
+      };
+    case "alloydb_scann":
+      return {
+        id: "alloydb",
+        label: dense ? "AlloyDB ScaNN (Dense)" : "AlloyDB ScaNN + GIN FTS",
+        service: dense ? `AlloyDB PG · ScaNN cosine (top-${k})` : `AlloyDB PG · ScaNN RRF (top-${k})`,
+      };
+    case "vertex_vector_v2":
+      return {
+        id: "vvs2",
+        label: dense ? "Vector Search 2.0 (Dense)" : "Vector Search 2.0 Collection",
+        service: dense ? `VVS2 · Dense ScaNN (top-${k})` : `VVS2 · ScaNN + Sparse RRF (top-${k})`,
+      };
+    case "vertex_ai_search":
+      return { id: "ds", label: "Vertex AI Search Data Store", service: `Discovery Engine :search (top-${k})` };
+    case "rag_engine":
+      return { id: "rag_corpus", label: "Vertex AI RAG Corpus", service: `RagManagedDb :retrieveContexts (top-${k})` };
+    case "bigquery_graphrag":
+      return { id: "bq", label: "BQ GraphRAG (Property Graph · GQL)", service: `${bqServiceLabel(spec)} + GQL` };
+    default:
+      return { id: "bq", label: `document_chunks (tier ${spec.index_profile})`, service: bqServiceLabel(spec) };
+  }
+}
+
 function agentGraph(spec: PipelineSpec): { readonly nodes: readonly ArchNode[]; readonly edges: readonly ArchEdge[] } {
   const turn = ["agent_turn"];
   const tools = new Set(spec.slots.agent_tools);
   const armored = effectiveGuardrail(spec) === "model_armor";
   const shift = armored ? 1 : 0;
-  const bqTools = ["search_procurement_corpus", ...(tools.has("check_amendments") ? ["check_amendments"] : [])];
+  const storeMeta = agentStoreMeta(spec);
+  const storeTools = [
+    "search_procurement_corpus",
+    ...(isBqProfile(spec.index_profile) && tools.has("check_amendments") ? ["check_amendments"] : []),
+  ];
   const nodes: ArchNode[] = [userNode(spec.slots.query_transform)];
   const edges: ArchEdge[] = [];
   if (armored) {
@@ -862,28 +1006,39 @@ function agentGraph(spec: PipelineSpec): { readonly nodes: readonly ArchNode[]; 
   nodes.push(
     { id: "agent", label: "ADK LlmAgent loop", service: "Google ADK InMemoryRunner · Vertex AI Gemini", kind: "agent", col: 1 + shift, row: 1, stage_ids: turn },
     { id: "tool_search", label: "search_procurement_corpus", service: `${spec.index_profile} · ${spec.slots.retrieval_mode}`, kind: "process", col: 2 + shift, row: 0, stage_ids: turn, tool_names: ["search_procurement_corpus"] },
-    { id: "bq", label: `document_chunks (tier ${spec.index_profile})`, service: bqServiceLabel(spec), kind: "store", col: 3 + shift, row: 1, stage_ids: turn, tool_names: bqTools },
+    { id: storeMeta.id, label: storeMeta.label, service: storeMeta.service, kind: "store", col: 3 + shift, row: 1, stage_ids: turn, tool_names: storeTools },
   );
   edges.push(
     { from: "agent", to: "tool_search", label: "tool call" },
     { from: "tool_search", to: "agent", label: "chunks" },
   );
-  if (spec.slots.retrieval_mode === "vector_cosine" || spec.slots.retrieval_mode === "hybrid_rrf") {
-    const embSvc = spec.index_profile === "multimodal" ? "Vertex AI · gemini-embedding-2 (multimodal)" : "Vertex AI · gemini-embedding-2";
+  const needsEmbed =
+    isScannProfile(spec.index_profile) ||
+    (isBqProfile(spec.index_profile) &&
+      (spec.slots.retrieval_mode === "vector_cosine" || spec.slots.retrieval_mode === "hybrid_rrf"));
+  if (needsEmbed) {
+    const embSvc =
+      spec.index_profile === "multimodal" || spec.index_profile === "bigquery_graphrag"
+        ? "Vertex AI · gemini-embedding-2 (multimodal)"
+        : "Vertex AI · gemini-embedding-2";
     nodes.push({ id: "embed", label: "Query embedding", service: embSvc, kind: "model", col: 3 + shift, row: 0, stage_ids: turn, tool_names: ["search_procurement_corpus"] });
-    edges.push({ from: "tool_search", to: "embed", label: "query" }, { from: "embed", to: "bq", label: "3072-d vector" });
+    edges.push({ from: "tool_search", to: "embed", label: "query" }, { from: "embed", to: storeMeta.id, label: "3072-d vector" });
   } else {
-    edges.push({ from: "tool_search", to: "bq", label: "lexical terms" });
+    edges.push({
+      from: "tool_search",
+      to: storeMeta.id,
+      label: spec.slots.retrieval_mode === "managed_retrieval" ? "managed search" : "lexical terms",
+    });
   }
   if (spec.slots.reranker === "vertex_ranking_api") {
     nodes.push({ id: "rank", label: "Semantic rerank", service: "Discovery Engine Ranking API", kind: "api", col: 4 + shift, row: 0, stage_ids: turn, region: "global", tool_names: ["search_procurement_corpus"] });
-    edges.push({ from: "bq", to: "rank", label: `candidates (≤ ${spec.slots.candidate_k})` }, { from: "rank", to: "tool_search", label: `top-${spec.slots.top_k} chunks` });
+    edges.push({ from: storeMeta.id, to: "rank", label: `candidates (≤ ${spec.slots.candidate_k})` }, { from: "rank", to: "tool_search", label: `top-${spec.slots.top_k} chunks` });
   } else {
-    edges.push({ from: "bq", to: "tool_search", label: `top-${spec.slots.top_k} chunks` });
+    edges.push({ from: storeMeta.id, to: "tool_search", label: `top-${spec.slots.top_k} chunks` });
   }
   if (tools.has("check_amendments")) {
-    nodes.push({ id: "tool_amend", label: "check_amendments", service: "BigQuery amends_section lookup", kind: "process", col: 2 + shift, row: 1, stage_ids: turn, tool_names: ["check_amendments"] });
-    edges.push({ from: "agent", to: "tool_amend", label: "tool call" }, { from: "tool_amend", to: "bq", label: "@section_id" }, { from: "tool_amend", to: "agent", label: "superseding text" });
+    nodes.push({ id: "tool_amend", label: "check_amendments", service: "BigQuery Property Graph GQL / SQL", kind: "process", col: 2 + shift, row: 1, stage_ids: turn, tool_names: ["check_amendments"] });
+    edges.push({ from: "agent", to: "tool_amend", label: "tool call" }, { from: "tool_amend", to: storeMeta.id, label: "@section_id" }, { from: "tool_amend", to: "agent", label: "superseding text" });
   }
   if (tools.has("calculate_contract_pricing")) {
     nodes.push({ id: "tool_calc", label: "calculate_contract_pricing", service: "Local AST-validated arithmetic", kind: "process", col: 2 + shift, row: 2, stage_ids: turn, tool_names: ["calculate_contract_pricing"] });

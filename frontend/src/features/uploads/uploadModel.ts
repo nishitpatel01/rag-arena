@@ -267,16 +267,16 @@ export async function uploadViaResumableSession(opts: ResumableUploadOptions): P
   }
 }
 
-/** Level 4's ADK tools search Level 3 (`multimodal`) rows; every other level owns its own data. */
+/** Level 9 (BQ GraphRAG) and Level 10 (ADK) search Level 8 (`multimodal`) rows; every other level owns its own data. */
 export function dataLevelFor(levelId: string): string {
-  return levelId === "level4_agentic" ? "level3_multimodal" : levelId;
+  return levelId === "level4_agentic" || levelId === "bigquery_graphrag" ? "level3_multimodal" : levelId;
 }
 
 const EPHEMERAL_UPLOAD_NOTE =
-  "Upload workspaces run on Standing Levels 1–4 & 7–8; switch to Procurement corpus for Ephemeral ScaNN Levels 5–6.";
+  "Upload workspaces run on Standing Levels 1–4 & 8–10; switch to Procurement corpus for Ephemeral DB/ANN Levels 5–7.";
 
 function isEphemeralBenchmarkLevel(levelId: string): boolean {
-  return levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
+  return levelId === "cloudsql_pgvector" || levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
 }
 
 export function isWorkspaceLevelReady(ws: UploadWorkspace | null | undefined, levelId: string): boolean {

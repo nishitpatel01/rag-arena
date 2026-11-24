@@ -22,10 +22,12 @@ declare -A CFG=()
 # Infra keys (consumed by this script, never forwarded to the container).
 readonly INFRA_KEYS="GCP_PROJECT_ID REGION SERVICE_NAME ACCESS_MODE IAP_MEMBERS DEPLOY_REPLAY REPLAY_SERVICE_NAME
 REPLAY_ENABLED_LEVELS ARTIFACT_REPO RUNTIME_SA_NAME REPLAY_SA_NAME LIVE_INGEST IMAGE_TAG MIN_INSTANCES MAX_INSTANCES
-REPLAY_MAX_INSTANCES CPU MEMORY REPLAY_MEMORY TIMEOUT REPLAY_TIMEOUT CONCURRENCY REPLAY_CONCURRENCY LEAK_SCAN_TOKENS"
+REPLAY_MAX_INSTANCES CPU MEMORY REPLAY_MEMORY TIMEOUT REPLAY_TIMEOUT CONCURRENCY REPLAY_CONCURRENCY LEAK_SCAN_TOKENS
+CLOUD_RUN_INGRESS VPC_NETWORK VPC_SUBNETWORK VPC_EGRESS CLOUD_BUILD_WORKER_POOL
+EXISTING_LIVE_SA_EMAIL EXISTING_REPLAY_SA_EMAIL REPLAY_PUBLIC_INVOKER"
 # App settings forwarded to the LIVE service as env vars (same names as .env).
 readonly APP_KEYS="DEMO_MODE GCP_LOCATION VERTEX_GENAI_LOCATION GCS_CORPUS_BUCKET UPLOAD_BUCKET UPLOAD_BUCKET_MODE
-UPLOAD_BUCKET_KMS_KEY BQ_DATASET BQ_TABLE ENABLED_LEVELS IAP_JWT_AUDIENCE ALLOWED_UPLOAD_ORIGINS
+UPLOAD_BUCKET_KMS_KEY BQ_DATASET BQ_TABLE BQ_GRAPH_NAME ENABLED_LEVELS IAP_JWT_AUDIENCE ALLOWED_UPLOAD_ORIGINS
 MAX_UPLOAD_FILE_BYTES MAX_UPLOAD_PDF_PAGES MAX_UPLOAD_VISION_PAGES
 GEMINI_FAST_MODEL GEMINI_PRO_MODEL GEMINI_REASONING_MODEL GEMINI_THINKING_LEVEL TEXT_EMBEDDING_MODEL
 MULTIMODAL_EMBEDDING_MODEL RERANKER_MODEL JUDGE_PROVIDER JUDGE_MODEL JUDGE_LOCATION JUDGE_MAX_TOKENS
@@ -41,7 +43,8 @@ AGENT_THINKING_LEVEL AGENT_MODEL_CALL_TIMEOUT_SECONDS QUERY_TIMEOUT_SECONDS INGE
 MAX_SSE_FRAMES REPLAY_SPEED APP_VERSION CORS_ALLOW_ORIGIN_REGEX"
 # Local-only keys tolerated (e.g. pasted from .env) but NEVER forwarded to Cloud Run.
 readonly LOCAL_ONLY_KEYS="CLOUDSDK_CONFIG GOOGLE_APPLICATION_CREDENTIALS PUBLISH_SCRUB_TOKENS ALLOW_DEV_FIXTURES
-RECORDINGS_DIR MODEL_VERIFICATION_FILE STATIC_DIR ALLOYDB_DSN ALLOYDB_TABLE ALLOYDB_CANDIDATE_K ALLOYDB_TIMEOUT_SECONDS
+RECORDINGS_DIR MODEL_VERIFICATION_FILE STATIC_DIR CLOUDSQL_DSN CLOUDSQL_TABLE CLOUDSQL_CANDIDATE_K CLOUDSQL_TIMEOUT_SECONDS
+ALLOYDB_DSN ALLOYDB_TABLE ALLOYDB_CANDIDATE_K ALLOYDB_TIMEOUT_SECONDS
 VVS2_LOCATION VVS2_COLLECTION VVS2_INDEX_ID VVS2_TOP_K VVS2_TIMEOUT_SECONDS"
 readonly APIS_BASE="run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com"
 readonly CMD_TIMEOUT=600      # seconds per gcloud call
@@ -108,7 +111,8 @@ set_defaults() {
              REPLAY_SERVICE_NAME=rag-arena-replay ARTIFACT_REPO=rag-arena RUNTIME_SA_NAME=rag-arena-run \
              REPLAY_SA_NAME=rag-arena-replay LIVE_INGEST=true MIN_INSTANCES=0 MAX_INSTANCES=2 REPLAY_MAX_INSTANCES=3 \
              CPU=1 MEMORY=2Gi REPLAY_MEMORY=1Gi TIMEOUT=900 REPLAY_TIMEOUT=300 CONCURRENCY=20 REPLAY_CONCURRENCY=40 \
-             DEMO_MODE=live BQ_DATASET=rag_arena; do
+             DEMO_MODE=live BQ_DATASET=rag_arena CLOUD_RUN_INGRESS=all VPC_EGRESS=private-ranges-only \
+             REPLAY_PUBLIC_INVOKER=true; do
     key="${def%%=*}"; [[ -n "${CFG[$key]:-}" ]] || CFG["$key"]="${def#*=}"
   done
   [[ -n "${CFG[GCS_CORPUS_BUCKET]:-}" || -z "${CFG[GCP_PROJECT_ID]:-}" ]] || CFG[GCS_CORPUS_BUCKET]="${CFG[GCP_PROJECT_ID]}-rag-arena-corpus"
@@ -150,12 +154,32 @@ validate_upload_bucket() {
 }
 
 validate_access() {
-  local mode member members
+  local mode member members ingress egress
   mode="$(cfg ACCESS_MODE)"
   [[ "$mode" == "iap" || "$mode" == "public" ]] || die "ACCESS_MODE must be iap or public, got '$mode'"
   is_bool "$(cfg DEPLOY_REPLAY)" || die "DEPLOY_REPLAY must be true or false, got '$(cfg DEPLOY_REPLAY)'"
   is_bool "$(cfg LIVE_INGEST)" || die "LIVE_INGEST must be true or false, got '$(cfg LIVE_INGEST)'"
+  is_bool "$(cfg REPLAY_PUBLIC_INVOKER)" || die "REPLAY_PUBLIC_INVOKER must be true or false, got '$(cfg REPLAY_PUBLIC_INVOKER)'"
   [[ "$(cfg DEMO_MODE)" == "live" ]] || die "DEMO_MODE must be live for the live service (the replay copy is DEPLOY_REPLAY)"
+  ingress="$(cfg CLOUD_RUN_INGRESS)"
+  [[ "$ingress" == "all" || "$ingress" == "internal" || "$ingress" == "internal-and-cloud-load-balancing" ]] \
+    || die "CLOUD_RUN_INGRESS must be all, internal, or internal-and-cloud-load-balancing, got '$ingress'"
+  egress="$(cfg VPC_EGRESS)"
+  [[ "$egress" == "private-ranges-only" || "$egress" == "all-traffic" ]] \
+    || die "VPC_EGRESS must be private-ranges-only or all-traffic, got '$egress'"
+  if [[ -n "$(cfg VPC_NETWORK)" || -n "$(cfg VPC_SUBNETWORK)" ]]; then
+    [[ -n "$(cfg VPC_NETWORK)" && -n "$(cfg VPC_SUBNETWORK)" ]] \
+      || die "VPC_NETWORK and VPC_SUBNETWORK must both be set when configuring Direct VPC Egress"
+    check_re VPC_NETWORK '^[a-z0-9/_-]+$' "VPC network name or resource path"
+    check_re VPC_SUBNETWORK '^[a-z0-9/_-]+$' "VPC subnetwork name or resource path"
+  fi
+  [[ -z "$(cfg CLOUD_BUILD_WORKER_POOL)" ]] || check_re CLOUD_BUILD_WORKER_POOL \
+    '^projects/[^/]+/locations/[^/]+/workerPools/[^/]+$' "projects/P/locations/L/workerPools/W"
+  [[ -z "$(cfg EXISTING_LIVE_SA_EMAIL)" ]] || check_re EXISTING_LIVE_SA_EMAIL \
+    '^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z0-9.-]+\.iam\.gserviceaccount\.com$' "a valid GCP service account email"
+  [[ -z "$(cfg EXISTING_REPLAY_SA_EMAIL)" ]] || check_re EXISTING_REPLAY_SA_EMAIL \
+    '^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z0-9.-]+\.iam\.gserviceaccount\.com$' "a valid GCP service account email"
+  [[ -z "$(cfg BQ_GRAPH_NAME)" ]] || check_re BQ_GRAPH_NAME '^[A-Za-z_][A-Za-z0-9_]{0,62}$' "a BigQuery Property Graph name"
   [[ "$mode" == "iap" ]] || return 0
   members="$(cfg IAP_MEMBERS)"
   [[ -n "$members" ]] || die "IAP_MEMBERS is required when ACCESS_MODE=iap (e.g. user:you@example.com,group:team@example.com)"
@@ -203,15 +227,22 @@ ingest_roles() {
 }
 
 print_plan() {
-  local sa apis de_role gcs_role member access
-  sa="$(cfg RUNTIME_SA_NAME)"; read -r de_role gcs_role <<< "$(ingest_roles)"
+  local sa replay_sa apis de_role gcs_role member access replay_access
+  sa="${CFG[EXISTING_LIVE_SA_EMAIL]:-$(cfg RUNTIME_SA_NAME)}"
+  replay_sa="${CFG[EXISTING_REPLAY_SA_EMAIL]:-$(cfg REPLAY_SA_NAME)}"
+  read -r de_role gcs_role <<< "$(ingest_roles)"
   apis="$APIS_BASE"
   [[ "$(cfg ACCESS_MODE)" == "iap" ]] && apis="$apis iap.googleapis.com"
   [[ -n "$(cfg MODEL_ARMOR_TEMPLATE_ID)" ]] && apis="$apis modelarmor.googleapis.com"
   plan "enable-apis $apis"
   plan "artifact-repo $(cfg ARTIFACT_REPO) ($(cfg REGION), docker)"
   plan "cloud-build $(image_uri '<tag>')"
-  plan "service-account $sa"
+  [[ -n "$(cfg CLOUD_BUILD_WORKER_POOL)" ]] && plan "cloud-build-worker-pool $(cfg CLOUD_BUILD_WORKER_POOL)"
+  if [[ -n "$(cfg EXISTING_LIVE_SA_EMAIL)" ]]; then
+    plan "service-account $sa (pre-provisioned)"
+  else
+    plan "service-account $sa"
+  fi
   plan "iam project roles/aiplatform.user -> $sa"
   plan "iam project roles/bigquery.jobUser -> $sa"
   plan "iam dataset $(cfg BQ_DATASET) roles/bigquery.dataEditor -> $sa"
@@ -225,6 +256,8 @@ print_plan() {
   local role
   for role in $UPLOAD_SA_ROLES; do plan "iam bucket $(cfg UPLOAD_BUCKET) $role -> $sa"; done
   plan "iam bucket $(cfg UPLOAD_BUCKET) roles/storage.objectViewer -> discoveryengine-service-agent"
+  [[ "$(cfg CLOUD_RUN_INGRESS)" == "all" ]] || plan "cloud-run-ingress $(cfg CLOUD_RUN_INGRESS)"
+  [[ -z "$(cfg VPC_NETWORK)" ]] || plan "vpc-egress network=$(cfg VPC_NETWORK) subnet=$(cfg VPC_SUBNETWORK) egress=$(cfg VPC_EGRESS)"
   access="$(cfg ACCESS_MODE)"
   plan "service $(cfg SERVICE_NAME) (live, $access, sa=$sa, min=$(cfg MIN_INSTANCES), max=$(cfg MAX_INSTANCES), cpu=$(cfg CPU), memory=$(cfg MEMORY), timeout=$(cfg TIMEOUT)s)"
   if [[ "$access" == "iap" ]]; then
@@ -234,8 +267,14 @@ print_plan() {
     for member in "${_members[@]}"; do plan "iam iap $(cfg SERVICE_NAME) roles/iap.httpsResourceAccessor -> $member"; done
   fi
   [[ "$(cfg DEPLOY_REPLAY)" == "true" ]] || return 0
-  plan "service-account $(cfg REPLAY_SA_NAME) (no roles)"
-  plan "service $(cfg REPLAY_SERVICE_NAME) (replay, public, sa=$(cfg REPLAY_SA_NAME), min=0, max=$(cfg REPLAY_MAX_INSTANCES), cpu=$(cfg CPU), memory=$(cfg REPLAY_MEMORY), timeout=$(cfg REPLAY_TIMEOUT)s)"
+  if [[ -n "$(cfg EXISTING_REPLAY_SA_EMAIL)" ]]; then
+    plan "service-account $replay_sa (pre-provisioned, no roles)"
+  else
+    plan "service-account $replay_sa (no roles)"
+  fi
+  replay_access="public"
+  [[ "$(cfg REPLAY_PUBLIC_INVOKER)" == "true" ]] || replay_access="authenticated"
+  plan "service $(cfg REPLAY_SERVICE_NAME) (replay, $replay_access, sa=$replay_sa, min=0, max=$(cfg REPLAY_MAX_INSTANCES), cpu=$(cfg CPU), memory=$(cfg REPLAY_MEMORY), timeout=$(cfg REPLAY_TIMEOUT)s)"
 }
 
 live_env_pairs() {
@@ -294,8 +333,8 @@ preflight() {
   [[ -n "$ACTIVE_ACCOUNT" ]] || die "no active gcloud account (run gcloud auth login)"
   PROJECT_NUMBER="$(gc projects describe "$(cfg GCP_PROJECT_ID)" --format='value(projectNumber)')"
   [[ "$PROJECT_NUMBER" =~ ^[0-9]+$ ]] || die "cannot read project number of $(cfg GCP_PROJECT_ID)"
-  LIVE_SA="$(cfg RUNTIME_SA_NAME)@$(cfg GCP_PROJECT_ID).iam.gserviceaccount.com"
-  REPLAY_SA="$(cfg REPLAY_SA_NAME)@$(cfg GCP_PROJECT_ID).iam.gserviceaccount.com"
+  LIVE_SA="${CFG[EXISTING_LIVE_SA_EMAIL]:-$(cfg RUNTIME_SA_NAME)@$(cfg GCP_PROJECT_ID).iam.gserviceaccount.com}"
+  REPLAY_SA="${CFG[EXISTING_REPLAY_SA_EMAIL]:-$(cfg REPLAY_SA_NAME)@$(cfg GCP_PROJECT_ID).iam.gserviceaccount.com}"
 }
 
 enable_apis() {
@@ -342,13 +381,14 @@ scan_upload() {
 }
 
 build_image() {
-  local tag
+  local tag extra_args=()
   tag="$(cfg IMAGE_TAG)"
   [[ -n "$tag" ]] || tag="$(cd "$REPO_ROOT" && git rev-parse --short=12 HEAD 2>/dev/null || echo manual)-$(date -u +%Y%m%d%H%M%S)"
   IMAGE="$(image_uri "$tag")"
+  [[ -z "$(cfg CLOUD_BUILD_WORKER_POOL)" ]] || extra_args+=(--worker-pool="$(cfg CLOUD_BUILD_WORKER_POOL)")
   echo "==> Cloud Build: $IMAGE"
   (cd "$REPO_ROOT" && timeout "$BUILD_TIMEOUT" gcloud builds submit . --tag="$IMAGE" --region="$(cfg REGION)" \
-    --timeout="${BUILD_TIMEOUT}s" --project="$(cfg GCP_PROJECT_ID)" --quiet)
+    "${extra_args[@]}" --timeout="${BUILD_TIMEOUT}s" --project="$(cfg GCP_PROJECT_ID)" --quiet)
 }
 
 ensure_sa() {
@@ -526,14 +566,18 @@ write_env_yaml() {
 }
 
 deploy_live() {
-  local envf access_flags
+  local envf access_flags net_flags=()
   envf="$(mktemp)"; TMP_FILES+=("$envf")
   live_env_pairs | write_env_yaml "$envf"
   if [[ "$(cfg ACCESS_MODE)" == "iap" ]]; then access_flags=(--no-allow-unauthenticated --iap)
   else access_flags=(--allow-unauthenticated --no-iap); fi
+  net_flags+=(--ingress="$(cfg CLOUD_RUN_INGRESS)")
+  if [[ -n "$(cfg VPC_NETWORK)" ]]; then
+    net_flags+=(--network="$(cfg VPC_NETWORK)" --subnet="$(cfg VPC_SUBNETWORK)" --vpc-egress="$(cfg VPC_EGRESS)")
+  fi
   echo "==> deploying live service $(cfg SERVICE_NAME) ($(cfg ACCESS_MODE))"
   gc run deploy "$(cfg SERVICE_NAME)" --image="$IMAGE" --region="$(cfg REGION)" --service-account="$LIVE_SA" \
-    "${access_flags[@]}" --env-vars-file="$envf" --port=8080 --cpu="$(cfg CPU)" --memory="$(cfg MEMORY)" \
+    "${access_flags[@]}" "${net_flags[@]}" --env-vars-file="$envf" --port=8080 --cpu="$(cfg CPU)" --memory="$(cfg MEMORY)" \
     --concurrency="$(cfg CONCURRENCY)" --min-instances="$(cfg MIN_INSTANCES)" --max-instances="$(cfg MAX_INSTANCES)" \
     --timeout="$(cfg TIMEOUT)"
 }
@@ -555,14 +599,22 @@ configure_iap() {
 }
 
 deploy_replay() {
-  local envf
+  local envf replay_access_flag net_flags=()
   [[ "$(cfg DEPLOY_REPLAY)" == "true" ]] || return 0
-  ensure_sa "$(cfg REPLAY_SA_NAME)" "RAG Arena replay (no roles)"
+  if [[ -z "$(cfg EXISTING_REPLAY_SA_EMAIL)" ]]; then
+    ensure_sa "$(cfg REPLAY_SA_NAME)" "RAG Arena replay (no roles)"
+  fi
   envf="$(mktemp)"; TMP_FILES+=("$envf")
   replay_env_pairs | write_env_yaml "$envf"
-  echo "==> deploying public replay service $(cfg REPLAY_SERVICE_NAME)"
+  if [[ "$(cfg REPLAY_PUBLIC_INVOKER)" == "true" ]]; then replay_access_flag="--allow-unauthenticated"
+  else replay_access_flag="--no-allow-unauthenticated"; fi
+  net_flags+=(--ingress="$(cfg CLOUD_RUN_INGRESS)")
+  if [[ -n "$(cfg VPC_NETWORK)" ]]; then
+    net_flags+=(--network="$(cfg VPC_NETWORK)" --subnet="$(cfg VPC_SUBNETWORK)" --vpc-egress="$(cfg VPC_EGRESS)")
+  fi
+  echo "==> deploying replay service $(cfg REPLAY_SERVICE_NAME)"
   gc run deploy "$(cfg REPLAY_SERVICE_NAME)" --image="$IMAGE" --region="$(cfg REGION)" --service-account="$REPLAY_SA" \
-    --allow-unauthenticated --no-iap --env-vars-file="$envf" --port=8080 --cpu="$(cfg CPU)" \
+    "$replay_access_flag" --no-iap "${net_flags[@]}" --env-vars-file="$envf" --port=8080 --cpu="$(cfg CPU)" \
     --memory="$(cfg REPLAY_MEMORY)" --concurrency="$(cfg REPLAY_CONCURRENCY)" --min-instances=0 \
     --max-instances="$(cfg REPLAY_MAX_INSTANCES)" --timeout="$(cfg REPLAY_TIMEOUT)"
 }
@@ -585,7 +637,9 @@ apply_plan() {
   ensure_repo
   scan_upload
   build_image
-  ensure_sa "$(cfg RUNTIME_SA_NAME)" "RAG Arena live runtime"
+  if [[ -z "$(cfg EXISTING_LIVE_SA_EMAIL)" ]]; then
+    ensure_sa "$(cfg RUNTIME_SA_NAME)" "RAG Arena live runtime"
+  fi
   grant_live_roles
   if ! ensure_upload_bucket; then
     warn "uploads will be DISABLED in the app until the upload bucket is usable ($UPLOAD_STATE; remedy above)."

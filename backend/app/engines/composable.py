@@ -62,6 +62,8 @@ from app.engines.agent_runtime import (
 from app.engines.agent_tools import ToolDeps, build_tools
 from app.engines.alloydb_scann import LAYOUT_SOURCE as ALLOYDB_LAYOUT_SOURCE, AlloyDBScaNNEngine
 from app.engines.base import BaseRAGEngine
+from app.engines.bigquery_graphrag import LAYOUT_SOURCE as GRAPHRAG_LAYOUT_SOURCE, BigQueryGraphRAGEngine
+from app.engines.cloudsql_pgvector import LAYOUT_SOURCE as CLOUDSQL_LAYOUT_SOURCE, CloudSQLPgVectorEngine
 from app.engines.common_stages import embed_query_stage, synthesize_stage
 from app.engines.level1_naive import _row_bbox, _run_vector_search_job, build_vector_search_sql
 from app.engines.level2_hybrid import (
@@ -251,6 +253,7 @@ class ComposableRAGEngine(BaseRAGEngine):
         ranking_client: RankingClient | None = None,
         vais_client: DiscoveryEngineClient | None = None,
         rag_client: VertexRagClient | None = None,
+        cloudsql_conn_factory: Any | None = None,
         alloydb_conn_factory: Any | None = None,
         vvs2_client: Any | None = None,
         model_armor_client: ModelArmorClient | None = None,
@@ -277,6 +280,7 @@ class ComposableRAGEngine(BaseRAGEngine):
         self._ranking_client = ranking_client
         self._vais_client = vais_client
         self._rag_client = rag_client
+        self._cloudsql_conn_factory = cloudsql_conn_factory
         self._alloydb_conn_factory = alloydb_conn_factory
         self._vvs2_client = vvs2_client
         self._model_armor_client = model_armor_client
@@ -496,7 +500,7 @@ class ComposableRAGEngine(BaseRAGEngine):
 
     @property
     def _embed_model(self) -> str:
-        if self.spec.index_profile == "multimodal":
+        if self.spec.index_profile in ("multimodal", "bigquery_graphrag"):
             return self.settings.multimodal_embedding_model
         if self.spec.index_profile == "rag_engine":
             return self.settings.rag_engine_embedding_model
@@ -504,7 +508,7 @@ class ComposableRAGEngine(BaseRAGEngine):
 
     @property
     def _embed_col(self) -> str:
-        return "embedding_multimodal" if self.spec.index_profile == "multimodal" else "embedding"
+        return "embedding_multimodal" if self.spec.index_profile in ("multimodal", "bigquery_graphrag") else "embedding"
 
     def _transform_query_local(self, query: str) -> tuple[str, str, L3PreparedQuery]:
         l3 = prepare_l3_query(query)
@@ -550,10 +554,15 @@ class ComposableRAGEngine(BaseRAGEngine):
     ) -> tuple[list[HybridCandidate], int]:
         mode = self.spec.slots.retrieval_mode
         cand_k = self.spec.slots.candidate_k
-        tier = self.spec.index_profile
+        tier = "multimodal" if self.spec.index_profile == "bigquery_graphrag" else self.spec.index_profile
         restricted = bool(caller_access and caller_access.is_restricted)
         caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
-        acl_level = {"naive": "level1_naive", "hybrid": "level2_hybrid", "multimodal": "level3_multimodal"}.get(tier, "level2_hybrid")
+        acl_level = {
+            "naive": "level1_naive",
+            "hybrid": "level2_hybrid",
+            "multimodal": "level3_multimodal",
+            "bigquery_graphrag": "bigquery_graphrag",
+        }.get(self.spec.index_profile, "level2_hybrid")
         vector: list[float] = []
         emb_tokens = 0
         if mode in ("vector_cosine", "hybrid_rrf"):
@@ -758,9 +767,27 @@ class ComposableRAGEngine(BaseRAGEngine):
         caller_access: CallerAccessContext | None = None,
     ) -> EngineResult:
         slots = self.spec.slots
+        dense_only = slots.retrieval_mode == "vector_cosine"
         genai_client = gcp_clients.get_genai_client(self.settings)
         vector, emb_tokens = await embed_query_stage(self, prepared, genai_client, emitter, model=self._embed_model)
-        if self.spec.index_profile == "alloydb_scann":
+        if self.spec.index_profile == "cloudsql_pgvector":
+            helper_csql = CloudSQLPgVectorEngine(
+                settings=self.settings,
+                synthesis_model=self.synthesis_model,
+                ranking_client=self._ranking_client,
+                conn_factory=self._cloudsql_conn_factory,
+            )
+            cands = await helper_csql._retrieve_candidates(
+                vector,
+                original,
+                sol_filter,
+                emitter,
+                candidate_k=slots.candidate_k,
+                caller_access=caller_access,
+                dense_only=dense_only,
+            )
+            layout = CLOUDSQL_LAYOUT_SOURCE
+        elif self.spec.index_profile == "alloydb_scann":
             helper_alloy = AlloyDBScaNNEngine(
                 settings=self.settings,
                 synthesis_model=self.synthesis_model,
@@ -768,7 +795,13 @@ class ComposableRAGEngine(BaseRAGEngine):
                 conn_factory=self._alloydb_conn_factory,
             )
             cands = await helper_alloy._retrieve_candidates(
-                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k, caller_access=caller_access
+                vector,
+                original,
+                sol_filter,
+                emitter,
+                candidate_k=slots.candidate_k,
+                caller_access=caller_access,
+                dense_only=dense_only,
             )
             layout = ALLOYDB_LAYOUT_SOURCE
         else:
@@ -779,7 +812,13 @@ class ComposableRAGEngine(BaseRAGEngine):
                 vvs2_client=self._vvs2_client,
             )
             cands = await helper_vvs._retrieve_candidates(
-                vector, original, sol_filter, emitter, candidate_k=slots.candidate_k, caller_access=caller_access
+                vector,
+                original,
+                sol_filter,
+                emitter,
+                candidate_k=slots.candidate_k,
+                caller_access=caller_access,
+                dense_only=dense_only,
             )
             layout = VVS2_LAYOUT_SOURCE
 
@@ -909,11 +948,88 @@ class ComposableRAGEngine(BaseRAGEngine):
         emitter: StageEmitter,
         caller_access: CallerAccessContext | None = None,
     ) -> MultimodalSearch:
-        """Retriever entrypoint used by ADK ``search_procurement_corpus`` — honors ``spec`` retrieval + reranker slots."""
+        """Retriever entrypoint used by ADK ``search_procurement_corpus`` across ALL index profiles & reranker slots."""
         prepared, original, _ = self._transform_query_local(query)
-        cands, emb_tokens = await self._retrieve_bq(
-            prepared, original, solicitation_filter, genai_client, bq_client, emitter, caller_access=caller_access
-        )
+        profile = self.spec.index_profile
+        slots = self.spec.slots
+        emb_tokens = 0
+        if profile in BQ_INDEX_PROFILES:
+            cands, emb_tokens = await self._retrieve_bq(
+                prepared, original, solicitation_filter, genai_client, bq_client, emitter, caller_access=caller_access
+            )
+            if profile == "bigquery_graphrag":
+                graph_helper = BigQueryGraphRAGEngine(
+                    settings=self.settings,
+                    synthesis_model=self.synthesis_model,
+                    ranking_client=self._ranking_client,
+                )
+                cands, _, _ = await graph_helper._graph_expand(
+                    cands,
+                    original,
+                    solicitation_filter,
+                    bq_client,
+                    emitter,
+                    caller_access=caller_access,
+                    max_total=slots.candidate_k,
+                )
+        elif profile in SCANN_INDEX_PROFILES:
+            dense_only = slots.retrieval_mode == "vector_cosine"
+            vector, emb_tokens = await embed_query_stage(self, prepared, genai_client, emitter, model=self._embed_model)
+            if profile == "cloudsql_pgvector":
+                helper_csql = CloudSQLPgVectorEngine(
+                    settings=self.settings,
+                    synthesis_model=self.synthesis_model,
+                    ranking_client=self._ranking_client,
+                    conn_factory=self._cloudsql_conn_factory,
+                )
+                cands = await helper_csql._retrieve_candidates(
+                    vector, original, solicitation_filter, emitter,
+                    candidate_k=slots.candidate_k, caller_access=caller_access, dense_only=dense_only,
+                )
+            elif profile == "alloydb_scann":
+                helper_alloy = AlloyDBScaNNEngine(
+                    settings=self.settings,
+                    synthesis_model=self.synthesis_model,
+                    ranking_client=self._ranking_client,
+                    conn_factory=self._alloydb_conn_factory,
+                )
+                cands = await helper_alloy._retrieve_candidates(
+                    vector, original, solicitation_filter, emitter,
+                    candidate_k=slots.candidate_k, caller_access=caller_access, dense_only=dense_only,
+                )
+            else:
+                helper_vvs = VertexVectorSearchV2Engine(
+                    settings=self.settings,
+                    synthesis_model=self.synthesis_model,
+                    ranking_client=self._ranking_client,
+                    vvs2_client=self._vvs2_client,
+                )
+                cands = await helper_vvs._retrieve_candidates(
+                    vector, original, solicitation_filter, emitter,
+                    candidate_k=slots.candidate_k, caller_access=caller_access, dense_only=dense_only,
+                )
+        elif profile == "vertex_ai_search":
+            vais_scope = solicitation_filter if (solicitation_filter and solicitation_filter.startswith("upl_")) else None
+            cfg = replace(self.settings, vais_page_size=slots.candidate_k, vais_summary_result_count=slots.top_k)
+            helper_vais = ManagedVertexSearchEngine(settings=cfg, synthesis_model=self.synthesis_model, client=self._vais_client)
+            outcome = await helper_vais._retrieve(
+                PreparedQuery(original, prepared, ()), emitter, solicitation_filter=vais_scope, caller_access=caller_access
+            )
+            cands = _chunks_to_candidates(segment_chunks(outcome.hits))
+        else:  # rag_engine
+            if caller_access is not None and caller_access.is_restricted:
+                raise AclEnforcementUnsupportedError(
+                    "Vertex AI RAG Engine enforces IAM at the RagCorpus boundary, not per-document chunk ACLs "
+                    f"(cannot safely restrict persona '{caller_access.persona_id}' inside a shared corpus)."
+                )
+            rag_scope = solicitation_filter if (solicitation_filter and solicitation_filter.startswith("upl_")) else None
+            cfg = replace(self.settings, rag_engine_top_k=slots.candidate_k)
+            helper_rag = RagEngine(settings=cfg, synthesis_model=self.synthesis_model, client=self._rag_client)
+            hits, _, _, _ = await helper_rag._retrieve(
+                PreparedQuery(original, prepared, ()), emitter, solicitation_filter=rag_scope
+            )
+            cands = _chunks_to_candidates(hits_to_chunks(hits))
+
         kept = [c for c in cands if not element_types or c.chunk.element_type in element_types]
         if self.spec.slots.reranker == "vertex_ranking_api" and kept:
             ranked = await self._rerank(original, kept, emitter)
@@ -984,13 +1100,24 @@ class ComposableRAGEngine(BaseRAGEngine):
             settings=self.settings,
             synthesis_model=self.synthesis_model,
             ranking_client=self._ranking_client,
+            vais_client=self._vais_client,
+            rag_client=self._rag_client,
+            cloudsql_conn_factory=self._cloudsql_conn_factory,
+            alloydb_conn_factory=self._alloydb_conn_factory,
+            vvs2_client=self._vvs2_client,
             model_armor_client=self._model_armor_client,
         )
         retriever._adk_screen_chunks = self.spec.guardrail == "model_armor"
+        needs_bq = self.spec.index_profile in BQ_INDEX_PROFILES or "check_amendments" in self.spec.slots.agent_tools
         deps = ToolDeps(
-            settings=self.settings, retriever=retriever, genai_client=gcp_clients.get_genai_client(self.settings),
-            bq_client=gcp_clients.get_bigquery_client(self.settings), ledger=ledger, upload_scope=upload_scope,
-            tier_profile=self.spec.index_profile, caller_access=caller_access,
+            settings=self.settings,
+            retriever=retriever,
+            genai_client=gcp_clients.get_genai_client(self.settings),
+            bq_client=gcp_clients.get_bigquery_client(self.settings) if needs_bq else None,
+            ledger=ledger,
+            upload_scope=upload_scope,
+            tier_profile=self.spec.index_profile,
+            caller_access=caller_access,
         )
         message = user_message(l3, upload_scope=upload_scope)
         limits = AgentLimits(
@@ -1161,10 +1288,26 @@ class ComposableRAGEngine(BaseRAGEngine):
         cands, emb_tokens = await self._retrieve_bq(
             prepared, original, solicitation_filter, genai_client, bq_client, emitter, caller_access=caller_access
         )
+        if self.spec.index_profile == "bigquery_graphrag":
+            graph_helper = BigQueryGraphRAGEngine(
+                settings=self.settings,
+                synthesis_model=self.synthesis_model,
+                ranking_client=self._ranking_client,
+            )
+            cands, _, _ = await graph_helper._graph_expand(
+                cands,
+                original,
+                solicitation_filter,
+                bq_client,
+                emitter,
+                caller_access=caller_access,
+                max_total=self.spec.slots.candidate_k,
+            )
         if not cands and caller_access is not None and caller_access.is_restricted:
             return await self._acl_zero_result(
                 cleaned=cleaned, caller_access=caller_access, emb_tokens=emb_tokens,
-                base_cost=0.0, layout="pymupdf", start=start, emitter=emitter,
+                base_cost=0.0, layout=GRAPHRAG_LAYOUT_SOURCE if self.spec.index_profile == "bigquery_graphrag" else "pymupdf",
+                start=start, emitter=emitter,
             )
         rank_cost = 0.0
         reranked_flag = False

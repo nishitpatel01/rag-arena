@@ -40,14 +40,17 @@ LEVEL_TIER_PROFILES: dict[str, str] = {
     "level1_naive": "naive",
     "level2_hybrid": "hybrid",
     "level3_multimodal": "multimodal",
+    "bigquery_graphrag": "multimodal",
     "level4_agentic": "multimodal",
     "managed_vertex": "vertex_ai_search",
     "rag_engine": "rag_engine",
+    "cloudsql_pgvector": "cloudsql_pgvector",
     "alloydb_scann": "alloydb_scann",
     "vertex_vector_v2": "vertex_vector_v2",
 }
-EPHEMERAL_SCANN_LEVELS: tuple[str, ...] = ("alloydb_scann", "vertex_vector_v2")
+EPHEMERAL_SCANN_LEVELS: tuple[str, ...] = ("cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2")
 EPHEMERAL_SCANN_SCRIPTS: dict[str, str] = {
+    "cloudsql_pgvector": "scripts/ephemeral_cloudsql.sh",
     "alloydb_scann": "scripts/ephemeral_alloydb.sh",
     "vertex_vector_v2": "scripts/ephemeral_vvs2.sh",
 }
@@ -631,7 +634,8 @@ class IngestJobRunner:
         except IngestBackendUnavailable as exc:
             mv_status, re_status = await asyncio.gather(managed_task, rag_engine_task)
             return {**base, "available": False, "reason": str(exc), "counts_by_tier": {}, "index_states": {},
-                    "managed_vertex": mv_status, "rag_engine": re_status, "ephemeral_scann": self._ephemeral_scann_status()}
+                    "managed_vertex": mv_status, "rag_engine": re_status,
+                    "bigquery_graph": self._bigquery_graph_status(), "ephemeral_scann": self._ephemeral_scann_status()}
         except BaseException:
             managed_task.cancel()
             rag_engine_task.cancel()
@@ -639,14 +643,36 @@ class IngestJobRunner:
             raise
         mv_status, re_status = await asyncio.gather(managed_task, rag_engine_task)
         return {**base, "available": True, "counts_by_tier": counts, "index_states": states, "table": backends.loader.table_fqn,
-                "managed_vertex": mv_status, "rag_engine": re_status, "ephemeral_scann": self._ephemeral_scann_status()}
+                "managed_vertex": mv_status, "rag_engine": re_status,
+                "bigquery_graph": self._bigquery_graph_status(), "ephemeral_scann": self._ephemeral_scann_status()}
+
+    def _bigquery_graph_status(self) -> dict[str, Any]:
+        """Standing $0/mo BigQuery Property Graph metadata (derived from multimodal tier via provision_bq_graph.py)."""
+        return {
+            "enabled": "bigquery_graphrag" in self.settings.enabled_levels,
+            "ephemeral": False,
+            "graph_name": self.settings.bq_graph_name,
+            "tier_profile": "multimodal",
+            "script": "scripts/provision_bq_graph.py",
+        }
 
     def _ephemeral_scann_status(self) -> dict[str, Any]:
-        """Levels 7–8 ephemeral benchmark stores (CLI-provisioned on demand; $0/mo idle; replay-ready via recordings)."""
+        """Ephemeral operational/ANN benchmark stores (CLI-provisioned on demand; $0/mo idle; replay-ready via recordings)."""
         replay = self.settings.demo_mode == "replay"
+        cloudsql_cfg = bool(self.settings.cloudsql_dsn.strip())
         alloydb_cfg = bool(self.settings.alloydb_dsn.strip())
         vvs2_col = self.settings.vvs2_collection.strip()
         return {
+            "cloudsql_pgvector": {
+                "enabled": "cloudsql_pgvector" in self.settings.enabled_levels,
+                "ephemeral": True,
+                "configured": True if replay else cloudsql_cfg,
+                "table": self.settings.cloudsql_table,
+                "script": EPHEMERAL_SCANN_SCRIPTS["cloudsql_pgvector"],
+                "reason": None if (replay or cloudsql_cfg) else (
+                    "CLOUDSQL_DSN is unset ($0/mo idle) — run scripts/ephemeral_cloudsql.sh --up for live runs"
+                ),
+            },
             "alloydb_scann": {
                 "enabled": "alloydb_scann" in self.settings.enabled_levels,
                 "ephemeral": True,

@@ -101,7 +101,7 @@ test("architectureMenuLabel shows 'Architectures' off-level and active short lab
   assert.equal(architectureMenuLabel("/", levels), "Architectures");
   assert.equal(architectureMenuLabel("/workbench", levels), "Architectures");
   assert.equal(architectureMenuLabel("/levels/managed_vertex", levels), "1 · Vertex Search");
-  assert.equal(architectureMenuLabel("/levels/level4_agentic", levels), "8 · Agentic ADK");
+  assert.equal(architectureMenuLabel("/levels/level4_agentic", levels), "10 · Agentic ADK");
 });
 
 test("Workbench 7-column SVG fits inside 1040px container without horizontal overflow via MIN_FIT_SCALE", () => {

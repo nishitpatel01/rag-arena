@@ -49,9 +49,11 @@ ALL_LEVEL_IDS: tuple[str, ...] = (
     "rag_engine",
     "level1_naive",
     "level2_hybrid",
+    "cloudsql_pgvector",
     "alloydb_scann",
     "vertex_vector_v2",
     "level3_multimodal",
+    "bigquery_graphrag",
     "level4_agentic",
 )
 VALID_DEMO_MODES: tuple[str, ...] = ("live", "record", "replay")
@@ -67,20 +69,21 @@ _IAP_AUDIENCE_RE = re.compile(
 )
 # GCP project ids, bucket names, and locations: lowercase letters, digits, dots, dashes, underscores (≤ 128 chars).
 _GCP_IDENTIFIER_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
-# Standing $0/mo levels enabled by default in live/record mode; ephemeral ScaNN levels opt in via ENABLED_LEVELS.
+# Standing $0/mo levels enabled by default in live/record mode; ephemeral DB/ANN levels opt in via ENABLED_LEVELS.
 DEFAULT_LIVE_LEVELS: tuple[str, ...] = (
     "managed_vertex",
     "rag_engine",
     "level1_naive",
     "level2_hybrid",
     "level3_multimodal",
+    "bigquery_graphrag",
     "level4_agentic",
 )
-# Replay mode enables all 8 recorded levels by default (including ephemeral ScaNN benchmarks).
+# Replay mode enables all 10 recorded levels by default (including ephemeral Cloud SQL / AlloyDB / VVS2 benchmarks).
 DEFAULT_ENABLED_LEVELS: tuple[str, ...] = ALL_LEVEL_IDS
 DEFAULT_MAX_SSE_FRAMES: int = 600
 DEFAULT_INGEST_JOB_TIMEOUT_SECONDS: int = 1800
-DEFAULT_APP_VERSION: str = "1.6.3"  # x-release-please-version
+DEFAULT_APP_VERSION: str = "1.6.4"  # x-release-please-version
 # Level 2 hybrid retrieval + Ranking API bounds (env: HYBRID_CANDIDATE_K, RERANK_TOP_N, RANKING_TIMEOUT_SECONDS).
 DEFAULT_HYBRID_CANDIDATE_K: int = 50
 DEFAULT_RERANK_TOP_N: int = 5
@@ -137,13 +140,16 @@ _RAG_ENGINE_CHUNK_OVERLAP_RANGE: tuple[int, int] = (0, 512)
 _RAG_ENGINE_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
 _RAG_ENGINE_LOCATION_RE = re.compile(r"[a-z]+-[a-z]+[0-9]+")
 _RAG_ENGINE_CORPUS_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
-# Levels 7 & 8 Ephemeral ScaNN benchmarks (AlloyDB + Vertex AI Vector Search 2.0 REST v1beta).
+# Ephemeral DB/ANN benchmarks (Cloud SQL pgvector + AlloyDB ScaNN + Vector Search 2.0 REST v1beta) & BQ Property Graph.
 DEFAULT_VVS2_LOCATION: str = "us-central1"
 DEFAULT_VVS2_INDEX_ID: str = "dense-scann"
 DEFAULT_VVS2_TOP_K: int = 25
 DEFAULT_VVS2_TIMEOUT_SECONDS: int = 30
 DEFAULT_ALLOYDB_CANDIDATE_K: int = 25
 DEFAULT_ALLOYDB_TIMEOUT_SECONDS: int = 30
+DEFAULT_CLOUDSQL_CANDIDATE_K: int = 25
+DEFAULT_CLOUDSQL_TIMEOUT_SECONDS: int = 30
+DEFAULT_BQ_GRAPH_NAME: str = "procurement_graph"
 _SCANN_CANDIDATE_K_RANGE: tuple[int, int] = (5, 100)
 _SCANN_TIMEOUT_RANGE: tuple[int, int] = (2, 120)
 _VVS2_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,62}")
@@ -209,11 +215,16 @@ class ArenaSettings:
     google_application_credentials: str = ""
     bq_dataset: str = "rag_arena"
     bq_table: str = "document_chunks"
+    bq_graph_name: str = DEFAULT_BQ_GRAPH_NAME
     vvs2_location: str = DEFAULT_VVS2_LOCATION
     vvs2_collection: str = ""
     vvs2_index_id: str = DEFAULT_VVS2_INDEX_ID
     vvs2_top_k: int = DEFAULT_VVS2_TOP_K
     vvs2_timeout_seconds: int = DEFAULT_VVS2_TIMEOUT_SECONDS
+    cloudsql_table: str = "document_chunks"
+    cloudsql_dsn: str = ""
+    cloudsql_candidate_k: int = DEFAULT_CLOUDSQL_CANDIDATE_K
+    cloudsql_timeout_seconds: int = DEFAULT_CLOUDSQL_TIMEOUT_SECONDS
     alloydb_table: str = "document_chunks"
     alloydb_dsn: str = ""
     alloydb_candidate_k: int = DEFAULT_ALLOYDB_CANDIDATE_K
@@ -377,9 +388,25 @@ class ArenaSettings:
             )
         if not isinstance(self.alloydb_dsn, str):
             raise TypeError("ALLOYDB_DSN must be a string")
+        if not isinstance(self.cloudsql_table, str) or not _PG_IDENT_RE.fullmatch(self.cloudsql_table):
+            raise ValueError(
+                f"CLOUDSQL_TABLE must be an unqualified SQL identifier matching [a-zA-Z_][a-zA-Z0-9_]{{0,62}}, "
+                f"got {self.cloudsql_table!r}"
+            )
+        if not isinstance(self.cloudsql_dsn, str):
+            raise TypeError("CLOUDSQL_DSN must be a string")
+        if not isinstance(self.bq_graph_name, str) or (
+            self.bq_graph_name and not _PG_IDENT_RE.fullmatch(self.bq_graph_name)
+        ):
+            raise ValueError(
+                f"BQ_GRAPH_NAME must be a valid BigQuery graph identifier matching [a-zA-Z_][a-zA-Z0-9_]{{0,62}} "
+                f"(or empty when disabled), got {self.bq_graph_name!r}"
+            )
         for name, value, (low, high) in (
             ("VVS2_TOP_K", self.vvs2_top_k, _SCANN_CANDIDATE_K_RANGE),
             ("VVS2_TIMEOUT_SECONDS", self.vvs2_timeout_seconds, _SCANN_TIMEOUT_RANGE),
+            ("CLOUDSQL_CANDIDATE_K", self.cloudsql_candidate_k, _SCANN_CANDIDATE_K_RANGE),
+            ("CLOUDSQL_TIMEOUT_SECONDS", self.cloudsql_timeout_seconds, _SCANN_TIMEOUT_RANGE),
             ("ALLOYDB_CANDIDATE_K", self.alloydb_candidate_k, _SCANN_CANDIDATE_K_RANGE),
             ("ALLOYDB_TIMEOUT_SECONDS", self.alloydb_timeout_seconds, _SCANN_TIMEOUT_RANGE),
         ):
@@ -697,12 +724,21 @@ def get_settings(env: Mapping[str, str] | None = None) -> ArenaSettings:
         google_application_credentials=source.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip(),
         bq_dataset=source.get("BQ_DATASET", "rag_arena").strip(),
         bq_table=source.get("BQ_TABLE", "document_chunks").strip(),
+        bq_graph_name=source.get("BQ_GRAPH_NAME", DEFAULT_BQ_GRAPH_NAME).strip(),
         vvs2_location=source.get("VVS2_LOCATION", DEFAULT_VVS2_LOCATION).strip(),
         vvs2_collection=source.get("VVS2_COLLECTION", "").strip(),
         vvs2_index_id=source.get("VVS2_INDEX_ID", DEFAULT_VVS2_INDEX_ID).strip(),
         vvs2_top_k=_parse_int(source.get("VVS2_TOP_K", str(DEFAULT_VVS2_TOP_K)), "VVS2_TOP_K"),
         vvs2_timeout_seconds=_parse_int(
             source.get("VVS2_TIMEOUT_SECONDS", str(DEFAULT_VVS2_TIMEOUT_SECONDS)), "VVS2_TIMEOUT_SECONDS"
+        ),
+        cloudsql_table=source.get("CLOUDSQL_TABLE", "document_chunks").strip(),
+        cloudsql_dsn=source.get("CLOUDSQL_DSN", "").strip(),
+        cloudsql_candidate_k=_parse_int(
+            source.get("CLOUDSQL_CANDIDATE_K", str(DEFAULT_CLOUDSQL_CANDIDATE_K)), "CLOUDSQL_CANDIDATE_K"
+        ),
+        cloudsql_timeout_seconds=_parse_int(
+            source.get("CLOUDSQL_TIMEOUT_SECONDS", str(DEFAULT_CLOUDSQL_TIMEOUT_SECONDS)), "CLOUDSQL_TIMEOUT_SECONDS"
         ),
         alloydb_table=source.get("ALLOYDB_TABLE", "document_chunks").strip(),
         alloydb_dsn=source.get("ALLOYDB_DSN", "").strip(),

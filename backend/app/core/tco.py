@@ -41,6 +41,7 @@ DOC_COMPLEXITY_OPTIONS: tuple[str, ...] = (
     "multi_hop_math",
 )
 TCO_SYNTHESIS_MODELS: tuple[str, ...] = (
+    "gemini-4-neon",
     "gemini-4-hydrogen",
     "gemini-4-carbon",
     "gemini-4-argon",
@@ -86,6 +87,19 @@ VAIS_STORAGE_USD_PER_GIB_MONTH: float = 2.50
 
 RAG_ENGINE_STORAGE_USD_PER_GIB_MONTH: float = 0.023
 RAG_ENGINE_SPANNER_BASIC_MONTHLY_USD: float = 65.70
+
+CLOUDSQL_VCPU_USD_PER_HOUR: float = 0.0413
+CLOUDSQL_RAM_GIB_USD_PER_HOUR: float = 0.0070
+CLOUDSQL_BASE_VCPUS: int = 2
+CLOUDSQL_BASE_RAM_GIB: int = 8
+CLOUDSQL_BASE_MONTHLY_USD: float = round(
+    (CLOUDSQL_BASE_VCPUS * CLOUDSQL_VCPU_USD_PER_HOUR + CLOUDSQL_BASE_RAM_GIB * CLOUDSQL_RAM_GIB_USD_PER_HOUR)
+    * HOURS_PER_MONTH,
+    4,
+)
+CLOUDSQL_QUERIES_PER_UNIT_MONTH: int = 1_500_000
+CLOUDSQL_STORAGE_USD_PER_GIB_MONTH: float = 0.17
+CLOUDSQL_MIN_STORAGE_GIB: float = 10.0
 
 ALLOYDB_VCPU_USD_PER_HOUR: float = 0.06636
 ALLOYDB_RAM_GIB_USD_PER_HOUR: float = 0.01126
@@ -419,10 +433,24 @@ _LEVEL_META: tuple[_LevelStaticMeta, ...] = (
         ingest_embed_tokens_per_page=450,
     ),
     _LevelStaticMeta(
-        level_id="alloydb_scann",
+        level_id="cloudsql_pgvector",
         order=5,
+        default_label="Cloud SQL PostgreSQL + pgvector",
+        short_label="L5 · Cloud SQL pgvector",
+        gcp_services=("Cloud SQL PostgreSQL 16 (pgvector 0.8.5 HNSW + GIN)", "Discovery Engine Ranking API", "gemini-embedding-2"),
+        idle_mode="dedicated_cluster",
+        embedding_model="gemini-embedding-2",
+        query_embed_tokens=45,
+        rank_counts_per_query=1.0,
+        prompt_tokens_per_query=3_600,
+        output_tokens_per_query=1_500,
+        ingest_embed_tokens_per_page=450,
+    ),
+    _LevelStaticMeta(
+        level_id="alloydb_scann",
+        order=6,
         default_label="AlloyDB PostgreSQL + ScaNN",
-        short_label="L5 · AlloyDB + ScaNN",
+        short_label="L6 · AlloyDB + ScaNN",
         gcp_services=("AlloyDB for PostgreSQL (ScaNN + GIN)", "Discovery Engine Ranking API", "gemini-embedding-2"),
         idle_mode="dedicated_cluster",
         embedding_model="gemini-embedding-2",
@@ -434,9 +462,9 @@ _LEVEL_META: tuple[_LevelStaticMeta, ...] = (
     ),
     _LevelStaticMeta(
         level_id="vertex_vector_v2",
-        order=6,
+        order=7,
         default_label="Vertex AI Vector Search 2.0",
-        short_label="L6 · Vector Search 2.0",
+        short_label="L7 · Vector Search 2.0",
         gcp_services=("Vector Search 2.0 (DenseScann + RRF)", "Discovery Engine Ranking API", "gemini-embedding-2"),
         idle_mode="dedicated_replica",
         embedding_model="gemini-embedding-2",
@@ -448,9 +476,9 @@ _LEVEL_META: tuple[_LevelStaticMeta, ...] = (
     ),
     _LevelStaticMeta(
         level_id="level3_multimodal",
-        order=7,
+        order=8,
         default_label="Layout-Aware Multimodal RAG",
-        short_label="L7 · DocAI + Vision + BQ",
+        short_label="L8 · DocAI + Vision + BQ",
         gcp_services=("Document AI Layout Parser", "Gemini Vision", "BigQuery Hybrid RRF", "Ranking API"),
         idle_mode="serverless_zero",
         embedding_model="gemini-embedding-2",
@@ -461,11 +489,25 @@ _LEVEL_META: tuple[_LevelStaticMeta, ...] = (
         ingest_embed_tokens_per_page=520,
     ),
     _LevelStaticMeta(
+        level_id="bigquery_graphrag",
+        order=9,
+        default_label="BigQuery GraphRAG (Property Graph · GQL)",
+        short_label="L9 · BQ GraphRAG (GQL)",
+        gcp_services=("BigQuery Property Graph (ISO GQL)", "Document AI + Vision", "BigQuery Hybrid RRF", "Ranking API"),
+        idle_mode="serverless_zero",
+        embedding_model="gemini-embedding-2",
+        query_embed_tokens=45,
+        rank_counts_per_query=1.0,
+        prompt_tokens_per_query=4_400,
+        output_tokens_per_query=1_600,
+        ingest_embed_tokens_per_page=520,
+    ),
+    _LevelStaticMeta(
         level_id="level4_agentic",
-        order=8,
+        order=10,
         default_label="Agentic RAG (Google ADK)",
-        short_label="L8 · Google ADK Agent",
-        gcp_services=("Google ADK Runner", "Document AI + Vision", "BigQuery Search + Amendments", "AST Calculator"),
+        short_label="L10 · Google ADK Agent",
+        gcp_services=("Google ADK Runner", "Document AI + Vision", "BigQuery Search + GQL Amendments", "AST Calculator"),
         idle_mode="serverless_zero",
         embedding_model="gemini-embedding-2",
         query_embed_tokens=160,
@@ -500,6 +542,9 @@ def _bq_scan_bytes_per_query(level_id: str, corpus_pages: int) -> float:
     if level_id == "level3_multimodal":
         table_bytes = corpus_pages * 62 * 1024
         return max(float(BQ_MIN_SCAN_BYTES), float(table_bytes)) * BQ_UNCACHED_QUERY_RATIO
+    if level_id == "bigquery_graphrag":
+        table_bytes = corpus_pages * 62 * 1024
+        return (max(float(BQ_MIN_SCAN_BYTES), float(table_bytes)) + float(BQ_MIN_SCAN_BYTES)) * BQ_UNCACHED_QUERY_RATIO
     if level_id == "level4_agentic":
         table_bytes = corpus_pages * 62 * 1024
         return 4.5 * max(float(BQ_MIN_SCAN_BYTES), float(table_bytes)) * BQ_UNCACHED_QUERY_RATIO
@@ -530,6 +575,9 @@ def _score_workload_fit(
         if lid == "level2_hybrid":
             score += 18
             rationale.append("Keeps vector + lexical RRF retrieval inside BigQuery with zero cross-store ETL.")
+        elif lid == "bigquery_graphrag":
+            score += 15
+            rationale.append("Runs ISO GQL Property Graph amendment traversal + hybrid RRF natively inside BigQuery at $0/mo idle.")
         elif lid in ("level3_multimodal", "level4_agentic"):
             score += 13
             rationale.append("Stores layout/multimodal chunks natively in BigQuery alongside enterprise warehouse tables.")
@@ -541,6 +589,9 @@ def _score_workload_fit(
         if lid == "alloydb_scann":
             score += 22
             rationale.append("Runs ScaNN cosine ANN + PostgreSQL GIN full-text RRF transactionally inside AlloyDB.")
+        elif lid == "cloudsql_pgvector":
+            score += 19
+            rationale.append("Runs pgvector 0.8.5 HNSW (halfvec 3072-d) + GIN FTS RRF inside standard Cloud SQL PostgreSQL 16.")
         elif lid == "vertex_vector_v2":
             score += 8
             rationale.append("Pairs low-latency managed ScaNN ANN with operational microservices.")
@@ -549,13 +600,16 @@ def _score_workload_fit(
         else:
             score -= 5
     elif dg == "unstructured_pdfs":
-        if lid in ("level3_multimodal", "level4_agentic"):
+        if lid == "bigquery_graphrag":
+            score += 15
+            rationale.append("Combines Document AI + Vision multimodal chunks with BigQuery Property Graph amendment traversal.")
+        elif lid in ("level3_multimodal", "level4_agentic"):
             score += 14
             rationale.append("Parses complex GCS PDFs with Document AI Layout Parser + Gemini Vision diagram transcription.")
         elif lid in ("rag_engine", "managed_vertex"):
             score += 11
             rationale.append("Imports unstructured PDFs directly from Cloud Storage without custom chunkers.")
-        elif lid in ("level2_hybrid", "vertex_vector_v2"):
+        elif lid in ("level2_hybrid", "vertex_vector_v2", "cloudsql_pgvector"):
             score += 6
     elif dg == "managed_turnkey":
         if lid == "rag_engine":
@@ -572,10 +626,10 @@ def _score_workload_fit(
     # 2. Document complexity alignment (-10 .. +24)
     dc = workload.doc_complexity
     if dc == "plain_text":
-        if lid in ("level2_hybrid", "rag_engine", "managed_vertex", "alloydb_scann", "vertex_vector_v2"):
+        if lid in ("level2_hybrid", "rag_engine", "managed_vertex", "cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2"):
             score += 9
             rationale.append("Narrative & clause text retrieves cleanly without needing Document AI + Vision ingest spend.")
-        elif lid == "level3_multimodal":
+        elif lid in ("level3_multimodal", "bigquery_graphrag"):
             score += 2
             tradeoffs.append("Adds $10/1k-page Document AI Layout Parser cost that plain-text corpora rarely need.")
         elif lid == "level4_agentic":
@@ -585,6 +639,9 @@ def _score_workload_fit(
         if lid == "level3_multimodal":
             score += 20
             rationale.append("Preserves Markdown rate tables, transcribes architecture diagrams, and orders amendments first.")
+        elif lid == "bigquery_graphrag":
+            score += 18
+            rationale.append("Combines multimodal tables/diagrams with deterministic ISO GQL superseding-amendment expansion.")
         elif lid == "level4_agentic":
             score += 12
             rationale.append("Searches multimodal table/diagram chunks with self-verifying citation checks.")
@@ -598,8 +655,14 @@ def _score_workload_fit(
         if lid == "level4_agentic":
             score += 24
             rationale.append(
-                "Google ADK loop chains check_amendments, AST-safe calculate_contract_pricing, and verify_citations."
+                "Google ADK loop chains GQL check_amendments, AST-safe calculate_contract_pricing, and verify_citations."
             )
+        elif lid == "bigquery_graphrag":
+            score += 17
+            rationale.append(
+                "BigQuery Property Graph traverses multi-hop amendment supersession chains in one GQL round-trip at $0/mo idle."
+            )
+            tradeoffs.append("Single-pass GraphRAG resolves superseding amendments without an ADK arithmetic calculator.")
         elif lid == "level3_multimodal":
             score += 10
             rationale.append("Provides amendment authority headers and table structure, though single-pass without calculator.")
@@ -617,16 +680,28 @@ def _score_workload_fit(
         if lid in ("alloydb_scann", "vertex_vector_v2"):
             score += 14
             rationale.append("Sub-400ms warm ScaNN ANN + hybrid RRF retrieval built for real-time user-facing SLAs.")
+        elif lid == "cloudsql_pgvector":
+            score += 11
+            rationale.append("Warm pgvector HNSW + GIN FTS retrieval delivers sub-second SQL vector search at lower standing cost.")
         elif lid in ("managed_vertex", "rag_engine"):
             score += 5
-        elif lid in ("level2_hybrid", "level3_multimodal"):
+        elif lid in ("level2_hybrid", "level3_multimodal", "bigquery_graphrag"):
             score -= 3
-            tradeoffs.append("BigQuery serverless query startup adds ~1–2s retrieval overhead vs in-memory ScaNN.")
+            tradeoffs.append("BigQuery serverless query startup adds ~1–2s retrieval overhead vs in-memory ANN.")
         elif lid == "level4_agentic":
             score -= 20
             tradeoffs.append("Multi-turn ADK reasoning averages 44–47s, exceeding strict sub-second/low-latency SLAs.")
     elif sla == "interactive_rag":
-        if lid in ("level2_hybrid", "level3_multimodal", "rag_engine", "managed_vertex", "alloydb_scann", "vertex_vector_v2"):
+        if lid in (
+            "level2_hybrid",
+            "level3_multimodal",
+            "bigquery_graphrag",
+            "rag_engine",
+            "managed_vertex",
+            "cloudsql_pgvector",
+            "alloydb_scann",
+            "vertex_vector_v2",
+        ):
             score += 6
         elif lid == "level4_agentic":
             score -= 5
@@ -634,7 +709,10 @@ def _score_workload_fit(
     elif sla == "deep_agentic_reasoning":
         if lid == "level4_agentic":
             score += 14
-            rationale.append("SLA budget accommodates iterative ADK search, amendment lookup, and citation repair.")
+            rationale.append("SLA budget accommodates iterative ADK search, GQL amendment lookup, and citation repair.")
+        elif lid == "bigquery_graphrag":
+            score += 9
+            rationale.append("Single-pass ISO GQL graph expansion captures amendment chains in a fraction of ADK latency.")
         elif lid in ("level3_multimodal", "rag_engine"):
             score += 6
 
@@ -652,26 +730,43 @@ def _score_workload_fit(
     elif cp == "managed_turnkey":
         if lid in ("rag_engine", "managed_vertex"):
             score += 10
-        elif lid in ("level4_agentic", "alloydb_scann"):
+        elif lid in ("level4_agentic", "alloydb_scann", "cloudsql_pgvector"):
             score -= 8
             tradeoffs.append("Higher operational surface (custom DB/proxy or multi-tool agent orchestration).")
     elif cp == "cmek_vpc":
-        if lid in ("alloydb_scann", "level3_multimodal", "level4_agentic", "level2_hybrid", "rag_engine", "vertex_vector_v2"):
+        if lid in (
+            "cloudsql_pgvector",
+            "alloydb_scann",
+            "level3_multimodal",
+            "bigquery_graphrag",
+            "level4_agentic",
+            "level2_hybrid",
+            "rag_engine",
+            "vertex_vector_v2",
+        ):
             score += 6
-            if lid == "alloydb_scann":
+            if lid in ("cloudsql_pgvector", "alloydb_scann"):
                 rationale.append("Supports regional Private IP / VPC-SC perimeters, PostgreSQL RLS, and CMEK encryption.")
-            elif lid in ("level2_hybrid", "level3_multimodal", "level4_agentic"):
+            elif lid in ("level2_hybrid", "level3_multimodal", "bigquery_graphrag", "level4_agentic"):
                 rationale.append("Supports regional BigQuery + GCS CMEK and row-level security policies.")
-        if lid in ("level2_hybrid", "level3_multimodal", "level4_agentic", "alloydb_scann", "vertex_vector_v2"):
+        if lid in (
+            "level2_hybrid",
+            "level3_multimodal",
+            "bigquery_graphrag",
+            "level4_agentic",
+            "cloudsql_pgvector",
+            "alloydb_scann",
+            "vertex_vector_v2",
+        ):
             tradeoffs.append("Verify Discovery Engine Ranking API regional endpoint alignment for strict single-region VPC-SC.")
         if lid == "managed_vertex":
             score -= 5
             tradeoffs.append("Default global Discovery Engine config requires regional datastore reconfiguration under strict residency.")
     elif cp == "strict_document_acls":
-        if lid in ("level2_hybrid", "level3_multimodal", "level4_agentic", "level1_naive"):
+        if lid in ("level2_hybrid", "level3_multimodal", "bigquery_graphrag", "level4_agentic", "level1_naive"):
             score += 10
             rationale.append("Enforces native BigQuery parameterized UNNEST(@caller_groups) & ROW ACCESS POLICY before synthesis.")
-        elif lid == "alloydb_scann":
+        elif lid in ("cloudsql_pgvector", "alloydb_scann"):
             score += 10
             rationale.append("Enforces native PostgreSQL Row-Level Security (CREATE POLICY + GIN allowed_groups) inside the DB engine.")
         elif lid == "vertex_vector_v2":
@@ -689,10 +784,13 @@ def _score_workload_fit(
         if lid in ("vertex_vector_v2", "alloydb_scann"):
             score += 10
             rationale.append("Zero per-query ANN scan fee beats per-query PaaS/scan charges past the monthly TCO crossover.")
+        elif lid == "cloudsql_pgvector":
+            score += 8
+            rationale.append("Zero per-query HNSW scan fee with lower base compute than AlloyDB; watch RAM ceiling at very high scale.")
         elif lid == "managed_vertex":
             score -= 6
             tradeoffs.append("$4.00/1k Vertex AI Search query pricing compounds rapidly at >=250k queries/month.")
-    if workload.corpus_pages >= 50_000 and lid in ("level3_multimodal", "level4_agentic"):
+    if workload.corpus_pages >= 50_000 and lid in ("level3_multimodal", "bigquery_graphrag", "level4_agentic"):
         if workload.monthly_queries >= 50_000:
             score -= 8
             tradeoffs.append(
@@ -702,7 +800,7 @@ def _score_workload_fit(
     if lid == "level4_agentic" and workload.synthesis_model.startswith("claude-"):
         tradeoffs.insert(
             0,
-            "Level 8 ADK requires a Gemini 4 worker (Hydrogen, Carbon, or Argon); Claude models are judge-only on ADK.",
+            "Agentic ADK requires a Gemini 4 worker (Neon, Hydrogen, Carbon, or Argon); Claude models are judge-only on ADK.",
         )
 
     if lid == "rag_engine" and not tradeoffs:
@@ -710,11 +808,15 @@ def _score_workload_fit(
     if lid == "managed_vertex" and not tradeoffs:
         tradeoffs.append("Prefer selectable Gemini over extractive segments; built-in VAIS summary is more conservative and abstains more often.")
     if lid == "level3_multimodal" and not tradeoffs:
-        tradeoffs.append("Adds one-time Document AI Layout Parser + Gemini Vision ingestion cost and higher query latency than warm ScaNN.")
+        tradeoffs.append("Adds one-time Document AI Layout Parser + Gemini Vision ingestion cost and higher query latency than warm ANN.")
+    if lid == "bigquery_graphrag" and not tradeoffs:
+        tradeoffs.append("BigQuery Property Graph is in Preview and adds one GQL traversal round-trip after hybrid seed retrieval.")
     if lid == "level4_agentic" and not tradeoffs:
         tradeoffs.append("Multi-turn ADK tool execution adds token cost and higher end-to-end latency than single-pass pipelines.")
     if lid == "level2_hybrid" and not tradeoffs:
         tradeoffs.append("Text-only chunking lacks Document AI table reconstruction and multi-hop calculator tools.")
+    if lid == "cloudsql_pgvector" and not tradeoffs:
+        tradeoffs.append(f"Carries ${CLOUDSQL_BASE_MONTHLY_USD:.2f}/mo Zonal Enterprise compute; HNSW halfvec uses more RAM than AlloyDB ScaNN.")
     if lid == "vertex_vector_v2" and not tradeoffs:
         tradeoffs.append(f"Carries ${VVS2_BASE_REPLICA_MONTHLY_USD:.2f}/mo minReplicaCount=1 standing compute unless torn down.")
     if lid == "alloydb_scann" and not tradeoffs:
@@ -799,7 +901,14 @@ def estimate_enterprise_tco(
         label = (level_labels or {}).get(lid, meta.default_label)
 
         # 1. Standing compute & capacity units
-        if lid == "alloydb_scann":
+        if lid == "cloudsql_pgvector":
+            units = max(1, int(math.ceil(workload.monthly_queries / CLOUDSQL_QUERIES_PER_UNIT_MONTH)))
+            standing_usd = _round2(units * CLOUDSQL_BASE_MONTHLY_USD)
+            standing_note = (
+                f"{units}x 2-vCPU / 8 GiB Zonal Cloud SQL Enterprise primary (${CLOUDSQL_BASE_MONTHLY_USD:.2f}/mo per unit; "
+                f"Regional HA ~2x; $0/mo idle when torn down via scripts/ephemeral_cloudsql.sh)."
+            )
+        elif lid == "alloydb_scann":
             units = max(1, int(math.ceil(workload.monthly_queries / ALLOYDB_QUERIES_PER_UNIT_MONTH)))
             standing_usd = _round2(units * ALLOYDB_BASE_MONTHLY_USD)
             standing_note = (
@@ -832,7 +941,7 @@ def estimate_enterprise_tco(
         elif lid == "level2_hybrid":
             chunk_gib = (workload.corpus_pages * 28 * 1024) / BYTES_PER_GIB
             storage_usd = gcs_monthly + chunk_gib * BQ_ACTIVE_STORAGE_USD_PER_GIB_MONTH
-        elif lid in ("level3_multimodal", "level4_agentic"):
+        elif lid in ("level3_multimodal", "bigquery_graphrag", "level4_agentic"):
             chunk_gib = (workload.corpus_pages * 62 * 1024) / BYTES_PER_GIB
             storage_usd = gcs_monthly + chunk_gib * BQ_ACTIVE_STORAGE_USD_PER_GIB_MONTH
         elif lid == "managed_vertex":
@@ -841,6 +950,10 @@ def estimate_enterprise_tco(
         elif lid == "rag_engine":
             rag_gib = (workload.corpus_pages * 32 * 1024) / BYTES_PER_GIB
             storage_usd = gcs_monthly + rag_gib * RAG_ENGINE_STORAGE_USD_PER_GIB_MONTH
+        elif lid == "cloudsql_pgvector":
+            hybrid_gib = (workload.corpus_pages * 28 * 1024) / BYTES_PER_GIB
+            csql_gib = max(CLOUDSQL_MIN_STORAGE_GIB, hybrid_gib * 1.6)
+            storage_usd = gcs_monthly + csql_gib * CLOUDSQL_STORAGE_USD_PER_GIB_MONTH
         elif lid == "alloydb_scann":
             hybrid_gib = (workload.corpus_pages * 28 * 1024) / BYTES_PER_GIB
             alloy_gib = max(ALLOYDB_MIN_STORAGE_GIB, hybrid_gib * 1.5)
@@ -860,7 +973,7 @@ def estimate_enterprise_tco(
         else:
             embedding_usd = 0.0
 
-        if lid in ("level1_naive", "level2_hybrid", "level3_multimodal", "level4_agentic"):
+        if lid in ("level1_naive", "level2_hybrid", "level3_multimodal", "bigquery_graphrag", "level4_agentic"):
             scan_bytes_per_q = _bq_scan_bytes_per_query(lid, workload.corpus_pages)
             retrieval_scan_usd = ((workload.monthly_queries * scan_bytes_per_q) / BYTES_PER_TIB) * BQ_SCAN_USD_PER_TIB
         elif lid == "managed_vertex":
@@ -891,7 +1004,7 @@ def estimate_enterprise_tco(
         else:
             ingest_embed_usd = 0.0
 
-        if lid in ("level3_multimodal", "level4_agentic"):
+        if lid in ("level3_multimodal", "bigquery_graphrag", "level4_agentic"):
             docai_usd = (workload.corpus_pages / 1_000.0) * DOCAI_LAYOUT_USD_PER_1K_PAGES
             diagram_pages = workload.corpus_pages * diagram_ratio
             vision_usd = (
@@ -1012,7 +1125,7 @@ def estimate_enterprise_tco(
 def pricing_basis_metadata() -> dict[str, Any]:
     """Return auditable published GCP pricing metadata used by the TCO engine."""
     return {
-        "price_as_of": "2026-11-18",
+        "price_as_of": "2026-11-23",
         "region_basis": "us-central1 (models on global Vertex endpoint per pricing.PRICE_TABLE)",
         "hours_per_month": HOURS_PER_MONTH,
         "models": {
@@ -1024,6 +1137,7 @@ def pricing_basis_metadata() -> dict[str, Any]:
                 "price_as_of": PRICE_TABLE[model_id].price_as_of,
             }
             for model_id in (
+                "gemini-4-neon",
                 "gemini-4-hydrogen",
                 "gemini-4-carbon",
                 "gemini-4-argon",
@@ -1044,6 +1158,7 @@ def pricing_basis_metadata() -> dict[str, Any]:
             "vais_storage_usd_per_gib_month_after_10gib": VAIS_STORAGE_USD_PER_GIB_MONTH,
             "rag_engine_serverless_standing_usd": 0.0,
             "rag_engine_spanner_basic_optional_monthly_usd": RAG_ENGINE_SPANNER_BASIC_MONTHLY_USD,
+            "cloudsql_enterprise_2vcpu_8gib_monthly_usd": CLOUDSQL_BASE_MONTHLY_USD,
             "alloydb_zonal_2vcpu_16gib_monthly_usd": ALLOYDB_BASE_MONTHLY_USD,
             "vvs2_performance_replica_monthly_usd": VVS2_BASE_REPLICA_MONTHLY_USD,
         },
@@ -1052,6 +1167,7 @@ def pricing_basis_metadata() -> dict[str, Any]:
 
 __all__ = [
     "ALLOYDB_BASE_MONTHLY_USD",
+    "CLOUDSQL_BASE_MONTHLY_USD",
     "COMPLIANCE_POSTURE_OPTIONS",
     "CORPUS_PAGES_BOUNDS",
     "DATA_GRAVITY_OPTIONS",

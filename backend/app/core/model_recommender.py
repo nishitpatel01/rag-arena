@@ -38,6 +38,7 @@ RECOMMENDATION_PROFILE_IDS: tuple[str, ...] = (
 )
 
 _GEMINI_SYNTH_FALLBACKS: tuple[str, ...] = (
+    "gemini-4-neon",
     "gemini-4-argon",
     "gemini-4-carbon",
     "gemini-4-hydrogen",
@@ -52,6 +53,7 @@ _ANTHROPIC_JUDGE_FALLBACKS: tuple[str, ...] = (
     "claude-sonnet-4-6",
 )
 _GEMINI_JUDGE_FALLBACKS: tuple[str, ...] = (
+    "gemini-4-neon",
     "gemini-4-argon",
     "gemini-4-carbon",
     "gemini-4-hydrogen",
@@ -270,9 +272,9 @@ def infer_profile_id(
         return PROFILE_ANTHROPIC_WORKER
     if latency_sla == "sub_second_retrieval" or (monthly_queries is not None and monthly_queries >= 250_000):
         return PROFILE_COST_LATENCY
-    if doc_complexity == "tables_diagrams" or level_id == "level3_multimodal":
+    if doc_complexity == "tables_diagrams" or level_id in ("level3_multimodal", "bigquery_graphrag"):
         return PROFILE_MULTIMODAL_AGENTIC
-    if data_gravity == "bigquery_warehouse" or level_id in ("level2_hybrid", "alloydb_scann"):
+    if data_gravity == "bigquery_warehouse" or level_id in ("level2_hybrid", "alloydb_scann", "cloudsql_pgvector"):
         return PROFILE_BALANCED_ENTERPRISE
     if data_gravity in ("managed_turnkey", "postgres_oltp") or level_id in (
         "managed_vertex",

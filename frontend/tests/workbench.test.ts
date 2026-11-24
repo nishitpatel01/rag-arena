@@ -83,8 +83,8 @@ const LIVE_CATALOG: ModelsResponse = {
   ],
 };
 
-test("all 8 Level presets round-trip through validatePipelineSpec and match their canonical level_id", () => {
-  assert.equal(INDEX_PROFILES.length, 7);
+test("all 10 Level presets round-trip through validatePipelineSpec and match their canonical level_id", () => {
+  assert.equal(INDEX_PROFILES.length, 9);
   for (const levelId of LEVEL_IDS) {
     const spec = defaultPresetSpec(levelId);
     assert.equal(validatePipelineSpec(spec), null, `preset ${levelId} must be valid`);
@@ -95,17 +95,21 @@ test("all 8 Level presets round-trip through validatePipelineSpec and match thei
 });
 
 test("coerceSpec keeps cross-slot invariants valid across every profile & reasoning transition", () => {
-  // Start at Level 4 (multimodal + hybrid_rrf + candidate_k=50 + adk_agent + 4 tools)
+  // Start at Level 10 (multimodal + hybrid_rrf + candidate_k=50 + adk_agent + 4 tools)
   const l4 = defaultPresetSpec("level4_agentic");
   assert.equal(l4.slots.reasoning_mode, "adk_agent");
   assert.equal(l4.slots.agent_tools.length, 4);
 
-  // Switch profile -> rag_engine: must coerce to managed_retrieval, single_pass, empty tools, candidate_k <= 50
+  // Switch profile -> rag_engine: coerces retrieval_mode -> managed_retrieval, keeps adk_agent (v1.6.4!) without BQ-only check_amendments
   const toRag = coerceSpec({ ...l4, index_profile: "rag_engine" });
   assert.equal(validatePipelineSpec(toRag), null);
   assert.equal(toRag.slots.retrieval_mode, "managed_retrieval");
-  assert.equal(toRag.slots.reasoning_mode, "single_pass");
-  assert.deepEqual(toRag.slots.agent_tools, []);
+  assert.equal(toRag.slots.reasoning_mode, "adk_agent");
+  assert.deepEqual(toRag.slots.agent_tools, [
+    "search_procurement_corpus",
+    "calculate_contract_pricing",
+    "verify_citations",
+  ]);
   assert.ok(toRag.slots.candidate_k <= 50);
 
   // Switch profile -> vertex_ai_search with candidate_k=50: clamps candidate_k <= 20 and top_k <= candidate_k
@@ -171,10 +175,10 @@ test("validatePipelineSpec rejects illegal raw specs loudly", () => {
       reranker: "none",
       context_order: "score_order",
       reasoning_mode: "adk_agent",
-      agent_tools: ["search_procurement_corpus"],
+      agent_tools: ["search_procurement_corpus", "check_amendments"],
     },
   };
-  assert.match(validatePipelineSpec(badAdkManaged) ?? "", /adk_agent/);
+  assert.match(validatePipelineSpec(badAdkManaged) ?? "", /check_amendments/);
 });
 
 test("activeQueryStages and buildPipelineDescriptor update live with zero dangling edges", () => {

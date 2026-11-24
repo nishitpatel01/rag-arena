@@ -596,7 +596,7 @@ export const ArchitectureWizard: React.FC<ArchitectureWizardProps> = ({
           >
             <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink-1">
               <SlidersHorizontal className="h-3.5 w-3.5 text-moss" aria-hidden />
-              Customize workload parameters &amp; full 8-architecture TCO matrix
+              Customize workload parameters &amp; full 10-architecture TCO matrix
             </span>
             <span className="inline-flex flex-wrap items-center gap-2 text-xs text-ink-3">
               <span className="font-mono">

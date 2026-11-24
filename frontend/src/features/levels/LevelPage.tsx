@@ -312,11 +312,11 @@ const IngestStatusPill: React.FC<{
   }
   if (isUploadActive) {
     const gate = uploadRunGateFor(levelId, activeUpload);
-    const ephemeral = levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
+    const ephemeral = levelId === "cloudsql_pgvector" || levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
     const label = activeUpload
       ? gate.blocked
         ? ephemeral
-          ? `${activeUpload.id} · Levels 1–4, 7–8 only`
+          ? `${activeUpload.id} · Levels 1–4, 8–10 only`
           : `${activeUpload.id} · not ingested`
         : `${activeUpload.id} · ${gate.count ?? 0} ${levelId === "managed_vertex" ? "docs" : levelId === "rag_engine" ? "files" : "chunks"}`
       : "upload workspace";

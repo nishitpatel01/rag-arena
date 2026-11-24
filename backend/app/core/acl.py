@@ -165,6 +165,14 @@ ARCHITECTURE_ACL_CAPABILITIES: dict[str, ArchitectureAclCapability] = {
         summary="Pre-filters both VECTOR_SEARCH and SEARCH() RRF legs inside BigQuery via @caller_groups before Discovery Engine reranking.",
         honest_note="Unauthorized chunks are excluded before RRF fusion, reranking, and synthesis.",
     ),
+    "cloudsql_pgvector": ArchitectureAclCapability(
+        level_id="cloudsql_pgvector",
+        supports_chunk_acl=True,
+        enforcement_mode="postgres_rls_policy",
+        mechanism_label="PostgreSQL Row-Level Security + GIN",
+        summary="Enforces PostgreSQL CREATE POLICY (allowed_groups && current_setting('app.caller_groups')::text[]) and parameterized %(caller_groups)s on pgvector HNSW + FTS legs.",
+        honest_note="Database-layer RLS enforces row visibility on Cloud SQL PostgreSQL before HNSW/RRF fusion.",
+    ),
     "alloydb_scann": ArchitectureAclCapability(
         level_id="alloydb_scann",
         supports_chunk_acl=True,
@@ -188,6 +196,14 @@ ARCHITECTURE_ACL_CAPABILITIES: dict[str, ArchitectureAclCapability] = {
         mechanism_label="BigQuery parameterized RLS (@caller_groups)",
         summary="Pre-filters multimodal tables, diagrams, and amendments inside BigQuery VECTOR_SEARCH + SEARCH() via @caller_groups.",
         honest_note="Unauthorized tables and visual diagrams are excluded before rerank and synthesis.",
+    ),
+    "bigquery_graphrag": ArchitectureAclCapability(
+        level_id="bigquery_graphrag",
+        supports_chunk_acl=True,
+        enforcement_mode="bigquery_parameterized_rls",
+        mechanism_label="BigQuery RLS + GQL graph-hop pre-filter",
+        summary="Pre-filters multimodal retrieval and BigQuery Property Graph ISO GQL GRAPH_TABLE hops via @caller_groups so restricted amendment edges never surface.",
+        honest_note="Both hybrid seed chunks and GQL-traversed superseding amendment chunks enforce UNNEST(allowed_groups) IN UNNEST(@caller_groups).",
     ),
     "level4_agentic": ArchitectureAclCapability(
         level_id="level4_agentic",

@@ -427,6 +427,125 @@ export const SynthesizeDetail: React.FC<{ readonly view: SynthesizeL3View }> = (
 );
 
 // ---------------------------------------------------------------------------
+// graph_expand (Level 9: BigQuery Property Graph ISO GQL traversal)
+// ---------------------------------------------------------------------------
+
+interface GraphTraversedEdge {
+  readonly edgeType: string;
+  readonly sourceDoc: string;
+  readonly targetLabel: string;
+  readonly hopCount: number;
+  readonly amendmentNumber: number;
+  readonly chunkId: string;
+}
+
+interface GraphExpandView {
+  readonly graphName: string;
+  readonly queryLanguage: string;
+  readonly seedDocs: readonly string[];
+  readonly seedSections: readonly string[];
+  readonly traversedEdges: readonly GraphTraversedEdge[];
+  readonly graphChunksReturned: number;
+  readonly graphChunksAdded: number;
+  readonly mergedCandidates: number;
+  readonly bytesProcessed: number | null;
+  readonly slotMillis: number | null;
+  readonly jobId: string | null;
+}
+
+function parseGraphExpand(payload: JsonObject | null): GraphExpandView | null {
+  if (!payload || typeof payload !== "object") return null;
+  const graphName = typeof payload.graph_name === "string" ? payload.graph_name.trim() : "";
+  const rawEdges = Array.isArray(payload.traversed_edges) ? payload.traversed_edges : null;
+  if (!graphName && !rawEdges) return null;
+  const edges: GraphTraversedEdge[] = [];
+  for (const item of rawEdges ?? []) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const rec = item as Record<string, unknown>;
+    edges.push({
+      edgeType: typeof rec.edge_type === "string" ? rec.edge_type : "EDGE",
+      sourceDoc: typeof rec.source_doc === "string" ? rec.source_doc : "—",
+      targetLabel: typeof rec.target_label === "string" ? rec.target_label : "—",
+      hopCount: typeof rec.hop_count === "number" && Number.isFinite(rec.hop_count) ? rec.hop_count : 1,
+      amendmentNumber: typeof rec.amendment_number === "number" && Number.isFinite(rec.amendment_number) ? rec.amendment_number : 0,
+      chunkId: typeof rec.chunk_id === "string" ? rec.chunk_id : "",
+    });
+  }
+  const asStrList = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0) : [];
+  const asInt = (v: unknown, fallback = 0): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  return {
+    graphName: graphName || "procurement_graph",
+    queryLanguage: typeof payload.query_language === "string" ? payload.query_language : "ISO GQL (GRAPH_TABLE)",
+    seedDocs: asStrList(payload.seed_docs),
+    seedSections: asStrList(payload.seed_sections),
+    traversedEdges: edges,
+    graphChunksReturned: asInt(payload.graph_chunks_returned),
+    graphChunksAdded: asInt(payload.graph_chunks_added),
+    mergedCandidates: asInt(payload.merged_candidates),
+    bytesProcessed: typeof payload.bytes_processed === "number" && Number.isFinite(payload.bytes_processed) ? payload.bytes_processed : null,
+    slotMillis: typeof payload.slot_millis === "number" && Number.isFinite(payload.slot_millis) ? payload.slot_millis : null,
+    jobId: typeof payload.job_id === "string" ? payload.job_id : null,
+  };
+}
+
+export const GraphExpandDetail: React.FC<{ readonly view: GraphExpandView }> = ({ view }) => (
+  <section aria-label="BigQuery Property Graph traversal" className="flex min-w-0 flex-col gap-2" data-testid="graph-expand-detail">
+    <div className="flex flex-wrap items-center gap-1.5">
+      <h4 className={sectionTitle}>Property Graph Traversal</h4>
+      <Pill tone="info" mono>{view.queryLanguage}</Pill>
+      <Pill tone={view.graphChunksAdded > 0 ? "ok" : "neutral"} mono>
+        +{view.graphChunksAdded} amendment chunks merged
+      </Pill>
+    </div>
+    <KeyValue
+      columns={2}
+      label="Graph expansion summary"
+      items={[
+        ["property graph", view.graphName],
+        ["edges traversed", String(view.traversedEdges.length)],
+        ["seed docs / sections", `${view.seedDocs.length} docs · ${view.seedSections.length} sections`],
+        ["merged candidates", `${view.mergedCandidates} (${view.graphChunksReturned} graph rows)`],
+        ["bytes scanned", formatBytes(view.bytesProcessed)],
+        ["slot_millis", view.slotMillis === null ? "—" : view.slotMillis.toLocaleString()],
+      ]}
+    />
+    {view.traversedEdges.length > 0 ? (
+      <DataTable
+        caption="Traversed BigQuery Property Graph amendment and supersession edges"
+        rows={view.traversedEdges}
+        rowKey={(e, idx) => `${e.sourceDoc}-${e.edgeType}-${e.targetLabel}-${e.chunkId}-${idx}`}
+        emptyText="No amendment or supersession edges matched the retrieved seed documents."
+        columns={[
+          { key: "src", header: "Superseding Document", render: (e) => e.sourceDoc, mono: true },
+          {
+            key: "edge",
+            header: "Graph Edge",
+            render: (e) => (
+              <Pill tone={e.edgeType === "SUPERSEDES_DOC" ? "active" : "ok"} mono>
+                —[{e.edgeType} · {e.hopCount} hop{e.hopCount === 1 ? "" : "s"}]→
+              </Pill>
+            ),
+          },
+          { key: "dst", header: "Target Doc / Section", render: (e) => e.targetLabel, mono: true },
+          {
+            key: "amd",
+            header: "Amendment #",
+            render: (e) => (e.amendmentNumber > 0 ? `AMD-${String(e.amendmentNumber).padStart(4, "0")}` : "—"),
+            mono: true,
+          },
+        ]}
+      />
+    ) : (
+      <p className="rounded-md border border-line bg-surface-0 px-3 py-2 text-xs text-ink-2">
+        ISO GQL traversal checked {view.seedDocs.length} seed documents and {view.seedSections.length} sections — no additional superseding amendments were linked outside the hybrid seed set.
+      </p>
+    )}
+  </section>
+);
+
+// ---------------------------------------------------------------------------
 // Dispatch
 // ---------------------------------------------------------------------------
 
@@ -444,6 +563,19 @@ export const DEDICATED_KEYS: Readonly<Record<string, readonly string[]>> = {
     "attribution_token",
     "total_size",
     "api_ms",
+  ],
+  graph_expand: [
+    "traversed_edges",
+    "seed_docs",
+    "seed_sections",
+    "graph_name",
+    "query_language",
+    "seed_docs_count",
+    "seed_sections_count",
+    "edges_traversed",
+    "graph_chunks_returned",
+    "graph_chunks_added",
+    "merged_candidates",
   ],
   rerank: ["results"],
   synthesize: [
@@ -514,6 +646,10 @@ export function dedicatedStageView(stageId: string, payload: JsonObject | null, 
     }
     const v = parseHybridRetrieve(payload);
     return v ? <HybridRetrieveDetail view={v} l3={parseRetrieveL3Summary(payload)} /> : null;
+  }
+  if (stageId === "graph_expand") {
+    const v = parseGraphExpand(payload);
+    return v ? <GraphExpandDetail view={v} /> : null;
   }
   if (stageId === "rerank") {
     const v = parseRerank(payload);

@@ -82,7 +82,7 @@ test("disabled (not enabled) levels are not offered", () => {
 test("Claude synthesis disables Agentic ADK with the Gemini-only reason; other levels stay runnable", () => {
   const choices = levelChoices(LEVELS, CATALOG, { synthesis: "claude-fable", judge: "claude-opus-5-5" }, "");
   const l4 = choices.find((c) => c.levelId === "level4_agentic");
-  assert.match(l4?.disabledReason ?? "", /Level 8 \(ADK agent\) requires a Gemini synthesis model; claude-fable is not Gemini/);
+  assert.match(l4?.disabledReason ?? "", /Level 10 \(ADK agent\) requires a Gemini synthesis model; claude-fable is not Gemini/);
   assert.deepEqual(choices.filter((c) => c.disabledReason === null).map((c) => c.levelId), [IDS[0], IDS[1], IDS[2], IDS[4]]);
   // A disabled level is never sent even when checked.
   assert.deepEqual(enginesToRun(choices, new Set(IDS)), [IDS[0], IDS[1], IDS[2], IDS[4]]);

@@ -283,8 +283,9 @@ def batch_search_body(
     solicitation_filter: str | None = None,
     index_name: str | None = None,
     caller_groups: tuple[str, ...] | None = None,
+    dense_only: bool = False,
 ) -> dict[str, Any]:
-    """Build ``BatchSearchDataObjectsRequest`` fusing dense ScaNN + sparse token search via server-side RRF."""
+    """Build ``BatchSearchDataObjectsRequest`` fusing dense ScaNN + sparse token search (or dense-only when ``dense_only=True``)."""
     if not query_vector:
         raise ValueError("query_vector must be non-empty")
     if not isinstance(top_k, int) or isinstance(top_k, bool) or not 1 <= top_k <= 100:
@@ -313,18 +314,19 @@ def batch_search_body(
         dense_leg["searchHint"] = {"indexHint": {"name": index_name}}
 
     searches: list[dict[str, Any]] = [{"vectorSearch": dense_leg}]
-    sparse = build_sparse_token_embedding(query_text)
-    if sparse["indices"]:
-        sparse_leg: dict[str, Any] = {
-            "searchField": "sparse_embedding",
-            "sparseVector": sparse,
-            "topK": top_k,
-            "outputFields": {"dataFields": ["*"]},
-            "searchHint": {"knnHint": {}},
-        }
-        if flt:
-            sparse_leg["filter"] = flt
-        searches.append({"vectorSearch": sparse_leg})
+    if not dense_only:
+        sparse = build_sparse_token_embedding(query_text)
+        if sparse["indices"]:
+            sparse_leg: dict[str, Any] = {
+                "searchField": "sparse_embedding",
+                "sparseVector": sparse,
+                "topK": top_k,
+                "outputFields": {"dataFields": ["*"]},
+                "searchHint": {"knnHint": {}},
+            }
+            if flt:
+                sparse_leg["filter"] = flt
+            searches.append({"vectorSearch": sparse_leg})
 
     body: dict[str, Any] = {
         "searches": searches,

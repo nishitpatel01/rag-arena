@@ -168,6 +168,7 @@ def fake_clients(
         "app.core.gcp_clients.get_genai_client",
         "app.engines.level1_naive.get_genai_client",
         "app.engines.level2_hybrid.get_genai_client",
+        "app.engines.bigquery_graphrag.get_genai_client",
         "app.engines.rag_engine.get_genai_client",
         "app.engines.synthesis.get_genai_client",
         "app.evaluation.judges.get_genai_client",
@@ -176,6 +177,7 @@ def fake_clients(
         "app.core.gcp_clients.get_bigquery_client",
         "app.engines.level1_naive.get_bigquery_client",
         "app.engines.level2_hybrid.get_bigquery_client",
+        "app.engines.bigquery_graphrag.get_bigquery_client",
     )
     with ExitStack() as stack:
         for target in targets:
@@ -193,6 +195,7 @@ def fake_clients(
 
 
 CATALOG_IDS: tuple[str, ...] = (
+    "gemini-4-neon",
     "gemini-4-hydrogen",
     "gemini-4-carbon",
     "gemini-4-argon",

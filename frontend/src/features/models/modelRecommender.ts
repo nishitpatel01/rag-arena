@@ -27,6 +27,7 @@ export type RecommendationProfileId = (typeof RECOMMENDATION_PROFILE_IDS)[number
 export const VERTEX_GENAI_EVAL_MODEL_ID = "vertex-genai-eval";
 
 const GEMINI_SYNTH_FALLBACKS: readonly string[] = [
+  "gemini-4-neon",
   "gemini-4-argon",
   "gemini-4-carbon",
   "gemini-4-hydrogen",
@@ -35,6 +36,7 @@ const GEMINI_SYNTH_FALLBACKS: readonly string[] = [
 const ANTHROPIC_SYNTH_FALLBACKS: readonly string[] = ["claude-sonnet-4-6", "claude-opus-5-5"];
 const ANTHROPIC_JUDGE_FALLBACKS: readonly string[] = ["claude-opus-5-5", "claude-sonnet-4-6"];
 const GEMINI_JUDGE_FALLBACKS: readonly string[] = [
+  "gemini-4-neon",
   "gemini-4-argon",
   "gemini-4-carbon",
   "gemini-4-hydrogen",
@@ -237,10 +239,19 @@ export function inferProfileId(opts: RecommendPairOptions = {}): RecommendationP
   ) {
     return PROFILE_COST_LATENCY;
   }
-  if (opts.docComplexity === "tables_diagrams" || opts.levelId === "level3_multimodal") {
+  if (
+    opts.docComplexity === "tables_diagrams" ||
+    opts.levelId === "level3_multimodal" ||
+    opts.levelId === "bigquery_graphrag"
+  ) {
     return PROFILE_MULTIMODAL_AGENTIC;
   }
-  if (opts.dataGravity === "bigquery_warehouse" || opts.levelId === "level2_hybrid" || opts.levelId === "alloydb_scann") {
+  if (
+    opts.dataGravity === "bigquery_warehouse" ||
+    opts.levelId === "level2_hybrid" ||
+    opts.levelId === "cloudsql_pgvector" ||
+    opts.levelId === "alloydb_scann"
+  ) {
     return PROFILE_BALANCED_ENTERPRISE;
   }
   if (

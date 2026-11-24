@@ -13,9 +13,11 @@ export const LEVEL_IDS = [
   "rag_engine",
   "level1_naive",
   "level2_hybrid",
+  "cloudsql_pgvector",
   "alloydb_scann",
   "vertex_vector_v2",
   "level3_multimodal",
+  "bigquery_graphrag",
   "level4_agentic",
 ] as const;
 export type LevelId = (typeof LEVEL_IDS)[number];
@@ -24,6 +26,7 @@ export const QUERY_STAGE_IDS = [
   "query_prep",
   "embed_query",
   "retrieve",
+  "graph_expand",
   "rerank",
   "agent_turn",
   "synthesize",
@@ -92,8 +95,10 @@ export type IndexProfile =
   | "naive"
   | "hybrid"
   | "multimodal"
+  | "bigquery_graphrag"
   | "vertex_ai_search"
   | "rag_engine"
+  | "cloudsql_pgvector"
   | "alloydb_scann"
   | "vertex_vector_v2";
 export type QueryTransform = "none" | "acronym" | "acronym_plus_intent";
@@ -153,6 +158,7 @@ export interface PipelineSchemaPayload {
   readonly query_transforms: readonly QueryTransform[];
   readonly retrieval_modes: readonly RetrievalMode[];
   readonly bq_retrieval_modes: readonly RetrievalMode[];
+  readonly scann_retrieval_modes?: readonly RetrievalMode[];
   readonly rerankers: readonly RerankerKind[];
   readonly context_orders: readonly ContextOrder[];
   readonly reasoning_modes: readonly ReasoningMode[];
@@ -283,8 +289,18 @@ export interface IngestStatusResponse {
   readonly managed_vertex?: ManagedVertexIngestStatus | null;
   /** Level 6: Vertex AI RAG Engine corpus status; absent on pre-Level-6 backends. */
   readonly rag_engine?: RagEngineIngestStatus | null;
-  /** Levels 7–8: Ephemeral ScaNN benchmark stores ($0/mo idle; CLI-provisioned on demand). */
+  /** Level 9: Standing $0/mo BigQuery Property Graph status. */
+  readonly bigquery_graph?: BigQueryGraphIngestStatus | null;
+  /** Levels 5–7: Ephemeral operational/ANN benchmark stores ($0/mo idle; CLI-provisioned on demand). */
   readonly ephemeral_scann?: EphemeralScannIngestStatusMap | null;
+}
+
+export interface BigQueryGraphIngestStatus {
+  readonly enabled?: boolean;
+  readonly ephemeral?: boolean;
+  readonly graph_name?: string | null;
+  readonly tier_profile?: string | null;
+  readonly script?: string | null;
 }
 
 export interface EphemeralScannStoreStatus {
@@ -299,6 +315,7 @@ export interface EphemeralScannStoreStatus {
 }
 
 export interface EphemeralScannIngestStatusMap {
+  readonly cloudsql_pgvector?: EphemeralScannStoreStatus | null;
   readonly alloydb_scann?: EphemeralScannStoreStatus | null;
   readonly vertex_vector_v2?: EphemeralScannStoreStatus | null;
 }

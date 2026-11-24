@@ -102,6 +102,7 @@ def test_parse_tco_workload_enforces_strict_bounds_enums_and_types() -> None:
     # Expanded Gemini 4 + Anthropic Claude TCO synthesis models all parse cleanly; default is Gemini 4 Hydrogen
     assert DEFAULT_WORKLOAD.synthesis_model == "gemini-4-hydrogen"
     assert TCO_SYNTHESIS_MODELS == (
+        "gemini-4-neon",
         "gemini-4-hydrogen",
         "gemini-4-carbon",
         "gemini-4-argon",
@@ -118,15 +119,17 @@ def test_parse_tco_workload_enforces_strict_bounds_enums_and_types() -> None:
 def test_pure_core_never_invents_hardcoded_benchmark_scores() -> None:
     """Spec P3 authenticity invariant: pure core without recorded cohorts emits None for QA/GR/CP."""
     est = estimate_enterprise_tco(DEFAULT_WORKLOAD)
-    assert len(est.architectures) == len(ALL_LEVEL_IDS) == 8
+    assert len(est.architectures) == len(ALL_LEVEL_IDS) == 10
     assert tuple(a.level_id for a in est.architectures) == ALL_LEVEL_IDS == (
         "managed_vertex",
         "rag_engine",
         "level1_naive",
         "level2_hybrid",
+        "cloudsql_pgvector",
         "alloydb_scann",
         "vertex_vector_v2",
         "level3_multimodal",
+        "bigquery_graphrag",
         "level4_agentic",
     )
     for idx, arch in enumerate(est.architectures, start=1):
@@ -312,8 +315,23 @@ def test_tco_api_endpoints_join_real_recorded_cohorts_and_reject_bad_inputs() ->
         assert initial_archs[scann_id]["alternate_cohort"] is not None
         assert initial_archs[scann_id]["alternate_cohort"]["synthesis_model"] == "gemini-4-argon"
         assert initial_archs[scann_id]["alternate_cohort"]["runs"] == 8
+    for v164_id in ("cloudsql_pgvector", "bigquery_graphrag"):
+        assert initial_archs[v164_id]["recorded_cohort"] is None
+        assert initial_archs[v164_id]["alternate_cohort"] is not None
+        assert initial_archs[v164_id]["alternate_cohort"]["synthesis_model"] == "gemini-4-neon"
+        assert initial_archs[v164_id]["alternate_cohort"]["runs"] == 8
 
-    # POST /api/v1/tco/estimate with Argon joins exact Argon cohorts across all 8 levels
+    # POST /api/v1/tco/estimate with Gemini 4 Neon joins direct Neon cohorts on Cloud SQL + BigQuery GraphRAG
+    res_neon = client.post("/api/v1/tco/estimate", json={"synthesis_model": "gemini-4-neon"})
+    assert res_neon.status_code == 200
+    neon_archs = {a["level_id"]: a for a in res_neon.json()["architectures"]}
+    for v164_id in ("cloudsql_pgvector", "bigquery_graphrag"):
+        assert neon_archs[v164_id]["recorded_cohort"] is not None
+        assert neon_archs[v164_id]["recorded_cohort"]["synthesis_model"] == "gemini-4-neon"
+        assert neon_archs[v164_id]["recorded_cohort"]["runs"] == 8
+        assert neon_archs[v164_id]["alternate_cohort"] is None
+
+    # POST /api/v1/tco/estimate with Argon joins exact Argon cohorts across all 8 Argon-recorded levels
     res_argon = client.post(
         "/api/v1/tco/estimate",
         json={
@@ -330,7 +348,16 @@ def test_tco_api_endpoints_join_real_recorded_cohorts_and_reject_bad_inputs() ->
     est_argon = res_argon.json()
     assert est_argon["recommended_level_id"] == "level4_agentic"
     argon_archs = {a["level_id"]: a for a in est_argon["architectures"]}
-    for lid in ALL_LEVEL_IDS:
+    for lid in (
+        "managed_vertex",
+        "rag_engine",
+        "level1_naive",
+        "level2_hybrid",
+        "alloydb_scann",
+        "vertex_vector_v2",
+        "level3_multimodal",
+        "level4_agentic",
+    ):
         assert argon_archs[lid]["recorded_cohort"] is not None
         assert argon_archs[lid]["recorded_cohort"]["synthesis_model"] == "gemini-4-argon"
     assert argon_archs["level4_agentic"]["recorded_cohort"]["avg_qa_relevance"] >= 0.95

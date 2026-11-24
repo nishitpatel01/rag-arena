@@ -39,10 +39,12 @@ const COMPLEXITY_TIER_BY_LEVEL: Readonly<Record<string, string>> = {
   rag_engine: "Turnkey Managed",
   level1_naive: "Serverless SQL",
   level2_hybrid: "Serverless SQL",
+  cloudsql_pgvector: "Operational Postgres",
   alloydb_scann: "Sub-Second ScaNN",
   vertex_vector_v2: "Sub-Second ScaNN",
-  level3_multimodal: "Multimodal & Agentic",
-  level4_agentic: "Multimodal & Agentic",
+  level3_multimodal: "Multimodal & Graph",
+  bigquery_graphrag: "Multimodal & Graph",
+  level4_agentic: "Agentic ADK",
 };
 
 function useRecordedCohorts(): { readonly leaderboard: LeaderboardResponse | null; readonly loading: boolean } {
@@ -138,7 +140,7 @@ export const OverviewPage: React.FC = () => {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h1 id="ladder-heading" className="text-lg font-semibold text-ink-1">
-              Architecture Progression (1 → 8)
+              Architecture Progression (1 → 10)
             </h1>
             <p className="text-sm text-ink-2">
               Simplest Turnkey Managed → Serverless SQL → Sub-Second ScaNN → Multimodal &amp; Agentic. Pick any level to

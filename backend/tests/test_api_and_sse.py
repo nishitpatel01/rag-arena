@@ -55,7 +55,7 @@ def test_health_levels_and_benchmarks_endpoints() -> None:
     golden = json.loads((_PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json").read_text(encoding="utf-8"))
     assert bench["question_count"] == len(golden["questions"]) == len(bench["questions"])  # file is the source of truth (8 today, not 12)
     levels = client.get("/api/v1/levels").json()
-    assert [lvl["enabled"] for lvl in levels["levels"]] == [False, False, True, False, False, False, False, False]
+    assert [lvl["enabled"] for lvl in levels["levels"]] == [False, False, True, False, False, False, False, False, False, False]
 
 
 def test_replay_battle_stream_forwards_recorded_stage_events_in_v3_envelope() -> None:

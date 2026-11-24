@@ -217,6 +217,56 @@ LIMIT %(candidate_k)s;"""
     return sql_text, params
 
 
+def build_alloydb_vector_search_sql(
+    *,
+    table: str,
+    query_vector: list[float],
+    candidate_k: int = 25,
+    solicitation_filter: str | None = None,
+    caller_groups: tuple[str, ...] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Build parameterized dense-only AlloyDB ScaNN cosine SQL (for Workbench ablation without GIN FTS)."""
+    ident = validate_pg_identifier(table, "table")
+    if not isinstance(candidate_k, int) or isinstance(candidate_k, bool) or not 1 <= candidate_k <= 100:
+        raise ValueError("candidate_k must be an integer in [1, 100]")
+    has_sol = bool(solicitation_filter and solicitation_filter.strip())
+    sol_clause = " AND solicitation_id = %(solicitation_id)s" if has_sol else ""
+    has_acl = bool(caller_groups)
+    acl_clause = " AND allowed_groups && %(caller_groups)s::text[]" if has_acl else ""
+    quoted_tbl = f'"{ident}"'
+    sql_text = f"""SELECT
+    c.chunk_id,
+    c.doc_name,
+    c.solicitation_id,
+    c.doc_type,
+    c.page_number,
+    c.section_id,
+    c.content,
+    c.element_type,
+    c.amendment_number,
+    c.effective_date,
+    c.amends_section,
+    c.bbox_json,
+    (c.embedding <=> %(query_vector)s::vector) AS vec_distance,
+    ROW_NUMBER() OVER (ORDER BY c.embedding <=> %(query_vector)s::vector ASC, c.chunk_id ASC) AS vec_rank,
+    CAST(NULL AS DOUBLE PRECISION) AS lex_score,
+    CAST(NULL AS BIGINT) AS lex_rank,
+    (1.0 - (c.embedding <=> %(query_vector)s::vector)) AS rrf_score
+FROM {quoted_tbl} c
+WHERE c.tier_profile = 'hybrid'{sol_clause}{acl_clause}
+ORDER BY c.embedding <=> %(query_vector)s::vector ASC, c.chunk_id ASC
+LIMIT %(candidate_k)s;"""
+    params: dict[str, Any] = {
+        "query_vector": format_pgvector_literal(query_vector),
+        "candidate_k": candidate_k,
+    }
+    if has_sol and solicitation_filter is not None:
+        params["solicitation_id"] = solicitation_filter.strip()
+    if has_acl and caller_groups is not None:
+        params["caller_groups"] = list(caller_groups)
+    return sql_text, params
+
+
 def _rows_to_candidates(rows: list[dict[str, Any]], *, tier_profile: str = LAYOUT_SOURCE) -> list[HybridCandidate]:
     out: list[HybridCandidate] = []
     for idx, row in enumerate(rows, start=1):
@@ -279,7 +329,7 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
     """Level 7: Ephemeral Operational AlloyDB for PostgreSQL + ScaNN Hybrid + Ranking API."""
 
     engine_id: str = "alloydb_scann"
-    engine_label: str = "Level 5: AlloyDB PostgreSQL + ScaNN"
+    engine_label: str = "Level 6: AlloyDB PostgreSQL + ScaNN"
     tier_profile: str = LAYOUT_SOURCE
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 
@@ -364,25 +414,36 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         *,
         candidate_k: int | None = None,
         caller_access: CallerAccessContext | None = None,
+        dense_only: bool = False,
     ) -> list[HybridCandidate]:
         eff_k = int(candidate_k or self.settings.alloydb_candidate_k)
         restricted = bool(caller_access and caller_access.is_restricted)
         caller_groups = caller_access.effective_groups if restricted and caller_access is not None else None
-        sql_text, params = build_alloydb_hybrid_search_sql(
-            table=self.settings.alloydb_table,
-            query_vector=vector,
-            query_text=original_query,
-            candidate_k=eff_k,
-            solicitation_filter=solicitation_filter,
-            caller_groups=caller_groups,
-        )
-        shown_params = {
+        if dense_only:
+            sql_text, params = build_alloydb_vector_search_sql(
+                table=self.settings.alloydb_table,
+                query_vector=vector,
+                candidate_k=eff_k,
+                solicitation_filter=solicitation_filter,
+                caller_groups=caller_groups,
+            )
+        else:
+            sql_text, params = build_alloydb_hybrid_search_sql(
+                table=self.settings.alloydb_table,
+                query_vector=vector,
+                query_text=original_query,
+                candidate_k=eff_k,
+                solicitation_filter=solicitation_filter,
+                caller_groups=caller_groups,
+            )
+        shown_params: dict[str, Any] = {
             "query_vector": {"dimensions": len(vector), "preview": vector[:_EMBEDDING_PREVIEW_DIMS]},
-            "query_text": original_query,
             "candidate_k": eff_k,
-            "rrf_k": RRF_K,
             "scann.num_leaves_to_search": SCANN_DEFAULT_LEAVES_TO_SEARCH,
         }
+        if not dense_only:
+            shown_params["query_text"] = original_query
+            shown_params["rrf_k"] = RRF_K
         if solicitation_filter:
             shown_params["solicitation_id"] = solicitation_filter
         if caller_groups:
@@ -390,8 +451,16 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
         async with self.stage(
             emitter,
             "retrieve",
-            label="AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)",
-            service=RETRIEVE_SERVICE,
+            label=(
+                "AlloyDB ScaNN cosine ANN (dense-only)"
+                if dense_only
+                else "AlloyDB ScaNN cosine + GIN FTS (in-DB RRF)"
+            ),
+            service=(
+                "AlloyDB for PostgreSQL · ScaNN ANN (Dense-Only)"
+                if dense_only
+                else RETRIEVE_SERVICE
+            ),
             request={
                 "dsn": "postgresql://${ALLOYDB_DSN}",
                 "table": self.settings.alloydb_table,
@@ -414,8 +483,12 @@ class AlloyDBScaNNEngine(BaseRAGEngine):
                 )
             ctx.payload = {
                 "table": self.settings.alloydb_table,
-                "index_type": "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS",
-                "fusion": f"RRF(k={RRF_K})",
+                "index_type": (
+                    "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8)"
+                    if dense_only
+                    else "alloydb_scann (cosine, num_leaves=24, num_leaves_to_search=8) + GIN FTS"
+                ),
+                "fusion": "dense_only" if dense_only else f"RRF(k={RRF_K})",
                 "candidate_k": eff_k,
                 "rows_returned": len(candidates),
                 "db_exec_ms": db_ms,
@@ -559,6 +632,7 @@ __all__ = [
     "SCANN_DEFAULT_NUM_LEAVES",
     "build_alloydb_hybrid_search_sql",
     "build_alloydb_scann_ddl",
+    "build_alloydb_vector_search_sql",
     "format_pgvector_literal",
     "validate_pg_identifier",
 ]

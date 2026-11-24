@@ -40,6 +40,14 @@ _VERTEX_PRICING_URL = "https://cloud.google.com/vertex-ai/generative-ai/pricing"
 _DISCOVERY_PRICING_URL = "https://cloud.google.com/generative-ai-app-builder/pricing"
 
 PRICE_TABLE: dict[str, ModelPrice] = {
+    "gemini-4-neon": ModelPrice(
+        model="gemini-4-neon",
+        input_usd_per_1m=3.00,
+        output_usd_per_1m=15.00,
+        source=_VERTEX_PRICING_URL,
+        price_as_of="2026-11-23",
+        note="Gemini 4 Neon frontier global-endpoint rate ($3.00 / $15.00 per 1M in/out); output rate includes reasoning/thinking tokens.",
+    ),
     "gemini-4-hydrogen": ModelPrice(
         model="gemini-4-hydrogen",
         input_usd_per_1m=1.50,

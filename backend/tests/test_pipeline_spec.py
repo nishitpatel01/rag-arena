@@ -47,7 +47,7 @@ def test_presets_cover_all_eight_levels_and_round_trip() -> None:
     settings = ArenaSettings()
     assert PRESET_LEVEL_IDS == ALL_LEVEL_IDS
     presets = list_preset_specs(settings)
-    assert len(presets) == 8
+    assert len(presets) == 10
 
     seen_ids: set[str] = set()
     for level_id in ALL_LEVEL_IDS:
@@ -334,6 +334,7 @@ def test_illegal_combinations_are_rejected_with_explicit_reasons() -> None:
         ),
         "search_procurement_corpus",
     )
+    # v1.6.4: adk_agent is unlocked on managed/PG/ANN profiles, but check_amendments remains BQ-only
     _expect_spec_error(
         lambda: PipelineSpec(
             index_profile="rag_engine",
@@ -345,10 +346,10 @@ def test_illegal_combinations_are_rejected_with_explicit_reasons() -> None:
                 reranker="none",
                 context_order="score_order",
                 reasoning_mode="adk_agent",
-                agent_tools=("search_procurement_corpus",),
+                agent_tools=("search_procurement_corpus", "check_amendments"),
             ),
         ),
-        "adk_agent",
+        "check_amendments",
     )
 
 
@@ -485,7 +486,7 @@ def test_validate_slot_id_and_enum_exports() -> None:
     assert validate_slot_id("recipe_a-1") == "recipe_a-1"
     _expect_spec_error(lambda: validate_slot_id(""), "slot_id")
     _expect_spec_error(lambda: validate_slot_id("bad space"), "slot_id")
-    assert len(INDEX_PROFILES) == 7
+    assert len(INDEX_PROFILES) == 9
     assert len(QUERY_TRANSFORMS) == 3
     assert len(RETRIEVAL_MODES) == 4
     assert len(RERANKERS) == 2
@@ -495,7 +496,7 @@ def test_validate_slot_id_and_enum_exports() -> None:
 
 def test_scann_index_profile_invariants_and_presets() -> None:
     settings = ArenaSettings()
-    for lvl in ("alloydb_scann", "vertex_vector_v2"):
+    for lvl in ("cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2"):
         spec = preset_spec(lvl, settings)
         assert spec.index_profile == lvl
         assert spec.backing_level_id == lvl
@@ -509,10 +510,42 @@ def test_scann_index_profile_invariants_and_presets() -> None:
         )
         desc = descriptor_for_pipeline(spec, settings)
         node_ids = {n.id for n in desc.nodes}
-        assert "alloydb" in node_ids if lvl == "alloydb_scann" else "vvs2" in node_ids
+        expected_store = "cloudsql" if lvl == "cloudsql_pgvector" else ("alloydb" if lvl == "alloydb_scann" else "vvs2")
+        assert expected_store in node_ids
         assert "rank" in node_ids
 
-    # ScaNN profiles reject lexical_bm25 and adk_agent with explicit PipelineSpecError
+        # v1.6.4: dense-only vector_cosine ablation + adk_agent (without check_amendments) are both valid
+        dense_spec = PipelineSpec(
+            index_profile=lvl,
+            slots=QuerySlots(
+                query_transform="acronym",
+                retrieval_mode="vector_cosine",
+                candidate_k=25,
+                top_k=5,
+                reranker="none",
+                context_order="score_order",
+                reasoning_mode="single_pass",
+            ),
+        )
+        assert dense_spec.slots.retrieval_mode == "vector_cosine"
+
+        adk_spec = PipelineSpec(
+            index_profile=lvl,
+            slots=QuerySlots(
+                query_transform="acronym",
+                retrieval_mode="hybrid_rrf",
+                candidate_k=25,
+                top_k=5,
+                reranker="none",
+                context_order="score_order",
+                reasoning_mode="adk_agent",
+                agent_tools=("search_procurement_corpus", "calculate_contract_pricing", "verify_citations"),
+            ),
+        )
+        adk_desc = descriptor_for_pipeline(adk_spec, settings)
+        assert expected_store in {n.id for n in adk_desc.nodes}
+
+    # ScaNN/pgvector profiles reject lexical_bm25 and BQ-only check_amendments with explicit PipelineSpecError
     _expect_spec_error(
         lambda: PipelineSpec(
             index_profile="alloydb_scann",
@@ -539,8 +572,8 @@ def test_scann_index_profile_invariants_and_presets() -> None:
                 reranker="none",
                 context_order="score_order",
                 reasoning_mode="adk_agent",
-                agent_tools=("search_procurement_corpus",),
+                agent_tools=("search_procurement_corpus", "check_amendments"),
             ),
         ),
-        "bigquery",
+        "check_amendments",
     )

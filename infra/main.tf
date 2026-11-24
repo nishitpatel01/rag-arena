@@ -35,8 +35,20 @@ variable "bq_table_id" {
   default     = "document_chunks_v3"
 }
 
+variable "bq_graph_name" {
+  description = "BigQuery Property Graph name for Level 9 GraphRAG (BQ_GRAPH_NAME in .env)"
+  type        = string
+  default     = "procurement_graph"
+}
+
 variable "upload_bucket_name" {
   description = "Private GCS bucket for v1.1 user PDF uploads (empty = <project_id>-rag-arena-uploads)"
+  type        = string
+  default     = ""
+}
+
+variable "corpus_bucket_kms_key" {
+  description = "Optional Cloud KMS key resource name (projects/P/locations/L/keyRings/R/cryptoKeys/K) for the corpus bucket"
   type        = string
   default     = ""
 }
@@ -47,16 +59,74 @@ variable "upload_bucket_kms_key" {
   default     = ""
 }
 
+variable "bigquery_kms_key" {
+  description = "Optional Cloud KMS key resource name (projects/P/locations/L/keyRings/R/cryptoKeys/K) for the BigQuery dataset"
+  type        = string
+  default     = ""
+}
+
 variable "cloud_run_ingress" {
-  description = "Cloud Run ingress setting (INGRESS_TRAFFIC_ALL or INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER for restricted VPC-SC orgs)"
+  description = "Cloud Run ingress setting (INGRESS_TRAFFIC_ALL, INGRESS_TRAFFIC_INTERNAL_ONLY, or INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER for restricted VPC-SC orgs)"
   type        = string
   default     = "INGRESS_TRAFFIC_ALL"
+}
+
+variable "vpc_network" {
+  description = "Optional VPC network name/self-link for Cloud Run Direct VPC Egress (empty = serverless default egress)"
+  type        = string
+  default     = ""
+}
+
+variable "vpc_subnetwork" {
+  description = "Optional VPC subnetwork name/self-link for Cloud Run Direct VPC Egress (required when vpc_network is set)"
+  type        = string
+  default     = ""
+}
+
+variable "vpc_egress" {
+  description = "Cloud Run Direct VPC Egress policy when vpc_network is set (PRIVATE_RANGES_ONLY or ALL_TRAFFIC)"
+  type        = string
+  default     = "PRIVATE_RANGES_ONLY"
+  validation {
+    condition     = contains(["PRIVATE_RANGES_ONLY", "ALL_TRAFFIC"], var.vpc_egress)
+    error_message = "vpc_egress must be PRIVATE_RANGES_ONLY or ALL_TRAFFIC."
+  }
+}
+
+variable "create_service_accounts" {
+  description = "Create rag-arena-run / rag-arena-replay service accounts (set false in restricted orgs with pre-provisioned SAs)"
+  type        = bool
+  default     = true
+}
+
+variable "existing_live_sa_email" {
+  description = "Pre-provisioned live runtime service account email (used when create_service_accounts = false)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_replay_sa_email" {
+  description = "Pre-provisioned role-less replay service account email (used when create_service_accounts = false and deploy_replay = true)"
+  type        = string
+  default     = ""
+}
+
+variable "replay_public_invoker" {
+  description = "Bind roles/run.invoker to allUsers on the replay service (set false when org policy blocks allUsers)"
+  type        = bool
+  default     = true
+}
+
+variable "cloud_build_worker_pool" {
+  description = "Optional private Cloud Build worker pool resource name for VPC-SC builds (projects/P/locations/L/workerPools/W)"
+  type        = string
+  default     = ""
 }
 
 variable "replay_enabled_levels" {
   description = "Comma-separated levels enabled on the zero-credential replay Cloud Run service"
   type        = string
-  default     = "level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine,alloydb_scann,vertex_vector_v2"
+  default     = "managed_vertex,rag_engine,level1_naive,level2_hybrid,cloudsql_pgvector,alloydb_scann,vertex_vector_v2,level3_multimodal,bigquery_graphrag,level4_agentic"
 }
 
 variable "docai_location" {
@@ -132,6 +202,7 @@ locals {
     "documentai.googleapis.com",
     "modelarmor.googleapis.com",
     "storage.googleapis.com",
+    "sqladmin.googleapis.com",
     "alloydb.googleapis.com",
     "vectorsearch.googleapis.com",
   ])
@@ -154,6 +225,13 @@ resource "google_storage_bucket" "corpus_bucket" {
 
   soft_delete_policy {
     retention_duration_seconds = 0
+  }
+
+  dynamic "encryption" {
+    for_each = var.corpus_bucket_kms_key != "" ? [var.corpus_bucket_kms_key] : []
+    content {
+      default_kms_key_name = encryption.value
+    }
   }
 
   depends_on = [google_project_service.rag_arena_apis]
@@ -187,7 +265,15 @@ resource "google_bigquery_dataset" "rag_arena" {
   description                = "Stores multi-tier document chunks, authority metadata, and Gemini embeddings"
   location                   = var.region
   delete_contents_on_destroy = false
-  depends_on                 = [google_project_service.rag_arena_apis]
+
+  dynamic "default_encryption_configuration" {
+    for_each = var.bigquery_kms_key != "" ? [var.bigquery_kms_key] : []
+    content {
+      kms_key_name = default_encryption_configuration.value
+    }
+  }
+
+  depends_on = [google_project_service.rag_arena_apis]
 }
 
 resource "google_bigquery_table" "document_chunks" {
@@ -462,6 +548,11 @@ variable "live_env" {
 
 locals {
   deploy_cloud_run = var.image != ""
+  create_live_sa   = local.deploy_cloud_run && var.create_service_accounts && var.existing_live_sa_email == ""
+  create_replay_sa = local.deploy_cloud_run && var.deploy_replay && var.create_service_accounts && var.existing_replay_sa_email == ""
+  live_sa_email    = local.create_live_sa ? google_service_account.live[0].email : var.existing_live_sa_email
+  replay_sa_email  = local.create_replay_sa ? google_service_account.replay[0].email : var.existing_replay_sa_email
+  use_direct_vpc   = var.vpc_network != ""
   live_sa_roles = toset(concat(
     ["roles/aiplatform.user", "roles/bigquery.jobUser", "roles/documentai.apiUser"],
     [var.live_ingest ? "roles/discoveryengine.editor" : "roles/discoveryengine.viewer"],
@@ -476,9 +567,10 @@ locals {
   } : {}
   live_env = merge(
     {
-      BQ_DATASET     = var.bq_dataset_id
-      BQ_TABLE       = var.bq_table_id
-      UPLOAD_BUCKET  = local.effective_upload_bucket
+      BQ_DATASET    = var.bq_dataset_id
+      BQ_TABLE      = var.bq_table_id
+      BQ_GRAPH_NAME = var.bq_graph_name
+      UPLOAD_BUCKET = local.effective_upload_bucket
     },
     local.iap_audience_map,
     local.model_armor_env_map,
@@ -514,7 +606,7 @@ resource "google_artifact_registry_repository" "rag_arena" {
 }
 
 resource "google_service_account" "live" {
-  count        = local.deploy_cloud_run ? 1 : 0
+  count        = local.create_live_sa ? 1 : 0
   account_id   = "rag-arena-run"
   display_name = "RAG Arena live runtime"
 }
@@ -523,35 +615,35 @@ resource "google_project_iam_member" "live" {
   for_each = local.deploy_cloud_run ? local.live_sa_roles : toset([])
   project  = var.project_id
   role     = each.value
-  member   = "serviceAccount:${google_service_account.live[0].email}"
+  member   = "serviceAccount:${local.live_sa_email}"
 }
 
 resource "google_bigquery_dataset_iam_member" "live_editor" {
   count      = local.deploy_cloud_run ? 1 : 0
   dataset_id = google_bigquery_dataset.rag_arena.dataset_id
   role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:${google_service_account.live[0].email}"
+  member     = "serviceAccount:${local.live_sa_email}"
 }
 
 resource "google_storage_bucket_iam_member" "live_corpus" {
   count  = local.deploy_cloud_run ? 1 : 0
   bucket = google_storage_bucket.corpus_bucket.name
   role   = var.live_ingest ? "roles/storage.objectUser" : "roles/storage.objectViewer"
-  member = "serviceAccount:${google_service_account.live[0].email}"
+  member = "serviceAccount:${local.live_sa_email}"
 }
 
 resource "google_storage_bucket_iam_member" "live_upload_object" {
   count  = local.deploy_cloud_run ? 1 : 0
   bucket = google_storage_bucket.upload_bucket.name
   role   = "roles/storage.objectUser"
-  member = "serviceAccount:${google_service_account.live[0].email}"
+  member = "serviceAccount:${local.live_sa_email}"
 }
 
 resource "google_storage_bucket_iam_member" "live_upload_bucket_reader" {
   count  = local.deploy_cloud_run ? 1 : 0
   bucket = google_storage_bucket.upload_bucket.name
   role   = "roles/storage.legacyBucketReader"
-  member = "serviceAccount:${google_service_account.live[0].email}"
+  member = "serviceAccount:${local.live_sa_email}"
 }
 
 resource "google_project_service_identity" "discoveryengine_agent" {
@@ -578,12 +670,22 @@ resource "google_cloud_run_v2_service" "live" {
   iap_enabled         = var.access_mode == "iap"
 
   template {
-    service_account                  = google_service_account.live[0].email
+    service_account                  = local.live_sa_email
     timeout                          = "900s"
     max_instance_request_concurrency = 20
     scaling {
       min_instance_count = 0
       max_instance_count = 2
+    }
+    dynamic "vpc_access" {
+      for_each = local.use_direct_vpc ? [1] : []
+      content {
+        egress = var.vpc_egress
+        network_interfaces {
+          network    = var.vpc_network
+          subnetwork = var.vpc_subnetwork
+        }
+      }
     }
     containers {
       image = var.image
@@ -638,7 +740,7 @@ resource "google_cloud_run_v2_service_iam_member" "live_public" {
 }
 
 resource "google_service_account" "replay" {
-  count        = local.deploy_cloud_run && var.deploy_replay ? 1 : 0
+  count        = local.create_replay_sa ? 1 : 0
   account_id   = "rag-arena-replay"
   display_name = "RAG Arena replay (no roles)"
 }
@@ -651,12 +753,22 @@ resource "google_cloud_run_v2_service" "replay" {
   deletion_protection = false
 
   template {
-    service_account                  = google_service_account.replay[0].email
+    service_account                  = local.replay_sa_email
     timeout                          = "300s"
     max_instance_request_concurrency = 40
     scaling {
       min_instance_count = 0
       max_instance_count = 3
+    }
+    dynamic "vpc_access" {
+      for_each = local.use_direct_vpc ? [1] : []
+      content {
+        egress = var.vpc_egress
+        network_interfaces {
+          network    = var.vpc_network
+          subnetwork = var.vpc_subnetwork
+        }
+      }
     }
     containers {
       image = var.image
@@ -684,7 +796,7 @@ resource "google_cloud_run_v2_service" "replay" {
 }
 
 resource "google_cloud_run_v2_service_iam_member" "replay_public" {
-  count    = local.deploy_cloud_run && var.deploy_replay ? 1 : 0
+  count    = local.deploy_cloud_run && var.deploy_replay && var.replay_public_invoker ? 1 : 0
   name     = google_cloud_run_v2_service.replay[0].name
   location = var.region
   role     = "roles/run.invoker"

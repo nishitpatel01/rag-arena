@@ -389,16 +389,19 @@ def test_http_presets_validate_and_ablation_battle_stream_collision_free_with_qu
         presets_resp = client.get("/api/v1/pipelines/presets")
         assert presets_resp.status_code == 200
         presets_body = presets_resp.json()
-        assert len(presets_body["presets"]) == 8
+        assert len(presets_body["presets"]) == 10
         assert presets_body["schema"]["index_profiles"] == [
             "vertex_ai_search",
             "rag_engine",
             "naive",
             "hybrid",
+            "cloudsql_pgvector",
             "alloydb_scann",
             "vertex_vector_v2",
             "multimodal",
+            "bigquery_graphrag",
         ]
+        assert presets_body["schema"]["scann_retrieval_modes"] == ["hybrid_rrf", "vector_cosine"]
 
         # 2. POST /api/v1/pipelines/validate (valid + invalid)
         valid_resp = client.post(

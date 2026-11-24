@@ -4,14 +4,16 @@ import { useSafeMode } from "../../app/SafeMode";
 import { api } from "../../lib/api";
 import type { EphemeralScannStoreStatus, IngestStatusResponse } from "../../types/arena";
 
-/** Level → BigQuery `tier_profile`; managed (L5–L6) and ephemeral ScaNN (L7–L8) levels have no BigQuery tier. */
+/** Level → BigQuery `tier_profile`; managed (L1–L2) and ephemeral PG/ANN (L5–L7) levels have no BigQuery tier. */
 export const TIER_FOR_LEVEL: Record<string, string | null> = {
   level1_naive: "naive",
   level2_hybrid: "hybrid",
   level3_multimodal: "multimodal",
+  bigquery_graphrag: "multimodal",
   level4_agentic: "multimodal",
   managed_vertex: null,
   rag_engine: null,
+  cloudsql_pgvector: null,
   alloydb_scann: null,
   vertex_vector_v2: null,
 };
@@ -21,14 +23,14 @@ export function formatIngestRunCount(value: number | null | undefined): string {
   return typeof value === "number" && Number.isFinite(value) ? value.toLocaleString() : "—";
 }
 
-/** True for Level 6 (`rag_engine`, Vertex AI RAG Engine `RagCorpus`). */
+/** True for Level 2 (`rag_engine`, Vertex AI RAG Engine `RagCorpus`). */
 export function isRagEngineLevel(levelId: string): boolean {
   return levelId === "rag_engine";
 }
 
-/** True for Levels 7–8 (`alloydb_scann` / `vertex_vector_v2`, CLI-ephemeral ScaNN benchmark stores). */
+/** True for Levels 5–7 (`cloudsql_pgvector` / `alloydb_scann` / `vertex_vector_v2`, CLI-ephemeral benchmark stores). */
 export function isEphemeralScannLevel(levelId: string): boolean {
-  return levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
+  return levelId === "cloudsql_pgvector" || levelId === "alloydb_scann" || levelId === "vertex_vector_v2";
 }
 
 /** Levels whose ingestion is a managed import (Vertex AI Search data store or RAG Engine `RagCorpus`) instead of BigQuery. */
@@ -36,12 +38,13 @@ export function isManagedLevel(levelId: string): boolean {
   return levelId === "managed_vertex" || levelId === "rag_engine";
 }
 
-/** Ephemeral ScaNN store status from `status.ephemeral_scann` for Levels 7–8. */
+/** Ephemeral operational/ANN store status from `status.ephemeral_scann` for Levels 5–7. */
 export function ephemeralScannFor(
   levelId: string,
   status: IngestStatusResponse | null,
 ): EphemeralScannStoreStatus | null {
   if (!status?.ephemeral_scann) return null;
+  if (levelId === "cloudsql_pgvector") return status.ephemeral_scann.cloudsql_pgvector ?? null;
   if (levelId === "alloydb_scann") return status.ephemeral_scann.alloydb_scann ?? null;
   if (levelId === "vertex_vector_v2") return status.ephemeral_scann.vertex_vector_v2 ?? null;
   return null;

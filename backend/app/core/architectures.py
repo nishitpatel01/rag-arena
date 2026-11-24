@@ -21,6 +21,7 @@ CANONICAL_QUERY_STAGES: tuple[str, ...] = (
     "guardrail_in",
     "embed_query",
     "retrieve",
+    "graph_expand",
     "rerank",
     "agent_turn",
     "synthesize",
@@ -574,8 +575,110 @@ def _level6() -> ArchitectureDescriptor:
     )
 
 
+_CLOUDSQL_REF = "app.engines.cloudsql_pgvector:CloudSQLPgVectorEngine"
 _ALLOY_REF = "app.engines.alloydb_scann:AlloyDBScaNNEngine"
 _VVS2_REF = "app.engines.vertex_vector_v2:VertexVectorSearchV2Engine"
+_GRAPH_REF = "app.engines.bigquery_graphrag:BigQueryGraphRAGEngine"
+
+
+def _cloudsql_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """BigQuery hybrid chunks + embeddings → ephemeral Cloud SQL PG16 → pgvector HNSW (halfvec 3072) + GIN → verify."""
+    nodes = (
+        ArchNode("bq_src", "Hybrid corpus rows (BigQuery)", "BigQuery · document_chunks_v3 (hybrid tier)", "store", 0, 0,
+                 ("discover_docs", "parse", "chunk", "embed"), region=_BQ_REGION),
+        ArchNode("pg_load", "Bulk INSERT (halfvec 3072-d)", "Cloud SQL PostgreSQL 16 · scripts/record_scann_benchmarks.py",
+                 "process", 1, 0, ("load_bigquery",), region=_BQ_REGION),
+        ArchNode("hnsw_idx", "pgvector HNSW + GIN FTS + RLS", "USING hnsw (embedding halfvec_cosine_ops) + GIN tsvector",
+                 "process", 2, 0, ("build_indexes",), region=_BQ_REGION),
+        ArchNode("cloudsql_ready", "Verified Cloud SQL table", "Cloud SQL PostgreSQL 16 · ephemeral Enterprise",
+                 "store", 3, 0, ("verify_counts",), region=_BQ_REGION),
+    )
+    edges = (
+        ArchEdge("bq_src", "pg_load", "chunks + 3072-d vectors"),
+        ArchEdge("pg_load", "hnsw_idx", "table rows"),
+        ArchEdge("hnsw_idx", "cloudsql_ready", "HNSW graph + tsvector + RLS"),
+    )
+    return nodes, edges
+
+
+def _cloudsql() -> ArchitectureDescriptor:
+    """User → query prep → Gemini embedding → Cloud SQL pgvector HNSW + GIN FTS in-DB RRF → Ranking API → LLM → judge."""
+    ingest_nodes, ingest_edges = _cloudsql_ingest()
+    user = ArchNode("user", "User question + acronym expansion", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_CLOUDSQL_REF}._query_prep")
+    embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",),
+                     region=_GENAI_REGION, code_ref="app.engines.common_stages:embed_query_stage")
+    cloudsql = ArchNode("cloudsql", "Cloud SQL PG16 + pgvector", "pgvector 0.8.5 HNSW (halfvec) + GIN FTS → RRF",
+                        "store", 2, 1, ("retrieve",), region=_BQ_REGION, code_ref=f"{_CLOUDSQL_REF}._retrieve_candidates")
+    rank = ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API · semantic-ranker", "api", 3, 1,
+                    ("rerank",), region="global", code_ref=f"{_CLOUDSQL_REF}._rerank")
+    llm = ArchNode("llm", "Answer synthesis", "Catalog LLM (Gemini | Claude)", "model", 4, 1, ("synthesize",),
+                   region=_GENAI_REGION, code_ref="app.engines.common_stages:synthesize_stage")
+    judge = replace(_JUDGE, col=5, row=1)
+    return ArchitectureDescriptor(
+        level_id="cloudsql_pgvector",
+        nodes=(user, embed, cloudsql, rank, llm, judge),
+        edges=(
+            ArchEdge("user", "embed", "prepared query"),
+            ArchEdge("embed", "cloudsql", "3072-d halfvec"),
+            ArchEdge("user", "cloudsql", "websearch tsquery"),
+            ArchEdge("cloudsql", "rank", "RRF candidates"),
+            ArchEdge("rank", "llm", "top reranked chunks"),
+            ArchEdge("llm", "judge", "answer + chunks"),
+        ),
+        ingest_nodes=ingest_nodes,
+        ingest_edges=ingest_edges,
+    )
+
+
+def _bq_graph_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
+    """Multimodal document_chunks_v3 → SQL node/edge tables → CREATE PROPERTY GRAPH procurement_graph ($0/mo)."""
+    nodes = (
+        ArchNode("bq_mm", "Multimodal chunks (BigQuery)", "BigQuery · document_chunks_v3 (multimodal tier)", "store", 0, 0,
+                 ("discover_docs", "parse", "chunk", "embed"), region=_BQ_REGION),
+        ArchNode("graph_tables", "Node & edge tables (<50 KB)", "BigQuery SQL · ContractDoc · ContractSection · Edges",
+                 "process", 1, 0, ("load_bigquery",), region=_BQ_REGION, code_ref="app.ingestion.bq_graph:build_graph_table_ddl"),
+        ArchNode("prop_graph", "BigQuery Property Graph", "CREATE PROPERTY GRAPH procurement_graph (ISO GQL)",
+                 "store", 2, 0, ("build_indexes", "verify_counts"), region=_BQ_REGION, code_ref="app.ingestion.bq_graph:build_property_graph_ddl"),
+    )
+    edges = (
+        ArchEdge("bq_mm", "graph_tables", "section & amends_section"),
+        ArchEdge("graph_tables", "prop_graph", "DEFINES · AMENDS · SUPERSEDES"),
+    )
+    return nodes, edges
+
+
+def _bq_graphrag() -> ArchitectureDescriptor:
+    """User → query prep → embed → BQ multimodal RRF → BQ Property Graph ISO GQL expand → Ranking API → authority LLM → judge."""
+    ingest_nodes, ingest_edges = _bq_graph_ingest()
+    user = ArchNode("user", "User question + element intent", "Engine (local)", "actor", 0, 1, ("query_prep",),
+                    code_ref=f"{_GRAPH_REF}._query_prep")
+    embed = ArchNode("embed", "Query embedding", MM_EMBED_SERVICE_PLACEHOLDER, "model", 1, 0, ("embed_query",),
+                     region=_GENAI_REGION, code_ref="app.engines.common_stages:embed_query_stage")
+    bq = ArchNode("bq", "document_chunks (multimodal)", "BigQuery VECTOR_SEARCH + SEARCH() → RRF", "store", 2, 0,
+                  ("retrieve",), region=_BQ_REGION, code_ref=f"{_GRAPH_REF}._retrieve_seeds")
+    graph = ArchNode("graph", "BigQuery Property Graph (GQL)", "GRAPH_TABLE · AMENDS_SECTION & SUPERSEDES_DOC", "store", 2, 2,
+                     ("graph_expand",), region=_BQ_REGION, code_ref=f"{_GRAPH_REF}._graph_expand")
+    rank = ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 3, 1, ("rerank",),
+                    region="global", code_ref=f"{_GRAPH_REF}._rerank")
+    llm = replace(_LLM, label="Authority-headed synthesis", code_ref=f"{_GRAPH_REF}._synthesize_graph")
+    judge = replace(_JUDGE, col=5, row=1)
+    return ArchitectureDescriptor(
+        level_id="bigquery_graphrag",
+        nodes=(user, embed, bq, graph, rank, llm, judge),
+        edges=(
+            ArchEdge("user", "embed", "prepared query"),
+            ArchEdge("embed", "bq", "3072-d vector"),
+            ArchEdge("user", "bq", "lexical terms"),
+            ArchEdge("bq", "graph", "seed docs + sections"),
+            ArchEdge("graph", "rank", "hybrid + GQL amendment chunks"),
+            ArchEdge("bq", "rank", "RRF candidates"),
+            ArchEdge("rank", "llm", "top-5 · amendments first"),
+            ArchEdge("llm", "judge", "answer + context"),
+        ),
+        ingest_nodes=ingest_nodes,
+        ingest_edges=ingest_edges,
+    )
 
 
 def _level7_ingest() -> tuple[tuple[ArchNode, ...], tuple[ArchEdge, ...]]:
@@ -684,9 +787,11 @@ _DESCRIPTORS: tuple[ArchitectureDescriptor, ...] = (
     _level6(),
     _level1(),
     _level2(),
+    _cloudsql(),
     _level7(),
     _level8(),
     _level3(),
+    _bq_graphrag(),
     _level4(),
 )
 _BY_ID: dict[str, ArchitectureDescriptor] = {d.level_id: d for d in _DESCRIPTORS}

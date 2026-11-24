@@ -25,9 +25,11 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
         "rag_engine",
         "level1_naive",
         "level2_hybrid",
+        "cloudsql_pgvector",
         "alloydb_scann",
         "vertex_vector_v2",
         "level3_multimodal",
+        "bigquery_graphrag",
         "level4_agentic",
     )
     assert settings.demo_mode == "replay"
@@ -41,9 +43,11 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
         "rag_engine",
         "level1_naive",
         "level2_hybrid",
+        "cloudsql_pgvector",
         "alloydb_scann",
         "vertex_vector_v2",
         "level3_multimodal",
+        "bigquery_graphrag",
         "level4_agentic",
     )
     live_defaults = get_settings({"DEMO_MODE": "live", "GCP_PROJECT_ID": "test-project"})
@@ -53,6 +57,7 @@ def test_defaults_enable_signed_off_levels_in_replay_mode() -> None:
         "level1_naive",
         "level2_hybrid",
         "level3_multimodal",
+        "bigquery_graphrag",
         "level4_agentic",
     )
 

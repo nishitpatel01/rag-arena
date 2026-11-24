@@ -3,6 +3,24 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.4] - 2026-11-23
+
+Cloud SQL `pgvector 0.8.5` (Level 5), Standing BigQuery Property Graph GraphRAG via ISO GQL (Level 9), Gemini 4 Neon (`gemini-4-neon`), Workbench ADK-Across-All-Stores & Dense-Only Ablation, and Restricted-Org VPC-SC / Pre-Provisioned SA Terraform & Deploy Toggles (`$0.00/mo` standing idle; `199` baseline + `10` isolated ACL demo recordings).
+
+### Added
+- **Gemini 4 Neon Catalog & Live `Neon + Opus` Cohort (`pricing.py`, `models_catalog.py`, `model_recommender.py`, `tco.py`, `tco_api.py`, `data/model_verification.json`)**:
+  - Added flagship `gemini-4-neon` (`$3.00` in / `$15.00` out per 1M tokens, `global`), live-verified `HTTP 200 OK`, integrated across `<ModelPicker>`, Overview TCO Advisor, and cohort-priority fallback (`gemini-4-neon` > `gemini-4-argon` > `gemini-3.8-flash`).
+- **Level 5 · Cloud SQL PostgreSQL 16 + `pgvector 0.8.5` Hybrid (`cloudsql_pgvector`, `scripts/ephemeral_cloudsql.sh`)**:
+  - Added `CloudSQLPgVectorEngine` with `halfvec(3072)` HNSW (`halfvec_cosine_ops`, native `3072-d` vectors with `$0` re-embedding), `SET LOCAL hnsw.ef_search = 40` / `hnsw.iterative_scan = 'relaxed_order'`, PostgreSQL GIN `tsvector` FTS in-DB RRF (`k = 60`), PostgreSQL `ENABLE ROW LEVEL SECURITY` + GIN `allowed_groups`, and Discovery Engine reranking.
+  - Added `EXIT`-trapped `scripts/ephemeral_cloudsql.sh` (loopback `127.0.0.1` `cloud-sql-proxy`, `${CLOUDSQL_DSN}` redaction, verified `0` residual instances). Recorded `8` golden runs (`Battle 84.8`, `G=0.959`, `QA=0.850`, `CP=0.644`, `18.0 s` end-to-end / `548 ms` DB retrieval) + `2` `engineering_analyst` ACL demos on `gemini-4-neon__claude-opus-5-5`.
+- **Level 9 · BigQuery Property Graph GraphRAG via ISO GQL (`bigquery_graphrag`, `bq_graph.py`, `scripts/provision_bq_graph.py`)**:
+  - Added standing `$0.00/mo` BigQuery Property Graph `procurement_graph` over 5 SQL-derived tables (`45` docs, `21` sections, `17` defines, `6` amends, `7` supersedes) and `BigQueryGraphRAGEngine` adding a parameterized ISO GQL `GRAPH_TABLE` `graph_expand` stage (1..3-hop `SUPERSEDES_DOC` / `AMENDS_SECTION` traversal with `QUALIFY` chunk deduplication and BigQuery RLS) ahead of rerank & synthesis, plus optional GQL `check_amendments` in Level 10 ADK.
+  - Added frontend `GraphExpandDetail` ISO GQL traversal viewer (`StageRail.tsx`, `stageViews.tsx`, `LevelPage.tsx`). Recorded `8` golden runs (`Battle 80.7`, `G=0.881`, `QA=0.836`, `CP=0.637`, `0.95` QA on `q_sla_credit_calculation`, `1.50 s` mean GQL stage) + `2` `engineering_analyst` ACL demos on `gemini-4-neon__claude-opus-5-5`.
+- **Order A 10-Level Ladder, Workbench ADK/Dense-Only Expansions & Restricted-Org VPC-SC Toggles (`pipeline_spec.py`, `composable.py`, `SlotControls.tsx`, `infra/main.tf`, `scripts/deploy_cloudrun.sh`)**:
+  - Expanded Order A from 8 → **10 architectures** (`1 · Vertex AI Search` → `2 · RAG Engine` → `3 · BQ Naive` → `4 · BQ Hybrid` → `5 · Cloud SQL pgvector` → `6 · AlloyDB ScaNN` → `7 · Vector Search 2.0` → `8 · Multimodal` → `9 · BQ GraphRAG (GQL)` → `10 · Agentic ADK`), updating `Compare` (`MAX=10`), `Overview` TCO, `Ingest`, and `Uploads` (`bigquery_graphrag` maps to `level3_multimodal` data).
+  - Unlocked `adk_agent` reasoning across all **9** Workbench index profiles (keeping `check_amendments` BigQuery-only) and enabled dense-only (`vector_cosine`) ablation across Cloud SQL, AlloyDB ScaNN, and Vector Search 2.0.
+  - Added enterprise restricted-org Terraform (`infra/main.tf`) and `scripts/deploy_cloudrun.sh` toggles: `create_service_accounts=false` + `existing_{live,replay}_sa_email`, Direct VPC Egress (`vpc_network`/`vpc_subnetwork`/`vpc_egress`), `replay_public_invoker=false`, optional CMEK (`corpus_bucket_kms_key`, `bigquery_kms_key`), and private `cloud_build_worker_pool` (**525 backend tests** across `56` files; **241 frontend tests** across `30` suites).
+
 ## [1.6.3] - 2026-11-20
 
 Identity-Aware Document ACLs & Row-Level Security (RLS) across BigQuery, AlloyDB ScaNN, Vector Search 2.0, Vertex AI Search, ADK tool closures, Document Viewer, Composable Workbench, and Overview TCO Advisor (`$0.00/mo` standing idle; `6` live recorded ACL refusal demos isolated from the `183`-run baseline leaderboard).

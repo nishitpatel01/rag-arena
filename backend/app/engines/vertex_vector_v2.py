@@ -160,6 +160,7 @@ def _redacted_search_request(
     solicitation_filter: str | None,
     *,
     caller_groups: tuple[str, ...] | None = None,
+    dense_only: bool = False,
 ) -> dict[str, Any]:
     raw = batch_search_body(
         query_vector=query_vector[:_EMBEDDING_PREVIEW_DIMS],
@@ -168,6 +169,7 @@ def _redacted_search_request(
         solicitation_filter=solicitation_filter,
         index_name=res.redacted_index_name,
         caller_groups=caller_groups,
+        dense_only=dense_only,
     )
     raw["collection"] = res.redacted_collection_name
     raw["query_vector_dimensions"] = len(query_vector)
@@ -185,7 +187,7 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
     """Level 8: Ephemeral High-QPS Vertex AI Vector Search 2.0 (ScaNN ANN + Sparse RRF + Ranking API)."""
 
     engine_id: str = "vertex_vector_v2"
-    engine_label: str = "Level 6: Vertex AI Vector Search 2.0"
+    engine_label: str = "Level 7: Vertex AI Vector Search 2.0"
     tier_profile: str = LAYOUT_SOURCE
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 
@@ -229,6 +231,7 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
         *,
         candidate_k: int | None = None,
         caller_access: CallerAccessContext | None = None,
+        dense_only: bool = False,
     ) -> list[HybridCandidate]:
         res = Vvs2Resources.from_settings(self.settings)
         eff_k = int(candidate_k or self.settings.vvs2_top_k)
@@ -242,15 +245,30 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
             solicitation_filter=solicitation_filter,
             index_name=res.index_name,
             caller_groups=caller_groups,
+            dense_only=dense_only,
         )
         shown_req = _redacted_search_request(
-            res, vector, original_query, eff_k, solicitation_filter, caller_groups=caller_groups
+            res,
+            vector,
+            original_query,
+            eff_k,
+            solicitation_filter,
+            caller_groups=caller_groups,
+            dense_only=dense_only,
         )
         async with self.stage(
             emitter,
             "retrieve",
-            label="Hybrid ScaNN ANN + sparse RRF (dataObjects:batchSearch)",
-            service=RETRIEVE_SERVICE,
+            label=(
+                "Dense ScaNN ANN (dataObjects:batchSearch)"
+                if dense_only
+                else "Hybrid ScaNN ANN + sparse RRF (dataObjects:batchSearch)"
+            ),
+            service=(
+                "Vertex AI Vector Search 2.0 (REST v1beta · Dense ScaNN)"
+                if dense_only
+                else RETRIEVE_SERVICE
+            ),
             request=shown_req,
         ) as ctx:
             t0 = time.perf_counter()
@@ -271,7 +289,7 @@ class VertexVectorSearchV2Engine(BaseRAGEngine):
                 "collection": res.redacted_collection_name,
                 "index": res.redacted_index_name,
                 "location": res.location,
-                "fusion": "RRF(weights=[1.0, 1.0])",
+                "fusion": "dense_only" if dense_only else "RRF(weights=[1.0, 1.0])",
                 "candidate_k": eff_k,
                 "rows_returned": len(candidates),
                 "api_ms": api_ms,

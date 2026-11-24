@@ -26,8 +26,9 @@ import uuid
 
 from psycopg import sql as pg_sql
 
+from app.core.acl import acl_recording_question_id, allowed_groups_for_doc, resolve_caller_access
 from app.core.config import _PROJECT_ROOT, ArenaSettings, _load_dotenv_file, get_settings
-from app.core.gcp_clients import get_access_token, get_alloydb_client, get_bigquery_client
+from app.core.gcp_clients import get_access_token, get_alloydb_client, get_bigquery_client, get_cloudsql_client
 from app.core.models import EngineResult, EvalOutcome
 from app.core.models_catalog import ModelCatalog, RunModels, load_catalog
 from app.core.telemetry import QueueStageEmitter, utc_now_iso
@@ -46,6 +47,11 @@ from app.engines.alloydb_scann import (
     format_pgvector_literal,
     validate_pg_identifier,
 )
+from app.engines.cloudsql_pgvector import (
+    HNSW_DEFAULT_EF_CONSTRUCTION,
+    HNSW_DEFAULT_M,
+    build_cloudsql_pgvector_ddl,
+)
 from app.api.query_runs import build_query_run_row
 from app.engines.base import BaseRAGEngine
 from app.engines.replay_engine import recording_store_for
@@ -54,7 +60,7 @@ from app.ingestion.live_backends import LiveQueryRunWriter
 from app.recording.recorder import build_recording, record_run
 from app.recording.redaction import assert_redacted, redact_text, redaction_tokens
 
-VALID_SCANN_ENGINES: tuple[str, ...] = ("alloydb_scann", "vertex_vector_v2")
+VALID_SCANN_ENGINES: tuple[str, ...] = ("cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2", "bigquery_graphrag")
 DEFAULT_SYNTHESIS_MODELS: tuple[str, ...] = ("gemini-4-argon", "gemini-3.8-flash")
 DEFAULT_JUDGE_MODEL_ID: str = "claude-opus-5-5"
 DEFAULT_BENCHMARK_PATH: Path = _PROJECT_ROOT / "data" / "golden_benchmarks" / "procurement_benchmark.json"
@@ -166,11 +172,11 @@ def load_alloydb(
     upsert_sql = f"""INSERT INTO "{ident}" (
     chunk_id, tier_profile, solicitation_id, doc_name, doc_type, element_type,
     section_id, amendment_number, effective_date, amends_section, page_number,
-    bbox_json, content, embedding
+    bbox_json, content, allowed_groups, embedding
 ) VALUES (
     %(chunk_id)s, %(tier_profile)s, %(solicitation_id)s, %(doc_name)s, %(doc_type)s, %(element_type)s,
     %(section_id)s, %(amendment_number)s, %(effective_date)s, %(amends_section)s, %(page_number)s,
-    %(bbox_json)s::jsonb, %(content)s, %(embedding)s::vector
+    %(bbox_json)s::jsonb, %(content)s, %(allowed_groups)s::text[], %(embedding)s::vector
 )
 ON CONFLICT (chunk_id) DO UPDATE SET
     tier_profile = EXCLUDED.tier_profile,
@@ -185,6 +191,7 @@ ON CONFLICT (chunk_id) DO UPDATE SET
     page_number = EXCLUDED.page_number,
     bbox_json = EXCLUDED.bbox_json,
     content = EXCLUDED.content,
+    allowed_groups = EXCLUDED.allowed_groups,
     embedding = EXCLUDED.embedding;"""
 
     with conn.cursor() as cur:
@@ -215,6 +222,11 @@ ON CONFLICT (chunk_id) DO UPDATE SET
                     else (str(r["bbox_json"]) if r.get("bbox_json") else None)
                 ),
                 "content": str(r["content"]),
+                "allowed_groups": list(
+                    r["allowed_groups"]
+                    if isinstance(r.get("allowed_groups"), (list, tuple)) and r.get("allowed_groups")
+                    else allowed_groups_for_doc(str(r.get("doc_name") or ""), str(r.get("doc_type") or "SOLICITATION"))
+                ),
                 "embedding": format_pgvector_literal(list(r["embedding"])),
             }
             for r in batch
@@ -263,6 +275,136 @@ def verify_alloydb(conn: Any, *, table: str = "document_chunks") -> dict[str, An
     if not idx_row:
         raise RuntimeError(f"AlloyDB table '{ident}' is missing its USING scann index")
     return {"table": ident, "hybrid_rows": count, "scann_index": str(idx_row[0])}
+
+
+def load_cloudsql(
+    conn: Any,
+    rows: Sequence[dict[str, Any]],
+    *,
+    table: str = "document_chunks",
+    vector_dim: int = DEFAULT_VECTOR_DIM,
+    hnsw_m: int = HNSW_DEFAULT_M,
+    hnsw_ef_construction: int = HNSW_DEFAULT_EF_CONSTRUCTION,
+    batch_size: int = 64,
+) -> dict[str, Any]:
+    """Create Cloud SQL pgvector schema, upsert chunks + ACLs, build halfvec(3072) HNSW AFTER load, ANALYZE, verify."""
+    ident = validate_pg_identifier(table, "table")
+    _validate_chunk_rows(rows, vector_dim)
+    if not isinstance(batch_size, int) or not 1 <= batch_size <= 500:
+        raise ValueError("batch_size must be in [1, 500]")
+
+    ddl = build_cloudsql_pgvector_ddl(
+        table=ident,
+        vector_dim=vector_dim,
+        hnsw_m=hnsw_m,
+        hnsw_ef_construction=hnsw_ef_construction,
+    )
+    hnsw_idx = validate_pg_identifier(f"idx_{ident[:40]}_hnsw", "hnsw_index")
+    upsert_sql = f"""INSERT INTO "{ident}" (
+    chunk_id, tier_profile, solicitation_id, doc_name, doc_type, element_type,
+    section_id, amendment_number, effective_date, amends_section, page_number,
+    bbox_json, content, allowed_groups, embedding
+) VALUES (
+    %(chunk_id)s, %(tier_profile)s, %(solicitation_id)s, %(doc_name)s, %(doc_type)s, %(element_type)s,
+    %(section_id)s, %(amendment_number)s, %(effective_date)s, %(amends_section)s, %(page_number)s,
+    %(bbox_json)s::jsonb, %(content)s, %(allowed_groups)s::text[], %(embedding)s::halfvec
+)
+ON CONFLICT (chunk_id) DO UPDATE SET
+    tier_profile = EXCLUDED.tier_profile,
+    solicitation_id = EXCLUDED.solicitation_id,
+    doc_name = EXCLUDED.doc_name,
+    doc_type = EXCLUDED.doc_type,
+    element_type = EXCLUDED.element_type,
+    section_id = EXCLUDED.section_id,
+    amendment_number = EXCLUDED.amendment_number,
+    effective_date = EXCLUDED.effective_date,
+    amends_section = EXCLUDED.amends_section,
+    page_number = EXCLUDED.page_number,
+    bbox_json = EXCLUDED.bbox_json,
+    content = EXCLUDED.content,
+    allowed_groups = EXCLUDED.allowed_groups,
+    embedding = EXCLUDED.embedding;"""
+
+    with conn.cursor() as cur:
+        for stmt in ddl[:-1]:
+            cur.execute(stmt)
+    conn.commit()
+
+    batches = 0
+    total = len(rows)
+    for start in range(0, total, batch_size):
+        batch = rows[start : start + batch_size]
+        params_seq = [
+            {
+                "chunk_id": str(r["chunk_id"]),
+                "tier_profile": str(r.get("tier_profile") or "hybrid"),
+                "solicitation_id": str(r.get("solicitation_id") or ""),
+                "doc_name": str(r.get("doc_name") or ""),
+                "doc_type": str(r.get("doc_type") or "SOLICITATION"),
+                "element_type": str(r.get("element_type") or "narrative_text"),
+                "section_id": r.get("section_id"),
+                "amendment_number": int(r.get("amendment_number") or 0),
+                "effective_date": r.get("effective_date"),
+                "amends_section": r.get("amends_section"),
+                "page_number": int(r.get("page_number") or 1),
+                "bbox_json": (
+                    json.dumps(r["bbox"])
+                    if isinstance(r.get("bbox"), dict)
+                    else (str(r["bbox_json"]) if r.get("bbox_json") else None)
+                ),
+                "content": str(r["content"]),
+                "allowed_groups": list(
+                    r["allowed_groups"]
+                    if isinstance(r.get("allowed_groups"), (list, tuple)) and r.get("allowed_groups")
+                    else allowed_groups_for_doc(str(r.get("doc_name") or ""), str(r.get("doc_type") or "SOLICITATION"))
+                ),
+                "embedding": format_pgvector_literal(list(r["embedding"])),
+            }
+            for r in batch
+        ]
+        with conn.cursor() as cur:
+            cur.executemany(upsert_sql, params_seq)
+        conn.commit()
+        batches += 1
+
+    with conn.cursor() as cur:
+        cur.execute(f'DROP INDEX IF EXISTS "{hnsw_idx}";')
+        cur.execute(ddl[-1])
+        cur.execute(f'ANALYZE "{ident}";')
+    conn.commit()
+
+    verified = verify_cloudsql(conn, table=ident)
+    return {
+        "table": ident,
+        "loaded": total,
+        "batches": batches,
+        "hnsw_index": verified["hnsw_index"],
+        "verified_count": verified["hybrid_rows"],
+    }
+
+
+def verify_cloudsql(conn: Any, *, table: str = "document_chunks") -> dict[str, Any]:
+    """Verify non-zero ``hybrid`` row count and active ``hnsw`` index in Cloud SQL PostgreSQL."""
+    ident = validate_pg_identifier(table, "table")
+    with conn.cursor() as cur:
+        cur.execute(
+            pg_sql.SQL("SELECT COUNT(*) FROM {} WHERE tier_profile = 'hybrid';").format(
+                pg_sql.Identifier(ident)
+            )
+        )
+        cnt_row = cur.fetchone()
+        count = int(cnt_row[0]) if cnt_row else 0
+        cur.execute(
+            "SELECT indexname FROM pg_indexes WHERE tablename = %(table)s AND indexdef ILIKE '%%hnsw%%';",
+            {"table": ident},
+        )
+        idx_row = cur.fetchone()
+    conn.commit()
+    if count <= 0:
+        raise RuntimeError(f"Cloud SQL table '{ident}' has 0 hybrid rows")
+    if not idx_row:
+        raise RuntimeError(f"Cloud SQL table '{ident}' is missing its USING hnsw index")
+    return {"table": ident, "hybrid_rows": count, "hnsw_index": str(idx_row[0])}
 
 
 def _maybe_wait_vvs2_lro(client: Vvs2Client, resp: dict[str, Any], *, timeout_seconds: float) -> None:
@@ -475,6 +617,7 @@ async def record_engine_benchmarks(
     catalog: ModelCatalog | None = None,
     engine_builder: EngineBuilderFn = build_engine,
     evaluator: EvaluatorFn = run_evaluation,
+    acl_personas: Sequence[str] | None = None,
 ) -> list[Path]:
     """Execute golden benchmark questions on ``engine_id`` and persist leak-verified recordings."""
     if engine_id not in VALID_SCANN_ENGINES:
@@ -489,69 +632,86 @@ async def record_engine_benchmarks(
     writer = LiveQueryRunWriter(settings) if write_query_runs else None
     timeout = float(settings.query_timeout_seconds)
     saved_paths: list[Path] = []
+    persona_list: tuple[str | None, ...] = tuple(acl_personas) if acl_personas else (None,)
 
     for synth_id in synthesis_ids:
         run_models = resolved_catalog.select(synth_id, judge_id)
         engine = engine_builder(engine_id, settings, run_models)
-        for q in questions:
-            qid = q["question_id"]
-            qtext = q["question"]
-            run_id = f"run_{uuid.uuid4().hex[:12]}"
-            queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-            emitter = QueueStageEmitter(queue, run_id=run_id, engine=engine_id)
-            started_at = utc_now_iso()
+        for persona_id in persona_list:
+            caller_access = resolve_caller_access(persona_id) if persona_id else None
+            for q in questions:
+                qid = q["question_id"]
+                qtext = q["question"]
+                rec_qid = acl_recording_question_id(qid, caller_access)
+                run_id = f"run_{uuid.uuid4().hex[:12]}"
+                queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+                emitter = QueueStageEmitter(queue, run_id=run_id, engine=engine_id)
+                started_at = utc_now_iso()
 
-            result: EngineResult = await asyncio.wait_for(
-                engine.run_query(qtext, question_id=qid, solicitation_filter=None, emitter=emitter),
-                timeout=timeout,
-            )
-            outcome: EvalOutcome = await asyncio.wait_for(
-                evaluator(
-                    qtext,
-                    result,
-                    question_id=qid,
-                    settings=settings,
-                    emitter=emitter,
-                    models=run_models,
-                    solicitation_filter=None,
-                ),
-                timeout=timeout,
-            )
-            recording = build_recording(
-                settings=settings,
-                engine_id=engine_id,
-                question_id=qid,
-                query=qtext,
-                run_id=run_id,
-                events=emitter.events,
-                result=result,
-                evaluation=outcome,
-                models=run_models,
-            )
-            path = record_run(store, recording)
-            persisted = json.loads(path.read_text(encoding="utf-8"))
-            assert_redacted(persisted, tokens)
-            saved_paths.append(path)
-
-            if writer is not None:
-                row = build_query_run_row(
-                    settings=settings,
-                    run_id=run_id,
-                    question_id=qid,
-                    query=qtext,
-                    started_at=started_at,
-                    emitter=emitter,
-                    result=result,
-                    outcome=outcome,
-                    solicitation_filter=None,
+                if caller_access is not None:
+                    result: EngineResult = await asyncio.wait_for(
+                        engine.run_query(
+                            qtext,
+                            question_id=qid,
+                            solicitation_filter=None,
+                            emitter=emitter,
+                            caller_access=caller_access,
+                        ),
+                        timeout=timeout,
+                    )
+                else:
+                    result = await asyncio.wait_for(
+                        engine.run_query(qtext, question_id=qid, solicitation_filter=None, emitter=emitter),
+                        timeout=timeout,
+                    )
+                outcome: EvalOutcome = await asyncio.wait_for(
+                    evaluator(
+                        qtext,
+                        result,
+                        question_id=qid,
+                        settings=settings,
+                        emitter=emitter,
+                        models=run_models,
+                        solicitation_filter=None,
+                    ),
+                    timeout=timeout,
                 )
-                writer.write_query_run(row)
-            print(
-                f"[{engine_id}] {synth_id}__{judge_id} / {qid}: "
-                f"latency={result.latency_ms}ms G={outcome.metrics.groundedness:.2f} "
-                f"QA={outcome.metrics.qa_relevance:.2f} CP={outcome.metrics.context_precision:.2f} -> {path.name}",
-                file=sys.stderr,
-            )
+                recording = build_recording(
+                    settings=settings,
+                    engine_id=engine_id,
+                    question_id=rec_qid,
+                    query=qtext,
+                    run_id=run_id,
+                    events=emitter.events,
+                    result=result,
+                    evaluation=outcome,
+                    models=run_models,
+                    caller_access=caller_access,
+                )
+                path = record_run(store, recording)
+                persisted = json.loads(path.read_text(encoding="utf-8"))
+                assert_redacted(persisted, tokens)
+                saved_paths.append(path)
+
+                if writer is not None and caller_access is None:
+                    row = build_query_run_row(
+                        settings=settings,
+                        run_id=run_id,
+                        question_id=qid,
+                        query=qtext,
+                        started_at=started_at,
+                        emitter=emitter,
+                        result=result,
+                        outcome=outcome,
+                        solicitation_filter=None,
+                    )
+                    writer.write_query_run(row)
+                print(
+                    f"[{engine_id}] {synth_id}__{judge_id} / {rec_qid}: "
+                    f"latency={result.latency_ms}ms G={outcome.metrics.groundedness:.2f} "
+                    f"QA={outcome.metrics.qa_relevance:.2f} CP={outcome.metrics.context_precision:.2f} -> {path.name}",
+                    file=sys.stderr,
+                )
     return saved_paths
 
 
@@ -565,6 +725,15 @@ def _merged_env(overrides: dict[str, str] | None = None) -> dict[str, str]:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Load, verify, and record ephemeral ScaNN benchmarks (Levels 7–8).")
     sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_lc = sub.add_parser("load-cloudsql", help="Load BigQuery hybrid chunks into Cloud SQL + build halfvec HNSW index.")
+    p_lc.add_argument("--batch-size", type=int, default=64)
+    p_lc.add_argument("--hnsw-m", type=int, default=HNSW_DEFAULT_M)
+    p_lc.add_argument("--hnsw-ef-construction", type=int, default=HNSW_DEFAULT_EF_CONSTRUCTION)
+    p_lc.add_argument("--dry-run", action="store_true")
+
+    p_vc = sub.add_parser("verify-cloudsql", help="Verify Cloud SQL hybrid row count and pgvector HNSW index.")
+    p_vc.add_argument("--dry-run", action="store_true")
 
     p_la = sub.add_parser("load-alloydb", help="Load BigQuery hybrid chunks into AlloyDB + build ScaNN index.")
     p_la.add_argument("--batch-size", type=int, default=64)
@@ -587,6 +756,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_rec.add_argument("--synthesis-models", default=",".join(DEFAULT_SYNTHESIS_MODELS))
     p_rec.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL_ID)
     p_rec.add_argument("--questions", default="")
+    p_rec.add_argument("--acl-personas", default="")
     p_rec.add_argument("--write-query-runs", action="store_true")
     p_rec.add_argument("--dry-run", action="store_true")
     return parser
@@ -605,6 +775,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     tokens = redaction_tokens(settings)
 
     try:
+        if args.cmd == "load-cloudsql":
+            rows = fetch_hybrid_corpus_rows(settings)
+            conn = get_cloudsql_client(settings)
+            out = load_cloudsql(
+                conn,
+                rows,
+                table=settings.cloudsql_table,
+                hnsw_m=args.hnsw_m,
+                hnsw_ef_construction=args.hnsw_ef_construction,
+                batch_size=args.batch_size,
+            )
+            print(json.dumps(out))
+            return 0
+        if args.cmd == "verify-cloudsql":
+            conn = get_cloudsql_client(settings)
+            out = verify_cloudsql(conn, table=settings.cloudsql_table)
+            print(json.dumps(out))
+            return 0
         if args.cmd == "load-alloydb":
             rows = fetch_hybrid_corpus_rows(settings)
             conn = get_alloydb_client(settings)
@@ -644,6 +832,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.cmd == "record":
             synth_ids = tuple(m.strip() for m in args.synthesis_models.split(",") if m.strip())
             q_ids = tuple(q.strip() for q in args.questions.split(",") if q.strip()) or None
+            personas = tuple(p.strip() for p in args.acl_personas.split(",") if p.strip()) or None
             saved = asyncio.run(
                 record_engine_benchmarks(
                     settings=settings,
@@ -652,6 +841,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     judge_id=args.judge_model.strip(),
                     question_ids=q_ids,
                     write_query_runs=bool(args.write_query_runs),
+                    acl_personas=personas,
                 )
             )
             print(json.dumps({"engine": args.engine, "recorded_files": len(saved)}))

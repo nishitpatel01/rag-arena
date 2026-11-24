@@ -109,6 +109,14 @@ export const DEFAULT_ACL_CAPABILITIES: Readonly<Record<string, ArchitectureAclCa
     summary: "Pre-filters both VECTOR_SEARCH and SEARCH() RRF legs inside BigQuery via @caller_groups before Discovery Engine reranking.",
     honest_note: "Unauthorized chunks are excluded before RRF fusion, reranking, and synthesis.",
   },
+  cloudsql_pgvector: {
+    level_id: "cloudsql_pgvector",
+    supports_chunk_acl: true,
+    enforcement_mode: "postgres_rls_policy",
+    mechanism_label: "PostgreSQL Row-Level Security + pgvector 0.8.5 iterative scan",
+    summary: "Enforces PostgreSQL CREATE POLICY (allowed_groups && current_setting('app.caller_groups')) and hnsw.iterative_scan = 'relaxed_order' over halfvec(3072) HNSW + GIN FTS.",
+    honest_note: "Database-layer RLS enforces row visibility and iterative scan avoids HNSW top-K under-fetching on selective ACL filters.",
+  },
   alloydb_scann: {
     level_id: "alloydb_scann",
     supports_chunk_acl: true,
@@ -132,6 +140,14 @@ export const DEFAULT_ACL_CAPABILITIES: Readonly<Record<string, ArchitectureAclCa
     mechanism_label: "BigQuery parameterized RLS (@caller_groups)",
     summary: "Pre-filters multimodal tables, diagrams, and amendments inside BigQuery VECTOR_SEARCH + SEARCH() via @caller_groups.",
     honest_note: "Unauthorized tables and visual diagrams are excluded before rerank and synthesis.",
+  },
+  bigquery_graphrag: {
+    level_id: "bigquery_graphrag",
+    supports_chunk_acl: true,
+    enforcement_mode: "bigquery_parameterized_rls",
+    mechanism_label: "BigQuery Property Graph GQL + @caller_groups RLS",
+    summary: "Pre-filters both multimodal seed retrieval and ISO GQL GRAPH_TABLE amendment/supersession traversal via @caller_groups before reranking.",
+    honest_note: "Unauthorized amendment nodes and chunks never enter graph expansion, reranking, or synthesis.",
   },
   level4_agentic: {
     level_id: "level4_agentic",

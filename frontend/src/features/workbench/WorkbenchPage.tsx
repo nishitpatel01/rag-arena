@@ -343,7 +343,7 @@ export const WorkbenchPage: React.FC = () => {
 
       <Panel
         title="Pipeline recipe builder"
-        subtitle="Start from any of the 8 Level presets or mix-and-match index store, retriever, semantic reranker, context order, ADK tools, and Google Cloud Model Armor guardrails"
+        subtitle="Start from any of the 10 Level presets or mix-and-match index store, retriever, semantic reranker, context order, ADK tools, and Google Cloud Model Armor guardrails"
         actions={
           <Button
             size="sm"

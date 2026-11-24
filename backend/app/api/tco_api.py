@@ -60,7 +60,11 @@ def _settings_of(request: Request) -> ArenaSettings:
 
 
 def _fallback_priority(snapshot: RecordedCohortSnapshot) -> tuple[int, int]:
-    model_rank = 2 if snapshot.synthesis_model == "gemini-4-argon" else (1 if snapshot.synthesis_model == "gemini-3.8-flash" else 0)
+    model_rank = (
+        3
+        if snapshot.synthesis_model == "gemini-4-neon"
+        else (2 if snapshot.synthesis_model == "gemini-4-argon" else (1 if snapshot.synthesis_model == "gemini-3.8-flash" else 0))
+    )
     return (model_rank, snapshot.runs)
 
 

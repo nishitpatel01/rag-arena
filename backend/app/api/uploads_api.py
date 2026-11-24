@@ -56,8 +56,11 @@ MANIFEST_WRITE_ATTEMPTS = 3
 VISION_TOKENS_IN_PER_PAGE = 1_800
 VISION_TOKENS_OUT_PER_PAGE = 900
 CONFIRM_LEVELS: frozenset[str] = frozenset({"level3_multimodal"})
-# Level 4's agent searches the Level 3 rows, so a workspace is ready for L4 once L3 ingestion completed.
-DATA_LEVEL_OF: dict[str, str] = {"level4_agentic": "level3_multimodal"}
+# Level 4's agent and BQ GraphRAG search the Level 3 rows, so a workspace is ready for both once L3 ingestion completed.
+DATA_LEVEL_OF: dict[str, str] = {
+    "bigquery_graphrag": "level3_multimodal",
+    "level4_agentic": "level3_multimodal",
+}
 _STATE_HTTP = {
     BucketState.OK: 200, BucketState.CREATED: 200, BucketState.PERMISSION_DENIED: 403,
     BucketState.ORG_POLICY: 409, BucketState.NAME_CONFLICT: 409, BucketState.NOT_FOUND: 409,

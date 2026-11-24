@@ -34,6 +34,7 @@ import {
   RERANKER_LABELS,
   RETRIEVAL_MODES,
   RETRIEVAL_MODE_LABELS,
+  SCANN_RETRIEVAL_MODES,
   TOP_K_RANGE,
   activeQueryStages,
   backingLevelForProfile,
@@ -131,11 +132,18 @@ const PresetBar: React.FC<PresetBarProps> = ({
 interface AgentToolChecklistProps {
   readonly idPrefix: string;
   readonly selected: readonly CanonicalAgentTool[];
+  readonly allowAmendments: boolean;
   readonly disabled: boolean;
   readonly onToggle: (tool: CanonicalAgentTool, checked: boolean) => void;
 }
 
-const AgentToolChecklist: React.FC<AgentToolChecklistProps> = ({ idPrefix, selected, disabled, onToggle }) => (
+const AgentToolChecklist: React.FC<AgentToolChecklistProps> = ({
+  idPrefix,
+  selected,
+  allowAmendments,
+  disabled,
+  onToggle,
+}) => (
   <fieldset className="rounded-md border border-line bg-surface-1 p-2.5" data-testid={`${idPrefix}-agent-tools`}>
     <legend className="px-1 text-xs font-medium text-ink-2">
       ADK Agent Tools <span className="font-normal text-ink-3">(Google ADK LlmAgent loop)</span>
@@ -143,25 +151,30 @@ const AgentToolChecklist: React.FC<AgentToolChecklistProps> = ({ idPrefix, selec
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {CANONICAL_AGENT_TOOLS.map((tool) => {
         const locked = tool === "search_procurement_corpus";
-        const checked = locked || selected.includes(tool);
+        const bqOnly = tool === "check_amendments" && !allowAmendments;
+        const checked = locked || (!bqOnly && selected.includes(tool));
         const inputId = `${idPrefix}-tool-${tool}`;
         return (
           <label
             key={tool}
             htmlFor={inputId}
+            title={bqOnly ? "check_amendments requires a BigQuery index profile" : undefined}
             className={`flex items-start gap-2 rounded border border-line bg-surface-0 px-2 py-1.5 text-xs ${
-              disabled || locked ? "opacity-80" : "cursor-pointer hover:border-ink-3"
+              disabled || locked || bqOnly ? "opacity-60" : "cursor-pointer hover:border-ink-3"
             }`}
           >
             <input
               id={inputId}
               type="checkbox"
               checked={checked}
-              disabled={disabled || locked}
+              disabled={disabled || locked || bqOnly}
               onChange={(e) => onToggle(tool, e.target.checked)}
               className="mt-0.5 rounded border-line"
             />
-            <span className="font-mono text-xs leading-snug text-ink-1">{AGENT_TOOL_LABELS[tool]}</span>
+            <span className="font-mono text-xs leading-snug text-ink-1">
+              {AGENT_TOOL_LABELS[tool]}
+              {bqOnly ? " (BQ only)" : ""}
+            </span>
           </label>
         );
       })}
@@ -273,7 +286,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
           <select
             id={`${idPrefix}-retrieval-mode`}
             value={spec.slots.retrieval_mode}
-            disabled={disabled || !bq}
+            disabled={disabled || (!bq && !scann)}
             onChange={(e) =>
               applyPatch({ ...spec, slots: { ...spec.slots, retrieval_mode: e.target.value as RetrievalMode } })
             }
@@ -283,7 +296,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
               const modeValid = bq
                 ? BQ_RETRIEVAL_MODES.includes(rm)
                 : scann
-                  ? rm === "hybrid_rrf"
+                  ? SCANN_RETRIEVAL_MODES.includes(rm)
                   : rm === "managed_retrieval";
               return (
                 <option key={rm} value={rm} disabled={!modeValid}>
@@ -376,16 +389,15 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
           <select
             id={`${idPrefix}-reasoning-mode`}
             value={spec.slots.reasoning_mode}
-            disabled={disabled || !bq}
-            title={!bq ? "ADK agent tools require a BigQuery index_profile" : undefined}
+            disabled={disabled}
             onChange={(e) =>
               applyPatch({ ...spec, slots: { ...spec.slots, reasoning_mode: e.target.value as ReasoningMode } })
             }
             className={selectClass}
           >
             {REASONING_MODES.map((rm) => (
-              <option key={rm} value={rm} disabled={rm === "adk_agent" && !bq}>
-                {REASONING_MODE_LABELS[rm]}{rm === "adk_agent" && !bq ? " — BigQuery profiles only" : ""}
+              <option key={rm} value={rm}>
+                {REASONING_MODE_LABELS[rm]}
               </option>
             ))}
           </select>
@@ -435,6 +447,7 @@ export const SlotControls: React.FC<SlotControlsProps> = ({
         <AgentToolChecklist
           idPrefix={idPrefix}
           selected={spec.slots.agent_tools}
+          allowAmendments={bq}
           disabled={disabled}
           onToggle={toggleTool}
         />

@@ -37,27 +37,34 @@ import { applyUploadScopeToChoices, uploadRunGateFor } from "../src/features/upl
 import { isLayoutSource, layoutSourceLabel } from "../src/lib/elements";
 import { LEVEL_IDS, type IngestStatusResponse, type LevelDescriptor, type ModelsResponse } from "../src/types/arena";
 
-test("LEVEL_IDS, SCANN_INDEX_PROFILES, layoutSource, and Compare max include Levels 5 and 6 (ScaNN) in Order A", () => {
+test("LEVEL_IDS, SCANN_INDEX_PROFILES, layoutSource, and Compare max include Levels 5–7 (PG/ScaNN) in Order A", () => {
   assert.deepEqual(LEVEL_IDS, [
     "managed_vertex",
     "rag_engine",
     "level1_naive",
     "level2_hybrid",
+    "cloudsql_pgvector",
     "alloydb_scann",
     "vertex_vector_v2",
     "level3_multimodal",
+    "bigquery_graphrag",
     "level4_agentic",
   ]);
-  assert.deepEqual(LEVEL_IDS.slice(4, 6), ["alloydb_scann", "vertex_vector_v2"]);
-  assert.deepEqual(SCANN_INDEX_PROFILES, ["alloydb_scann", "vertex_vector_v2"]);
-  assert.equal(MAX_COMPARE_LEVELS, 8);
+  assert.deepEqual(LEVEL_IDS.slice(4, 7), ["cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2"]);
+  assert.deepEqual(SCANN_INDEX_PROFILES, ["cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2"]);
+  assert.equal(MAX_COMPARE_LEVELS, 10);
+  assert.equal(isScannProfile("cloudsql_pgvector"), true);
   assert.equal(isScannProfile("alloydb_scann"), true);
   assert.equal(isScannProfile("vertex_vector_v2"), true);
   assert.equal(isScannProfile("hybrid"), false);
+  assert.equal(isLayoutSource("cloudsql_pgvector"), true);
   assert.equal(isLayoutSource("alloydb_scann"), true);
   assert.equal(isLayoutSource("vertex_vector_v2"), true);
+  assert.equal(isLayoutSource("bigquery_graphrag"), true);
+  assert.equal(layoutSourceLabel("cloudsql_pgvector"), "Cloud SQL + pgvector");
   assert.equal(layoutSourceLabel("alloydb_scann"), "AlloyDB + ScaNN");
   assert.equal(layoutSourceLabel("vertex_vector_v2"), "Vector Search 2.0");
+  assert.equal(layoutSourceLabel("bigquery_graphrag"), "BigQuery GraphRAG (GQL)");
 });
 
 test("Levels 7 & 8 Workbench presets validate, coerce ADK to single_pass, and render store nodes cleanly", () => {
@@ -100,16 +107,20 @@ test("Levels 7 & 8 Workbench presets validate, coerce ADK to single_pass, and re
     }
   }
 
-  // Coercing Level 4 ADK -> alloydb_scann resets reasoning_mode to single_pass and clears agent_tools
+  // v1.6.4: Coercing Level 10 ADK -> alloydb_scann preserves adk_agent while stripping BQ-only check_amendments
   const fromAdk = coerceSpec({
     ...defaultPresetSpec("level4_agentic"),
     index_profile: "alloydb_scann",
   });
   assert.equal(validatePipelineSpec(fromAdk), null);
-  assert.equal(fromAdk.slots.reasoning_mode, "single_pass");
-  assert.deepEqual(fromAdk.slots.agent_tools, []);
+  assert.equal(fromAdk.slots.reasoning_mode, "adk_agent");
+  assert.deepEqual(fromAdk.slots.agent_tools, [
+    "search_procurement_corpus",
+    "calculate_contract_pricing",
+    "verify_citations",
+  ]);
 
-  // Raw illegal spec: adk_agent or non-hybrid_rrf retrieval_mode on ScaNN profile fails validation loudly
+  // Raw illegal spec: managed_retrieval or BQ-only check_amendments on ScaNN profile fails validation loudly
   assert.match(
     validatePipelineSpec({
       ...defaultPresetSpec("alloydb_scann"),
@@ -123,10 +134,10 @@ test("Levels 7 & 8 Workbench presets validate, coerce ADK to single_pass, and re
       slots: {
         ...defaultPresetSpec("vertex_vector_v2").slots,
         reasoning_mode: "adk_agent",
-        agent_tools: ["search_procurement_corpus"],
+        agent_tools: ["search_procurement_corpus", "check_amendments"],
       },
     }) ?? "",
-    /adk_agent/i,
+    /check_amendments/i,
   );
 });
 
@@ -220,11 +231,11 @@ test("upload workspaces explicitly block Ephemeral ScaNN Levels 5–6 with corpu
   };
   const g7 = uploadRunGateFor("alloydb_scann", ws);
   assert.equal(g7.blocked, true);
-  assert.match(g7.note ?? "", /Standing Levels 1–4 & 7–8/);
+  assert.match(g7.note ?? "", /Standing Levels 1–4 & 8–10/);
 
   const g8 = uploadRunGateFor("vertex_vector_v2", ws);
   assert.equal(g8.blocked, true);
-  assert.match(g8.note ?? "", /Ephemeral ScaNN Levels 5–6/);
+  assert.match(g8.note ?? "", /Ephemeral DB\/ANN Levels 5–7/);
 
   const eightLevels: LevelDescriptor[] = LEVEL_IDS.map((id, i) => ({
     level_id: id,
@@ -272,6 +283,6 @@ test("upload workspaces explicitly block Ephemeral ScaNN Levels 5–6 with corpu
   const baseChoices = levelChoices(eightLevels, catalog, { synthesis: "gemini-4-argon", judge: "claude-opus-5-5" }, "q1");
   const scoped = applyUploadScopeToChoices(baseChoices, ws);
   assert.equal(scoped.find((c) => c.levelId === "level1_naive")?.disabledReason, null);
-  assert.match(scoped.find((c) => c.levelId === "alloydb_scann")?.disabledReason ?? "", /Standing Levels 1–4 & 7–8/);
-  assert.match(scoped.find((c) => c.levelId === "vertex_vector_v2")?.disabledReason ?? "", /Standing Levels 1–4 & 7–8/);
+  assert.match(scoped.find((c) => c.levelId === "alloydb_scann")?.disabledReason ?? "", /Standing Levels 1–4 & 8–10/);
+  assert.match(scoped.find((c) => c.levelId === "vertex_vector_v2")?.disabledReason ?? "", /Standing Levels 1–4 & 8–10/);
 });

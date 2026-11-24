@@ -108,7 +108,7 @@ def test_level6_registration_descriptor_and_pseudo_model_gating() -> None:
         rag_engine_location="us-central1",
         rag_engine_corpus_id=_CORPUS_ID,
     )
-    assert len(list_architecture_descriptors(settings)) == 8
+    assert len(list_architecture_descriptors(settings)) == 10
     desc = get_architecture_descriptor("rag_engine", settings)
     stage_mapped = {sid for n in desc.nodes for sid in n.stage_ids}
     ingest_mapped = {sid for n in desc.ingest_nodes for sid in n.stage_ids}

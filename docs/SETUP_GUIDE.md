@@ -2,21 +2,20 @@
 
 Two ways to run it:
 
-1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–8
-   runs (`135` recordings across 6 standing architectures + 2 ephemeral ScaNN benchmarks). No Google Cloud account, no
+1. **Zero-credential replay** (`DEMO_MODE=replay`, the default): plays the committed recordings of real Level 1–10
+   runs (`199` baseline recordings + `10` isolated ACL refusal demos across 7 standing architectures + 3 ephemeral DB/ANN benchmarks). No Google Cloud account, no
    credentials, no network calls to GCP.
 2. **Live on your own GCP project** (`DEMO_MODE=live` or `record`): real Vertex AI (including Vertex AI RAG Engine),
-   BigQuery, Document AI, Cloud Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI,
+   BigQuery (including BigQuery Property Graph ISO GQL), Document AI, Cloud Storage, and Vertex AI Search calls, benchmark and private-PDF ingestion from the UI,
    and (in `record`) new golden-set recordings.
 
-**All eight levels** are enabled by default in `DEMO_MODE=replay` (`DEFAULT_ENABLED_LEVELS`), while `DEMO_MODE=live` /
-`record` defaults to the **six standing \$0/mo-idle levels** (`DEFAULT_LIVE_LEVELS=level1_naive,level2_hybrid,level3_multimodal,level4_agentic,managed_vertex,rag_engine`)
-so standing deployments never require an active AlloyDB cluster or Vector Search 2.0 collection. Override
-`ENABLED_LEVELS` in `.env` or use the one-command ephemeral scripts (§3.7) to benchmark Levels 7–8 live. The
-**Composable RAG Workbench** (`/workbench`), private user PDF uploads (`v1.1`–`v1.2`), `/compare` (Preset Ladder + 2–4
+**All ten levels** are enabled by default in `DEMO_MODE=replay` (`DEFAULT_ENABLED_LEVELS`), while `DEMO_MODE=live` /
+`record` defaults to the **seven standing \$0/mo-idle levels** (`DEFAULT_LIVE_LEVELS=managed_vertex,rag_engine,level1_naive,level2_hybrid,level3_multimodal,bigquery_graphrag,level4_agentic`)
+so standing deployments never require an active Cloud SQL, AlloyDB, or Vector Search 2.0 cluster. Override
+`ENABLED_LEVELS` in `.env` or use the one-command ephemeral scripts (§3.7) to benchmark Levels 5–7 live. The
+**Composable RAG Workbench** (`/workbench` with ADK unlocked across all 9 stores and dense-only ablation), private user PDF uploads (`v1.1`–`v1.2`), `/compare` (Preset Ladder + 2–4
 recipe Controlled Ablation Lab with Retrieval Diff Inspector), `/leaderboard` (with winner highlighting), and the
-configurable Cloud Run deployment are all live. Level 5 needs `VAIS_*` keys and Level 6 needs `RAG_ENGINE_CORPUS_ID` in
-live mode.
+configurable Cloud Run deployment (including restricted-org VPC-SC & pre-provisioned SA toggles) are all live. Level 1 needs `VAIS_*` keys, Level 2 needs `RAG_ENGINE_CORPUS_ID`, and Level 9 needs `scripts/provision_bq_graph.py --apply` (`$0/mo` standing) in live mode.
 
 ---
 
@@ -102,8 +101,10 @@ cp .env.example .env    # .env is git-ignored; never commit real identifiers
 | `VAIS_UPLOADS_DATA_STORE_ID` / `VAIS_UPLOADS_ENGINE_ID` | `rag-arena-uploads` / `rag-arena-uploads-search` | Level 5 private uploads data store + search app short ids (must differ from corpus ids) |
 | `RAG_ENGINE_LOCATION` / `RAG_ENGINE_CORPUS_ID` | `us-central1` / short corpus id | Level 6 regional Vertex AI RAG Engine location (never `global`) + corpus id printed by `scripts/provision_rag_engine.py` |
 | `RAG_ENGINE_EMBEDDING_MODEL` / `RAG_ENGINE_TOP_K` / `RAG_ENGINE_CHUNK_SIZE` / `RAG_ENGINE_CHUNK_OVERLAP` / `RAG_ENGINE_TIMEOUT_SECONDS` | `text-embedding-005` / `10` / `512` / `100` / `30` | Level 6 `RagCorpus` publisher embedding model, `:retrieveContexts` top-k, chunking spec, and HTTP bound |
-| `ALLOYDB_DSN` / `ALLOYDB_TABLE` / `ALLOYDB_CANDIDATE_K` / `ALLOYDB_TIMEOUT_SECONDS` | empty / `procurement_chunks_scann` / `25` / `30` | Level 7 ephemeral AlloyDB for PostgreSQL + ScaNN connection URI (loopback `127.0.0.1` via `alloydb-auth-proxy` or `--omni`), table identifier, candidate top-k, and timeout |
-| `VVS2_LOCATION` / `VVS2_COLLECTION` / `VVS2_INDEX_ID` / `VVS2_TOP_K` / `VVS2_TIMEOUT_SECONDS` | `us-central1` / empty / `dense-scann` / `25` / `30` | Level 8 ephemeral Vertex AI Vector Search 2.0 (`vectorsearch.googleapis.com/v1beta`) region, short RFC1035 collection id, `denseScann` index id, candidate top-k, and HTTP bound |
+| `CLOUDSQL_DSN` / `CLOUDSQL_TABLE` / `CLOUDSQL_CANDIDATE_K` / `CLOUDSQL_TIMEOUT_SECONDS` | empty / `document_chunks` / `25` / `30` | Level 5 ephemeral Cloud SQL PostgreSQL 16 + `pgvector 0.8.5` (`halfvec(3072)` HNSW) loopback URI (`127.0.0.1` via `cloud-sql-proxy`) |
+| `ALLOYDB_DSN` / `ALLOYDB_TABLE` / `ALLOYDB_CANDIDATE_K` / `ALLOYDB_TIMEOUT_SECONDS` | empty / `procurement_chunks_scann` / `25` / `30` | Level 6 ephemeral AlloyDB for PostgreSQL + ScaNN connection URI (loopback `127.0.0.1` via `alloydb-auth-proxy` or `--omni`), table identifier, candidate top-k, and timeout |
+| `VVS2_LOCATION` / `VVS2_COLLECTION` / `VVS2_INDEX_ID` / `VVS2_TOP_K` / `VVS2_TIMEOUT_SECONDS` | `us-central1` / empty / `dense-scann` / `25` / `30` | Level 7 ephemeral Vertex AI Vector Search 2.0 (`vectorsearch.googleapis.com/v1beta`) region, short RFC1035 collection id, `denseScann` index id, candidate top-k, and HTTP bound |
+| `BQ_GRAPH_NAME` | `procurement_graph` | Level 9 standing `$0/mo` BigQuery Property Graph provisioned by `scripts/provision_bq_graph.py --apply` (ISO GQL `GRAPH_TABLE`) |
 
 ### 3.2 Authenticate
 
@@ -212,33 +213,37 @@ cd frontend && npm run dev
    Vertex AI Search documents, isolated Vertex AI RAG Engine `RagCorpus`, and Cloud Storage objects while leaving the
    45-PDF benchmark corpus and any neighbor `RagCorpus` resources untouched.
 
-### 3.7 Ephemeral ScaNN benchmarks (Levels 7 & 8 — \$0/mo standing idle)
+### 3.7 Standing BigQuery Property Graph (Level 9) & Ephemeral DB/ANN Benchmarks (Levels 5–7 — \$0/mo standing idle)
 
-Levels 7 (`alloydb_scann`) and 8 (`vertex_vector_v2`) play out of the box in `DEMO_MODE=replay` from committed golden
-recordings. To re-run or re-record them live without leaving standing database or dedicated ANN replica charges:
+- **Level 9 (`bigquery_graphrag`, standing \$0/mo)**: derive the 5 lightweight node/edge tables (`<50 KiB`) and `CREATE OR REPLACE PROPERTY GRAPH procurement_graph` from `document_chunks_v3` (`tier_profile='multimodal'`):
+  ```bash
+  PYTHONPATH=backend .venv/bin/python scripts/provision_bq_graph.py --apply
+  ```
+- **Levels 5 (`cloudsql_pgvector`), 6 (`alloydb_scann`), and 7 (`vertex_vector_v2`)** play out of the box in `DEMO_MODE=replay` from committed golden recordings. To re-run or re-record them live without leaving standing database or dedicated ANN replica charges:
 
 ```bash
-# Level 7a — Cloud AlloyDB ZONAL 2-vCPU + loopback alloydb-auth-proxy → export 526 BQ hybrid vectors → ScaNN + GIN → 16 runs → teardown
+# Level 5 — Cloud SQL PostgreSQL 16 + pgvector 0.8.5 (halfvec 3072-d HNSW + GIN FTS + Postgres RLS) → record → teardown
+./scripts/ephemeral_cloudsql.sh --full --synthesis-models gemini-4-neon --judge-model claude-opus-5-5 --yes
+
+# Level 6a — Cloud AlloyDB ZONAL 2-vCPU + loopback alloydb-auth-proxy → export 526 BQ hybrid vectors → ScaNN + GIN → record → teardown
 ./scripts/ephemeral_alloydb.sh --full --write-query-runs --yes
 
-# Level 7b — Local AlloyDB Omni Docker (127.0.0.1 loopback, $0 cloud DB compute) → ScaNN + GIN → 16 runs → container rm
+# Level 6b — Local AlloyDB Omni Docker (127.0.0.1 loopback, $0 cloud DB compute) → ScaNN + GIN → record → container rm
 ./scripts/ephemeral_alloydb.sh --omni --full --yes
 
-# Level 8 — Vertex AI Vector Search 2.0 Collection + dense-scann index → 526 DataObjects → 16 runs → index & collection delete
+# Level 7 — Vertex AI Vector Search 2.0 Collection + dense-scann index → 526 DataObjects → record → index & collection delete
 ./scripts/ephemeral_vvs2.sh --full --write-query-runs --yes
 ```
 
-Both scripts export the existing `3072-d` BigQuery `hybrid` chunks (`0` re-embedding API calls), build ScaNN centroids
-strictly *after* bulk-loading all vectors, write redacted recordings via `scripts/record_scann_benchmarks.py`, and
-install a bash `trap ... EXIT INT TERM` that tears down all `rag-arena-ephem-*` resources and verifies `0` remain.
+All three scripts export the existing `3072-d` BigQuery `hybrid` chunks (`0` re-embedding API calls), build vector indexes strictly *after* bulk-loading all rows, write redacted recordings via `scripts/record_scann_benchmarks.py`, and install a bash `trap ... EXIT` that tears down all `rag-arena-ephem-*` resources and verifies `0` remain.
 
 ---
 
 ## 4. Tests
 
 ```bash
-PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 447 passed (offline; no GCP calls)
-cd frontend && npm test && npm run build                # 194 passed across 21 suites + tsc/vite build
+PYTHONPATH=backend .venv/bin/pytest backend/tests -q   # 525 passed across 56 files (offline; no GCP calls)
+cd frontend && npm test && npm run build                # 241 passed across 30 suites + tsc/vite build
 ```
 
 `backend/tests/test_publish_manifest.py` scans `README.md`, `docs/ARCHITECTURE.md`, `docs/SETUP_GUIDE.md`,
@@ -288,7 +293,11 @@ buckets/service accounts, grant IAM, run Cloud Build, and deploy Cloud Run.
 
 Notes: requests time out after `TIMEOUT` (default 900 s; `INGEST_JOB_TIMEOUT_SECONDS=840`). Cold-start SDK
 initialization runs off the Uvicorn event loop and the UI bootstrap retries for up to 30 s so `/api/v1/health` and
-`/api/v1/levels` recover cleanly after scale-to-zero (`min-instances=0`). `scripts/teardown_cloudrun.sh --yes` removes
+`/api/v1/levels` recover cleanly after scale-to-zero (`min-instances=0`). For **restricted enterprise orgs (VPC-SC,
+pre-provisioned service accounts, CMEK, or no public invokers)**, configure `CREATE_SERVICE_ACCOUNTS=false` +
+`EXISTING_LIVE_SA_EMAIL` / `EXISTING_REPLAY_SA_EMAIL`, Direct VPC Egress (`VPC_NETWORK`, `VPC_SUBNETWORK`, `VPC_EGRESS`),
+`REPLAY_PUBLIC_INVOKER=false`, `CORPUS_BUCKET_KMS_KEY`, `BIGQUERY_KMS_KEY`, and `CLOUD_BUILD_WORKER_POOL` in
+`deploy/cloudrun.env` or `infra/main.tf`. `scripts/teardown_cloudrun.sh --yes` removes
 the Cloud Run services, service accounts, and bucket IAM bindings created by deploy while keeping your buckets and
 BigQuery dataset intact.
 

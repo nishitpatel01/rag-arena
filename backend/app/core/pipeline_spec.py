@@ -43,19 +43,24 @@ INDEX_PROFILES: tuple[str, ...] = (
     "rag_engine",
     "naive",
     "hybrid",
+    "cloudsql_pgvector",
     "alloydb_scann",
     "vertex_vector_v2",
     "multimodal",
+    "bigquery_graphrag",
 )
-BQ_INDEX_PROFILES: tuple[str, ...] = ("naive", "hybrid", "multimodal")
+BQ_INDEX_PROFILES: tuple[str, ...] = ("naive", "hybrid", "multimodal", "bigquery_graphrag")
 MANAGED_INDEX_PROFILES: tuple[str, ...] = ("vertex_ai_search", "rag_engine")
-SCANN_INDEX_PROFILES: tuple[str, ...] = ("alloydb_scann", "vertex_vector_v2")
+SCANN_INDEX_PROFILES: tuple[str, ...] = ("cloudsql_pgvector", "alloydb_scann", "vertex_vector_v2")
+SCANN_RETRIEVAL_MODES: tuple[str, ...] = ("hybrid_rrf", "vector_cosine")
 BACKING_LEVEL_BY_PROFILE: dict[str, str] = {
     "naive": "level1_naive",
     "hybrid": "level2_hybrid",
     "multimodal": "level3_multimodal",
+    "bigquery_graphrag": "bigquery_graphrag",
     "vertex_ai_search": "managed_vertex",
     "rag_engine": "rag_engine",
+    "cloudsql_pgvector": "cloudsql_pgvector",
     "alloydb_scann": "alloydb_scann",
     "vertex_vector_v2": "vertex_vector_v2",
 }
@@ -63,8 +68,10 @@ PROFILE_LABELS: dict[str, str] = {
     "naive": "BigQuery · Naive chunks",
     "hybrid": "BigQuery · Lineage chunks",
     "multimodal": "BigQuery · DocAI + Vision multimodal",
+    "bigquery_graphrag": "BigQuery · Property Graph (ISO GQL) + Multimodal",
     "vertex_ai_search": "Vertex AI Search · Extractive segments",
     "rag_engine": "Vertex AI RAG Engine · RagCorpus",
+    "cloudsql_pgvector": "Cloud SQL PostgreSQL 16 · pgvector HNSW + GIN FTS",
     "alloydb_scann": "AlloyDB PostgreSQL · ScaNN + GIN FTS",
     "vertex_vector_v2": "Vector Search 2.0 · ScaNN + Sparse",
 }
@@ -72,8 +79,10 @@ MAX_CANDIDATE_K_BY_PROFILE: dict[str, int] = {
     "naive": 100,
     "hybrid": 100,
     "multimodal": 100,
+    "bigquery_graphrag": 100,
     "rag_engine": 50,
     "vertex_ai_search": 20,
+    "cloudsql_pgvector": 100,
     "alloydb_scann": 100,
     "vertex_vector_v2": 100,
 }
@@ -226,15 +235,15 @@ def _check_cross_slot_invariants(index_profile: str, slots: QuerySlots) -> None:
             f"Managed index_profile '{index_profile}' requires retrieval_mode 'managed_retrieval', "
             f"got '{slots.retrieval_mode}'"
         )
-    if index_profile in SCANN_INDEX_PROFILES and slots.retrieval_mode != "hybrid_rrf":
+    if index_profile in SCANN_INDEX_PROFILES and slots.retrieval_mode not in SCANN_RETRIEVAL_MODES:
         raise PipelineSpecError(
-            f"ScaNN index_profile '{index_profile}' requires retrieval_mode 'hybrid_rrf', "
+            f"Operational/ANN index_profile '{index_profile}' requires retrieval_mode in {list(SCANN_RETRIEVAL_MODES)}, "
             f"got '{slots.retrieval_mode}'"
         )
-    if slots.reasoning_mode == "adk_agent" and index_profile not in BQ_INDEX_PROFILES:
+    if slots.reasoning_mode == "adk_agent" and "check_amendments" in slots.agent_tools and index_profile not in BQ_INDEX_PROFILES:
         raise PipelineSpecError(
-            f"reasoning_mode 'adk_agent' requires a BigQuery index_profile {list(BQ_INDEX_PROFILES)}, "
-            f"got '{index_profile}'"
+            f"ADK tool 'check_amendments' requires a BigQuery index_profile {list(BQ_INDEX_PROFILES)} "
+            f"(remove 'check_amendments' to run ADK agent over '{index_profile}')"
         )
 
 
@@ -428,6 +437,14 @@ def preset_spec(level_id: str, settings: ArenaSettings | None = None) -> Pipelin
                 "none", "score_order", "single_pass",
             ),
         )
+    if level_id == "cloudsql_pgvector":
+        return PipelineSpec(
+            "cloudsql_pgvector",
+            QuerySlots(
+                "acronym", "hybrid_rrf", cfg.cloudsql_candidate_k, cfg.rerank_top_n,
+                "vertex_ranking_api", "score_order", "single_pass",
+            ),
+        )
     if level_id == "alloydb_scann":
         return PipelineSpec(
             "alloydb_scann",
@@ -442,6 +459,14 @@ def preset_spec(level_id: str, settings: ArenaSettings | None = None) -> Pipelin
             QuerySlots(
                 "acronym", "hybrid_rrf", cfg.vvs2_top_k, cfg.rerank_top_n,
                 "vertex_ranking_api", "score_order", "single_pass",
+            ),
+        )
+    if level_id == "bigquery_graphrag":
+        return PipelineSpec(
+            "bigquery_graphrag",
+            QuerySlots(
+                "acronym_plus_intent", "hybrid_rrf", cfg.hybrid_candidate_k, cfg.rerank_top_n,
+                "vertex_ranking_api", "authority_amendment_first", "single_pass",
             ),
         )
     raise PipelineSpecError(f"Unknown preset level_id {level_id!r}; expected one of {list(PRESET_LEVEL_IDS)}")
@@ -464,6 +489,8 @@ def active_query_stages(spec: PipelineSpec) -> tuple[str, ...]:
     if (spec.index_profile in BQ_INDEX_PROFILES or spec.index_profile in SCANN_INDEX_PROFILES) and spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
         stages.append("embed_query")
     stages.append("retrieve")
+    if spec.index_profile == "bigquery_graphrag":
+        stages.append("graph_expand")
     if spec.slots.reranker == "vertex_ranking_api":
         stages.append("rerank")
     if armored:
@@ -502,38 +529,78 @@ def _single_pass_retrieval(spec: PipelineSpec) -> tuple[list[ArchNode], list[Arc
     nodes: list[ArchNode] = []
     edges: list[ArchEdge] = []
     if spec.index_profile in BQ_INDEX_PROFILES:
+        bq_tier = "multimodal" if spec.index_profile == "bigquery_graphrag" else spec.index_profile
         bq = ArchNode(
-            "bq", f"document_chunks (tier {spec.index_profile})", _bq_service_label(spec),
-            "store", 2, 1, ("retrieve",), region=GCP_LOCATION_PLACEHOLDER,
+            "bq", f"document_chunks (tier {bq_tier})", _bq_service_label(spec),
+            "store", 2, 0 if spec.index_profile == "bigquery_graphrag" else 1, ("retrieve",), region=GCP_LOCATION_PLACEHOLDER,
         )
         if spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
-            emb_svc = MM_EMBED_SERVICE_PLACEHOLDER if spec.index_profile == "multimodal" else "Vertex AI · gemini-embedding-2"
+            emb_svc = MM_EMBED_SERVICE_PLACEHOLDER if bq_tier == "multimodal" else "Vertex AI · gemini-embedding-2"
             embed = ArchNode("embed", "Query embedding", emb_svc, "model", 1, 0, ("embed_query",), region=GENAI_LOCATION_PLACEHOLDER)
             nodes.append(embed)
             edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "bq", "3072-d vector")])
         if spec.slots.retrieval_mode in ("lexical_bm25", "hybrid_rrf"):
             edges.append(ArchEdge("user", "bq", "lexical terms"))
         nodes.append(bq)
+        if spec.index_profile == "bigquery_graphrag":
+            graph = ArchNode(
+                "graph", "BigQuery Property Graph (GQL)", "GRAPH_TABLE · AMENDS_SECTION & SUPERSEDES_DOC",
+                "store", 2, 2, ("graph_expand",), region=GCP_LOCATION_PLACEHOLDER,
+            )
+            nodes.append(graph)
+            edges.append(ArchEdge("bq", "graph", "seed docs + sections"))
+            return nodes, edges, "graph"
         return nodes, edges, "bq"
+    if spec.index_profile == "cloudsql_pgvector":
+        dense = spec.slots.retrieval_mode == "vector_cosine"
+        embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",), region=GENAI_LOCATION_PLACEHOLDER)
+        cloudsql = ArchNode(
+            "cloudsql", "Cloud SQL PG16 + pgvector",
+            (
+                f"pgvector HNSW cosine dense-only (top-{spec.slots.candidate_k})"
+                if dense
+                else f"pgvector HNSW + GIN FTS → RRF (top-{spec.slots.candidate_k})"
+            ),
+            "store", 2, 1, ("retrieve",), region=GCP_LOCATION_PLACEHOLDER,
+        )
+        nodes.extend([embed, cloudsql])
+        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "cloudsql", "3072-d halfvec")])
+        if not dense:
+            edges.append(ArchEdge("user", "cloudsql", "websearch tsquery"))
+        return nodes, edges, "cloudsql"
     if spec.index_profile == "alloydb_scann":
+        dense = spec.slots.retrieval_mode == "vector_cosine"
         embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",), region=GENAI_LOCATION_PLACEHOLDER)
         alloydb = ArchNode(
             "alloydb", "AlloyDB PostgreSQL + ScaNN",
-            f"alloydb_scann cosine + GIN FTS → RRF (top-{spec.slots.candidate_k})",
+            (
+                f"alloydb_scann cosine dense-only (top-{spec.slots.candidate_k})"
+                if dense
+                else f"alloydb_scann cosine + GIN FTS → RRF (top-{spec.slots.candidate_k})"
+            ),
             "store", 2, 1, ("retrieve",), region=GCP_LOCATION_PLACEHOLDER,
         )
         nodes.extend([embed, alloydb])
-        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "alloydb", "3072-d vector"), ArchEdge("user", "alloydb", "websearch tsquery")])
+        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "alloydb", "3072-d vector")])
+        if not dense:
+            edges.append(ArchEdge("user", "alloydb", "websearch tsquery"))
         return nodes, edges, "alloydb"
     if spec.index_profile == "vertex_vector_v2":
+        dense = spec.slots.retrieval_mode == "vector_cosine"
         embed = ArchNode("embed", "Query embedding", "Vertex AI · gemini-embedding-2", "model", 1, 0, ("embed_query",), region=GENAI_LOCATION_PLACEHOLDER)
         vvs2 = ArchNode(
             "vvs2", "Vector Search 2.0 Collection",
-            f"dataObjects:batchSearch · ScaNN + Sparse RRF (top-{spec.slots.candidate_k})",
+            (
+                f"dataObjects:batchSearch · Dense ScaNN (top-{spec.slots.candidate_k})"
+                if dense
+                else f"dataObjects:batchSearch · ScaNN + Sparse RRF (top-{spec.slots.candidate_k})"
+            ),
             "store", 2, 1, ("retrieve",), region=VVS2_LOCATION_PLACEHOLDER,
         )
         nodes.extend([embed, vvs2])
-        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "vvs2", "3072-d vector"), ArchEdge("user", "vvs2", "CRC32 sparse tokens")])
+        edges.extend([ArchEdge("user", "embed", "prepared query"), ArchEdge("embed", "vvs2", "3072-d vector")])
+        if not dense:
+            edges.append(ArchEdge("user", "vvs2", "CRC32 sparse tokens"))
         return nodes, edges, "vvs2"
     if spec.index_profile == "vertex_ai_search":
         search = ArchNode("search", "Search app", "Vertex AI Search · :search", "api", 1, 1, ("retrieve",), region=VAIS_LOCATION_PLACEHOLDER)
@@ -578,28 +645,50 @@ def _agent_nodes_and_edges(spec: PipelineSpec) -> tuple[tuple[ArchNode, ...], tu
         edges.append(ArchEdge("user", "agent", "prepared query"))
     nodes.append(agent)
 
-    bq_tools = ("search_procurement_corpus",) + (("check_amendments",) if "check_amendments" in tools else ())
+    store_tools = ("search_procurement_corpus",) + (("check_amendments",) if "check_amendments" in tools else ())
     tool_search = ArchNode("tool_search", "search_procurement_corpus", f"{spec.index_profile} · {spec.slots.retrieval_mode}", "process", 2 + shift, 0, turn, tool_names=("search_procurement_corpus",))
-    bq = ArchNode("bq", f"document_chunks (tier {spec.index_profile})", _bq_service_label(spec), "store", 3 + shift, 1, turn, region=GCP_LOCATION_PLACEHOLDER, tool_names=bq_tools)
-    nodes.extend([tool_search, bq])
+    if spec.index_profile in BQ_INDEX_PROFILES:
+        bq_tier = "multimodal" if spec.index_profile == "bigquery_graphrag" else spec.index_profile
+        store_svc = (
+            f"{_bq_service_label(spec)} + Property Graph GQL"
+            if spec.index_profile == "bigquery_graphrag"
+            else _bq_service_label(spec)
+        )
+        store_node = ArchNode("bq", f"document_chunks (tier {bq_tier})", store_svc, "store", 3 + shift, 1, turn, region=GCP_LOCATION_PLACEHOLDER, tool_names=store_tools)
+    elif spec.index_profile == "cloudsql_pgvector":
+        store_node = ArchNode("cloudsql", "Cloud SQL PG16 + pgvector", f"pgvector HNSW ({spec.slots.retrieval_mode})", "store", 3 + shift, 1, turn, region=GCP_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",))
+    elif spec.index_profile == "alloydb_scann":
+        store_node = ArchNode("alloydb", "AlloyDB PostgreSQL + ScaNN", f"alloydb_scann ({spec.slots.retrieval_mode})", "store", 3 + shift, 1, turn, region=GCP_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",))
+    elif spec.index_profile == "vertex_vector_v2":
+        store_node = ArchNode("vvs2", "Vector Search 2.0 Collection", f"VVS2 ScaNN ({spec.slots.retrieval_mode})", "store", 3 + shift, 1, turn, region=VVS2_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",))
+    elif spec.index_profile == "vertex_ai_search":
+        store_node = ArchNode("search", "Vertex AI Search", "Discovery Engine · :search", "api", 3 + shift, 1, turn, region=VAIS_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",))
+    else:
+        store_node = ArchNode("rag_corpus", "Vertex AI RAG Engine", RAG_ENGINE_STORE_SERVICE_PLACEHOLDER, "store", 3 + shift, 1, turn, region=RAG_ENGINE_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",))
+
+    store_id = store_node.id
+    nodes.extend([tool_search, store_node])
     edges.extend([ArchEdge("agent", "tool_search", "tool call"), ArchEdge("tool_search", "agent", "chunks")])
 
-    if spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
-        emb_svc = MM_EMBED_SERVICE_PLACEHOLDER if spec.index_profile == "multimodal" else "Vertex AI · gemini-embedding-2"
-        nodes.append(ArchNode("embed", "Query embedding", emb_svc, "model", 3 + shift, 0, turn, region=GENAI_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",)))
-        edges.extend([ArchEdge("tool_search", "embed", "query"), ArchEdge("embed", "bq", "3072-d vector")])
+    if spec.index_profile in BQ_INDEX_PROFILES or spec.index_profile in SCANN_INDEX_PROFILES:
+        if spec.slots.retrieval_mode in ("vector_cosine", "hybrid_rrf"):
+            emb_svc = MM_EMBED_SERVICE_PLACEHOLDER if spec.index_profile in ("multimodal", "bigquery_graphrag") else "Vertex AI · gemini-embedding-2"
+            nodes.append(ArchNode("embed", "Query embedding", emb_svc, "model", 3 + shift, 0, turn, region=GENAI_LOCATION_PLACEHOLDER, tool_names=("search_procurement_corpus",)))
+            edges.extend([ArchEdge("tool_search", "embed", "query"), ArchEdge("embed", store_id, "3072-d vector")])
+        else:
+            edges.append(ArchEdge("tool_search", store_id, "lexical terms"))
     else:
-        edges.append(ArchEdge("tool_search", "bq", "lexical terms"))
+        edges.append(ArchEdge("tool_search", store_id, "managed query"))
 
     if spec.slots.reranker == "vertex_ranking_api":
         nodes.append(ArchNode("rank", "Semantic rerank", "Discovery Engine Ranking API", "api", 4 + shift, 0, turn, region="global", tool_names=("search_procurement_corpus",)))
-        edges.extend([ArchEdge("bq", "rank", f"candidates (≤ {spec.slots.candidate_k})"), ArchEdge("rank", "tool_search", f"top-{spec.slots.top_k} chunks")])
+        edges.extend([ArchEdge(store_id, "rank", f"candidates (≤ {spec.slots.candidate_k})"), ArchEdge("rank", "tool_search", f"top-{spec.slots.top_k} chunks")])
     else:
-        edges.append(ArchEdge("bq", "tool_search", f"top-{spec.slots.top_k} chunks"))
+        edges.append(ArchEdge(store_id, "tool_search", f"top-{spec.slots.top_k} chunks"))
 
     if "check_amendments" in tools:
-        nodes.append(ArchNode("tool_amend", "check_amendments", "BigQuery amends_section lookup", "process", 2 + shift, 1, turn, tool_names=("check_amendments",)))
-        edges.extend([ArchEdge("agent", "tool_amend", "tool call"), ArchEdge("tool_amend", "bq", "@section_id"), ArchEdge("tool_amend", "agent", "superseding text")])
+        nodes.append(ArchNode("tool_amend", "check_amendments", "BigQuery Property Graph / SQL amendment lookup", "process", 2 + shift, 1, turn, tool_names=("check_amendments",)))
+        edges.extend([ArchEdge("agent", "tool_amend", "tool call"), ArchEdge("tool_amend", store_id, "@section_id"), ArchEdge("tool_amend", "agent", "superseding text")])
     if "calculate_contract_pricing" in tools:
         nodes.append(ArchNode("tool_calc", "calculate_contract_pricing", "Local AST-validated arithmetic", "process", 2 + shift, 2, turn, tool_names=("calculate_contract_pricing",)))
         edges.extend([ArchEdge("agent", "tool_calc", "tool call"), ArchEdge("tool_calc", "agent", "value")])
@@ -685,6 +774,7 @@ __all__ = [
     "RERANKERS",
     "RETRIEVAL_MODES",
     "SCANN_INDEX_PROFILES",
+    "SCANN_RETRIEVAL_MODES",
     "TOP_K_RANGE",
     "PipelineSpec",
     "PipelineSpecError",

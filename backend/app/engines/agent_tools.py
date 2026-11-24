@@ -31,6 +31,7 @@ from app.engines.agent_ledger import AgentLedger, ToolRecord, bounded_summary
 from app.engines.agent_verify import MAX_DRAFT_CHARS, VerificationReport, check_claims
 from app.engines.level1_naive import _row_bbox
 from app.engines.level3_multimodal import Level3MultimodalEngine, MultimodalSearch, authority_header
+from app.ingestion.bq_graph import build_graph_amendment_lookup_gql
 from app.ingestion.bq_indexer import build_amendment_lookup_sql
 from app.ingestion.uploads import check_workspace_id
 
@@ -75,8 +76,19 @@ class ToolDeps:
     def __post_init__(self) -> None:
         if self.upload_scope is not None:
             check_workspace_id(self.upload_scope)
-        if self.tier_profile not in ("naive", "hybrid", "multimodal"):
-            raise ValueError(f"tier_profile must be a BigQuery tier, got {self.tier_profile!r}")
+        allowed_profiles = (
+            "naive",
+            "hybrid",
+            "multimodal",
+            "bigquery_graphrag",
+            "vertex_ai_search",
+            "rag_engine",
+            "cloudsql_pgvector",
+            "alloydb_scann",
+            "vertex_vector_v2",
+        )
+        if self.tier_profile not in allowed_profiles:
+            raise ValueError(f"tier_profile must be one of {allowed_profiles}, got {self.tier_profile!r}")
 
 
 # ---------------------------------------------------------------- shared invocation wrapper
@@ -254,13 +266,30 @@ async def run_check_amendments(deps: ToolDeps, solicitation_id: Any, section_or_
     s = deps.settings
     restricted = bool(deps.caller_access and deps.caller_access.is_restricted)
     caller_groups = deps.caller_access.effective_groups if restricted and deps.caller_access is not None else None
-    sql = build_amendment_lookup_sql(
-        s.gcp_project_id,
-        s.bq_dataset,
-        s.bq_table,
-        tier_profile=deps.tier_profile,
-        include_acl_filter=restricted,
+    bq_tier = "multimodal" if deps.tier_profile == "bigquery_graphrag" else deps.tier_profile
+    use_graph = (
+        deps.upload_scope is None
+        and bq_tier == "multimodal"
+        and bool((getattr(s, "bq_graph_name", "") or "").strip())
     )
+    if use_graph:
+        sql = build_graph_amendment_lookup_gql(
+            s.gcp_project_id,
+            s.bq_dataset,
+            s.bq_table,
+            s.bq_graph_name,
+            include_acl_filter=restricted,
+        )
+        query_engine = "bigquery_property_graph_gql"
+    else:
+        sql = build_amendment_lookup_sql(
+            s.gcp_project_id,
+            s.bq_dataset,
+            s.bq_table,
+            tier_profile=bq_tier,
+            include_acl_filter=restricted,
+        )
+        query_engine = "bigquery_sql"
     if caller_groups:
         rows, stats = await asyncio.to_thread(
             run_amendment_query,
@@ -273,13 +302,14 @@ async def run_check_amendments(deps: ToolDeps, solicitation_id: Any, section_or_
         )
     else:
         rows, stats = await asyncio.to_thread(run_amendment_query, deps.bq_client, sql, sol, section, s.query_timeout_seconds)
-    chunks = [amendment_row_to_chunk(r, tier_profile=deps.tier_profile) for r in rows]
+    chunks = [amendment_row_to_chunk(r, tier_profile=bq_tier) for r in rows]
     deps.ledger.add_usage(bq_bytes=stats["bytes_processed"], bq_jobs=1)
     ids = deps.ledger.register_chunks(chunks)
     views = [_amendment_view(c) for c in chunks]
     response = {
         "status": "ok", "solicitation_id": sol, "section_or_clin_id": section, "has_amendment": bool(chunks),
         "governing_amendment": views[0] if views else None, "amendments": views,
+        "query_engine": query_engine,
     }
     if chunks:
         g = chunks[0]

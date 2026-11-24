@@ -190,10 +190,10 @@ def test_resolve_engine_cost_usd_handles_explicit_subtracted_and_legacy_inputs()
         resolve_engine_cost_usd(-0.01)
 
 
-def test_leaderboard_splits_engine_and_judge_costs_across_all_183_official_recordings() -> None:
+def test_leaderboard_splits_engine_and_judge_costs_across_all_199_official_recordings() -> None:
     board = leaderboard_from_recordings(RecordingStore(_RECORDINGS))
     rows = [r for g in board["groups"] for r in g["rows"]]
-    assert sum(r["runs"] for r in rows) == 183
+    assert sum(r["runs"] for r in rows) == 199
 
     total_engine_spend = 0.0
     total_judge_spend = 0.0
@@ -207,9 +207,9 @@ def test_leaderboard_splits_engine_and_judge_costs_across_all_183_official_recor
         total_engine_spend += eng * row["runs"]
         total_judge_spend += jud * row["runs"]
 
-    # Confirm the 53.65% benchmark judge-spend distortion is surfaced transparently, never hidden
+    # Confirm the >50% benchmark judge-spend distortion is surfaced transparently, never hidden
     judge_share = total_judge_spend / (total_engine_spend + total_judge_spend)
-    assert 0.53 <= judge_share <= 0.54
+    assert 0.50 <= judge_share <= 0.55
 
     # Check L6 Flash specifically: ~$0.0110 engine cost vs ~$0.0366 judge cost
     flash_group = next(

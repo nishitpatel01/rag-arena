@@ -29,12 +29,31 @@ def test_terraform_main_tf_has_v3_tables_upload_bucket_iap_audience_and_replay_l
     assert "gcp-sa-discoveryengine.iam.gserviceaccount.com" in tf
     assert "upload_bucket_kms_key" in tf
 
-    # 3. Live IAP_JWT_AUDIENCE + ACCESS_MODE + LIVE_INGEST + Replay 8-level parity
+    # 3. Live IAP_JWT_AUDIENCE + ACCESS_MODE + LIVE_INGEST + Replay 10-level parity + v1.6.4 restricted-org toggles
     assert "IAP_JWT_AUDIENCE" in tf
     assert "ACCESS_MODE" in tf
     assert "LIVE_INGEST" in tf
     assert "replay_enabled_levels" in tf
     assert "vertex_vector_v2" in tf
+    assert "cloudsql_pgvector" in tf
+    assert "bigquery_graphrag" in tf
+    assert '"sqladmin.googleapis.com"' in tf
+    for var_name in (
+        "bq_graph_name",
+        "create_service_accounts",
+        "existing_live_sa_email",
+        "existing_replay_sa_email",
+        "vpc_network",
+        "vpc_subnetwork",
+        "vpc_egress",
+        "replay_public_invoker",
+        "corpus_bucket_kms_key",
+        "bigquery_kms_key",
+        "cloud_build_worker_pool",
+    ):
+        assert f'variable "{var_name}"' in tf, f"main.tf missing variable {var_name}"
+    assert 'dynamic "vpc_access"' in tf
+    assert 'dynamic "default_encryption_configuration"' in tf
 
 
 def test_bootstrap_gcp_sh_defaults_to_v3_and_creates_provenance_tables() -> None:
@@ -70,3 +89,39 @@ def test_deploy_cloudrun_forwards_access_mode_live_ingest_and_iap_jwt_audience()
     assert "ENV live ACCESS_MODE=public" in pub_lines
     assert "ENV live LIVE_INGEST=false" in pub_lines
     assert not any("IAP_JWT_AUDIENCE=" in ln for ln in pub_lines)
+
+
+def test_deploy_cloudrun_restricted_org_vpc_sc_and_preprovisioned_sa_dry_run() -> None:
+    proc = _run_deploy(
+        {
+            "CLOUD_RUN_INGRESS": "internal-and-cloud-load-balancing",
+            "VPC_NETWORK": "corp-shared-vpc",
+            "VPC_SUBNETWORK": "rag-subnet-us-central1",
+            "VPC_EGRESS": "all-traffic",
+            "CLOUD_BUILD_WORKER_POOL": "projects/demo-project-1/locations/us-central1/workerPools/private-pool",
+            "EXISTING_LIVE_SA_EMAIL": "preprov-live@demo-project-1.iam.gserviceaccount.com",
+            "EXISTING_REPLAY_SA_EMAIL": "preprov-replay@demo-project-1.iam.gserviceaccount.com",
+            "REPLAY_PUBLIC_INVOKER": "false",
+            "BQ_GRAPH_NAME": "procurement_graph",
+            "CLOUDSQL_DSN": "postgresql://u:secret@127.0.0.1:15433/postgres",
+        },
+        "--dry-run",
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "PLAN cloud-build-worker-pool projects/demo-project-1/locations/us-central1/workerPools/private-pool" in proc.stdout
+    assert "PLAN service-account preprov-live@demo-project-1.iam.gserviceaccount.com (pre-provisioned)" in proc.stdout
+    assert "PLAN service-account preprov-replay@demo-project-1.iam.gserviceaccount.com (pre-provisioned, no roles)" in proc.stdout
+    assert "PLAN cloud-run-ingress internal-and-cloud-load-balancing" in proc.stdout
+    assert "PLAN vpc-egress network=corp-shared-vpc subnet=rag-subnet-us-central1 egress=all-traffic" in proc.stdout
+    assert "(replay, authenticated, sa=preprov-replay@demo-project-1.iam.gserviceaccount.com" in proc.stdout
+    assert "ENV live BQ_GRAPH_NAME=procurement_graph" in proc.stdout
+    # CLOUDSQL_DSN is local-only and must never be forwarded to Cloud Run
+    assert "CLOUDSQL_DSN" not in proc.stdout
+
+    # Validation rejects half-configured VPC egress
+    bad_vpc = _run_deploy({"VPC_NETWORK": "corp-shared-vpc"}, "--dry-run")
+    assert bad_vpc.returncode != 0 and "VPC_SUBNETWORK" in bad_vpc.stderr
+
+    # Validation rejects invalid ingress
+    bad_ing = _run_deploy({"CLOUD_RUN_INGRESS": "open-wide"}, "--dry-run")
+    assert bad_ing.returncode != 0 and "CLOUD_RUN_INGRESS" in bad_ing.stderr

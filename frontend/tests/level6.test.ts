@@ -86,7 +86,7 @@ const RAG_RETRIEVE = {
 };
 
 test("LEVEL_IDS and layoutSource include Level 2 rag_engine in canonical Order A", () => {
-  assert.equal(LEVEL_IDS.length, 8);
+  assert.equal(LEVEL_IDS.length, 10);
   assert.equal(LEVEL_IDS[1], "rag_engine");
   assert.equal(isLayoutSource("vertex_ai_rag_engine"), true);
   assert.equal(layoutSourceLabel("vertex_ai_rag_engine"), "Vertex AI RAG Engine");
@@ -232,9 +232,9 @@ test("model picker & Compare rules: vertex-rag-engine-grounded is Level 2 only, 
   assert.equal(lower.length, 1);
   assert.equal(teaserTitle(lower), "Same question on Level 1");
 
-  // Compare page offers all 8 levels in Order A (Level 2 is rag_engine)
+  // Compare page offers all 10 levels in Order A (Level 2 is rag_engine)
   const choices = levelChoices(allLevels, CATALOG_6, { synthesis: "gemini-4-argon", judge: "claude-opus-5-5" }, "q1");
-  assert.equal(choices.length, 8);
+  assert.equal(choices.length, 10);
   assert.equal(choices[1].levelId, "rag_engine");
   assert.equal(choices[1].disabledReason, null);
 });

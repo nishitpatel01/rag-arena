@@ -11,6 +11,8 @@ from app.core.config import ALL_LEVEL_IDS, ArenaSettings, get_settings
 from app.core.models_catalog import RunModels
 from app.engines.alloydb_scann import AlloyDBScaNNEngine
 from app.engines.base import BaseRAGEngine
+from app.engines.bigquery_graphrag import BigQueryGraphRAGEngine
+from app.engines.cloudsql_pgvector import CloudSQLPgVectorEngine
 from app.engines.level1_naive import Level1NaiveEngine, build_vector_search_sql
 from app.engines.level2_hybrid import Level2HybridEngine, expand_procurement_acronyms, prepare_query
 from app.engines.level3_multimodal import (
@@ -28,9 +30,11 @@ ENGINE_CLASSES: tuple[type[BaseRAGEngine], ...] = (
     RagEngine,
     Level1NaiveEngine,
     Level2HybridEngine,
+    CloudSQLPgVectorEngine,
     AlloyDBScaNNEngine,
     VertexVectorSearchV2Engine,
     Level3MultimodalEngine,
+    BigQueryGraphRAGEngine,
     Level4AgenticEngine,
 )
 _ENGINE_CLASS_BY_ID: dict[str, type[BaseRAGEngine]] = {cls.engine_id: cls for cls in ENGINE_CLASSES}
@@ -119,6 +123,8 @@ def list_levels(settings: ArenaSettings | None = None) -> list[dict[str, Any]]:
 __all__ = [
     "AlloyDBScaNNEngine",
     "BaseRAGEngine",
+    "BigQueryGraphRAGEngine",
+    "CloudSQLPgVectorEngine",
     "ENGINE_CLASSES",
     "Level1NaiveEngine",
     "Level2HybridEngine",

@@ -18,7 +18,7 @@ from app.core.config import ArenaSettings
 _MAX_DEPTH = 64
 _MIN_TOKEN_CHARS = 4
 _PROJECT_NUMBER_RE = re.compile(r"projects/\d{6,}")
-_POSTGRES_DSN_RE = re.compile(r"postgres(?:ql)?://(?!\$\{ALLOYDB_DSN\})[^\s\"'`]+", re.IGNORECASE)
+_POSTGRES_DSN_RE = re.compile(r"postgres(?:ql)?://(?!\$\{(?:ALLOYDB|CLOUDSQL)_DSN\})[^\s\"'`]+", re.IGNORECASE)
 PROJECT_NUMBER_PLACEHOLDER = "projects/${GCP_PROJECT_NUMBER}"
 POSTGRES_DSN_PLACEHOLDER = "postgresql://${ALLOYDB_DSN}"
 
@@ -45,6 +45,7 @@ def redaction_tokens(settings: ArenaSettings, *, home: str | None = None) -> tup
         (settings.rag_engine_corpus_id, "${RAG_ENGINE_CORPUS_ID}"),
         (settings.model_armor_template_id, "${MODEL_ARMOR_TEMPLATE_ID}"),
         (settings.alloydb_dsn, "${ALLOYDB_DSN}"),
+        (settings.cloudsql_dsn, "${CLOUDSQL_DSN}"),
         (settings.iap_jwt_audience, "${IAP_JWT_AUDIENCE}"),
         (settings.cloudsdk_config, "${CLOUDSDK_CONFIG}"),
         (settings.google_application_credentials, "${GOOGLE_APPLICATION_CREDENTIALS}"),

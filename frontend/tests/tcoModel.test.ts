@@ -67,11 +67,19 @@ test("parseTcoWorkload enforces strict bounds, enums, and rejects invalid inputs
   assert.equal(LATENCY_SLA_OPTIONS.length, 3);
   assert.equal(COMPLIANCE_POSTURE_OPTIONS.length, 4);
   assert.equal(DOC_COMPLEXITY_OPTIONS.length, 3);
-  assert.equal(TCO_SYNTHESIS_MODELS.length, 6);
+  assert.equal(TCO_SYNTHESIS_MODELS.length, 7);
   assert.equal(DEFAULT_WORKLOAD.synthesis_model, "gemini-4-hydrogen");
   assert.deepEqual(
     [...TCO_SYNTHESIS_MODELS],
-    ["gemini-4-hydrogen", "gemini-4-carbon", "gemini-4-argon", "claude-sonnet-4-6", "claude-opus-5-5", "gemini-3.8-flash"]
+    [
+      "gemini-4-neon",
+      "gemini-4-hydrogen",
+      "gemini-4-carbon",
+      "gemini-4-argon",
+      "claude-sonnet-4-6",
+      "claude-opus-5-5",
+      "gemini-3.8-flash",
+    ]
   );
   for (const preset of ENTERPRISE_SCENARIO_PRESETS) {
     assert.notEqual(preset.workload.synthesis_model, "gemini-3.8-flash");
@@ -116,7 +124,7 @@ test("logarithmic slider helpers preserve exact min/max endpoints and monotonic 
 
 test("pure TCO estimate never invents fake scores and matches GCP standing/crossover economics", () => {
   const base = estimateEnterpriseTco(DEFAULT_WORKLOAD);
-  assert.equal(base.architectures.length, 8);
+  assert.equal(base.architectures.length, 10);
   assert.deepEqual(
     base.architectures.map((a) => a.level_id),
     [
@@ -124,9 +132,11 @@ test("pure TCO estimate never invents fake scores and matches GCP standing/cross
       "rag_engine",
       "level1_naive",
       "level2_hybrid",
+      "cloudsql_pgvector",
       "alloydb_scann",
       "vertex_vector_v2",
       "level3_multimodal",
+      "bigquery_graphrag",
       "level4_agentic",
     ]
   );
@@ -286,10 +296,12 @@ test("SHORT_LEVEL_LABEL and ArchitectureWizard progressive disclosure enforce Or
       "2 · RAG Engine",
       "3 · BQ Vector",
       "4 · BQ Hybrid",
-      "5 · AlloyDB ScaNN",
-      "6 · Vector Search 2.0",
-      "7 · Multimodal",
-      "8 · Agentic ADK",
+      "5 · Cloud SQL pgvector",
+      "6 · AlloyDB ScaNN",
+      "7 · Vector Search 2.0",
+      "8 · Multimodal",
+      "9 · BQ GraphRAG (GQL)",
+      "10 · Agentic ADK",
     ]
   );
 

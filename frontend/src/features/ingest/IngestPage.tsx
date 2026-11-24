@@ -62,7 +62,12 @@ const LevelIngestCard: React.FC<{
   const devIngestFixture = import.meta.env.DEV && isMockRequested() && DEV_INGEST_FIXTURE_LEVELS.includes(level.level_id);
   const alreadyLoaded = (count !== null && count > 0) || (ephemeralScann && ephemeralConfigured === true);
   const cliScript =
-    ephemeralScript ?? (level.level_id === "alloydb_scann" ? "scripts/ephemeral_alloydb.sh" : "scripts/ephemeral_vvs2.sh");
+    ephemeralScript ??
+    (level.level_id === "cloudsql_pgvector"
+      ? "scripts/ephemeral_cloudsql.sh"
+      : level.level_id === "alloydb_scann"
+        ? "scripts/ephemeral_alloydb.sh"
+        : "scripts/ephemeral_vvs2.sh");
   const countItems: (readonly [string, string])[] = ephemeralScann
     ? [
         ["provisioning mode", "CLI-ephemeral ($0/mo standing cost)"],

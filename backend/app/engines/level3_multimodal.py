@@ -256,7 +256,7 @@ class Level3MultimodalEngine(Level2HybridEngine):
     """Level 3: hybrid RRF over layout-aware multimodal chunks + Ranking API + authority-headed synthesis."""
 
     engine_id: str = "level3_multimodal"
-    engine_label: str = "Level 7: Layout-Aware Multimodal RAG"
+    engine_label: str = "Level 8: Layout-Aware Multimodal RAG"
     tier_profile: str = "multimodal"
     stages: tuple[str, ...] = ("query_prep", "embed_query", "retrieve", "rerank", "synthesize", "evaluate")
 

@@ -42,6 +42,7 @@ export const DOC_COMPLEXITY_OPTIONS = [
 export type DocComplexity = (typeof DOC_COMPLEXITY_OPTIONS)[number];
 
 export const TCO_SYNTHESIS_MODELS = [
+  "gemini-4-neon",
   "gemini-4-hydrogen",
   "gemini-4-carbon",
   "gemini-4-argon",
@@ -99,11 +100,12 @@ export const COMPLIANCE_POSTURE_CHOICES: readonly WizardOptionMeta<CompliancePos
 ];
 
 export const SYNTHESIS_MODEL_CHOICES: readonly WizardOptionMeta<TcoSynthesisModel>[] = [
+  { value: "gemini-4-neon", label: "Gemini 4 Neon", hint: "$3.00 / $15.00 per 1M (frontier)" },
   { value: "gemini-4-hydrogen", label: "Gemini 4 Hydrogen", hint: "$1.50 / $7.50 per 1M (fast tier)" },
   { value: "gemini-4-carbon", label: "Gemini 4 Carbon", hint: "$2.00 / $10.00 per 1M (balanced)" },
   { value: "gemini-4-argon", label: "Gemini 4 Argon", hint: "$2.00 / $10.00 per 1M (flagship)" },
-  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", hint: "$3.00 / $15.00 per 1M (L1–L7)" },
-  { value: "claude-opus-5-5", label: "Claude Opus 5.5", hint: "$4.00 / $20.00 per 1M (L1–L7)" },
+  { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", hint: "$3.00 / $15.00 per 1M (L1–L9)" },
+  { value: "claude-opus-5-5", label: "Claude Opus 5.5", hint: "$4.00 / $20.00 per 1M (L1–L9)" },
   { value: "gemini-3.8-flash", label: "Gemini 3.8 Flash (Legacy)", hint: "$0.75 / $3.75 per 1M (recorded)" },
 ];
 
@@ -284,6 +286,7 @@ const BYTES_PER_GIB = 1024 ** 3;
 const BYTES_PER_TIB = 1024 ** 4;
 
 const MODEL_RATES: Readonly<Record<string, { readonly inPer1M: number; readonly outPer1M: number; readonly per1kReq: number }>> = {
+  "gemini-4-neon": { inPer1M: 3.0, outPer1M: 15.0, per1kReq: 0 },
   "gemini-4-hydrogen": { inPer1M: 1.5, outPer1M: 7.5, per1kReq: 0 },
   "gemini-4-carbon": { inPer1M: 2.0, outPer1M: 10.0, per1kReq: 0 },
   "gemini-4-argon": { inPer1M: 2.0, outPer1M: 10.0, per1kReq: 0 },
@@ -312,6 +315,14 @@ const VAIS_STORAGE_USD_PER_GIB_MONTH = 2.5;
 
 const RAG_ENGINE_STORAGE_USD_PER_GIB_MONTH = 0.023;
 export const RAG_ENGINE_SPANNER_BASIC_MONTHLY_USD = 65.7;
+
+const CLOUDSQL_VCPU_USD_PER_HOUR = 0.0413;
+const CLOUDSQL_RAM_GIB_USD_PER_HOUR = 0.007;
+export const CLOUDSQL_BASE_MONTHLY_USD =
+  Math.round((2 * CLOUDSQL_VCPU_USD_PER_HOUR + 8 * CLOUDSQL_RAM_GIB_USD_PER_HOUR) * HOURS_PER_MONTH * 10_000) / 10_000;
+const CLOUDSQL_QUERIES_PER_UNIT_MONTH = 1_500_000;
+const CLOUDSQL_STORAGE_USD_PER_GIB_MONTH = 0.17;
+const CLOUDSQL_MIN_STORAGE_GIB = 10.0;
 
 const ALLOYDB_VCPU_USD_PER_HOUR = 0.06636;
 const ALLOYDB_RAM_GIB_USD_PER_HOUR = 0.01126;
@@ -492,10 +503,24 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
     ingest_embed_tokens_per_page: 450,
   },
   {
-    level_id: "alloydb_scann",
+    level_id: "cloudsql_pgvector",
     order: 5,
+    default_label: "Cloud SQL PostgreSQL + pgvector",
+    short_label: "L5 · Cloud SQL pgvector",
+    gcp_services: ["Cloud SQL PostgreSQL 16 (pgvector 0.8.5 HNSW + GIN)", "Discovery Engine Ranking API", "gemini-embedding-2"],
+    idle_mode: "dedicated_cluster",
+    embedding_model: "gemini-embedding-2",
+    query_embed_tokens: 45,
+    rank_counts_per_query: 1,
+    prompt_tokens_per_query: 3_600,
+    output_tokens_per_query: 1_500,
+    ingest_embed_tokens_per_page: 450,
+  },
+  {
+    level_id: "alloydb_scann",
+    order: 6,
     default_label: "AlloyDB PostgreSQL + ScaNN",
-    short_label: "L5 · AlloyDB + ScaNN",
+    short_label: "L6 · AlloyDB + ScaNN",
     gcp_services: ["AlloyDB for PostgreSQL (ScaNN + GIN)", "Discovery Engine Ranking API", "gemini-embedding-2"],
     idle_mode: "dedicated_cluster",
     embedding_model: "gemini-embedding-2",
@@ -507,9 +532,9 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
   },
   {
     level_id: "vertex_vector_v2",
-    order: 6,
+    order: 7,
     default_label: "Vertex AI Vector Search 2.0",
-    short_label: "L6 · Vector Search 2.0",
+    short_label: "L7 · Vector Search 2.0",
     gcp_services: ["Vector Search 2.0 (DenseScann + RRF)", "Discovery Engine Ranking API", "gemini-embedding-2"],
     idle_mode: "dedicated_replica",
     embedding_model: "gemini-embedding-2",
@@ -521,9 +546,9 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
   },
   {
     level_id: "level3_multimodal",
-    order: 7,
+    order: 8,
     default_label: "Layout-Aware Multimodal RAG",
-    short_label: "L7 · DocAI + Vision + BQ",
+    short_label: "L8 · DocAI + Vision + BQ",
     gcp_services: ["Document AI Layout Parser", "Gemini Vision", "BigQuery Hybrid RRF", "Ranking API"],
     idle_mode: "serverless_zero",
     embedding_model: "gemini-embedding-2",
@@ -534,11 +559,25 @@ const LEVEL_META: readonly LevelStaticMeta[] = [
     ingest_embed_tokens_per_page: 520,
   },
   {
+    level_id: "bigquery_graphrag",
+    order: 9,
+    default_label: "BigQuery GraphRAG (Property Graph · GQL)",
+    short_label: "L9 · BQ GraphRAG (GQL)",
+    gcp_services: ["BigQuery Property Graph (ISO GQL)", "Document AI + Vision", "BigQuery Hybrid RRF", "Ranking API"],
+    idle_mode: "serverless_zero",
+    embedding_model: "gemini-embedding-2",
+    query_embed_tokens: 45,
+    rank_counts_per_query: 1,
+    prompt_tokens_per_query: 4_400,
+    output_tokens_per_query: 1_600,
+    ingest_embed_tokens_per_page: 520,
+  },
+  {
     level_id: "level4_agentic",
-    order: 8,
+    order: 10,
     default_label: "Agentic RAG (Google ADK)",
-    short_label: "L8 · Google ADK Agent",
-    gcp_services: ["Google ADK Runner", "Document AI + Vision", "BigQuery Search + Amendments", "AST Calculator"],
+    short_label: "L10 · Google ADK Agent",
+    gcp_services: ["Google ADK Runner", "Document AI + Vision", "BigQuery Search + GQL Amendments", "AST Calculator"],
     idle_mode: "serverless_zero",
     embedding_model: "gemini-embedding-2",
     query_embed_tokens: 160,
@@ -569,6 +608,10 @@ function bqScanBytesPerQuery(levelId: LevelId, corpusPages: number): number {
   if (levelId === "level3_multimodal") {
     const tableBytes = corpusPages * 62 * 1024;
     return Math.max(BQ_MIN_SCAN_BYTES, tableBytes) * BQ_UNCACHED_QUERY_RATIO;
+  }
+  if (levelId === "bigquery_graphrag") {
+    const tableBytes = corpusPages * 62 * 1024;
+    return (Math.max(BQ_MIN_SCAN_BYTES, tableBytes) + BQ_MIN_SCAN_BYTES) * BQ_UNCACHED_QUERY_RATIO;
   }
   if (levelId === "level4_agentic") {
     const tableBytes = corpusPages * 62 * 1024;
@@ -646,6 +689,9 @@ function scoreWorkloadFit(
     if (lid === "level2_hybrid") {
       score += 18;
       rationale.push("Keeps vector + lexical RRF retrieval inside BigQuery with zero cross-store ETL.");
+    } else if (lid === "bigquery_graphrag") {
+      score += 15;
+      rationale.push("Runs ISO GQL Property Graph amendment traversal + hybrid RRF natively inside BigQuery at $0/mo idle.");
     } else if (lid === "level3_multimodal" || lid === "level4_agentic") {
       score += 13;
       rationale.push("Stores layout/multimodal chunks natively in BigQuery alongside enterprise warehouse tables.");
@@ -658,6 +704,9 @@ function scoreWorkloadFit(
     if (lid === "alloydb_scann") {
       score += 22;
       rationale.push("Runs ScaNN cosine ANN + PostgreSQL GIN full-text RRF transactionally inside AlloyDB.");
+    } else if (lid === "cloudsql_pgvector") {
+      score += 19;
+      rationale.push("Runs pgvector 0.8.5 HNSW (halfvec 3072-d) + GIN FTS RRF inside standard Cloud SQL PostgreSQL 16.");
     } else if (lid === "vertex_vector_v2") {
       score += 8;
       rationale.push("Pairs low-latency managed ScaNN ANN with operational microservices.");
@@ -667,13 +716,16 @@ function scoreWorkloadFit(
       score -= 5;
     }
   } else if (dg === "unstructured_pdfs") {
-    if (lid === "level3_multimodal" || lid === "level4_agentic") {
+    if (lid === "bigquery_graphrag") {
+      score += 15;
+      rationale.push("Combines Document AI + Vision multimodal chunks with BigQuery Property Graph amendment traversal.");
+    } else if (lid === "level3_multimodal" || lid === "level4_agentic") {
       score += 14;
       rationale.push("Parses complex GCS PDFs with Document AI Layout Parser + Gemini Vision diagram transcription.");
     } else if (lid === "rag_engine" || lid === "managed_vertex") {
       score += 11;
       rationale.push("Imports unstructured PDFs directly from Cloud Storage without custom chunkers.");
-    } else if (lid === "level2_hybrid" || lid === "vertex_vector_v2") {
+    } else if (lid === "level2_hybrid" || lid === "vertex_vector_v2" || lid === "cloudsql_pgvector") {
       score += 6;
     }
   } else if (dg === "managed_turnkey") {
@@ -697,12 +749,13 @@ function scoreWorkloadFit(
       lid === "level2_hybrid" ||
       lid === "rag_engine" ||
       lid === "managed_vertex" ||
+      lid === "cloudsql_pgvector" ||
       lid === "alloydb_scann" ||
       lid === "vertex_vector_v2"
     ) {
       score += 9;
       rationale.push("Narrative & clause text retrieves cleanly without needing Document AI + Vision ingest spend.");
-    } else if (lid === "level3_multimodal") {
+    } else if (lid === "level3_multimodal" || lid === "bigquery_graphrag") {
       score += 2;
       tradeoffs.push("Adds $10/1k-page Document AI Layout Parser cost that plain-text corpora rarely need.");
     } else if (lid === "level4_agentic") {
@@ -713,6 +766,9 @@ function scoreWorkloadFit(
     if (lid === "level3_multimodal") {
       score += 20;
       rationale.push("Preserves Markdown rate tables, transcribes architecture diagrams, and orders amendments first.");
+    } else if (lid === "bigquery_graphrag") {
+      score += 18;
+      rationale.push("Combines multimodal tables/diagrams with deterministic ISO GQL superseding-amendment expansion.");
     } else if (lid === "level4_agentic") {
       score += 12;
       rationale.push("Searches multimodal table/diagram chunks with self-verifying citation checks.");
@@ -726,7 +782,11 @@ function scoreWorkloadFit(
   } else if (dc === "multi_hop_math") {
     if (lid === "level4_agentic") {
       score += 24;
-      rationale.push("Google ADK loop chains check_amendments, AST-safe calculate_contract_pricing, and verify_citations.");
+      rationale.push("Google ADK loop chains GQL check_amendments, AST-safe calculate_contract_pricing, and verify_citations.");
+    } else if (lid === "bigquery_graphrag") {
+      score += 17;
+      rationale.push("BigQuery Property Graph traverses multi-hop amendment supersession chains in one GQL round-trip at $0/mo idle.");
+      tradeoffs.push("Single-pass GraphRAG resolves superseding amendments without an ADK arithmetic calculator.");
     } else if (lid === "level3_multimodal") {
       score += 10;
       rationale.push("Provides amendment authority headers and table structure, though single-pass without calculator.");
@@ -746,11 +806,14 @@ function scoreWorkloadFit(
     if (lid === "alloydb_scann" || lid === "vertex_vector_v2") {
       score += 14;
       rationale.push("Sub-400ms warm ScaNN ANN + hybrid RRF retrieval built for real-time user-facing SLAs.");
+    } else if (lid === "cloudsql_pgvector") {
+      score += 11;
+      rationale.push("Warm pgvector HNSW + GIN FTS retrieval delivers sub-second SQL vector search at lower standing cost.");
     } else if (lid === "managed_vertex" || lid === "rag_engine") {
       score += 5;
-    } else if (lid === "level2_hybrid" || lid === "level3_multimodal") {
+    } else if (lid === "level2_hybrid" || lid === "level3_multimodal" || lid === "bigquery_graphrag") {
       score -= 3;
-      tradeoffs.push("BigQuery serverless query startup adds ~1–2s retrieval overhead vs in-memory ScaNN.");
+      tradeoffs.push("BigQuery serverless query startup adds ~1–2s retrieval overhead vs in-memory ANN.");
     } else if (lid === "level4_agentic") {
       score -= 20;
       tradeoffs.push("Multi-turn ADK reasoning averages 44–47s, exceeding strict sub-second/low-latency SLAs.");
@@ -765,7 +828,10 @@ function scoreWorkloadFit(
   } else if (sla === "deep_agentic_reasoning") {
     if (lid === "level4_agentic") {
       score += 14;
-      rationale.push("SLA budget accommodates iterative ADK search, amendment lookup, and citation repair.");
+      rationale.push("SLA budget accommodates iterative ADK search, GQL amendment lookup, and citation repair.");
+    } else if (lid === "bigquery_graphrag") {
+      score += 9;
+      rationale.push("Single-pass ISO GQL graph expansion captures amendment chains in a fraction of ADK latency.");
     } else if (lid === "level3_multimodal" || lid === "rag_engine") {
       score += 6;
     }
@@ -786,23 +852,30 @@ function scoreWorkloadFit(
   } else if (cp === "managed_turnkey") {
     if (lid === "rag_engine" || lid === "managed_vertex") {
       score += 10;
-    } else if (lid === "level4_agentic" || lid === "alloydb_scann") {
+    } else if (lid === "level4_agentic" || lid === "alloydb_scann" || lid === "cloudsql_pgvector") {
       score -= 8;
       tradeoffs.push("Higher operational surface (custom DB/proxy or multi-tool agent orchestration).");
     }
   } else if (cp === "cmek_vpc") {
     if (lid !== "managed_vertex") {
       score += 6;
-      if (lid === "alloydb_scann") {
+      if (lid === "cloudsql_pgvector" || lid === "alloydb_scann") {
         rationale.push("Supports regional Private IP / VPC-SC perimeters, PostgreSQL RLS, and CMEK encryption.");
-      } else if (lid === "level2_hybrid" || lid === "level3_multimodal" || lid === "level4_agentic") {
+      } else if (
+        lid === "level2_hybrid" ||
+        lid === "level3_multimodal" ||
+        lid === "bigquery_graphrag" ||
+        lid === "level4_agentic"
+      ) {
         rationale.push("Supports regional BigQuery + GCS CMEK and row-level security policies.");
       }
     }
     if (
       lid === "level2_hybrid" ||
       lid === "level3_multimodal" ||
+      lid === "bigquery_graphrag" ||
       lid === "level4_agentic" ||
+      lid === "cloudsql_pgvector" ||
       lid === "alloydb_scann" ||
       lid === "vertex_vector_v2"
     ) {
@@ -813,10 +886,15 @@ function scoreWorkloadFit(
       tradeoffs.push("Default global Discovery Engine config requires regional datastore reconfiguration under strict residency.");
     }
   } else if (cp === "strict_document_acls") {
-    if (lid === "level2_hybrid" || lid === "level3_multimodal" || lid === "level4_agentic") {
+    if (
+      lid === "level2_hybrid" ||
+      lid === "level3_multimodal" ||
+      lid === "bigquery_graphrag" ||
+      lid === "level4_agentic"
+    ) {
       score += 10;
       rationale.push("Enforces native BigQuery parameterized UNNEST(@caller_groups) & ROW ACCESS POLICY before synthesis.");
-    } else if (lid === "alloydb_scann") {
+    } else if (lid === "cloudsql_pgvector" || lid === "alloydb_scann") {
       score += 10;
       rationale.push("Enforces native PostgreSQL Row-Level Security (CREATE POLICY + GIN allowed_groups) inside the DB engine.");
     } else if (lid === "vertex_vector_v2") {
@@ -836,12 +914,18 @@ function scoreWorkloadFit(
     if (lid === "vertex_vector_v2" || lid === "alloydb_scann") {
       score += 10;
       rationale.push("Zero per-query ANN scan fee beats per-query PaaS/scan charges past the monthly TCO crossover.");
+    } else if (lid === "cloudsql_pgvector") {
+      score += 8;
+      rationale.push("Zero per-query HNSW scan fee with lower base compute than AlloyDB; watch RAM ceiling at very high scale.");
     } else if (lid === "managed_vertex") {
       score -= 6;
       tradeoffs.push("$4.00/1k Vertex AI Search query pricing compounds rapidly at >=250k queries/month.");
     }
   }
-  if (workload.corpus_pages >= 50_000 && (lid === "level3_multimodal" || lid === "level4_agentic")) {
+  if (
+    workload.corpus_pages >= 50_000 &&
+    (lid === "level3_multimodal" || lid === "bigquery_graphrag" || lid === "level4_agentic")
+  ) {
     if (workload.monthly_queries >= 50_000) {
       score -= 8;
       tradeoffs.push("BigQuery allows 1 vector index/table, so unindexed multimodal brute-force scans become costly at >=50k pages.");
@@ -850,7 +934,7 @@ function scoreWorkloadFit(
 
   if (lid === "level4_agentic" && workload.synthesis_model.startsWith("claude-")) {
     tradeoffs.unshift(
-      "Level 8 ADK requires a Gemini 4 worker (Hydrogen, Carbon, or Argon); Claude models are judge-only on ADK."
+      "Agentic ADK requires a Gemini 4 worker (Neon, Hydrogen, Carbon, or Argon); Claude models are judge-only on ADK."
     );
   }
 
@@ -861,13 +945,21 @@ function scoreWorkloadFit(
     tradeoffs.push("Prefer selectable Gemini over extractive segments; built-in VAIS summary is more conservative and abstains more often.");
   }
   if (lid === "level3_multimodal" && tradeoffs.length === 0) {
-    tradeoffs.push("Adds one-time Document AI Layout Parser + Gemini Vision ingestion cost and higher query latency than warm ScaNN.");
+    tradeoffs.push("Adds one-time Document AI Layout Parser + Gemini Vision ingestion cost and higher query latency than warm ANN.");
+  }
+  if (lid === "bigquery_graphrag" && tradeoffs.length === 0) {
+    tradeoffs.push("BigQuery Property Graph is in Preview and adds one GQL traversal round-trip after hybrid seed retrieval.");
   }
   if (lid === "level4_agentic" && tradeoffs.length === 0) {
     tradeoffs.push("Multi-turn ADK tool execution adds token cost and higher end-to-end latency than single-pass pipelines.");
   }
   if (lid === "level2_hybrid" && tradeoffs.length === 0) {
     tradeoffs.push("Text-only chunking lacks Document AI table reconstruction and multi-hop calculator tools.");
+  }
+  if (lid === "cloudsql_pgvector" && tradeoffs.length === 0) {
+    tradeoffs.push(
+      `Carries $${CLOUDSQL_BASE_MONTHLY_USD.toFixed(2)}/mo Zonal Enterprise compute; HNSW halfvec uses more RAM than AlloyDB ScaNN.`
+    );
   }
   if (lid === "vertex_vector_v2" && tradeoffs.length === 0) {
     tradeoffs.push(`Carries $${VVS2_BASE_REPLICA_MONTHLY_USD.toFixed(2)}/mo minReplicaCount=1 standing compute unless torn down.`);
@@ -884,7 +976,14 @@ function scoreWorkloadFit(
 }
 
 function fallbackPriority(snap: RecordedCohortSnapshot): number {
-  const rank = snap.synthesis_model === "gemini-4-argon" ? 2 : snap.synthesis_model === "gemini-3.8-flash" ? 1 : 0;
+  const rank =
+    snap.synthesis_model === "gemini-4-neon"
+      ? 3
+      : snap.synthesis_model === "gemini-4-argon"
+        ? 2
+        : snap.synthesis_model === "gemini-3.8-flash"
+          ? 1
+          : 0;
   return rank * 10_000 + snap.runs;
 }
 
@@ -982,7 +1081,13 @@ export function estimateEnterpriseTco(workload: TcoWorkload, context: EstimateCo
     let standingUsd = 0;
     let standingNote = "$0.00/mo serverless idle compute (pay strictly per query + active storage).";
 
-    if (lid === "alloydb_scann") {
+    if (lid === "cloudsql_pgvector") {
+      units = Math.max(1, Math.ceil(validated.monthly_queries / CLOUDSQL_QUERIES_PER_UNIT_MONTH));
+      standingUsd = round2(units * CLOUDSQL_BASE_MONTHLY_USD);
+      standingNote =
+        `${units}x 2-vCPU / 8 GiB Zonal Cloud SQL Enterprise primary ($${CLOUDSQL_BASE_MONTHLY_USD.toFixed(2)}/mo per unit; ` +
+        `Regional HA ~2x; $0/mo idle when torn down via scripts/ephemeral_cloudsql.sh).`;
+    } else if (lid === "alloydb_scann") {
       units = Math.max(1, Math.ceil(validated.monthly_queries / ALLOYDB_QUERIES_PER_UNIT_MONTH));
       standingUsd = round2(units * ALLOYDB_BASE_MONTHLY_USD);
       standingNote =
@@ -1007,7 +1112,7 @@ export function estimateEnterpriseTco(workload: TcoWorkload, context: EstimateCo
     } else if (lid === "level2_hybrid") {
       const chunkGib = (validated.corpus_pages * 28 * 1024) / BYTES_PER_GIB;
       storageUsd = gcsMonthly + chunkGib * BQ_ACTIVE_STORAGE_USD_PER_GIB_MONTH;
-    } else if (lid === "level3_multimodal" || lid === "level4_agentic") {
+    } else if (lid === "level3_multimodal" || lid === "bigquery_graphrag" || lid === "level4_agentic") {
       const chunkGib = (validated.corpus_pages * 62 * 1024) / BYTES_PER_GIB;
       storageUsd = gcsMonthly + chunkGib * BQ_ACTIVE_STORAGE_USD_PER_GIB_MONTH;
     } else if (lid === "managed_vertex") {
@@ -1016,6 +1121,9 @@ export function estimateEnterpriseTco(workload: TcoWorkload, context: EstimateCo
     } else if (lid === "rag_engine") {
       const ragGib = (validated.corpus_pages * 32 * 1024) / BYTES_PER_GIB;
       storageUsd = gcsMonthly + ragGib * RAG_ENGINE_STORAGE_USD_PER_GIB_MONTH;
+    } else if (lid === "cloudsql_pgvector") {
+      const hybridGib = (validated.corpus_pages * 28 * 1024) / BYTES_PER_GIB;
+      storageUsd = gcsMonthly + Math.max(CLOUDSQL_MIN_STORAGE_GIB, hybridGib * 1.6) * CLOUDSQL_STORAGE_USD_PER_GIB_MONTH;
     } else if (lid === "alloydb_scann") {
       const hybridGib = (validated.corpus_pages * 28 * 1024) / BYTES_PER_GIB;
       storageUsd = gcsMonthly + Math.max(ALLOYDB_MIN_STORAGE_GIB, hybridGib * 1.5) * ALLOYDB_STORAGE_USD_PER_GIB_MONTH;
@@ -1036,6 +1144,7 @@ export function estimateEnterpriseTco(workload: TcoWorkload, context: EstimateCo
       lid === "level1_naive" ||
       lid === "level2_hybrid" ||
       lid === "level3_multimodal" ||
+      lid === "bigquery_graphrag" ||
       lid === "level4_agentic"
     ) {
       const scanBytesPerQ = bqScanBytesPerQuery(lid, validated.corpus_pages);
@@ -1062,7 +1171,7 @@ export function estimateEnterpriseTco(workload: TcoWorkload, context: EstimateCo
 
     let oneTimeIngestUsd: number;
     let ingestNote: string;
-    if (lid === "level3_multimodal" || lid === "level4_agentic") {
+    if (lid === "level3_multimodal" || lid === "bigquery_graphrag" || lid === "level4_agentic") {
       const docaiUsd = (validated.corpus_pages / 1_000) * DOCAI_LAYOUT_USD_PER_1K_PAGES;
       const diagramPages = validated.corpus_pages * diagRatio;
       const visionUsd =

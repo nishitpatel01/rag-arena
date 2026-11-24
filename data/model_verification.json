@@ -1,62 +1,69 @@
 {
   "format_version": 1,
-  "verified_at": "2026-11-18T17:19:07Z",
+  "verified_at": "2026-11-23T22:11:44Z",
   "models": [
+    {
+      "id": "gemini-4-neon",
+      "ok": true,
+      "http_status": 200,
+      "message": "OK",
+      "verified_at": "2026-11-23T22:11:29Z"
+    },
     {
       "id": "gemini-4-hydrogen",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-11-18T17:18:54Z"
+      "verified_at": "2026-11-23T22:11:30Z"
     },
     {
       "id": "gemini-4-carbon",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-11-18T17:18:58Z"
+      "verified_at": "2026-11-23T22:11:34Z"
     },
     {
       "id": "gemini-4-argon",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-11-18T17:19:01Z"
+      "verified_at": "2026-11-23T22:11:39Z"
     },
     {
       "id": "claude-sonnet-4-6",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-11-18T17:19:03Z"
+      "verified_at": "2026-11-23T22:11:41Z"
     },
     {
       "id": "claude-opus-5-5",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-11-18T17:19:05Z"
+      "verified_at": "2026-11-23T22:11:43Z"
     },
     {
       "id": "gemini-3.8-flash",
       "ok": true,
       "http_status": 200,
       "message": "OK",
-      "verified_at": "2026-11-18T17:19:07Z"
+      "verified_at": "2026-11-23T22:11:44Z"
     },
     {
       "id": "claude-fable-5-2",
       "ok": false,
       "http_status": 403,
       "message": "Access to this model requires data sharing to be enabled for publisher 'anthropic'. Please set `PublisherModelConfig.data_sharing_enabled_provider` to 'anthropic' via the setPublisherModelConfig API to use this model.",
-      "verified_at": "2026-11-18T17:19:07Z"
+      "verified_at": "2026-11-23T22:11:44Z"
     },
     {
       "id": "claude-fable-5-1",
       "ok": false,
       "http_status": 429,
       "message": "Quota exceeded for aiplatform.googleapis.com/global_online_prediction_requests_per_base_model with base model: anthropic-claude-fable. Please submit a quota increase request. https://cloud.google.com/vertex-ai/docs/generative-ai/quotas-genai.",
-      "verified_at": "2026-11-18T17:19:07Z"
+      "verified_at": "2026-11-23T22:11:44Z"
     }
   ]
 }
